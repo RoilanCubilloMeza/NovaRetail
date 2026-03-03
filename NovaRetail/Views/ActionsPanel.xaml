@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:NovaRetail.Controls"
+             x:Class="NovaRetail.Views.ActionsPanel">
+
+    <Border Style="{DynamicResource PanelCard}"
+            Margin="6,10,12,10">
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="0" Padding="14,14">
+
+                <!-- Tipo de Cambio -->
+                <Label Text="Tipo de Cambio"
+                       Style="{DynamicResource SectionSubheaderLabel}"/>
+
+                <Border Style="{DynamicResource InfoDisplayBorder}"
+                        Margin="0,0,0,14">
+                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="6">
+                        <Label Grid.Column="0" Text="USD &#x2192; CRC" FontSize="12"
+                               TextColor="{DynamicResource Gray500}"
+                               VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="{Binding ExchangeRateText}"
+                               FontSize="14" FontAttributes="Bold"
+                               TextColor="{DynamicResource Gray900}"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center"/>
+                        <Label Grid.Column="2" Text="&#x1F504;" FontSize="12"
+                               TextColor="{DynamicResource Gray400}"
+                               VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <BoxView Style="{DynamicResource FormDivider}" Margin="0,0,0,14"/>
+
+                <!-- Action Buttons -->
+                <VerticalStackLayout Spacing="6">
+
+                    <controls:ActionLinkRow Icon="&#x1F4CB;" Text="Cotización"
+                                            SurfaceColor="#EFF6FF" StrokeColor="#BFDBFE"
+                                            IconColor="#3B82F6" LabelColor="#1D4ED8" ArrowColor="#3B82F6"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Cotización"
+                                            SurfaceColor="#F0FDF4" StrokeColor="#BBF7D0"
+                                            IconColor="#10B981" LabelColor="#065F46" ArrowColor="#10B981"/>
+
+                    <controls:ActionLinkRow Icon="&#x23F8;&#xFE0E;" Text="Fac. Espera"
+                                            SurfaceColor="#FFFBEB" StrokeColor="#FDE68A"
+                                            IconColor="#F59E0B" LabelColor="#92400E" ArrowColor="#F59E0B"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F504;" Text="Rec. Espera"
+                                            SurfaceColor="#F5F3FF" StrokeColor="#DDD6FE"
+                                            IconColor="#8B5CF6" LabelColor="#5B21B6" ArrowColor="#8B5CF6"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Orden Pedido"
+                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
+                                            IconColor="#6366F1" LabelColor="#3730A3" ArrowColor="#6366F1"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Pedido"
+                                            SurfaceColor="#F8FAFC" StrokeColor="#CBD5E1"
+                                            IconColor="#64748B" LabelColor="#334155" ArrowColor="#64748B"/>
+
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Border>
+
+</ContentView>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- POS -->
+    <Color x:Key="PageBackground">#F1F5F9</Color>
+    <Color x:Key="AccentOrange">#EA580C</Color>
+    <Color x:Key="AccentGreen">#22C55E</Color>
+    <Color x:Key="AccentBlue">#3B82F6</Color>
+    <Color x:Key="ErrorRed">#EF4444</Color>
+    <Color x:Key="InputBackground">#F3F4F6</Color>
+    <Color x:Key="GreenSurface">#EDFDF4</Color>
+
+    <!-- Panel / UI chrome -->
+    <Color x:Key="PanelNavy">#1E293B</Color>
+    <Color x:Key="SlateActive">#475569</Color>
+    <Color x:Key="OrangeDark">#C04800</Color>
+
+    <SolidColorBrush x:Key="AccentGreenBrush"    Color="{StaticResource AccentGreen}"/>
+    <SolidColorBrush x:Key="AccentBlueBrush"     Color="{StaticResource AccentBlue}"/>
+    <SolidColorBrush x:Key="ErrorRedBrush"       Color="{StaticResource ErrorRed}"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="{StaticResource InputBackground}"/>
+    <SolidColorBrush x:Key="GreenSurfaceBrush"   Color="{StaticResource GreenSurface}"/>
+</ResourceDictionary>

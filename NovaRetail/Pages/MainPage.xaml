@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:NovaRetail.Views"
+             x:Class="NovaRetail.MainPage"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid x:Name="MainGrid" ColumnDefinitions="560, *, 220" ColumnSpacing="0">
+        <views:CartPanel     Grid.Column="0"/>
+        <views:ProductsPanel Grid.Column="1"/>
+        <views:ActionsPanel  Grid.Column="2"/>
+    </Grid>
+
+</ContentPage>

@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:NovaRetail.Controls"
+             x:Class="NovaRetail.Views.CartPanel"
+             x:Name="ThisPanel">
+
+    <Border Style="{DynamicResource PanelCard}"
+            Margin="12,10,6,10">
+
+        <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="0">
+
+            <!-- Row 0: Client Info Header -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto, *, Auto, Auto"
+                  ColumnSpacing="8"
+                  Padding="14,12,14,10">
+                <Border Grid.Column="0"
+                        Style="{DynamicResource ClientAvatarBorder}">
+                    <Label Text="&#x1F464;" FontSize="18"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Border>
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label Text="Cod. Cliente 3-101-718276"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{DynamicResource Gray900}"
+                           LineBreakMode="TailTruncation"/>
+                    <Label Text="AVS Solutions"
+                           FontSize="11" TextColor="{DynamicResource Gray500}"/>
+                </VerticalStackLayout>
+                <Border Grid.Column="2"
+                        BackgroundColor="{DynamicResource AccentBlue}"
+                        StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                        Padding="10,6" HeightRequest="32">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.NavigateToClienteCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="F2 Cliente" TextColor="White" FontAttributes="Bold"
+                           FontSize="12" VerticalOptions="Center"/>
+                </Border>
+                <Border Grid.Column="3"
+                        BackgroundColor="{DynamicResource InputBackground}"
+                        StrokeShape="RoundRectangle 6" StrokeThickness="1"
+                        Stroke="{DynamicResource Gray200Brush}"
+                        Padding="10,6" HeightRequest="32">
+                    <Label Text="F3" TextColor="{DynamicResource Gray600}"
+                           FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
+                </Border>
+            </Grid>
+
+            <!-- Row 1: Table Header -->
+            <Border Grid.Row="1"
+                    BackgroundColor="{DynamicResource InputBackground}"
+                    StrokeShape="RoundRectangle 0" StrokeThickness="0"
+                    Padding="12,8">
+                <Grid ColumnDefinitions="*, 30, 80, 86, 96" ColumnSpacing="6">
+                    <Label Grid.Column="0" Text="Descripción Producto"
+                           Style="{DynamicResource TableHeaderLabel}"/>
+                    <Label Grid.Column="1" Text="Cant."
+                           Style="{DynamicResource TableHeaderLabel}"
+                           HorizontalTextAlignment="Center"/>
+                    <Label Grid.Column="2" Text="Precio"
+                           Style="{DynamicResource TableHeaderLabel}"
+                           HorizontalTextAlignment="End"/>
+                    <Label Grid.Column="3" Text="Total"
+                           Style="{DynamicResource TableHeaderLabel}"
+                           HorizontalTextAlignment="End"/>
+                </Grid>
+            </Border>
+
+            <!-- Row 2: Cart Items (scroll) -->
+            <CollectionView Grid.Row="2" ItemsSource="{Binding CartItems}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <VerticalStackLayout Spacing="0">
+                            <Grid ColumnDefinitions="*, 30, 80, 86, 96"
+                                  ColumnSpacing="6" Padding="12,9,12,9">
+
+                                <!-- Col 0: prefix + emoji + name -->
+                                <Label Grid.Column="0"
+                                       FontSize="13" FontAttributes="Bold"
+                                       TextColor="{DynamicResource Gray900}"
+                                       LineBreakMode="WordWrap"
+                                       VerticalOptions="Start">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding QuantityPrefix}"
+                                                  TextColor="{DynamicResource AccentBlue}"
+                                                  FontAttributes="Bold"/>
+                                            <Span Text="  "/>
+                                            <Span Text="{Binding Emoji}"/>
+                                            <Span Text=" "/>
+                                            <Span Text="{Binding Name}"/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+
+                                <!-- Col 1: quantity -->
+                                <Label Grid.Column="1"
+                                       Text="{Binding QuantityPrefix}"
+                                       FontSize="12"
+                                       TextColor="{DynamicResource Gray600}"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalOptions="Center"/>
+
+                                <!-- Col 2: unit price (colones + usd) -->
+                                <VerticalStackLayout Grid.Column="2"
+                                                     VerticalOptions="Center"
+                                                     HorizontalOptions="End"
+                                                     Spacing="1">
+                                    <Label Text="{Binding UnitPriceColonesText}"
+                                           Style="{DynamicResource CartPriceMainLabel}"/>
+                                    <Label Text="{Binding UnitPriceUsdText}"
+                                           Style="{DynamicResource CartPriceSubLabel}"/>
+                                </VerticalStackLayout>
+
+                                <!-- Col 3: total (colones + usd) -->
+                                <VerticalStackLayout Grid.Column="3"
+                                                     VerticalOptions="Center"
+                                                     HorizontalOptions="End"
+                                                     Spacing="1">
+                                    <Label Text="{Binding TotalColonesText}"
+                                           Style="{DynamicResource CartPriceMainLabel}"/>
+                                    <Label Text="{Binding TotalUsdText}"
+                                           Style="{DynamicResource CartPriceSubLabel}"/>
+                                </VerticalStackLayout>
+
+                                <!-- Col 4: − / qty / + touch controls -->
+                                <Grid Grid.Column="4"
+                                      ColumnDefinitions="28, *, 28" ColumnSpacing="2"
+                                      VerticalOptions="Center">
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="{DynamicResource AccentOrange}"
+                                            StrokeShape="RoundRectangle 7" StrokeThickness="0"
+                                            HeightRequest="34" Padding="0">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="−" FontSize="18" FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Quantity}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{DynamicResource Gray900}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalOptions="Center"/>
+                                    <Border Grid.Column="2"
+                                            BackgroundColor="{DynamicResource AccentGreen}"
+                                            StrokeShape="RoundRectangle 7" StrokeThickness="0"
+                                            HeightRequest="34" Padding="0">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IncrementCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="+" FontSize="18" FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+                                </Grid>
+
+                            </Grid>
+                            <BoxView Style="{DynamicResource CartRowDivider}"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <Label Text="Carrito vacío"
+                           Style="{DynamicResource EmptyCollectionLabel}"/>
+                </CollectionView.EmptyView>
+            </CollectionView>
+
+            <!-- Row 3: Totals + Actions -->
+            <VerticalStackLayout Grid.Row="3" Spacing="0">
+
+                <BoxView Color="{DynamicResource Gray200}" HeightRequest="1"/>
+
+                <!-- Totals: Subtotal + TOTAL in colones -->
+                <Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto"
+                      Padding="14,12,14,4" ColumnSpacing="8">
+                    <Label Grid.Column="0" Text="Totales:"
+                           FontSize="15" FontAttributes="Bold"
+                           TextColor="{DynamicResource Gray600}"
+                           VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="Subtotal:"
+                           FontSize="13"
+                           TextColor="{DynamicResource Gray500}"
+                           VerticalOptions="Center"/>
+                    <Label Grid.Column="2" Text="{Binding SubtotalColonesText}"
+                           Style="{DynamicResource CartTotalLabel}"/>
+                    <Label Grid.Column="3" Text="TOTAL:"
+                           FontSize="15" FontAttributes="Bold"
+                           TextColor="{DynamicResource Gray600}"
+                           VerticalOptions="Center"/>
+                    <Label Grid.Column="4" Text="{Binding TotalColonesText}"
+                           Style="{DynamicResource CartTotalLabel}"
+                           HorizontalTextAlignment="End"/>
+                </Grid>
+
+                <!-- USD totals: Impuestos + Total USD -->
+                <Grid ColumnDefinitions="Auto, Auto, *, Auto"
+                      Padding="14,0,14,10" ColumnSpacing="8">
+                    <Label Grid.Column="0" Text="Impuestos:"
+                           FontSize="13" TextColor="{DynamicResource Gray400}"/>
+                    <Label Grid.Column="1" Text="{Binding TaxText}"
+                           FontSize="13" TextColor="{DynamicResource Gray400}"/>
+                    <BoxView Grid.Column="2" Color="Transparent" HeightRequest="0"/>
+                    <Label Grid.Column="3" Text="{Binding TotalText}"
+                           FontSize="13" TextColor="{DynamicResource Gray400}"
+                           HorizontalTextAlignment="End"/>
+                </Grid>
+
+                <!-- Orange bar: Vaciar Ticket + Big TOTAL -->
+                <Border Style="{DynamicResource CartBottomBar}">
+                    <Grid ColumnDefinitions="Auto, *">
+                        <Border Grid.Column="0"
+                                BackgroundColor="{DynamicResource OrangeDark}"
+                                StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                                Padding="10,6" HeightRequest="38"
+                                VerticalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ClearCartCommand}"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="5">
+                                <Label Text="&#x1F5D1;" FontSize="13"
+                                       TextColor="White" VerticalOptions="Center"/>
+                                <Label Text="Vaciar Ticket" TextColor="White"
+                                       FontSize="12" FontAttributes="Bold"
+                                       VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
+                            <!-- TC · Sub · IVA pills -->
+                            <HorizontalStackLayout HorizontalOptions="End" Spacing="4">
+                                <controls:InfoPill Title="TC" Value="{Binding ExchangeRateText}"/>
+                                <controls:InfoPill Title="Sub" Value="{Binding SubtotalColonesText}"/>
+                                <controls:InfoPill Title="IVA" Value="{Binding TaxColonesText}"/>
+                            </HorizontalStackLayout>
+                            <!-- Big total -->
+                            <Label Text="TOTAL:" FontSize="12" TextColor="White"
+                                   HorizontalTextAlignment="End" Opacity="0.85"/>
+                            <Label Text="{Binding TotalColonesText}"
+                                   FontSize="28" FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalTextAlignment="End"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+            </VerticalStackLayout>
+
+        </Grid>
+    </Border>
+
+</ContentView>
