@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="RMHC_DEMO" Class="LINQDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="WebSettings" ConnectionString="Data Source=45.56.165.226,5010;Initial Catalog=BM_POS_MSV;Persist Security Info=True;User ID=demo" SettingsObjectName="System.Configuration.ConfigurationManager.ConnectionStrings" SettingsPropertyName="BM_POS_MSVConnectionString2" Provider="System.Data.SqlClient" />
+  <Function Name="dbo.spAVSCreaOrden" Method="spAVSCreaOrden">
+    <Parameter Name="IdOrdenOnline" Parameter="idOrdenOnline" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="IpAddress" Parameter="ipAddress" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="AccountNumber" Parameter="accountNumber" Type="System.String" DbType="VarChar(13)" />
+    <Parameter Name="Tax" Parameter="tax" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Total" Parameter="total" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="ReferenceNumber" Parameter="referenceNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="TypeTransac" Parameter="typeTransac" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCreaOrdenEntry" Method="spAVSCreaOrdenEntry">
+    <Parameter Name="ReferenceNumber" Parameter="referenceNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="Sku" Parameter="sku" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="Price" Parameter="price" Type="System.Decimal" DbType="Decimal(18,2)" />
+    <Parameter Name="QuantityOnOrder" Parameter="quantityOnOrder" Type="System.Decimal" DbType="Decimal(18,2)" />
+    <Parameter Name="ItemDescription" Parameter="itemDescription" Type="System.String" DbType="NVarChar(30)" />
+    <Return Type="System.Int32" />
+  </Function>
+</Database>

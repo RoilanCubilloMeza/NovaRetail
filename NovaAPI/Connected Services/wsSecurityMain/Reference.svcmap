@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ReferenceGroup xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ID="6787c123-598d-4c2e-92a0-a8d4b8f0b22a" xmlns="urn:schemas-microsoft-com:xml-wcfservicemap">
+  <ClientOptions>
+    <GenerateAsynchronousMethods>false</GenerateAsynchronousMethods>
+    <GenerateTaskBasedAsynchronousMethod>true</GenerateTaskBasedAsynchronousMethod>
+    <EnableDataBinding>true</EnableDataBinding>
+    <ExcludedTypes />
+    <ImportXmlTypes>false</ImportXmlTypes>
+    <GenerateInternalTypes>false</GenerateInternalTypes>
+    <GenerateMessageContracts>false</GenerateMessageContracts>
+    <NamespaceMappings />
+    <CollectionMappings />
+    <GenerateSerializableTypes>true</GenerateSerializableTypes>
+    <Serializer>Auto</Serializer>
+    <UseSerializerForFaults>true</UseSerializerForFaults>
+    <ReferenceAllAssemblies>true</ReferenceAllAssemblies>
+    <ReferencedAssemblies />
+    <ReferencedDataContractTypes />
+    <ServiceContractMappings />
+  </ClientOptions>
+  <MetadataSources>
+    <MetadataSource Address="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" Protocol="http" SourceId="1" />
+  </MetadataSources>
+  <Metadata>
+    <MetadataFile FileName="FacturaMeCRService.disco" MetadataType="Disco" ID="ed7e7bc2-504d-496f-8c32-585709680c56" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?disco" />
+    <MetadataFile FileName="FacturaMeCRService.xsd" MetadataType="Schema" ID="622b83a3-7a24-4c8f-9871-07d4f277c1f4" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd4" />
+    <MetadataFile FileName="FacturaMeCRService1.xsd" MetadataType="Schema" ID="8505a790-f0b4-4244-81f2-84b45e6a9110" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd5" />
+    <MetadataFile FileName="FacturaMeCRService2.xsd" MetadataType="Schema" ID="b7470ece-19d7-44ba-a413-d4bff45dc201" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd6" />
+    <MetadataFile FileName="FacturaMeCrService.wsdl" MetadataType="Wsdl" ID="dc3d0273-a9e1-47e0-bc36-679e3208c421" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?wsdl" />
+    <MetadataFile FileName="FacturaMeCRService3.xsd" MetadataType="Schema" ID="18a07e16-06d4-46b4-8dbb-fdb02d834568" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd0" />
+    <MetadataFile FileName="FacturaMeCRService4.xsd" MetadataType="Schema" ID="ef333c95-b869-4b50-b679-17d26f5d7004" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd1" />
+    <MetadataFile FileName="FacturaMeCRService5.xsd" MetadataType="Schema" ID="5ce095a3-fdaf-4732-acb9-6bed4e6c5ed8" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd2" />
+    <MetadataFile FileName="FacturaMeCRService6.xsd" MetadataType="Schema" ID="def4ba9e-5387-495d-839c-2a7b419e4b08" SourceId="1" SourceUrl="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd3" />
+  </Metadata>
+  <Extensions>
+    <ExtensionFile FileName="configuration91.svcinfo" Name="configuration91.svcinfo" />
+    <ExtensionFile FileName="configuration.svcinfo" Name="configuration.svcinfo" />
+  </Extensions>
+</ReferenceGroup>

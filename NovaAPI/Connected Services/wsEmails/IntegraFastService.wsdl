@@ -1,0 +1,1003 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:tns="http://tempuri.org/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <s:element name="GetValidaClienteExiste">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CedulaCliente" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetValidaClienteExisteResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetValidaClienteExisteResult" type="tns:EmisorOr" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="EmisorOr">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Nombre" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodActividadHacienda" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="ID_Tipo" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="ID_NUMERO" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NombreComercial" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Provincia" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="Canton" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Distrito" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Barrio" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="OtrasSenas" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodPais" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumTelefono" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CorreoElectronico" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="API_USER" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="API_Clave" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="API_Certificado" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="API_Vence" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="API_PIN" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="PlantillaHTML" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="LogoHTML" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="FooterHTML" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GetClave_50">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CodPais" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="FechaTransac" type="s:dateTime" />
+            <s:element minOccurs="0" maxOccurs="1" name="idEmpresa" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="codSucursal" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TerminalPOS" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="ComprobanteInterno" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="SituacionComprobante" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TipoComprobante" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetClave_50Response">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetClave_50Result" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetClave_20">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="codSucursal" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TerminalPOS" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="ComprobanteInterno" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="SituacionComprobante" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TipoComprobante" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetClave_20Response">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetClave_20Result" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMsjAdvice">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="path" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="msj" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMsjAdviceResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetMsjAdviceResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="CreaXMLGeneraTiqueteElectronicoPruebas">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="_Emisor" type="tns:EmisorOr" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Receptor" type="tns:ReceptorFE" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Factura" type="tns:EncFactura" />
+            <s:element minOccurs="0" maxOccurs="1" name="_TipoComprobante" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Clave" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Consecutivo" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario1" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario2" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario3" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario4" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario5" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario6" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario7" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="OrdenCompra" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="FechaOrdenCompra" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Token" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Token_Expiracion" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ReceptorFE">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Nombre" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Identificacion" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Tipo" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Numero" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CorreoElectronico" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Provincia" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Canton" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Distrito" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Barrio" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="OtrasSenias" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodPais" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumTelefono" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="EncFactura">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Observaciones" type="tns:ArrayOfString" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario1" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario2" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario3" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Clave50" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Clave20" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Clave" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodCliente" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodigoMoneda" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodSucursal" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CondicionVenta" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ConsecutivoPos" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="Detalle" type="tns:ArrayOfDetFactura" />
+          <s:element minOccurs="1" maxOccurs="1" name="DiasCredito" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="EmailCliente" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="EnviarCliente" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="FechaEmision" type="s:dateTime" />
+          <s:element minOccurs="1" maxOccurs="1" name="IdentificacionExtranjero" type="s:boolean" />
+          <s:element minOccurs="0" maxOccurs="1" name="MedioPago1" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MedioPago2" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MedioPago3" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MedioPago4" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NIT" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NombreCliente" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumeroConsecutivo" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="PlazoCredito" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NC_RazonCodigo" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="NC_ReferenciaFecha" nillable="true" type="s:dateTime" />
+          <s:element minOccurs="0" maxOccurs="1" name="NC_ReferenciaNumero" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NC_RazonDetalle" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NC_TipoDocumento" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Situacion" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="Terminal" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoCambio" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoDocumento" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoIdentificacion" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_SERVICIOS_GRAVADOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_SERVICIOS_EXENTOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_SERVICIOS_EXONERADOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_MERCADERIA_GRAVADA" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_MERCADERIA_EXENTA" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_MERCADERIA_EXONERADOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_GRAVADO" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_EXENTO" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_EXONERADO" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_VENTA" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_DESCUENTOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_VENTA_NETA" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_IMPUESTOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_IVA_DEVUELTO" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_OTROS_CARGOS" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="TOTAL_COMPROBANTE" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="TokenUS" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TokenExpiracion" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Provincia" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Canton" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Distrito" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Barrio" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="OtrasSenias" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodPais" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumTelefono" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ID_CLIENTE_ORIGEN" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario4" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario5" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario6" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Comentario7" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="OCNum" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="OCFecha" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfString">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="string" nillable="true" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfDetFactura">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="DetFactura" nillable="true" type="tns:DetFactura" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="DetFactura">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Cantidad" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodPro" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Detalle" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ExoneracionFechaEmision" nillable="true" type="s:dateTime" />
+          <s:element minOccurs="1" maxOccurs="1" name="ExoneracionMontoImpuesto" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="ExoneracionNombreInstitucion" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="ExoneracionNumeroDocumento" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ExoneracionPorcentajeCompra" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="ExoneracionTipoDocumento" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="ImpuestoCodigo" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ImpuestoMonto" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="ImpuestoTarifa" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="MontoDescuento" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="MontoTotal" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="MontoTotalLinea" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="NaturalezaDescuento" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="NumLinea" type="s:int" />
+          <s:element minOccurs="1" maxOccurs="1" name="PrecioUnitario" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="SubTotal" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoCodigo" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="UnidadMedida" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="BaseImponible" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="FactorIVA" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="CodTarifaIVA" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="ImpuestoNeto" type="s:decimal" />
+          <s:element minOccurs="0" maxOccurs="1" name="Cabys" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="CreaXMLGeneraTiqueteElectronicoPruebasResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CreaXMLGeneraTiqueteElectronicoPruebasResult" type="tns:EnteroRetornoHacienda" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="EnteroRetornoHacienda">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="XMLFirmado" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="XMLSNFirmado" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Token" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Token_expiracion" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="XMLConfirmacion" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="StatusCode" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MensajeCode" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GetEmisorData">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CedulaEmisor" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TokenAPI" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetEmisorDataResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetEmisorDataResult" type="tns:EmisorOr" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="InsertFileXMLPruebas">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="path" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="NameFile" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="XML" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="html" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="tipo" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="InsertFileXMLPruebasResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="InsertFileXMLPruebasResult" type="s:boolean" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetDirectoryIIS">
+        <s:complexType />
+      </s:element>
+      <s:element name="GetDirectoryIISResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetDirectoryIISResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="EnviaXMLHaciendaPruebas">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="_Emisor" type="tns:EmisorOr" />
+            <s:element minOccurs="0" maxOccurs="1" name="XML" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comprobante" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TokenUS" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Token_ExpiracionUS" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Receptor" type="tns:ReceptorFE" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="EnviaXMLHaciendaPruebasResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="EnviaXMLHaciendaPruebasResult" type="tns:EnteroRetornoHacienda" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="VerificaXMLHaciendaPruebas">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="_Emisor" type="tns:EmisorOr" />
+            <s:element minOccurs="0" maxOccurs="1" name="clave" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="TokenUS" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="VerificaXMLHaciendaPruebasResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="VerificaXMLHaciendaPruebasResult" type="tns:RespuestaHacienda" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="RespuestaHacienda">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="clave" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="fecha" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="ind_estado" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="respuesta_xml" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TokenFull" type="tns:Token" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="Token">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="access_token" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="refresh_token" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="expires_in" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="refresh_expires_in" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="EnviaEmail">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="smtpCode" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="para" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CC" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CCO" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="asunto" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="cuerpo" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="EnviaEmailResponse">
+        <s:complexType />
+      </s:element>
+      <s:element name="EnviaEmailAdjuntosPruebas">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="smtpCode" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="para" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CC" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="asunto" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="cuerpo" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="path" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Ubicacion" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CCO" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="EnviaEmailAdjuntosPruebasResponse">
+        <s:complexType />
+      </s:element>
+      <s:element name="EnviaEmailAdjuntosMemoryStream">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="smtpCode" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="para" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CC" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="asunto" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="cuerpo" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="NombreArchivo" type="tns:ArrayOfString" />
+            <s:element minOccurs="0" maxOccurs="1" name="pdfBytes" type="tns:ArrayOfBase64Binary" />
+            <s:element minOccurs="0" maxOccurs="1" name="CCO" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ArrayOfBase64Binary">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="base64Binary" nillable="true" type="s:base64Binary" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="EnviaEmailAdjuntosMemoryStreamResponse">
+        <s:complexType />
+      </s:element>
+      <s:element name="EnviaEmailSinAdjuntos">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="smtpCode" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="para" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CC" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="asunto" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="cuerpo" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="token" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CCO" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="EnviaEmailSinAdjuntosResponse">
+        <s:complexType />
+      </s:element>
+      <s:element name="GeneraHTML">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="_Emisor" type="tns:EmisorOr" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Receptor" type="tns:ReceptorFE" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Factura" type="tns:EncFactura" />
+            <s:element minOccurs="0" maxOccurs="1" name="_TipoComprobante" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Clave" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Consecutivo" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario1" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario2" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario3" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario4" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario5" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario6" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Comentario7" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="OrdenCompra" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="FechaOrdenCompra" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GeneraHTMLResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GeneraHTMLResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetHtml_02">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="HtmlPlantilla" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="_Factura" type="tns:EncFactura" />
+            <s:element minOccurs="0" maxOccurs="1" name="_TipoComprobante" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetHtml_02Response">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetHtml_02Result" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GeneraMR">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="_Emisor" type="tns:EmisorOr" />
+            <s:element minOccurs="0" maxOccurs="1" name="XML" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="objRecepcion" type="tns:MensajeReceptorMH" />
+            <s:element minOccurs="0" maxOccurs="1" name="TokenUS" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="MensajeReceptorMH">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Clave" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumeroIDEmisor" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="FechaEmisionDoc" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Mensaje" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="DetalleMsj" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MontoTotalImpuesto" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TotalFactura" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumeroIDReceptor" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NumeroConsecutivoReceptor" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoIDEmisor" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TipoIDReceptor" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="documentoXML" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GeneraMRResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GeneraMRResult" type="tns:EnteroRetornoHacienda" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="GetValidaClienteExisteSoapIn">
+    <wsdl:part name="parameters" element="tns:GetValidaClienteExiste" />
+  </wsdl:message>
+  <wsdl:message name="GetValidaClienteExisteSoapOut">
+    <wsdl:part name="parameters" element="tns:GetValidaClienteExisteResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetClave_50SoapIn">
+    <wsdl:part name="parameters" element="tns:GetClave_50" />
+  </wsdl:message>
+  <wsdl:message name="GetClave_50SoapOut">
+    <wsdl:part name="parameters" element="tns:GetClave_50Response" />
+  </wsdl:message>
+  <wsdl:message name="GetClave_20SoapIn">
+    <wsdl:part name="parameters" element="tns:GetClave_20" />
+  </wsdl:message>
+  <wsdl:message name="GetClave_20SoapOut">
+    <wsdl:part name="parameters" element="tns:GetClave_20Response" />
+  </wsdl:message>
+  <wsdl:message name="GetMsjAdviceSoapIn">
+    <wsdl:part name="parameters" element="tns:GetMsjAdvice" />
+  </wsdl:message>
+  <wsdl:message name="GetMsjAdviceSoapOut">
+    <wsdl:part name="parameters" element="tns:GetMsjAdviceResponse" />
+  </wsdl:message>
+  <wsdl:message name="CreaXMLGeneraTiqueteElectronicoPruebasSoapIn">
+    <wsdl:part name="parameters" element="tns:CreaXMLGeneraTiqueteElectronicoPruebas" />
+  </wsdl:message>
+  <wsdl:message name="CreaXMLGeneraTiqueteElectronicoPruebasSoapOut">
+    <wsdl:part name="parameters" element="tns:CreaXMLGeneraTiqueteElectronicoPruebasResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetEmisorDataSoapIn">
+    <wsdl:part name="parameters" element="tns:GetEmisorData" />
+  </wsdl:message>
+  <wsdl:message name="GetEmisorDataSoapOut">
+    <wsdl:part name="parameters" element="tns:GetEmisorDataResponse" />
+  </wsdl:message>
+  <wsdl:message name="InsertFileXMLPruebasSoapIn">
+    <wsdl:part name="parameters" element="tns:InsertFileXMLPruebas" />
+  </wsdl:message>
+  <wsdl:message name="InsertFileXMLPruebasSoapOut">
+    <wsdl:part name="parameters" element="tns:InsertFileXMLPruebasResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetDirectoryIISSoapIn">
+    <wsdl:part name="parameters" element="tns:GetDirectoryIIS" />
+  </wsdl:message>
+  <wsdl:message name="GetDirectoryIISSoapOut">
+    <wsdl:part name="parameters" element="tns:GetDirectoryIISResponse" />
+  </wsdl:message>
+  <wsdl:message name="EnviaXMLHaciendaPruebasSoapIn">
+    <wsdl:part name="parameters" element="tns:EnviaXMLHaciendaPruebas" />
+  </wsdl:message>
+  <wsdl:message name="EnviaXMLHaciendaPruebasSoapOut">
+    <wsdl:part name="parameters" element="tns:EnviaXMLHaciendaPruebasResponse" />
+  </wsdl:message>
+  <wsdl:message name="VerificaXMLHaciendaPruebasSoapIn">
+    <wsdl:part name="parameters" element="tns:VerificaXMLHaciendaPruebas" />
+  </wsdl:message>
+  <wsdl:message name="VerificaXMLHaciendaPruebasSoapOut">
+    <wsdl:part name="parameters" element="tns:VerificaXMLHaciendaPruebasResponse" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailSoapIn">
+    <wsdl:part name="parameters" element="tns:EnviaEmail" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailSoapOut">
+    <wsdl:part name="parameters" element="tns:EnviaEmailResponse" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailAdjuntosPruebasSoapIn">
+    <wsdl:part name="parameters" element="tns:EnviaEmailAdjuntosPruebas" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailAdjuntosPruebasSoapOut">
+    <wsdl:part name="parameters" element="tns:EnviaEmailAdjuntosPruebasResponse" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailAdjuntosMemoryStreamSoapIn">
+    <wsdl:part name="parameters" element="tns:EnviaEmailAdjuntosMemoryStream" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailAdjuntosMemoryStreamSoapOut">
+    <wsdl:part name="parameters" element="tns:EnviaEmailAdjuntosMemoryStreamResponse" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailSinAdjuntosSoapIn">
+    <wsdl:part name="parameters" element="tns:EnviaEmailSinAdjuntos" />
+  </wsdl:message>
+  <wsdl:message name="EnviaEmailSinAdjuntosSoapOut">
+    <wsdl:part name="parameters" element="tns:EnviaEmailSinAdjuntosResponse" />
+  </wsdl:message>
+  <wsdl:message name="GeneraHTMLSoapIn">
+    <wsdl:part name="parameters" element="tns:GeneraHTML" />
+  </wsdl:message>
+  <wsdl:message name="GeneraHTMLSoapOut">
+    <wsdl:part name="parameters" element="tns:GeneraHTMLResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetHtml_02SoapIn">
+    <wsdl:part name="parameters" element="tns:GetHtml_02" />
+  </wsdl:message>
+  <wsdl:message name="GetHtml_02SoapOut">
+    <wsdl:part name="parameters" element="tns:GetHtml_02Response" />
+  </wsdl:message>
+  <wsdl:message name="GeneraMRSoapIn">
+    <wsdl:part name="parameters" element="tns:GeneraMR" />
+  </wsdl:message>
+  <wsdl:message name="GeneraMRSoapOut">
+    <wsdl:part name="parameters" element="tns:GeneraMRResponse" />
+  </wsdl:message>
+  <wsdl:portType name="IntegraFastServiceSoap">
+    <wsdl:operation name="GetValidaClienteExiste">
+      <wsdl:input message="tns:GetValidaClienteExisteSoapIn" />
+      <wsdl:output message="tns:GetValidaClienteExisteSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_50">
+      <wsdl:input message="tns:GetClave_50SoapIn" />
+      <wsdl:output message="tns:GetClave_50SoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_20">
+      <wsdl:input message="tns:GetClave_20SoapIn" />
+      <wsdl:output message="tns:GetClave_20SoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetMsjAdvice">
+      <wsdl:input message="tns:GetMsjAdviceSoapIn" />
+      <wsdl:output message="tns:GetMsjAdviceSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="CreaXMLGeneraTiqueteElectronicoPruebas">
+      <wsdl:input message="tns:CreaXMLGeneraTiqueteElectronicoPruebasSoapIn" />
+      <wsdl:output message="tns:CreaXMLGeneraTiqueteElectronicoPruebasSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetEmisorData">
+      <wsdl:input message="tns:GetEmisorDataSoapIn" />
+      <wsdl:output message="tns:GetEmisorDataSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="InsertFileXMLPruebas">
+      <wsdl:input message="tns:InsertFileXMLPruebasSoapIn" />
+      <wsdl:output message="tns:InsertFileXMLPruebasSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetDirectoryIIS">
+      <wsdl:input message="tns:GetDirectoryIISSoapIn" />
+      <wsdl:output message="tns:GetDirectoryIISSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="EnviaXMLHaciendaPruebas">
+      <wsdl:input message="tns:EnviaXMLHaciendaPruebasSoapIn" />
+      <wsdl:output message="tns:EnviaXMLHaciendaPruebasSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="VerificaXMLHaciendaPruebas">
+      <wsdl:input message="tns:VerificaXMLHaciendaPruebasSoapIn" />
+      <wsdl:output message="tns:VerificaXMLHaciendaPruebasSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmail">
+      <wsdl:input message="tns:EnviaEmailSoapIn" />
+      <wsdl:output message="tns:EnviaEmailSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosPruebas">
+      <wsdl:input message="tns:EnviaEmailAdjuntosPruebasSoapIn" />
+      <wsdl:output message="tns:EnviaEmailAdjuntosPruebasSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosMemoryStream">
+      <wsdl:input message="tns:EnviaEmailAdjuntosMemoryStreamSoapIn" />
+      <wsdl:output message="tns:EnviaEmailAdjuntosMemoryStreamSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailSinAdjuntos">
+      <wsdl:input message="tns:EnviaEmailSinAdjuntosSoapIn" />
+      <wsdl:output message="tns:EnviaEmailSinAdjuntosSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GeneraHTML">
+      <wsdl:input message="tns:GeneraHTMLSoapIn" />
+      <wsdl:output message="tns:GeneraHTMLSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetHtml_02">
+      <wsdl:input message="tns:GetHtml_02SoapIn" />
+      <wsdl:output message="tns:GetHtml_02SoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GeneraMR">
+      <wsdl:input message="tns:GeneraMRSoapIn" />
+      <wsdl:output message="tns:GeneraMRSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="IntegraFastServiceSoap" type="tns:IntegraFastServiceSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetValidaClienteExiste">
+      <soap:operation soapAction="http://tempuri.org/GetValidaClienteExiste" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_50">
+      <soap:operation soapAction="http://tempuri.org/GetClave_50" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_20">
+      <soap:operation soapAction="http://tempuri.org/GetClave_20" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMsjAdvice">
+      <soap:operation soapAction="http://tempuri.org/GetMsjAdvice" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreaXMLGeneraTiqueteElectronicoPruebas">
+      <soap:operation soapAction="http://tempuri.org/CreaXMLGeneraTiqueteElectronicoPruebas" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetEmisorData">
+      <soap:operation soapAction="http://tempuri.org/GetEmisorData" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertFileXMLPruebas">
+      <soap:operation soapAction="http://tempuri.org/InsertFileXMLPruebas" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetDirectoryIIS">
+      <soap:operation soapAction="http://tempuri.org/GetDirectoryIIS" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaXMLHaciendaPruebas">
+      <soap:operation soapAction="http://tempuri.org/EnviaXMLHaciendaPruebas" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="VerificaXMLHaciendaPruebas">
+      <soap:operation soapAction="http://tempuri.org/VerificaXMLHaciendaPruebas" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmail">
+      <soap:operation soapAction="http://tempuri.org/EnviaEmail" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosPruebas">
+      <soap:operation soapAction="http://tempuri.org/EnviaEmailAdjuntosPruebas" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosMemoryStream">
+      <soap:operation soapAction="http://tempuri.org/EnviaEmailAdjuntosMemoryStream" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailSinAdjuntos">
+      <soap:operation soapAction="http://tempuri.org/EnviaEmailSinAdjuntos" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GeneraHTML">
+      <soap:operation soapAction="http://tempuri.org/GeneraHTML" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetHtml_02">
+      <soap:operation soapAction="http://tempuri.org/GetHtml_02" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GeneraMR">
+      <soap:operation soapAction="http://tempuri.org/GeneraMR" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="IntegraFastServiceSoap12" type="tns:IntegraFastServiceSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetValidaClienteExiste">
+      <soap12:operation soapAction="http://tempuri.org/GetValidaClienteExiste" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_50">
+      <soap12:operation soapAction="http://tempuri.org/GetClave_50" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetClave_20">
+      <soap12:operation soapAction="http://tempuri.org/GetClave_20" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMsjAdvice">
+      <soap12:operation soapAction="http://tempuri.org/GetMsjAdvice" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreaXMLGeneraTiqueteElectronicoPruebas">
+      <soap12:operation soapAction="http://tempuri.org/CreaXMLGeneraTiqueteElectronicoPruebas" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetEmisorData">
+      <soap12:operation soapAction="http://tempuri.org/GetEmisorData" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertFileXMLPruebas">
+      <soap12:operation soapAction="http://tempuri.org/InsertFileXMLPruebas" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetDirectoryIIS">
+      <soap12:operation soapAction="http://tempuri.org/GetDirectoryIIS" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaXMLHaciendaPruebas">
+      <soap12:operation soapAction="http://tempuri.org/EnviaXMLHaciendaPruebas" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="VerificaXMLHaciendaPruebas">
+      <soap12:operation soapAction="http://tempuri.org/VerificaXMLHaciendaPruebas" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmail">
+      <soap12:operation soapAction="http://tempuri.org/EnviaEmail" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosPruebas">
+      <soap12:operation soapAction="http://tempuri.org/EnviaEmailAdjuntosPruebas" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailAdjuntosMemoryStream">
+      <soap12:operation soapAction="http://tempuri.org/EnviaEmailAdjuntosMemoryStream" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="EnviaEmailSinAdjuntos">
+      <soap12:operation soapAction="http://tempuri.org/EnviaEmailSinAdjuntos" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GeneraHTML">
+      <soap12:operation soapAction="http://tempuri.org/GeneraHTML" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetHtml_02">
+      <soap12:operation soapAction="http://tempuri.org/GetHtml_02" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GeneraMR">
+      <soap12:operation soapAction="http://tempuri.org/GeneraMR" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="IntegraFastService">
+    <wsdl:port name="IntegraFastServiceSoap" binding="tns:IntegraFastServiceSoap">
+      <soap:address location="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx" />
+    </wsdl:port>
+    <wsdl:port name="IntegraFastServiceSoap12" binding="tns:IntegraFastServiceSoap12">
+      <soap12:address location="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
