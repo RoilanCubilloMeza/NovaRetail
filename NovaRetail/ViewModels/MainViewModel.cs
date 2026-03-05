@@ -1,14 +1,27 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows.Input;
 using NovaRetail.Models;
 using NovaRetail.Services;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
+        private static readonly string[] ItemsEndpoints =
+        {
+            "http://localhost:52500/api/Items?storeid=1&tipo=1&page=1&pageSize=300",
+            "http://127.0.0.1:52500/api/Items?storeid=1&tipo=1&page=1&pageSize=300"
+        };
+        private static readonly string[] SearchEndpoints =
+        {
+            "http://localhost:52500/api/Items/Search?criteria={0}&top=300",
+            "http://127.0.0.1:52500/api/Items/Search?criteria={0}&top=300"
+        };
         private readonly IDialogService _dialogService;
         private readonly List<ProductModel> _allProducts = new();
 
@@ -57,6 +70,7 @@ namespace NovaRetail.ViewModels
                     _productSearchText = value;
                     OnPropertyChanged();
                     FilterProducts();
+                    _ = SearchFromApiAsync(_productSearchText);
                 }
             }
         }
@@ -111,12 +125,17 @@ namespace NovaRetail.ViewModels
                     OnPropertyChanged(nameof(IsCatHogar));
                     OnPropertyChanged(nameof(BreadcrumbText));
                     FilterProducts();
+
+                    if (_selectedCategory == "Todos" || _selectedCategory == "Super" || _selectedCategory == "Supermercado")
+                        _ = LoadProductsAsync();
+
+                    _ = LoadCategoryProductsAsync(_selectedCategory);
                 }
             }
         }
 
         public bool IsCatTodos => SelectedCategory == "Todos";
-        public bool IsCatSuper => SelectedCategory == "Super";
+        public bool IsCatSuper => SelectedCategory == "Supermercado" || SelectedCategory == "Super";
         public bool IsCatFerreteria => SelectedCategory == "Ferreteria";
         public bool IsCatCalzado => SelectedCategory == "Calzado";
         public bool IsCatHogar => SelectedCategory == "Hogar";
@@ -130,6 +149,56 @@ namespace NovaRetail.ViewModels
                 if (SelectedTab == "Categorías" && SelectedCategory != "Todos")
                     return $"📋  Categorías  /  {SelectedCategory}";
                 return "📋  Todos los productos";
+            }
+        }
+
+        private async Task LoadCategoryProductsAsync(string category)
+        {
+            if (string.IsNullOrWhiteSpace(category) || category == "Todos" || category == "Supermercado" || category == "Super")
+                return;
+
+            if (_allProducts.Any(p => MatchesCategory(p.Category, category)))
+                return;
+
+            var seed = category == "Calzado"
+                ? "tenis"
+                : category == "Ferreteria"
+                    ? "tornillo"
+                    : "escoba";
+
+            foreach (var endpoint in SearchEndpoints)
+            {
+                try
+                {
+                    using var http = new HttpClient();
+                    var url = string.Format(endpoint, Uri.EscapeDataString(seed));
+                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+                    if (apiItems is null || apiItems.Count == 0)
+                        continue;
+
+                    _allProducts.Clear();
+                    foreach (var item in apiItems)
+                    {
+                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
+                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
+                        _allProducts.Add(new ProductModel
+                        {
+                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
+                            Code = item.ItemLookupCode ?? item.ID.ToString(),
+                            PriceValue = priceDollars,
+                            Price = $"${priceDollars:F2}",
+                            Category = DetermineCategory(item),
+                            Stock = Convert.ToInt32(item.Quantity ?? 0),
+                            PriceColonesValue = priceColones
+                        });
+                    }
+
+                    FilterProducts();
+                    return;
+                }
+                catch
+                {
+                }
             }
         }
 
@@ -260,47 +329,124 @@ namespace NovaRetail.ViewModels
             DecrementProductCommand = new Command<ProductModel>(DecrementProduct);
             SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
             NavigateToClienteCommand = new Command(async () => await Shell.Current.GoToAsync("ClientePage"));
-            LoadProducts();
+            _ = LoadProductsAsync();
         }
 
-        private void LoadProducts()
+        private async Task LoadProductsAsync()
+        {
+            foreach (var endpoint in ItemsEndpoints)
+            {
+                try
+                {
+                    using var http = new HttpClient();
+                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(endpoint);
+
+                    if (apiItems is null || apiItems.Count == 0)
+                        continue;
+
+                    _allProducts.Clear();
+
+                    foreach (var item in apiItems)
+                    {
+                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
+                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
+                        _allProducts.Add(new ProductModel
+                        {
+                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
+                            Code = item.ItemLookupCode ?? item.ID.ToString(),
+                            PriceValue = priceDollars,
+                            Price = $"${priceDollars:F2}",
+                            Category = DetermineCategory(item),
+                            Stock = Convert.ToInt32(item.Quantity ?? 0),
+                            PriceColonesValue = priceColones
+                        });
+                    }
+
+                    FilterProducts();
+                    return;
+                }
+                catch
+                {
+                }
+            }
+
+            LoadMockProducts();
+        }
+
+        private void LoadMockProducts()
         {
             // Con imagen (emoji)
-            _allProducts.Add(new ProductModel { Emoji = "🫒", Name = "Aceite Vegetal Puro Premium Sin Colesterol Botella 900ml",  Code = "AV900",  Price = "$4.25",  OldPrice = "$5.50",  PriceValue = 4.25m,  Category = "Super",      Stock = 24  });
-            _allProducts.Add(new ProductModel { Emoji = "🍿", Name = "Snack Horneado Sabor Natural Sin Conservantes Sin Gluten 200g", Code = "SN200",  Price = "$1.95",  OldPrice = "$2.75",  PriceValue = 1.95m,  Category = "Super",      Stock = 7   });
-            _allProducts.Add(new ProductModel { Emoji = "🥛", Name = "Leche Entera Litro",     Code = "LE001",  Price = "$1.80",  OldPrice = "$2.25",  PriceValue = 1.80m,  Category = "Super",      Stock = 3   });
-            _allProducts.Add(new ProductModel { Emoji = "🍪", Name = "Galleta Snack 200g",     Code = "GS200",  Price = "$1.95",                       PriceValue = 1.95m,  Category = "Super",      Stock = 18  });
-            _allProducts.Add(new ProductModel { Emoji = "🥤", Name = "Coca Cola 2 Litros",     Code = "CC002",  Price = "$2.40",  OldPrice = "$3.20",  PriceValue = 2.40m,  Category = "Super",      Stock = 0   });
-            _allProducts.Add(new ProductModel { Emoji = "🔩", Name = "Caja Tornillos 3/4\"",   Code = "CT034",  Price = "$5.00",                       PriceValue = 5.00m,  Category = "Ferreteria", Stock = 12  });
-            _allProducts.Add(new ProductModel { Emoji = "📦", Name = "Caja Clavos 2x1\"",      Code = "CC2X1",  Price = "$4.75",                       PriceValue = 4.75m,  Category = "Ferreteria", Stock = 2   });
-            _allProducts.Add(new ProductModel { Emoji = "🔨", Name = "Martillo Profesional Mango Antideslizante Fibra de Vidrio 16oz", Code = "MP16Z",  Price = "$7.50",                       PriceValue = 7.50m,  Category = "Ferreteria", Stock = 5   });
-            _allProducts.Add(new ProductModel { Emoji = "🩴", Name = "Sandalias Hombre",       Code = "SH001",  Price = "$12.50", OldPrice = "$16.99", PriceValue = 12.50m, Category = "Calzado",    Stock = 9   });
-            _allProducts.Add(new ProductModel { Emoji = "🧣", Name = "Sandalias Mujer",        Code = "SM001",  Price = "$12.50",                      PriceValue = 12.50m, Category = "Calzado",    Stock = 15  });
-            _allProducts.Add(new ProductModel { Emoji = "👟", Name = "Zapatillas Deportivas Amortiguación Avanzada Running Unisex", Code = "299721", Price = "$45.00", OldPrice = "$59.99", PriceValue = 45.00m, Category = "Calzado",    Stock = 4   });
-            _allProducts.Add(new ProductModel { Emoji = "🛋️", Name = "Cojín Decorativo",       Code = "CD004",  Price = "$8.99",                       PriceValue = 8.99m,  Category = "Hogar",      Stock = 11  });
-            _allProducts.Add(new ProductModel { Emoji = "🕯️", Name = "Vela Aromática",         Code = "VA010",  Price = "$3.50",  OldPrice = "$4.99",  PriceValue = 3.50m,  Category = "Hogar",      Stock = 6   });
-            _allProducts.Add(new ProductModel { Emoji = "🧹", Name = "Escoba Industrial",      Code = "EI001",  Price = "$5.25",                       PriceValue = 5.25m,  Category = "Hogar",      Stock = 8   });
+            _allProducts.Add(new ProductModel { Emoji = "🫒", Name = "Aceite Vegetal Puro Premium Sin Colesterol Botella 900ml", Code = "AV900", Price = "$4.25", OldPrice = "$5.50", PriceValue = 4.25m, Category = "Super", Stock = 24 });
+            _allProducts.Add(new ProductModel { Emoji = "🍿", Name = "Snack Horneado Sabor Natural Sin Conservantes Sin Gluten 200g", Code = "SN200", Price = "$1.95", OldPrice = "$2.75", PriceValue = 1.95m, Category = "Super", Stock = 7 });
+            _allProducts.Add(new ProductModel { Emoji = "🥛", Name = "Leche Entera Litro", Code = "LE001", Price = "$1.80", OldPrice = "$2.25", PriceValue = 1.80m, Category = "Super", Stock = 3 });
+            _allProducts.Add(new ProductModel { Emoji = "🍪", Name = "Galleta Snack 200g", Code = "GS200", Price = "$1.95", PriceValue = 1.95m, Category = "Super", Stock = 18 });
+            _allProducts.Add(new ProductModel { Emoji = "🥤", Name = "Coca Cola 2 Litros", Code = "CC002", Price = "$2.40", OldPrice = "$3.20", PriceValue = 2.40m, Category = "Super", Stock = 0 });
+            _allProducts.Add(new ProductModel { Emoji = "🔩", Name = "Caja Tornillos 3/4\"", Code = "CT034", Price = "$5.00", PriceValue = 5.00m, Category = "Ferreteria", Stock = 12 });
+            _allProducts.Add(new ProductModel { Emoji = "📦", Name = "Caja Clavos 2x1\"", Code = "CC2X1", Price = "$4.75", PriceValue = 4.75m, Category = "Ferreteria", Stock = 2 });
+            _allProducts.Add(new ProductModel { Emoji = "🔨", Name = "Martillo Profesional Mango Antideslizante Fibra de Vidrio 16oz", Code = "MP16Z", Price = "$7.50", PriceValue = 7.50m, Category = "Ferreteria", Stock = 5 });
+            _allProducts.Add(new ProductModel { Emoji = "🩴", Name = "Sandalias Hombre", Code = "SH001", Price = "$12.50", OldPrice = "$16.99", PriceValue = 12.50m, Category = "Calzado", Stock = 9 });
+            _allProducts.Add(new ProductModel { Emoji = "🧣", Name = "Sandalias Mujer", Code = "SM001", Price = "$12.50", PriceValue = 12.50m, Category = "Calzado", Stock = 15 });
+            _allProducts.Add(new ProductModel { Emoji = "👟", Name = "Zapatillas Deportivas Amortiguación Avanzada Running Unisex", Code = "299721", Price = "$45.00", OldPrice = "$59.99", PriceValue = 45.00m, Category = "Calzado", Stock = 4 });
+            _allProducts.Add(new ProductModel { Emoji = "🛋️", Name = "Cojín Decorativo", Code = "CD004", Price = "$8.99", PriceValue = 8.99m, Category = "Hogar", Stock = 11 });
+            _allProducts.Add(new ProductModel { Emoji = "🕯️", Name = "Vela Aromática", Code = "VA010", Price = "$3.50", OldPrice = "$4.99", PriceValue = 3.50m, Category = "Hogar", Stock = 6 });
+            _allProducts.Add(new ProductModel { Emoji = "🧹", Name = "Escoba Industrial", Code = "EI001", Price = "$5.25", PriceValue = 5.25m, Category = "Hogar", Stock = 8 });
 
             // Sin imagen
-            _allProducts.Add(new ProductModel { Name = "Arroz Grano Largo Suelto Cocción Rápida Seleccionado Origen Nacional 1kg", Code = "AR001",  Price = "$1.10",                       PriceValue = 1.10m,  Category = "Super",      Stock = 50  });
-            _allProducts.Add(new ProductModel { Name = "Azúcar Blanca 2kg",         Code = "AZ002",  Price = "$1.90",                       PriceValue = 1.90m,  Category = "Super",      Stock = 32  });
-            _allProducts.Add(new ProductModel { Name = "Sal Refinada 1kg",          Code = "SA001",  Price = "$0.75",                       PriceValue = 0.75m,  Category = "Super",      Stock = 40  });
-            _allProducts.Add(new ProductModel { Name = "Café Molido 250g",          Code = "CA025",  Price = "$3.20",  OldPrice = "$4.00",  PriceValue = 3.20m,  Category = "Super",      Stock = 14  });
-            _allProducts.Add(new ProductModel { Name = "Frijoles Negros 500g",      Code = "FN050",  Price = "$1.40",                       PriceValue = 1.40m,  Category = "Super",      Stock = 28  });
-            _allProducts.Add(new ProductModel { Name = "Cinta Métrica 5m",          Code = "CM005",  Price = "$3.80",                       PriceValue = 3.80m,  Category = "Ferreteria", Stock = 7   });
-            _allProducts.Add(new ProductModel { Name = "Llave Ajustable Acero Cromo Vanadio Cabeza Giratoria 30mm 10 Pulgadas", Code = "LA010",  Price = "$6.50",                       PriceValue = 6.50m,  Category = "Ferreteria", Stock = 3   });
-            _allProducts.Add(new ProductModel { Name = "Pintura Blanca 1L",         Code = "PB001",  Price = "$5.90",  OldPrice = "$7.50",  PriceValue = 5.90m,  Category = "Ferreteria", Stock = 1   });
-            _allProducts.Add(new ProductModel { Name = "Tapón PVC 1/2\"",           Code = "TP012",  Price = "$0.45",                       PriceValue = 0.45m,  Category = "Ferreteria", Stock = 100 });
-            _allProducts.Add(new ProductModel { Name = "Calcetines Deportivos",     Code = "CD010",  Price = "$2.50",                       PriceValue = 2.50m,  Category = "Calzado",    Stock = 22  });
-            _allProducts.Add(new ProductModel { Name = "Plantillas Ortopédicas",    Code = "PO001",  Price = "$4.75",  OldPrice = "$6.00",  PriceValue = 4.75m,  Category = "Calzado",    Stock = 5   });
-            _allProducts.Add(new ProductModel { Name = "Limpiador Multiusos 500ml", Code = "LM050",  Price = "$2.20",                       PriceValue = 2.20m,  Category = "Hogar",      Stock = 19  });
-            _allProducts.Add(new ProductModel { Name = "Foco LED 9W",               Code = "FL009",  Price = "$1.80",  OldPrice = "$2.50",  PriceValue = 1.80m,  Category = "Hogar",      Stock = 0   });
+            _allProducts.Add(new ProductModel { Name = "Arroz Grano Largo Suelto Cocción Rápida Seleccionado Origen Nacional 1kg", Code = "AR001", Price = "$1.10", PriceValue = 1.10m, Category = "Super", Stock = 50 });
+            _allProducts.Add(new ProductModel { Name = "Azúcar Blanca 2kg", Code = "AZ002", Price = "$1.90", PriceValue = 1.90m, Category = "Super", Stock = 32 });
+            _allProducts.Add(new ProductModel { Name = "Sal Refinada 1kg", Code = "SA001", Price = "$0.75", PriceValue = 0.75m, Category = "Super", Stock = 40 });
+            _allProducts.Add(new ProductModel { Name = "Café Molido 250g", Code = "CA025", Price = "$3.20", OldPrice = "$4.00", PriceValue = 3.20m, Category = "Super", Stock = 14 });
+            _allProducts.Add(new ProductModel { Name = "Frijoles Negros 500g", Code = "FN050", Price = "$1.40", PriceValue = 1.40m, Category = "Super", Stock = 28 });
+            _allProducts.Add(new ProductModel { Name = "Cinta Métrica 5m", Code = "CM005", Price = "$3.80", PriceValue = 3.80m, Category = "Ferreteria", Stock = 7 });
+            _allProducts.Add(new ProductModel { Name = "Llave Ajustable Acero Cromo Vanadio Cabeza Giratoria 30mm 10 Pulgadas", Code = "LA010", Price = "$6.50", PriceValue = 6.50m, Category = "Ferreteria", Stock = 3 });
+            _allProducts.Add(new ProductModel { Name = "Pintura Blanca 1L", Code = "PB001", Price = "$5.90", OldPrice = "$7.50", PriceValue = 5.90m, Category = "Ferreteria", Stock = 1 });
+            _allProducts.Add(new ProductModel { Name = "Tapón PVC 1/2\"", Code = "TP012", Price = "$0.45", PriceValue = 0.45m, Category = "Ferreteria", Stock = 100 });
+            _allProducts.Add(new ProductModel { Name = "Calcetines Deportivos", Code = "CD010", Price = "$2.50", PriceValue = 2.50m, Category = "Calzado", Stock = 22 });
+            _allProducts.Add(new ProductModel { Name = "Plantillas Ortopédicas", Code = "PO001", Price = "$4.75", OldPrice = "$6.00", PriceValue = 4.75m, Category = "Calzado", Stock = 5 });
+            _allProducts.Add(new ProductModel { Name = "Limpiador Multiusos 500ml", Code = "LM050", Price = "$2.20", PriceValue = 2.20m, Category = "Hogar", Stock = 19 });
+            _allProducts.Add(new ProductModel { Name = "Foco LED 9W", Code = "FL009", Price = "$1.80", OldPrice = "$2.50", PriceValue = 1.80m, Category = "Hogar", Stock = 0 });
 
             // Calcular precios en colones
             foreach (var p in _allProducts)
                 p.PriceColonesValue = Math.Round(p.PriceValue * _exchangeRate);
 
             FilterProducts();
+        }
+
+        private sealed class ApiItem
+        {
+            public int ID { get; set; }
+            public string? ItemLookupCode { get; set; }
+            public string? ExtendedDescription { get; set; }
+            public double? Quantity { get; set; }
+            public int DepartmentID { get; set; }
+            public decimal PRICE { get; set; }
+            public decimal PriceA { get; set; }
+            public string? Description { get; set; }
+            public string? SubDescription2 { get; set; }
+        }
+
+        private static string DetermineCategory(ApiItem item)
+        {
+            var text = $"{item.Description} {item.ExtendedDescription} {item.SubDescription2}".ToLowerInvariant();
+
+            if (text.Contains("sandalia") || text.Contains("zapato") || text.Contains("tenis") ||
+                text.Contains("zapat") || text.Contains("bota") || text.Contains("calcetin") ||
+                text.Contains("plantilla"))
+                return "Calzado";
+
+            if (text.Contains("martillo") || text.Contains("tornillo") || text.Contains("clavo") ||
+                text.Contains("llave") || text.Contains("pintura") || text.Contains("broca") ||
+                text.Contains("cinta") || text.Contains("pvc") || text.Contains("taco") ||
+                text.Contains("ferreter"))
+                return "Ferreteria";
+
+            if (text.Contains("escoba") || text.Contains("cojin") || text.Contains("cubeta") ||
+                text.Contains("almohada") || text.Contains("hogar") || text.Contains("vela") ||
+                text.Contains("limpiador"))
+                return "Hogar";
+
+            return "Supermercado";
         }
 
         private void FilterProducts()
@@ -310,21 +456,100 @@ namespace NovaRetail.ViewModels
             // Filtrar por categoría seleccionada
             if (SelectedCategory != "Todos")
             {
-                query = query.Where(p => p.Category == SelectedCategory);
+                query = query.Where(p => MatchesCategory(p.Category, SelectedCategory));
             }
 
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
             {
-                var search = ProductSearchText.Trim();
+                var search = NormalizeText(ProductSearchText);
                 query = query.Where(p =>
-                    p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    p.Code.Contains(search, StringComparison.OrdinalIgnoreCase));
+                    NormalizeText(p.Name).Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    NormalizeText(p.Code).Contains(search, StringComparison.OrdinalIgnoreCase));
             }
 
-            var filtered = query.ToList();
+            var filtered = query
+                .OrderByDescending(p => p.Stock > 0)
+                .ThenBy(p => p.Name)
+                .ToList();
             Products.Clear();
             foreach (var p in filtered)
                 Products.Add(p);
+        }
+
+        private static bool MatchesCategory(string productCategory, string selectedCategory)
+        {
+            if (string.Equals(selectedCategory, "Supermercado", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(selectedCategory, "Super", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Equals(productCategory, "Supermercado", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(productCategory, "Super", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return string.Equals(productCategory, selectedCategory, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task SearchFromApiAsync(string term)
+        {
+            var normalized = NormalizeText(term);
+            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length < 3)
+                return;
+
+            foreach (var endpoint in SearchEndpoints)
+            {
+                try
+                {
+                    using var http = new HttpClient();
+                    var url = string.Format(endpoint, Uri.EscapeDataString(normalized));
+                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+                    if (apiItems is null || apiItems.Count == 0)
+                        continue;
+
+                    _allProducts.Clear();
+                    foreach (var item in apiItems)
+                    {
+                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
+                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
+                        _allProducts.Add(new ProductModel
+                        {
+                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
+                            Code = item.ItemLookupCode ?? item.ID.ToString(),
+                            PriceValue = priceDollars,
+                            Price = $"${priceDollars:F2}",
+                            Category = DetermineCategory(item),
+                            Stock = Convert.ToInt32(item.Quantity ?? 0),
+                            PriceColonesValue = priceColones
+                        });
+                    }
+
+                    FilterProducts();
+                    return;
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private static string NormalizeText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            var text = value.Trim().ToLowerInvariant()
+                .Replace("tennis", "tenis")
+                .Replace("clazado", "calzado")
+                .Replace("feretria", "ferreteria");
+
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(normalized.Length);
+
+            foreach (var c in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+
+            return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
         private void SelectTab(string? tab)

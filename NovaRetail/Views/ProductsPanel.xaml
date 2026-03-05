@@ -121,6 +121,7 @@
                             <Entry Grid.Column="1"
                                    Placeholder="Buscar o escanear producto..."
                                    Text="{Binding ProductSearchText, Mode=TwoWay}"
+                                   ReturnCommand="{Binding SearchProductCommand}"
                                    FontSize="13" BackgroundColor="Transparent"/>
                         </Grid>
                     </Border>
@@ -134,10 +135,10 @@
                                                   IsActive="{Binding IsCatTodos}"
                                                   Command="{Binding SelectCategoryCommand}"
                                                   CommandParameter="Todos"/>
-                            <controls:CategoryTab Text="&#x1F6D2; Super"
+                            <controls:CategoryTab Text="&#x1F6D2; Supermercado"
                                                   IsActive="{Binding IsCatSuper}"
                                                   Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Super"/>
+                                                  CommandParameter="Supermercado"/>
                             <controls:CategoryTab Text="&#x1F527; Ferretería"
                                                   IsActive="{Binding IsCatFerreteria}"
                                                   Command="{Binding SelectCategoryCommand}"
