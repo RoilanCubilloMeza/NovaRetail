@@ -13,14 +13,7 @@ namespace NovaAPI.Controllers
         [HttpGet]
         public IEnumerable<spWS_GetProductsResult> Get(int storeid, int tipo)
         {
-            try
-            {
-                return db.spWS_GetProducts(storeid, tipo);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            return db.ExecuteQuery<spWS_GetProductsResult>("EXEC dbo.spWS_GetProducts {0}", storeid);
 
         }
 

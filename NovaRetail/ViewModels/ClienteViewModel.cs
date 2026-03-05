@@ -1,4 +1,3 @@
-using Microsoft.Maui.Graphics;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -6,7 +5,6 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using NovaRetail.Data;
 using NovaRetail.Models;
-using RetailHero.POS.Core.Shared;
 
 namespace NovaRetail.ViewModels
 {
