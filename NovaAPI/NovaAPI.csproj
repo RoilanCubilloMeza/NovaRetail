@@ -195,6 +195,7 @@
     <Compile Include="Models\AR_Transaction.cs" />
     <Compile Include="Models\Cliente_App.cs" />
     <Compile Include="Models\Customer.cs" />
+    <Compile Include="Models\CustomerLookupDto.cs" />
     <Compile Include="Models\Payment.cs" />
     <Compile Include="Models\PickingOrderEntry.cs" />
     <Compile Include="Models\PickingOrder.cs" />
@@ -681,4 +682,3 @@
     <Error Condition="!Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets'))" />
   </Target>
 </Project>
-

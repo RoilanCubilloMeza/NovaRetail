@@ -56,7 +56,7 @@
                                  FontSize="13"
                                  Margin="0,14,0,0"/>
 
-            <Label Text="Crea un registro nuevo para el cliente."
+            <Label Text="{Binding ClientStatusHint}"
                    Style="{DynamicResource HelpText}"
                    Margin="0,12,0,0"/>
 

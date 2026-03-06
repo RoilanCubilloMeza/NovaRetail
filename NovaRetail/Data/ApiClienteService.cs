@@ -1,0 +1,376 @@
+using System.Net.Http.Json;
+using Newtonsoft.Json;
+using NovaRetail.Models;
+using NovaRetail.Services;
+
+namespace NovaRetail.Data
+{
+    /// <summary>
+    /// Implementación real de IClienteService que consume la API REST de RMH
+    /// y las APIs de Hacienda/GoMeta para sincronización fiscal.
+    /// </summary>
+    public class ApiClienteService : IClienteService
+    {
+        private static readonly TimeSpan LocalApiTimeout = TimeSpan.FromSeconds(12);
+        private static readonly TimeSpan LocalCustomerLookupTimeout = TimeSpan.FromSeconds(30);
+        private static readonly string[] BaseUrls =
+        {
+            "http://localhost:52500"
+        };
+
+        private readonly Utilities _utilities;
+        private List<ActividadDto> _cachedActividades = new();
+        private string _cachedActividadesCedula = string.Empty;
+
+        public ApiClienteService(Utilities utilities)
+        {
+            _utilities = utilities;
+        }
+
+        // ──────── Buscar cliente existente en la BD via API ────────
+
+        public async Task<ClienteModel?> BuscarPorIdAsync(string clienteId)
+        {
+            if (string.IsNullOrWhiteSpace(clienteId))
+                return null;
+
+            foreach (var baseUrl in BaseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers?criteria={Uri.EscapeDataString(clienteId.Trim())}";
+                    using var http = new HttpClient { Timeout = LocalCustomerLookupTimeout };
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<ApiCustomer>>(json);
+                    System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync resultados en {baseUrl}: {results?.Count ?? 0}");
+
+                    var match = results?.FirstOrDefault(c =>
+                        string.Equals((c.AccountNumber ?? string.Empty).Trim(), clienteId.Trim(), StringComparison.OrdinalIgnoreCase))
+                        ?? results?.FirstOrDefault();
+
+                    if (match is null)
+                        continue;
+
+                    return MapToClienteModel(match);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync falló en {baseUrl}: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        // ──────── Sincronizar con Hacienda / GoMeta ────────
+
+        public async Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId)
+        {
+            var datos = await _utilities.GetDatosCedulaAsync(clienteId);
+            if (datos is null)
+                return null;
+
+            var nombre = datos.FullName;
+            if (string.IsNullOrWhiteSpace(nombre))
+                nombre = string.Join(" ", new[] { datos.FirstName, datos.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            var actividades = (datos.Actividades ?? [])
+                .Select(a => new
+                {
+                    Codigo = NormalizeActivityCode(a.Codigo ?? a.CIIU4),
+                    Descripcion = string.IsNullOrWhiteSpace(a.Descripcion) ? a.CIIU4desc : a.Descripcion
+                })
+                .Where(a => !string.IsNullOrWhiteSpace(a.Codigo))
+                .Take(5)
+                .ToList();
+
+            _cachedActividades = datos.Actividades ?? new List<ActividadDto>();
+            _cachedActividadesCedula = clienteId;
+
+            return new ClienteModel
+            {
+                ClientId = clienteId,
+                Name = string.IsNullOrWhiteSpace(nombre) ? string.Empty : nombre,
+                ActivityCodes = actividades.Select(a => a.Codigo!).ToList(),
+                ActivityCode = string.Join(", ", actividades.Select(a => a.Codigo)),
+                ActivityDescription = string.Join("; ", actividades.Select(a => a.Descripcion).Where(x => !string.IsNullOrWhiteSpace(x)))
+            };
+        }
+
+        // ──────── Guardar cliente via POST a la API ────────
+
+        public async Task<bool> GuardarAsync(ClienteModel cliente)
+        {
+            var apiCustomer = MapToApiCustomer(cliente);
+
+            foreach (var baseUrl in BaseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers";
+                    using var http = new HttpClient { Timeout = LocalApiTimeout };
+                    var response = await http.PostAsJsonAsync(url, new List<ApiCustomer> { apiCustomer });
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var body = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"Guardar cliente falló ({(int)response.StatusCode}): {body}");
+                    }
+
+                    return response.IsSuccessStatusCode;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Guardar cliente excepción: {ex.Message}");
+                }
+            }
+
+            return false;
+        }
+
+        // ──────── Buscar descripción de actividad económica ────────
+
+        public async Task<string> BuscarActividadAsync(string codActividad)
+        {
+            if (string.IsNullOrWhiteSpace(codActividad))
+                return string.Empty;
+
+            var codes = codActividad
+                .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(c => c.Trim())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .ToList();
+
+            if (codes.Count == 0)
+                return string.Empty;
+
+            // Buscar en actividades cacheadas del último sync
+            if (_cachedActividades.Count > 0)
+            {
+                var descriptions = new List<string>();
+                foreach (var code in codes)
+                {
+                    var normalized = NormalizeActivityCode(code);
+                    var match = _cachedActividades.FirstOrDefault(a =>
+                        NormalizeActivityCode(a.Codigo ?? a.CIIU4) == normalized);
+
+                    if (match is not null)
+                    {
+                        var desc = string.IsNullOrWhiteSpace(match.Descripcion) ? match.CIIU4desc : match.Descripcion;
+                        if (!string.IsNullOrWhiteSpace(desc))
+                            descriptions.Add($"{normalized}: {desc.Trim()}");
+                    }
+                }
+
+                if (descriptions.Count > 0)
+                    return string.Join("; ", descriptions);
+            }
+
+            // Si no hay cache, intentar lookup con cédula cacheada via Hacienda
+            if (!string.IsNullOrWhiteSpace(_cachedActividadesCedula))
+            {
+                var datos = await _utilities.GetDatosCedulaAsync(_cachedActividadesCedula);
+                if (datos is not null && datos.Actividades.Count > 0)
+                {
+                    _cachedActividades = datos.Actividades;
+                    var descriptions = new List<string>();
+                    foreach (var code in codes)
+                    {
+                        var normalized = NormalizeActivityCode(code);
+                        var match = datos.Actividades.FirstOrDefault(a =>
+                            NormalizeActivityCode(a.Codigo ?? a.CIIU4) == normalized);
+
+                        if (match is not null)
+                        {
+                            var desc = string.IsNullOrWhiteSpace(match.Descripcion) ? match.CIIU4desc : match.Descripcion;
+                            if (!string.IsNullOrWhiteSpace(desc))
+                                descriptions.Add($"{normalized}: {desc.Trim()}");
+                        }
+                    }
+
+                    if (descriptions.Count > 0)
+                        return string.Join("; ", descriptions);
+                }
+            }
+
+            return "Código no encontrado. Sincronice primero con la cédula del cliente.";
+        }
+
+        // ──────── Tipos de cliente (estándar RMH) ────────
+
+        public Task<IReadOnlyList<string>> ObtenerTiposClienteAsync()
+        {
+            IReadOnlyList<string> tipos = new[]
+            {
+                "Contado",
+                "Crédito",
+                "Gobierno",
+                "Exportación"
+            };
+            return Task.FromResult(tipos);
+        }
+
+        // ──────── Mapeo API → ClienteModel ────────
+
+        private static ClienteModel MapToClienteModel(ApiCustomer c)
+        {
+            var name = string.Join(" ",
+                new[] { c.FirstName, c.LastName }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return new ClienteModel
+            {
+                ClientId = c.AccountNumber ?? string.Empty,
+                Name = name,
+                Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
+                Email = c.EmailAddress ?? string.Empty,
+                Province = FirstNonEmpty(c.State, c.STATE),
+                Canton = FirstNonEmpty(c.City, c.CITY),
+                District = FirstNonEmpty(c.City2, c.CITY2),
+                Barrio = FirstNonEmpty(c.Zip, c.ZIP),
+                Address = c.Address ?? string.Empty,
+                CustomerType = MapAccountTypeIdToName(c.AccountTypeID > 0 ? c.AccountTypeID : c.PriceLevel),
+                IsReceiver = !string.IsNullOrWhiteSpace(c.EmailAddress)
+            };
+        }
+
+        private static string? FirstNonEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim();
+        }
+
+        // ──────── Mapeo ClienteModel → API ────────
+
+        private static ApiCustomer MapToApiCustomer(ClienteModel m)
+        {
+            var parts = (m.Name ?? string.Empty).Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            var firstName = parts.Length > 0 ? parts[0] : "N/A";
+            var lastName = parts.Length > 1 ? parts[1] : "N/A";
+
+            return new ApiCustomer
+            {
+                AccountNumber = m.ClientId,
+                FirstName = firstName,
+                LastName = lastName,
+                PhoneNumber1 = m.Phone,
+                PhoneNumber2 = string.Empty,
+                EmailAddress = m.Email,
+                State = m.Province ?? string.Empty,
+                City = m.Canton ?? string.Empty,
+                City2 = m.District ?? string.Empty,
+                Zip = m.Barrio ?? string.Empty,
+                Address = m.Address,
+                AccountTypeID = MapCustomerTypeToId(m.CustomerType),
+                Source = "WC_API",
+                Vendedor = "WC_API",
+                CreditDays = 0
+            };
+        }
+
+        // ──────── AccountTypeID ↔ Nombre ────────
+
+        private static string MapAccountTypeIdToName(int id) => id switch
+        {
+            1 => "Contado",
+            2 => "Crédito",
+            3 => "Gobierno",
+            4 => "Exportación",
+            _ => "Contado"
+        };
+
+        private static int MapCustomerTypeToId(string type) => type switch
+        {
+            "Crédito" => 2,
+            "Gobierno" => 3,
+            "Exportación" => 4,
+            _ => 1
+        };
+
+        // ──────── Normalizar código de actividad ────────
+
+        private static string? NormalizeActivityCode(string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return null;
+
+            var digits = new string(code.Where(char.IsDigit).ToArray());
+            if (digits.Length == 0)
+                return null;
+
+            if (digits.Length > 6)
+                return digits[..6];
+
+            return digits.PadLeft(6, '0');
+        }
+
+        // ──────── DTO para comunicación con la API ────────
+
+        private class ApiCustomer
+        {
+            [JsonProperty("ID")]
+            public int ID { get; set; }
+
+            [JsonProperty("AccountTypeID")]
+            public int AccountTypeID { get; set; }
+
+            [JsonProperty("PriceLevel")]
+            public int PriceLevel { get; set; }
+
+            [JsonProperty("AccountNumber")]
+            public string? AccountNumber { get; set; }
+
+            [JsonProperty("FirstName")]
+            public string? FirstName { get; set; }
+
+            [JsonProperty("LastName")]
+            public string? LastName { get; set; }
+
+            [JsonProperty("PhoneNumber1")]
+            public string? PhoneNumber1 { get; set; }
+
+            [JsonProperty("PhoneNumber")]
+            public string? PhoneNumber { get; set; }
+
+            [JsonProperty("PhoneNumber2")]
+            public string? PhoneNumber2 { get; set; }
+
+            [JsonProperty("EmailAddress")]
+            public string? EmailAddress { get; set; }
+
+            [JsonProperty("State")]
+            public string? State { get; set; }
+
+            [JsonProperty("STATE")]
+            public string? STATE { get; set; }
+
+            [JsonProperty("City")]
+            public string? City { get; set; }
+
+            [JsonProperty("CITY")]
+            public string? CITY { get; set; }
+
+            [JsonProperty("City2")]
+            public string? City2 { get; set; }
+
+            [JsonProperty("CITY2")]
+            public string? CITY2 { get; set; }
+
+            [JsonProperty("Zip")]
+            public string? Zip { get; set; }
+
+            [JsonProperty("ZIP")]
+            public string? ZIP { get; set; }
+
+            [JsonProperty("Address")]
+            public string? Address { get; set; }
+
+            [JsonProperty("CreditDays")]
+            public int? CreditDays { get; set; }
+
+            [JsonProperty("Source")]
+            public string? Source { get; set; }
+
+            [JsonProperty("Vendedor")]
+            public string? Vendedor { get; set; }
+        }
+    }
+}
