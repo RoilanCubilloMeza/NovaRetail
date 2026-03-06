@@ -44,6 +44,16 @@ namespace NovaRetail.Data
                     var results = JsonConvert.DeserializeObject<List<ApiCustomer>>(json);
                     System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync resultados en {baseUrl}: {results?.Count ?? 0}");
 
+                    if (results is null || results.Count == 0)
+                    {
+                        var allJson = await http.GetStringAsync($"{baseUrl}/api/Customers");
+                        var allCustomers = JsonConvert.DeserializeObject<List<ApiCustomer>>(allJson) ?? new List<ApiCustomer>();
+                        results = allCustomers
+                            .Where(c => string.Equals((c.AccountNumber ?? string.Empty).Trim(), clienteId.Trim(), StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync fallback general en {baseUrl}: {results.Count}");
+                    }
+
                     var match = results?.FirstOrDefault(c =>
                         string.Equals((c.AccountNumber ?? string.Empty).Trim(), clienteId.Trim(), StringComparison.OrdinalIgnoreCase))
                         ?? results?.FirstOrDefault();
