@@ -126,11 +126,69 @@ namespace NovaRetail.Services
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            try
+            {
+                var hacienda = await GetDatosHaciendaAsync(cedula, cts.Token);
+                if (hacienda is not null)
+                    return hacienda;
+
+                return await GetDatosGoMetaAsync(cedula, cts.Token);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static async Task<CedulaDatosDto?> GetDatosHaciendaAsync(string cedula, CancellationToken cancellationToken)
+        {
+            var url = $"https://api.hacienda.go.cr/fe/ae?identificacion={cedula}";
+
+            try
+            {
+                using var response = await _http.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                var parsed = JsonConvert.DeserializeObject<HaciendaResponse>(responseBody);
+                if (parsed == null)
+                    return null;
+
+                return new CedulaDatosDto
+                {
+                    FullName = parsed.Nombre,
+                    RegimenDescripcion = parsed.Regimen?.Descripcion,
+                    TipoIdentificacion = parsed.TipoIdentificacion,
+                    SituacionEstado = parsed.Situacion?.Estado,
+                    Actividades = parsed.Actividades?.Select(a => new ActividadDto
+                    {
+                        Codigo = a.Codigo,
+                        Descripcion = a.Descripcion,
+                        CIIU4 = a.Codigo,
+                        CIIU4desc = a.Descripcion
+                    }).ToList() ?? new List<ActividadDto>()
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static async Task<CedulaDatosDto?> GetDatosGoMetaAsync(string cedula, CancellationToken cancellationToken)
+        {
             var url = $"https://apis.gometa.org/cedulas/{cedula}";
 
             try
             {
-                var responseBody = await _http.GetStringAsync(url);
+                using var response = await _http.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
                 var parsed = JsonConvert.DeserializeObject<GoMetaResponse>(responseBody);
                 if (parsed == null)
                     return null;
@@ -147,7 +205,7 @@ namespace NovaRetail.Services
                     TipoRegimen = first?.GuessType,
                     Actividades = parsed.Actividades?.Select(a => new ActividadDto
                     {
-                        Codigo = a.Codigo,
+                        Codigo = a.Ciiu3?.Codigo ?? a.Codigo,
                         Descripcion = a.Descripcion,
                         CIIU4 = a.CIIU4,
                         CIIU4desc = a.CIIU4desc
@@ -156,10 +214,7 @@ namespace NovaRetail.Services
             }
             catch
             {
-                return new CedulaDatosDto
-                {
-                    FullName = "Dato no encontrado, o intente de nuevo. Deberá ingresar manualmente"
-                };
+                return null;
             }
         }
     }
@@ -242,5 +297,44 @@ namespace NovaRetail.Services
 
         [JsonProperty("CIIU4desc")]
         public string? CIIU4desc { get; set; }
+
+        [JsonProperty("ciiu3")]
+        public GoMetaCiiu3? Ciiu3 { get; set; }
+    }
+
+    public class GoMetaCiiu3
+    {
+        [JsonProperty("codigo")]
+        public string? Codigo { get; set; }
+
+        [JsonProperty("descripcion")]
+        public string? Descripcion { get; set; }
+    }
+
+    public class HaciendaResponse
+    {
+        [JsonProperty("nombre")]
+        public string? Nombre { get; set; }
+
+        [JsonProperty("tipoIdentificacion")]
+        public string? TipoIdentificacion { get; set; }
+
+        [JsonProperty("regimen")]
+        public GoMetaRegimen? Regimen { get; set; }
+
+        [JsonProperty("situacion")]
+        public GoMetaSituacion? Situacion { get; set; }
+
+        [JsonProperty("actividades")]
+        public List<HaciendaActividad>? Actividades { get; set; }
+    }
+
+    public class HaciendaActividad
+    {
+        [JsonProperty("codigo")]
+        public string? Codigo { get; set; }
+
+        [JsonProperty("descripcion")]
+        public string? Descripcion { get; set; }
     }
 }

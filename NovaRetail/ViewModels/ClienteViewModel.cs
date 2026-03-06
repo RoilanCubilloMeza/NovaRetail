@@ -493,6 +493,7 @@ namespace NovaRetail.ViewModels
                 LocationSearch = string.Empty;
 
             SyncStatus = SyncStatus.Syncing;
+            ValidationMessage = string.Empty;
 
             var local = await _clienteService.BuscarPorIdAsync(ClientId);
             if (local is not null)
@@ -510,11 +511,13 @@ namespace NovaRetail.ViewModels
             {
                 LoadFromModel(result);
                 SyncStatus = SyncStatus.Synced;
+                ValidationMessage = string.Empty;
                 _lastSyncedClientId = ClientId;
             }
             else
             {
                 SyncStatus = SyncStatus.NotFound;
+                ValidationMessage = "Consulta de API con Hacienda no disponible, ingrese los datos manualmente";
             }
         }
 

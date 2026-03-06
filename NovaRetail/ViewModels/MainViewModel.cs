@@ -14,8 +14,8 @@ namespace NovaRetail.ViewModels
     {
         private static readonly string[] ItemsEndpoints =
         {
-            "http://localhost:52500/api/Items?storeid=1&tipo=1&page=1&pageSize=300",
-            "http://127.0.0.1:52500/api/Items?storeid=1&tipo=1&page=1&pageSize=300"
+            "http://localhost:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize=100",
+            "http://127.0.0.1:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize=100"
         };
         private static readonly string[] SearchEndpoints =
         {
@@ -24,6 +24,9 @@ namespace NovaRetail.ViewModels
         };
         private readonly IDialogService _dialogService;
         private readonly List<ProductModel> _allProducts = new();
+        private int _loadedItemsPage;
+        private bool _canLoadMoreFromApi;
+        private bool _isLoadingItems;
 
         public ObservableCollection<ProductModel> Products { get; } = new();
         public ObservableCollection<CartItemModel> CartItems { get; } = new();
@@ -41,6 +44,7 @@ namespace NovaRetail.ViewModels
         public ICommand DecrementProductCommand { get; }
         public ICommand SelectSpanCommand { get; }
         public ICommand NavigateToClienteCommand { get; }
+        public ICommand LoadMoreProductsCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -193,6 +197,9 @@ namespace NovaRetail.ViewModels
                         });
                     }
 
+                    _loadedItemsPage = 0;
+                    _canLoadMoreFromApi = false;
+
                     FilterProducts();
                     return;
                 }
@@ -287,6 +294,20 @@ namespace NovaRetail.ViewModels
         }
         public bool IsSpan4Available => _maxSpan >= 4;
 
+        private bool _isLoadingMoreProducts;
+        public bool IsLoadingMoreProducts
+        {
+            get => _isLoadingMoreProducts;
+            private set
+            {
+                if (_isLoadingMoreProducts != value)
+                {
+                    _isLoadingMoreProducts = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // ── Tipo de cambio ──
 
         private decimal _exchangeRate = 510.00m;
@@ -329,22 +350,34 @@ namespace NovaRetail.ViewModels
             DecrementProductCommand = new Command<ProductModel>(DecrementProduct);
             SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
             NavigateToClienteCommand = new Command(async () => await Shell.Current.GoToAsync("ClientePage"));
+            LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
             _ = LoadProductsAsync();
         }
 
-        private async Task LoadProductsAsync()
+        private async Task<bool> LoadProductsAsync(bool loadMore = false)
         {
+            if (_isLoadingItems)
+                return false;
+
+            if (loadMore && !_canLoadMoreFromApi)
+                return false;
+
+            _isLoadingItems = true;
+            var nextPage = loadMore ? _loadedItemsPage + 1 : 1;
+
             foreach (var endpoint in ItemsEndpoints)
             {
                 try
                 {
                     using var http = new HttpClient();
-                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(endpoint);
+                    var url = string.Format(endpoint, nextPage);
+                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
                     if (apiItems is null || apiItems.Count == 0)
                         continue;
 
-                    _allProducts.Clear();
+                    if (!loadMore)
+                        _allProducts.Clear();
 
                     foreach (var item in apiItems)
                     {
@@ -362,49 +395,36 @@ namespace NovaRetail.ViewModels
                         });
                     }
 
+                    _loadedItemsPage = nextPage;
+                    _canLoadMoreFromApi = apiItems.Count >= 100;
+
                     FilterProducts();
-                    return;
+                    _isLoadingItems = false;
+                    return true;
                 }
                 catch
                 {
                 }
             }
 
-            LoadMockProducts();
+            _isLoadingItems = false;
+
+            if (!loadMore)
+            {
+                _allProducts.Clear();
+                _loadedItemsPage = 0;
+                _canLoadMoreFromApi = false;
+                FilterProducts();
+                return false;
+            }
+
+            return false;
         }
 
         private void LoadMockProducts()
         {
-            // Con imagen (emoji)
-            _allProducts.Add(new ProductModel { Emoji = "🫒", Name = "Aceite Vegetal Puro Premium Sin Colesterol Botella 900ml", Code = "AV900", Price = "$4.25", OldPrice = "$5.50", PriceValue = 4.25m, Category = "Super", Stock = 24 });
-            _allProducts.Add(new ProductModel { Emoji = "🍿", Name = "Snack Horneado Sabor Natural Sin Conservantes Sin Gluten 200g", Code = "SN200", Price = "$1.95", OldPrice = "$2.75", PriceValue = 1.95m, Category = "Super", Stock = 7 });
-            _allProducts.Add(new ProductModel { Emoji = "🥛", Name = "Leche Entera Litro", Code = "LE001", Price = "$1.80", OldPrice = "$2.25", PriceValue = 1.80m, Category = "Super", Stock = 3 });
-            _allProducts.Add(new ProductModel { Emoji = "🍪", Name = "Galleta Snack 200g", Code = "GS200", Price = "$1.95", PriceValue = 1.95m, Category = "Super", Stock = 18 });
-            _allProducts.Add(new ProductModel { Emoji = "🥤", Name = "Coca Cola 2 Litros", Code = "CC002", Price = "$2.40", OldPrice = "$3.20", PriceValue = 2.40m, Category = "Super", Stock = 0 });
-            _allProducts.Add(new ProductModel { Emoji = "🔩", Name = "Caja Tornillos 3/4\"", Code = "CT034", Price = "$5.00", PriceValue = 5.00m, Category = "Ferreteria", Stock = 12 });
-            _allProducts.Add(new ProductModel { Emoji = "📦", Name = "Caja Clavos 2x1\"", Code = "CC2X1", Price = "$4.75", PriceValue = 4.75m, Category = "Ferreteria", Stock = 2 });
-            _allProducts.Add(new ProductModel { Emoji = "🔨", Name = "Martillo Profesional Mango Antideslizante Fibra de Vidrio 16oz", Code = "MP16Z", Price = "$7.50", PriceValue = 7.50m, Category = "Ferreteria", Stock = 5 });
-            _allProducts.Add(new ProductModel { Emoji = "🩴", Name = "Sandalias Hombre", Code = "SH001", Price = "$12.50", OldPrice = "$16.99", PriceValue = 12.50m, Category = "Calzado", Stock = 9 });
-            _allProducts.Add(new ProductModel { Emoji = "🧣", Name = "Sandalias Mujer", Code = "SM001", Price = "$12.50", PriceValue = 12.50m, Category = "Calzado", Stock = 15 });
-            _allProducts.Add(new ProductModel { Emoji = "👟", Name = "Zapatillas Deportivas Amortiguación Avanzada Running Unisex", Code = "299721", Price = "$45.00", OldPrice = "$59.99", PriceValue = 45.00m, Category = "Calzado", Stock = 4 });
-            _allProducts.Add(new ProductModel { Emoji = "🛋️", Name = "Cojín Decorativo", Code = "CD004", Price = "$8.99", PriceValue = 8.99m, Category = "Hogar", Stock = 11 });
-            _allProducts.Add(new ProductModel { Emoji = "🕯️", Name = "Vela Aromática", Code = "VA010", Price = "$3.50", OldPrice = "$4.99", PriceValue = 3.50m, Category = "Hogar", Stock = 6 });
-            _allProducts.Add(new ProductModel { Emoji = "🧹", Name = "Escoba Industrial", Code = "EI001", Price = "$5.25", PriceValue = 5.25m, Category = "Hogar", Stock = 8 });
-
-            // Sin imagen
-            _allProducts.Add(new ProductModel { Name = "Arroz Grano Largo Suelto Cocción Rápida Seleccionado Origen Nacional 1kg", Code = "AR001", Price = "$1.10", PriceValue = 1.10m, Category = "Super", Stock = 50 });
-            _allProducts.Add(new ProductModel { Name = "Azúcar Blanca 2kg", Code = "AZ002", Price = "$1.90", PriceValue = 1.90m, Category = "Super", Stock = 32 });
-            _allProducts.Add(new ProductModel { Name = "Sal Refinada 1kg", Code = "SA001", Price = "$0.75", PriceValue = 0.75m, Category = "Super", Stock = 40 });
-            _allProducts.Add(new ProductModel { Name = "Café Molido 250g", Code = "CA025", Price = "$3.20", OldPrice = "$4.00", PriceValue = 3.20m, Category = "Super", Stock = 14 });
-            _allProducts.Add(new ProductModel { Name = "Frijoles Negros 500g", Code = "FN050", Price = "$1.40", PriceValue = 1.40m, Category = "Super", Stock = 28 });
-            _allProducts.Add(new ProductModel { Name = "Cinta Métrica 5m", Code = "CM005", Price = "$3.80", PriceValue = 3.80m, Category = "Ferreteria", Stock = 7 });
-            _allProducts.Add(new ProductModel { Name = "Llave Ajustable Acero Cromo Vanadio Cabeza Giratoria 30mm 10 Pulgadas", Code = "LA010", Price = "$6.50", PriceValue = 6.50m, Category = "Ferreteria", Stock = 3 });
-            _allProducts.Add(new ProductModel { Name = "Pintura Blanca 1L", Code = "PB001", Price = "$5.90", OldPrice = "$7.50", PriceValue = 5.90m, Category = "Ferreteria", Stock = 1 });
-            _allProducts.Add(new ProductModel { Name = "Tapón PVC 1/2\"", Code = "TP012", Price = "$0.45", PriceValue = 0.45m, Category = "Ferreteria", Stock = 100 });
-            _allProducts.Add(new ProductModel { Name = "Calcetines Deportivos", Code = "CD010", Price = "$2.50", PriceValue = 2.50m, Category = "Calzado", Stock = 22 });
-            _allProducts.Add(new ProductModel { Name = "Plantillas Ortopédicas", Code = "PO001", Price = "$4.75", OldPrice = "$6.00", PriceValue = 4.75m, Category = "Calzado", Stock = 5 });
-            _allProducts.Add(new ProductModel { Name = "Limpiador Multiusos 500ml", Code = "LM050", Price = "$2.20", PriceValue = 2.20m, Category = "Hogar", Stock = 19 });
-            _allProducts.Add(new ProductModel { Name = "Foco LED 9W", Code = "FL009", Price = "$1.80", OldPrice = "$2.50", PriceValue = 1.80m, Category = "Hogar", Stock = 0 });
+            _loadedItemsPage = 0;
+            _canLoadMoreFromApi = false;
 
             // Calcular precios en colones
             foreach (var p in _allProducts)
@@ -521,12 +541,37 @@ namespace NovaRetail.ViewModels
                         });
                     }
 
+                    _loadedItemsPage = 0;
+                    _canLoadMoreFromApi = false;
+
                     FilterProducts();
                     return;
                 }
                 catch
                 {
                 }
+            }
+        }
+
+        private async Task LoadMoreProductsAsync()
+        {
+            if (IsLoadingMoreProducts || !_canLoadMoreFromApi)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(ProductSearchText))
+                return;
+
+            if (!MatchesCategory("Super", SelectedCategory) && !string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            IsLoadingMoreProducts = true;
+            try
+            {
+                await LoadProductsAsync(loadMore: true);
+            }
+            finally
+            {
+                IsLoadingMoreProducts = false;
             }
         }
 

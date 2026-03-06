@@ -155,7 +155,11 @@
                     </ScrollView>
 
                     <!-- Row 2: Product Grid (2-4 columns, responsive) -->
-                    <CollectionView Grid.Row="2" ItemsSource="{Binding Products}" SelectionMode="None">
+                    <CollectionView Grid.Row="2"
+                                    ItemsSource="{Binding Products}"
+                                    SelectionMode="None"
+                                    RemainingItemsThreshold="8"
+                                    RemainingItemsThresholdReachedCommand="{Binding LoadMoreProductsCommand}">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout x:Name="ProductsItemsLayout" Orientation="Vertical" Span="2"
                                              HorizontalItemSpacing="10" VerticalItemSpacing="10"/>
@@ -176,6 +180,31 @@
                                                       DecrementCommandParameter="{Binding .}"/>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
+                        <CollectionView.Footer>
+                            <Grid Padding="0,10,0,12"
+                                  IsVisible="{Binding IsLoadingMoreProducts}">
+                                <Border BackgroundColor="#F8FAFC"
+                                        Stroke="#E2E8F0"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10"
+                                        Padding="12,8"
+                                        HorizontalOptions="Center">
+                                    <HorizontalStackLayout Spacing="8"
+                                                           VerticalOptions="Center"
+                                                           HorizontalOptions="Center">
+                                        <ActivityIndicator IsRunning="{Binding IsLoadingMoreProducts}"
+                                                           Color="#22C55E"
+                                                           WidthRequest="20"
+                                                           HeightRequest="20"
+                                                           VerticalOptions="Center"/>
+                                        <Label Text="Cargando más artículos..."
+                                               FontSize="12"
+                                               TextColor="{DynamicResource Gray600}"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </Grid>
+                        </CollectionView.Footer>
                     </CollectionView>
 
                     <!-- Row 3: Exchange Rate + Cobrar -->
