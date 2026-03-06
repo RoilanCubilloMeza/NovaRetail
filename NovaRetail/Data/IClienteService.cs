@@ -9,6 +9,7 @@ namespace NovaRetail.Data
         Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId);
         Task<bool> GuardarAsync(ClienteModel cliente);
         Task<string> BuscarActividadAsync(string codActividad);
+        Task<IReadOnlyList<string>> ObtenerTiposClienteAsync();
     }
 }
 

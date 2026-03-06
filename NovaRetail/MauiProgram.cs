@@ -22,6 +22,7 @@ namespace NovaRetail
             // Services
             builder.Services.AddSingleton<IDialogService, MauiDialogService>();
             builder.Services.AddSingleton<IClienteService, MockClienteService>();
+            builder.Services.AddSingleton<Utilities>();
 
             // ViewModels
             builder.Services.AddSingleton<MainViewModel>();

@@ -14,7 +14,7 @@
                     <Entry Grid.Column="0"
                            Placeholder="Ingrese identificación..."
                            Text="{Binding ClientId}"
-                           Keyboard="Numeric"
+                            Keyboard="{Binding ClientIdKeyboard}"
                            ReturnType="Next"
                            IsEnabled="{Binding IsNotSyncing}"
                            BackgroundColor="Transparent"

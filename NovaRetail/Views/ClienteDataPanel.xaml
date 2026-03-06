@@ -53,8 +53,12 @@
 
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,12,0,0"/>
 
-                    <!-- Headers Provincia / Cantón / Distrito -->
-                    <Grid ColumnDefinitions="*, *, *" ColumnSpacing="4" Margin="0,8,0,2">
+                    <controls:FormEntry Placeholder="Buscar ubicación (ej: Quepos)"
+                                        Text="{Binding LocationSearch}"
+                                        Margin="0,8,0,0"/>
+
+                    <!-- Headers Provincia / Cantón / Distrito / Barrio -->
+                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4" Margin="0,8,0,2">
                         <Grid Grid.Column="0" ColumnDefinitions="*, Auto" ColumnSpacing="2">
                             <Label Grid.Column="0" Text="Provincia"
                                    Style="{DynamicResource ColumnHeaderLabel}"/>
@@ -76,10 +80,17 @@
                                    Text="&#x2228;"
                                    FontSize="10" TextColor="{DynamicResource Gray400}"/>
                         </Grid>
+                        <Grid Grid.Column="3" ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                            <Label Grid.Column="0" Text="Barrio"
+                                   Style="{DynamicResource ColumnHeaderLabel}"/>
+                            <Label Grid.Column="1" Style="{DynamicResource IconLabel}"
+                                   Text="&#x2228;"
+                                   FontSize="10" TextColor="{DynamicResource Gray400}"/>
+                        </Grid>
                     </Grid>
 
-                    <!-- Pickers compactos 3 columnas -->
-                    <Grid ColumnDefinitions="*, *, *" ColumnSpacing="4">
+                    <!-- Pickers compactos 4 columnas -->
+                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4">
                         <controls:FormPicker Grid.Column="0"
                                              ItemsSource="{Binding Provinces}"
                                              SelectedItem="{Binding SelectedProvince, Mode=TwoWay}"
@@ -94,7 +105,19 @@
                                              SelectedItem="{Binding SelectedDistrict, Mode=TwoWay}"
                                              FontSize="12"
                                              Opacity="{Binding DistrictOpacity}"/>
+                        <controls:FormPicker Grid.Column="3"
+                                             ItemsSource="{Binding Barrios}"
+                                             SelectedItem="{Binding SelectedBarrio, Mode=TwoWay}"
+                                             FontSize="12"
+                                             Opacity="{Binding BarrioOpacity}"/>
                     </Grid>
+
+                    <Label Text="Tipo de cliente" Style="{DynamicResource IconFieldLabel}"
+                           Margin="0,8,0,2"/>
+                    <controls:FormPicker ItemsSource="{Binding CustomerTypes}"
+                                         SelectedItem="{Binding SelectedCustomerType, Mode=TwoWay}"
+                                         Title="Seleccione tipo de cliente"
+                                         FontSize="13"/>
 
                     <!-- Dirección -->
                     <Label Text="Dirección" Style="{DynamicResource IconFieldLabel}"
@@ -126,6 +149,8 @@
                     <Label Text="{Binding ActivityDescription}"
                            IsVisible="{Binding HasActivityDescription}"
                            Style="{DynamicResource FieldDescriptionItalic}"/>
+                    <Label Text="Puede ingresar uno o varios códigos separados por coma (máx. 5)."
+                           Style="{DynamicResource InactiveHintLabel}"/>
 
                 </VerticalStackLayout>
 
