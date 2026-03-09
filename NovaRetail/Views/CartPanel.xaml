@@ -21,11 +21,11 @@
                            HorizontalOptions="Center" VerticalOptions="Center"/>
                 </Border>
                 <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                    <Label Text="Cod. Cliente 3-101-718276"
+                    <Label Text="{Binding ClientDisplayId}"
                            FontSize="13" FontAttributes="Bold"
                            TextColor="{DynamicResource Gray900}"
                            LineBreakMode="TailTruncation"/>
-                    <Label Text="AVS Solutions"
+                    <Label Text="{Binding ClientDisplayName}"
                            FontSize="11" TextColor="{DynamicResource Gray500}"/>
                 </VerticalStackLayout>
                 <Border Grid.Column="2"

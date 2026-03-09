@@ -6,10 +6,7 @@ using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
-    /// <summary>
-    /// Implementación real de IClienteService que consume la API REST de RMH
-    /// y las APIs de Hacienda/GoMeta para sincronización fiscal.
-    /// </summary>
+  
     public class ApiClienteService : IClienteService
     {
         private static readonly TimeSpan LocalApiTimeout = TimeSpan.FromSeconds(12);

@@ -28,6 +28,34 @@ namespace NovaRetail.ViewModels
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
 
+        private string _currentClientId = string.Empty;
+        private string _currentClientName = string.Empty;
+
+        public string CurrentClientId
+        {
+            get => _currentClientId;
+            private set { _currentClientId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ClientDisplayId)); OnPropertyChanged(nameof(ClientDisplayName)); OnPropertyChanged(nameof(HasClient)); }
+        }
+
+        public string CurrentClientName
+        {
+            get => _currentClientName;
+            private set { _currentClientName = value; OnPropertyChanged(); OnPropertyChanged(nameof(ClientDisplayName)); }
+        }
+
+        public bool HasClient => !string.IsNullOrWhiteSpace(_currentClientId);
+        public string ClientDisplayId => HasClient ? _currentClientId : "Sin cliente";
+        public string ClientDisplayName => HasClient
+            ? (string.IsNullOrWhiteSpace(_currentClientName) ? "—" : _currentClientName)
+            : "Seleccione un cliente";
+
+        public void SetCliente(string clientId, string name)
+        {
+            if (string.IsNullOrWhiteSpace(clientId)) return;
+            CurrentClientId = clientId.Trim();
+            CurrentClientName = (name ?? string.Empty).Trim();
+        }
+
         public ObservableCollection<ProductModel> Products { get; } = new();
         public ObservableCollection<CartItemModel> CartItems { get; } = new();
 
