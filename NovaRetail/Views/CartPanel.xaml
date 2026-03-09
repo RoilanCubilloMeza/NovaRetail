@@ -8,11 +8,11 @@
     <Border Style="{DynamicResource PanelCard}"
             Margin="12,10,6,10">
 
-        <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="0">
+        <Grid RowDefinitions="Auto, Auto, Auto, *, Auto" RowSpacing="0">
 
             <!-- Row 0: Client Info Header -->
             <Grid Grid.Row="0"
-                  ColumnDefinitions="Auto, *, Auto, Auto"
+                  ColumnDefinitions="Auto, *, Auto, Auto, Auto"
                   ColumnSpacing="8"
                   Padding="14,12,14,10">
                 <Border Grid.Column="0"
@@ -46,6 +46,35 @@
                     <Label Text="F3" TextColor="{DynamicResource Gray600}"
                            FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
                 </Border>
+                <Border Grid.Column="4"
+                        StrokeShape="RoundRectangle 6" StrokeThickness="1"
+                        Padding="10,6" HeightRequest="32">
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#3B82F6"/>
+                            <Setter Property="Stroke" Value="#3B82F6"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}" Value="False">
+                            <Setter Property="BackgroundColor" Value="{DynamicResource InputBackground}"/>
+                            <Setter Property="Stroke" Value="{DynamicResource Gray200Brush}"/>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.ToggleSelectionModeCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label FontAttributes="Bold" FontSize="12" VerticalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}" Value="True">
+                                <Setter Property="Text" Value="&#x2611; Listo"/>
+                                <Setter Property="TextColor" Value="White"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}" Value="False">
+                                <Setter Property="Text" Value="&#x2611; Sel."/>
+                                <Setter Property="TextColor" Value="{DynamicResource Gray600}"/>
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </Border>
             </Grid>
 
             <!-- Row 1: Table Header -->
@@ -53,80 +82,183 @@
                     BackgroundColor="{DynamicResource InputBackground}"
                     StrokeShape="RoundRectangle 0" StrokeThickness="0"
                     Padding="12,8">
-                <Grid ColumnDefinitions="*, 30, 80, 86, 96" ColumnSpacing="6">
-                    <Label Grid.Column="0" Text="Descripción Producto"
+                <Grid ColumnDefinitions="24, *, 30, 80, 86, 96" ColumnSpacing="6">
+                    <BoxView Grid.Column="0" Color="Transparent"/>
+                    <Label Grid.Column="1" Text="Descripción Producto"
                            Style="{DynamicResource TableHeaderLabel}"/>
-                    <Label Grid.Column="1" Text="Cant."
+                    <Label Grid.Column="2" Text="Cant."
                            Style="{DynamicResource TableHeaderLabel}"
                            HorizontalTextAlignment="Center"/>
-                    <Label Grid.Column="2" Text="Precio"
+                    <Label Grid.Column="3" Text="Precio"
                            Style="{DynamicResource TableHeaderLabel}"
                            HorizontalTextAlignment="End"/>
-                    <Label Grid.Column="3" Text="Total"
+                    <Label Grid.Column="4" Text="Total"
                            Style="{DynamicResource TableHeaderLabel}"
                            HorizontalTextAlignment="End"/>
                 </Grid>
             </Border>
 
-            <!-- Row 2: Cart Items (scroll) -->
-            <CollectionView Grid.Row="2" ItemsSource="{Binding CartItems}" SelectionMode="None">
+            <!-- Row 2: Selection toolbar -->
+            <Border Grid.Row="2"
+                    BackgroundColor="#EFF6FF"
+                    Stroke="#BFDBFE" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 0"
+                    IsVisible="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}"
+                    Padding="12,6">
+                <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+                    <Label Grid.Column="0"
+                           Text="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.SelectedCountText}"
+                           FontSize="12" FontAttributes="Bold"
+                           TextColor="#1D4ED8" VerticalOptions="Center"/>
+                    <Border Grid.Column="1"
+                            StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                            Padding="10,6">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.HasSelectedItems}" Value="True">
+                                <Setter Property="BackgroundColor" Value="#3B82F6"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.HasSelectedItems}" Value="False">
+                                <Setter Property="BackgroundColor" Value="#94A3B8"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.ApplyBulkDiscountCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="% Aplicar desc." FontSize="12" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                    </Border>
+                    <Border Grid.Column="2"
+                            BackgroundColor="#E2E8F0"
+                            StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                            Padding="10,6">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.ToggleSelectionModeCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="✕ Cancelar" FontSize="12" FontAttributes="Bold" TextColor="#475569" VerticalOptions="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Row 3: Cart Items (scroll) -->
+            <CollectionView Grid.Row="3" ItemsSource="{Binding CartItems}" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <VerticalStackLayout Spacing="0">
-                            <Grid ColumnDefinitions="*, 30, 80, 86, 96"
-                                  ColumnSpacing="6" Padding="12,9,12,9">
+                            <VerticalStackLayout.Triggers>
+                                <DataTrigger TargetType="VerticalStackLayout" Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#EFF6FF"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="VerticalStackLayout" Binding="{Binding IsSelected}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                </DataTrigger>
+                            </VerticalStackLayout.Triggers>
+                            <VerticalStackLayout.GestureRecognizers>
+                                <!-- Tap to toggle selection when in selection mode -->
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.ToggleItemSelectionCommand}"
+                                    CommandParameter="{Binding .}"/>
+                                <!-- Right-click (desktop/trackpad) -->
+                                <TapGestureRecognizer Buttons="Secondary"
+                                    Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.EditCartItemCommand}"
+                                    CommandParameter="{Binding .}"/>
+                                <!-- Long-press (touch/stylus) — handled in code-behind -->
+                                <PointerGestureRecognizer
+                                    PointerPressed="OnItemPointerPressed"
+                                    PointerReleased="OnItemPointerReleased"/>
+                            </VerticalStackLayout.GestureRecognizers>
 
-                                <!-- Col 0: prefix + emoji + name -->
-                                <Label Grid.Column="0"
+                            <Grid ColumnDefinitions="24, *, 30, 80, 86, 96"
+                                  ColumnSpacing="6" Padding="8,9,12,9">
+
+                                <!-- Col 0: selection checkbox -->
+                                <Border Grid.Column="0"
+                                        WidthRequest="20" HeightRequest="20"
+                                        StrokeShape="RoundRectangle 4" StrokeThickness="1.5"
+                                        VerticalOptions="Center" HorizontalOptions="Center"
+                                        IsVisible="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IsSelectionMode}">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#3B82F6"/>
+                                            <Setter Property="Stroke" Value="#3B82F6"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="White"/>
+                                            <Setter Property="Stroke" Value="#94A3B8"/>
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label Text="✓" FontSize="10" FontAttributes="Bold" TextColor="White"
+                                           HorizontalOptions="Center" VerticalOptions="Center"
+                                           IsVisible="{Binding IsSelected}"/>
+                                </Border>
+
+                                <!-- Col 1: product name -->
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayName}"
                                        FontSize="13" FontAttributes="Bold"
                                        TextColor="{DynamicResource Gray900}"
                                        LineBreakMode="WordWrap"
-                                       VerticalOptions="Start">
-                                    <Label.FormattedText>
-                                        <FormattedString>
-                                            <Span Text="{Binding QuantityPrefix}"
-                                                  TextColor="{DynamicResource AccentBlue}"
-                                                  FontAttributes="Bold"/>
-                                            <Span Text="  "/>
-                                            <Span Text="{Binding Emoji}"/>
-                                            <Span Text=" "/>
-                                            <Span Text="{Binding Name}"/>
-                                        </FormattedString>
-                                    </Label.FormattedText>
-                                </Label>
+                                       VerticalOptions="Center"/>
 
-                                <!-- Col 1: quantity -->
-                                <Label Grid.Column="1"
+                                <!-- Col 2: quantity -->
+                                <Label Grid.Column="2"
                                        Text="{Binding QuantityPrefix}"
                                        FontSize="12"
                                        TextColor="{DynamicResource Gray600}"
                                        HorizontalTextAlignment="Center"
                                        VerticalOptions="Center"/>
 
-                                <!-- Col 2: unit price (colones + usd) -->
-                                <VerticalStackLayout Grid.Column="2"
-                                                     VerticalOptions="Center"
-                                                     HorizontalOptions="End"
-                                                     Spacing="1">
-                                    <Label Text="{Binding UnitPriceColonesText}"
-                                           Style="{DynamicResource CartPriceMainLabel}"/>
-                                    <Label Text="{Binding UnitPriceUsdText}"
-                                           Style="{DynamicResource CartPriceSubLabel}"/>
-                                </VerticalStackLayout>
-
-                                <!-- Col 3: total (colones + usd) -->
+                                <!-- Col 3: unit price -->
                                 <VerticalStackLayout Grid.Column="3"
                                                      VerticalOptions="Center"
                                                      HorizontalOptions="End"
-                                                     Spacing="1">
+                                                     Spacing="2">
+                                    <!-- Original price crossed out when override active -->
+                                    <Label Text="{Binding OriginalPriceColonesText}"
+                                           FontSize="10"
+                                           TextColor="#94A3B8"
+                                           HorizontalTextAlignment="End"
+                                           TextDecorations="Strikethrough"
+                                           IsVisible="{Binding HasOverridePrice}"/>
+                                    <!-- Effective unit price -->
+                                    <Label Text="{Binding UnitPriceColonesText}"
+                                           FontSize="13"
+                                           HorizontalTextAlignment="End">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
+                                                <Setter Property="TextColor" Value="#F59E0B"/>
+                                                <Setter Property="FontAttributes" Value="Bold"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
+                                                <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
+                                                <Setter Property="FontAttributes" Value="None"/>
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </VerticalStackLayout>
+
+                                <!-- Col 4: total -->
+                                <VerticalStackLayout Grid.Column="4"
+                                                     VerticalOptions="Center"
+                                                     HorizontalOptions="End"
+                                                     Spacing="2">
                                     <Label Text="{Binding TotalColonesText}"
                                            Style="{DynamicResource CartPriceMainLabel}"/>
                                     <Label Text="{Binding TotalUsdText}"
                                            Style="{DynamicResource CartPriceSubLabel}"/>
+                                    <Border BackgroundColor="#FEF08A"
+                                            StrokeShape="RoundRectangle 12"
+                                            StrokeThickness="0"
+                                            Padding="7,3"
+                                            HorizontalOptions="End"
+                                            IsVisible="{Binding HasDiscount}">
+                                        <Label Text="{Binding DiscountText}"
+                                               FontSize="11" FontAttributes="Bold"
+                                               TextColor="#854D0E"
+                                               HorizontalTextAlignment="Center"/>
+                                    </Border>
                                 </VerticalStackLayout>
 
-                                <!-- Col 4: − / qty / + touch controls -->
-                                <Grid Grid.Column="4"
+                                <!-- Col 5: − / qty / + touch controls -->
+                                <Grid Grid.Column="5"
                                       ColumnDefinitions="28, *, 28" ColumnSpacing="2"
                                       VerticalOptions="Center">
                                     <Border Grid.Column="0"
@@ -176,8 +308,8 @@
                 </CollectionView.EmptyView>
             </CollectionView>
 
-            <!-- Row 3: Totals + Actions -->
-            <VerticalStackLayout Grid.Row="3" Spacing="0">
+            <!-- Row 4: Totals + Actions -->
+            <VerticalStackLayout Grid.Row="4" Spacing="0">
 
                 <BoxView Color="{DynamicResource Gray200}" HeightRequest="1"/>
 
@@ -201,6 +333,30 @@
                     <Label Grid.Column="4" Text="{Binding TotalColonesText}"
                            Style="{DynamicResource CartTotalLabel}"
                            HorizontalTextAlignment="End"/>
+                </Grid>
+
+                <!-- Descuento global del ticket -->
+                <Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto"
+                      Padding="14,0,14,4" ColumnSpacing="8">
+                    <Label Grid.Column="0" Text="Descuento:"
+                           FontSize="13" TextColor="{DynamicResource Gray500}"
+                           VerticalOptions="Center"/>
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FEF3C7"
+                            StrokeShape="RoundRectangle 4" StrokeThickness="0"
+                            Padding="6,2" VerticalOptions="Center">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ApplyDiscountCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="{Binding DiscountText}"
+                               FontSize="12" FontAttributes="Bold" TextColor="#92400E"/>
+                    </Border>
+                    <Label Grid.Column="2" Text="{Binding DiscountColonesText}"
+                           FontSize="13" TextColor="{DynamicResource Gray400}"
+                           HorizontalTextAlignment="End" VerticalOptions="Center"/>
+                    <Label Grid.Column="4" Text="{Binding DiscountAmountText}"
+                           FontSize="13" TextColor="{DynamicResource Gray400}"
+                           HorizontalTextAlignment="End" VerticalOptions="Center"/>
                 </Grid>
 
                 <!-- USD totals: Impuestos + Total USD -->

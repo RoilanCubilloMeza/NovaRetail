@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.PriceJustificationPopup">
+
+    <!-- Full-screen semi-transparent backdrop -->
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <!-- Centered popup card -->
+        <Border BackgroundColor="White"
+                StrokeShape="RoundRectangle 10"
+                StrokeThickness="0"
+                MaximumWidthRequest="760"
+                MaximumHeightRequest="500"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+
+            <Grid RowDefinitions="Auto, Auto, Auto, *, Auto" RowSpacing="0">
+
+                <!-- ── Row 0: Title ── -->
+                <Label Grid.Row="0"
+                       Text="Seleccionar Código de Justificación"
+                       FontSize="17" FontAttributes="Bold"
+                       TextColor="#1E293B"
+                       HorizontalTextAlignment="Center"
+                       Margin="16,18,16,10"/>
+
+                <!-- ── Row 1: Search + records count + refresh ── -->
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="*, Auto, Auto"
+                      ColumnSpacing="8"
+                      Margin="16,0,16,10">
+
+                    <!-- Search box -->
+                    <Border Grid.Column="0"
+                            BackgroundColor="#F1F5F9"
+                            Stroke="#CBD5E1" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 6"
+                            Padding="8,4" HeightRequest="38">
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="6">
+                            <Label Grid.Column="0" Text="🔍" FontSize="13"
+                                   TextColor="#94A3B8" VerticalOptions="Center"/>
+                            <Entry Grid.Column="1"
+                                   Placeholder="Código de Razón"
+                                   Text="{Binding SearchText, Mode=TwoWay}"
+                                   FontSize="12" BackgroundColor="Transparent"
+                                   PlaceholderColor="#94A3B8"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Records text -->
+                    <Label Grid.Column="1"
+                           Text="{Binding RecordsText}"
+                           FontSize="11" TextColor="#64748B"
+                           VerticalOptions="Center"/>
+
+                    <!-- Refresh button -->
+                    <Border Grid.Column="2"
+                            BackgroundColor="#3B82F6"
+                            StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                            WidthRequest="36" HeightRequest="36" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding RefreshCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="↺" FontSize="16" FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Border>
+                </Grid>
+
+                <!-- ── Row 2: Table header ── -->
+                <Border Grid.Row="2"
+                        BackgroundColor="#F1F5F9"
+                        StrokeThickness="0"
+                        Padding="16,8">
+                    <Grid ColumnDefinitions="36, 120, *, 180" ColumnSpacing="8">
+                        <BoxView Grid.Column="0" Color="Transparent"/>
+                        <Label Grid.Column="1" Text="Código"
+                               FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                        <Label Grid.Column="2" Text="Descripción"
+                               FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                        <Label Grid.Column="3" Text="Tipo"
+                               FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                    </Grid>
+                </Border>
+
+                <!-- ── Row 3: Code list ── -->
+                <CollectionView Grid.Row="3"
+                                ItemsSource="{Binding FilteredCodes}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeThickness="0"
+                                    Padding="0">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#EFF6FF"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="White"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectCodeCommand}"
+                                        CommandParameter="{Binding .}"/>
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="36, 120, *, 180"
+                                      ColumnSpacing="8" Padding="16,10">
+
+                                    <!-- Checkbox -->
+                                    <Border Grid.Column="0"
+                                            WidthRequest="20" HeightRequest="20"
+                                            StrokeShape="RoundRectangle 3"
+                                            StrokeThickness="1.5"
+                                            HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="#3B82F6"/>
+                                                <Setter Property="Stroke" Value="#3B82F6"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                                <Setter Property="BackgroundColor" Value="White"/>
+                                                <Setter Property="Stroke" Value="#94A3B8"/>
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Label Text="✓" FontSize="10" FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center" VerticalOptions="Center"
+                                               IsVisible="{Binding IsSelected}"/>
+                                    </Border>
+
+                                    <!-- Code -->
+                                    <Label Grid.Column="1"
+                                           Text="{Binding CodeText}"
+                                           FontSize="13" TextColor="#1E293B"
+                                           VerticalOptions="Center"/>
+
+                                    <!-- Description -->
+                                    <Label Grid.Column="2"
+                                           Text="{Binding Description}"
+                                           FontSize="13" TextColor="#1E293B"
+                                           VerticalOptions="Center"
+                                           LineBreakMode="TailTruncation"/>
+
+                                    <!-- Type -->
+                                    <Label Grid.Column="3"
+                                           Text="{Binding TypeName}"
+                                           FontSize="12" TextColor="#64748B"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+
+                                    </Border>
+                                </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="Sin códigos de justificación disponibles"
+                               FontSize="12" TextColor="#94A3B8"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,20"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+                <!-- ── Row 4: Buttons ── -->
+                <Border Grid.Row="4"
+                        BackgroundColor="#F8FAFC"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 0,0,10,10"
+                        Padding="16,12">
+                    <Grid ColumnDefinitions="*, Auto, Auto, *" ColumnSpacing="10">
+
+                        <!-- Ok -->
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                                Padding="28,10" HeightRequest="40">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding CanConfirm}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#22C55E"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding CanConfirm}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#94A3B8"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OkCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Ok" FontSize="13" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center"/>
+                        </Border>
+
+                        <!-- Cancelar -->
+                        <Border Grid.Column="2"
+                                BackgroundColor="#E2E8F0"
+                                StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                                Padding="20,10" HeightRequest="40">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CancelCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancelar" FontSize="13" FontAttributes="Bold"
+                                   TextColor="#475569" VerticalOptions="Center"/>
+                        </Border>
+
+                    </Grid>
+                </Border>
+
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentView>

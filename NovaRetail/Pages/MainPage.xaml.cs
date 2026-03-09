@@ -9,9 +9,9 @@ namespace NovaRetail
 
         public MainPage(MainViewModel vm)
         {
-            InitializeComponent();
             _vm = vm;
-            BindingContext = _vm;
+            BindingContext = _vm;          // set before InitializeComponent so bindings resolve to false immediately
+            InitializeComponent();
             _vm.PropertyChanged += OnViewModelPropertyChanged;
         }
 

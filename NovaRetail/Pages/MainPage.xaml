@@ -10,6 +10,23 @@
         <views:CartPanel     Grid.Column="0"/>
         <views:ProductsPanel Grid.Column="1"/>
         <views:ActionsPanel  Grid.Column="2"/>
+
+        <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsItemActionVisible}">
+            <views:ItemActionPopup BindingContext="{Binding ItemActionVm}"/>
+        </Grid>
+
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsDiscountPopupVisible}">
+            <views:DiscountPopup BindingContext="{Binding DiscountVm}"/>
+        </Grid>
+
+        <!-- Price justification overlay (Grid keeps MainViewModel BC for IsVisible) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsPriceJustVisible}">
+            <views:PriceJustificationPopup BindingContext="{Binding PriceJustVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

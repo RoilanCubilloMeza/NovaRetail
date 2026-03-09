@@ -1,0 +1,169 @@
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.DiscountPopup">
+
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55" />
+
+        <Border BackgroundColor="White"
+                Stroke="#BFDBFE"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 10"
+                WidthRequest="320"
+                Padding="14,14,14,12"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+
+            <Grid RowDefinitions="Auto,Auto,*,Auto"
+                  RowSpacing="12">
+
+                <Label Grid.Row="0"
+                       Text="Descuento"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="#1E293B"
+                       HorizontalTextAlignment="Center" />
+
+                <Border Grid.Row="1"
+                        Stroke="#BFDBFE"
+                        StrokeThickness="2"
+                        StrokeShape="RoundRectangle 4"
+                        HeightRequest="44"
+                        Padding="12,0">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0"
+                               Text="{Binding PercentText}"
+                               FontSize="20"
+                               TextColor="#1E293B"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Text="%"
+                               FontSize="16"
+                               TextColor="#475569"
+                               VerticalOptions="Center"
+                               Margin="8,0,0,0" />
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="2"
+                      ColumnDefinitions="*,*,*,1.25*"
+                      RowDefinitions="52,52,52,52"
+                      ColumnSpacing="6"
+                      RowSpacing="6">
+
+                    <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="7" />
+                        </Border.GestureRecognizers>
+                        <Label Text="7" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="8" />
+                        </Border.GestureRecognizers>
+                        <Label Text="8" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="9" />
+                        </Border.GestureRecognizers>
+                        <Label Text="9" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="3" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="Regresar" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Regresar" FontSize="14" TextColor="#64748B" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="0" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="4" />
+                        </Border.GestureRecognizers>
+                        <Label Text="4" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="5" />
+                        </Border.GestureRecognizers>
+                        <Label Text="5" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="6" />
+                        </Border.GestureRecognizers>
+                        <Label Text="6" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="3" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="C" />
+                        </Border.GestureRecognizers>
+                        <Label Text="C" FontSize="18" TextColor="#64748B" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+
+                    <Border Grid.Row="2" Grid.Column="0" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="1" />
+                        </Border.GestureRecognizers>
+                        <Label Text="1" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="1" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="2" />
+                        </Border.GestureRecognizers>
+                        <Label Text="2" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="3" />
+                        </Border.GestureRecognizers>
+                        <Label Text="3" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="3" Grid.RowSpan="2" BackgroundColor="#E5E7EB" Stroke="#D1D5DB" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="ENT" />
+                        </Border.GestureRecognizers>
+                        <Label Text="ENT" FontSize="22" TextColor="#6B7280" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+
+                    <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="0" />
+                        </Border.GestureRecognizers>
+                        <Label Text="0" FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Row="3" Grid.Column="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 4" StrokeThickness="1" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="." />
+                        </Border.GestureRecognizers>
+                        <Label Text="." FontSize="18" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <Border StrokeShape="RoundRectangle 4" StrokeThickness="0" HeightRequest="38">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding CanConfirm}" Value="True">
+                                <Setter Property="BackgroundColor" Value="#22C55E" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding CanConfirm}" Value="False">
+                                <Setter Property="BackgroundColor" Value="#94A3B8" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OkCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Ok" FontSize="14" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <Border Grid.Column="1" BackgroundColor="#E5E7EB" Stroke="#CBD5E1" StrokeShape="RoundRectangle 4" StrokeThickness="1" HeightRequest="38">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CancelCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Cancelar" FontSize="14" FontAttributes="Bold" TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

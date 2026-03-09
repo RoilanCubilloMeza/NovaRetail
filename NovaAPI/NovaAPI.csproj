@@ -183,6 +183,7 @@
     <Compile Include="Controllers\OrdersController.cs" />
     <Compile Include="Controllers\OrderEntrysController.cs" />
     <Compile Include="Controllers\PaymentController.cs" />
+    <Compile Include="Controllers\ReasonCodesController.cs" />
     <Compile Include="Controllers\SalesRepController.cs" />
     <Compile Include="Controllers\TenderEntryController.cs" />
     <Compile Include="Controllers\TransactionController.cs" />

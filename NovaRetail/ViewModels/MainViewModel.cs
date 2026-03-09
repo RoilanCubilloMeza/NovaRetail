@@ -7,6 +7,7 @@ using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows.Input;
+using Newtonsoft.Json;
 
 namespace NovaRetail.ViewModels
 {
@@ -22,11 +23,66 @@ namespace NovaRetail.ViewModels
             "http://localhost:52500/api/Items/Search?criteria={0}&top=300",
             "http://127.0.0.1:52500/api/Items/Search?criteria={0}&top=300"
         };
+        private static readonly string[] ReasonCodeEndpoints =
+        {
+            "http://localhost:52500/api/ReasonCodes?type={0}",
+            "http://127.0.0.1:52500/api/ReasonCodes?type={0}"
+        };
         private readonly IDialogService _dialogService;
         private readonly List<ProductModel> _allProducts = new();
+        private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
+
+        private CartItemModel? _pendingPriceItem;
+        private int? _pendingDiscountPercent;
+        private bool _isDiscountJustificationFlow;
+        private bool _isBulkDiscountFlow;
+
+        private bool _isItemActionVisible;
+        public bool IsItemActionVisible
+        {
+            get => _isItemActionVisible;
+            private set { if (_isItemActionVisible != value) { _isItemActionVisible = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isPriceJustVisible;
+        public bool IsPriceJustVisible
+        {
+            get => _isPriceJustVisible;
+            private set { if (_isPriceJustVisible != value) { _isPriceJustVisible = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isDiscountPopupVisible;
+        public bool IsDiscountPopupVisible
+        {
+            get => _isDiscountPopupVisible;
+            private set { if (_isDiscountPopupVisible != value) { _isDiscountPopupVisible = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isSelectionMode;
+        public bool IsSelectionMode
+        {
+            get => _isSelectionMode;
+            private set
+            {
+                if (_isSelectionMode != value)
+                {
+                    _isSelectionMode = value;
+                    OnPropertyChanged();
+                    if (!_isSelectionMode)
+                        ClearAllSelections();
+                }
+            }
+        }
+
+        public bool HasSelectedItems => CartItems.Any(c => c.IsSelected);
+        public string SelectedCountText => $"{CartItems.Count(c => c.IsSelected)} artículo(s) seleccionado(s)";
+
+        public ItemActionViewModel ItemActionVm { get; } = new();
+        public DiscountEntryViewModel DiscountVm { get; } = new();
+        public PriceJustificationViewModel PriceJustVm { get; } = new();
 
         private string _currentClientId = string.Empty;
         private string _currentClientName = string.Empty;
@@ -73,6 +129,10 @@ namespace NovaRetail.ViewModels
         public ICommand SelectSpanCommand { get; }
         public ICommand NavigateToClienteCommand { get; }
         public ICommand LoadMoreProductsCommand { get; }
+        public ICommand EditCartItemCommand { get; }
+        public ICommand ToggleSelectionModeCommand { get; }
+        public ICommand ToggleItemSelectionCommand { get; }
+        public ICommand ApplyBulkDiscountCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -87,6 +147,7 @@ namespace NovaRetail.ViewModels
                     OnPropertyChanged(nameof(TaxText));
                     OnPropertyChanged(nameof(TotalText));
                     OnPropertyChanged(nameof(DiscountAmountText));
+                    OnPropertyChanged(nameof(DiscountColonesText));
                 }
             }
         }
@@ -251,16 +312,31 @@ namespace NovaRetail.ViewModels
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(DiscountText));
                     OnPropertyChanged(nameof(DiscountAmountText));
+                    OnPropertyChanged(nameof(DiscountColonesText));
                     OnPropertyChanged(nameof(TaxText));
                     OnPropertyChanged(nameof(TotalText));
                 }
             }
         }
 
-        public string DiscountText => $"{DiscountPercent} %";
-        private decimal DiscountAmount => Math.Round(Subtotal * DiscountPercent / 100m, 2);
-        public string DiscountAmountText => $"-${DiscountAmount:F2}";
-        private decimal SubtotalAfterDiscount => Subtotal - DiscountAmount;
+        private decimal ItemDiscountAmount => CartItems.Sum(c =>
+        {
+            var originalLine = c.EffectivePriceColones * c.Quantity;
+            var discountedLine = originalLine * (1m - c.DiscountPercent / 100m);
+            var itemDiscountColones = originalLine - discountedLine;
+            return _exchangeRate > 0 ? Math.Round(itemDiscountColones / _exchangeRate, 4) : itemDiscountColones;
+        });
+        private bool HasItemDiscounts => CartItems.Any(c => c.DiscountPercent > 0);
+        public string DiscountText => DiscountPercent > 0
+            ? (HasItemDiscounts ? $"Art. + {DiscountPercent} %" : $"{DiscountPercent} %")
+            : (HasItemDiscounts ? "Artículos" : "0 %");
+        private decimal TicketDiscountAmount => Math.Round(Subtotal * DiscountPercent / 100m, 2);
+        private decimal TotalDiscountAmount => ItemDiscountAmount + TicketDiscountAmount;
+        public string DiscountAmountText => $"-{TotalDiscountAmount:F2}";
+        public string DiscountColonesText => TotalDiscountAmount > 0
+            ? $"-₡{Math.Round(TotalDiscountAmount * _exchangeRate):N0}"
+            : "₡0";
+        private decimal SubtotalAfterDiscount => Subtotal - TicketDiscountAmount;
         public decimal Tax => Math.Round(SubtotalAfterDiscount * 0.055m, 2);
         public string TaxText => $"${Tax:F2}";
         public string TotalText => $"${SubtotalAfterDiscount + Tax:F2}";
@@ -379,6 +455,28 @@ namespace NovaRetail.ViewModels
             SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
             NavigateToClienteCommand = new Command(async () => await Shell.Current.GoToAsync("ClientePage"));
             LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
+            EditCartItemCommand = new Command<CartItemModel>(async item => await OpenItemActionAsync(item));
+            ToggleSelectionModeCommand = new Command(() => IsSelectionMode = !IsSelectionMode);
+            ToggleItemSelectionCommand = new Command<CartItemModel>(item =>
+            {
+                if (!IsSelectionMode || item is null) return;
+                item.IsSelected = !item.IsSelected;
+                OnPropertyChanged(nameof(HasSelectedItems));
+                OnPropertyChanged(nameof(SelectedCountText));
+                ((Command)ApplyBulkDiscountCommand).ChangeCanExecute();
+            });
+            ApplyBulkDiscountCommand = new Command(async () => await StartBulkDiscountAsync(), () => HasSelectedItems);
+            ItemActionVm.RequestOk += CloseItemAction;
+            ItemActionVm.RequestCancel += CloseItemAction;
+            ItemActionVm.RequestDelete += () => { RemoveCartItemIfExists(ItemActionVm.CurrentItem); CloseItemAction(); };
+            ItemActionVm.RequestDuplicate += () => { DuplicateCartItem(ItemActionVm.CurrentItem); CloseItemAction(); };
+            ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
+            ItemActionVm.RequestItemDiscount += async () => await StartItemDiscountAsync();
+            DiscountVm.RequestOk += OnDiscountEntryOk;
+            DiscountVm.RequestCancel += OnDiscountEntryCancel;
+            PriceJustVm.RequestOk += OnPriceJustOk;
+            PriceJustVm.RequestCancel += OnPriceJustCancel;
+            PriceJustVm.RequestRefresh += async () => { _cachedDiscountCodes.Clear(); await LoadDiscountCodesAsync(); PriceJustVm.LoadCodes(_cachedDiscountCodes); };
             _ = LoadProductsAsync();
         }
 
@@ -649,13 +747,14 @@ namespace NovaRetail.ViewModels
             }
             else
             {
-                CartItems.Add(new CartItemModel
+                CartItems.Insert(0, new CartItemModel
                 {
                     Emoji = product.Emoji,
                     Name = product.Name,
                     Code = product.Code,
                     UnitPrice = product.PriceValue,
-                    UnitPriceColones = product.PriceColonesValue
+                    UnitPriceColones = product.PriceColonesValue,
+                    Stock = product.Stock
                 });
                 product.CartQuantity = 1;
             }
@@ -743,12 +842,256 @@ namespace NovaRetail.ViewModels
 
         private void RecalculateTotal()
         {
-            Subtotal = CartItems.Sum(c => c.UnitPrice * c.Quantity);
+            Subtotal = CartItems.Sum(c =>
+            {
+                var colonesLine = c.EffectivePriceColones * c.Quantity * (1m - c.DiscountPercent / 100m);
+                return _exchangeRate > 0 ? Math.Round(colonesLine / _exchangeRate, 4) : colonesLine;
+            });
             OnPropertyChanged(nameof(CartCountText));
+            OnPropertyChanged(nameof(DiscountText));
+            OnPropertyChanged(nameof(DiscountAmountText));
+            OnPropertyChanged(nameof(DiscountColonesText));
             OnPropertyChanged(nameof(SubtotalText));
             OnPropertyChanged(nameof(SubtotalColonesText));
             OnPropertyChanged(nameof(TaxColonesText));
             OnPropertyChanged(nameof(TotalColonesText));
+        }
+
+        // ── Item Action popup ──
+
+        private async Task OpenItemActionAsync(CartItemModel? item)
+        {
+            if (item is null) return;
+
+            if (_cachedDiscountCodes.Count == 0)
+                await LoadDiscountCodesAsync();
+
+            ItemActionVm.LoadItem(item, _cachedDiscountCodes);
+            IsItemActionVisible = true;
+        }
+
+        private void CloseItemAction()
+        {
+            IsItemActionVisible = false;
+            RecalculateTotal();
+        }
+
+        private async Task StartItemDiscountAsync()
+        {
+            var item = ItemActionVm.CurrentItem;
+            if (item is null)
+                return;
+
+            if (_cachedDiscountCodes.Count == 0)
+                await LoadDiscountCodesAsync();
+
+            ItemActionVm.ApplyNonPriceChanges();
+            _pendingPriceItem = item;
+            _pendingDiscountPercent = null;
+            _isDiscountJustificationFlow = false;
+            DiscountVm.LoadPercent(item.DiscountPercent);
+            IsItemActionVisible = false;
+            IsDiscountPopupVisible = true;
+            RecalculateTotal();
+        }
+
+        private void OnDiscountEntryOk()
+        {
+            var selectedPercent = DiscountVm.SelectedPercent;
+            if (!selectedPercent.HasValue)
+                return;
+
+            _pendingDiscountPercent = selectedPercent.Value;
+            IsDiscountPopupVisible = false;
+
+            if (_isBulkDiscountFlow)
+            {
+                PriceJustVm.LoadCodes(_cachedDiscountCodes);
+                IsPriceJustVisible = true;
+                return;
+            }
+
+            if (_pendingPriceItem is null)
+                return;
+
+            _isDiscountJustificationFlow = true;
+            PriceJustVm.LoadCodes(_cachedDiscountCodes);
+            IsPriceJustVisible = true;
+        }
+
+        private void OnDiscountEntryCancel()
+        {
+            _pendingDiscountPercent = null;
+            _isDiscountJustificationFlow = false;
+            var reopenItemAction = !_isBulkDiscountFlow && _pendingPriceItem != null;
+            _isBulkDiscountFlow = false;
+            IsDiscountPopupVisible = false;
+            if (reopenItemAction)
+                IsItemActionVisible = true;
+            _pendingPriceItem = null;
+        }
+
+        private void OnPriceJustificationRequired()
+        {
+            var item = ItemActionVm.CurrentItem;
+            if (item is null) return;
+
+            _pendingPriceItem = item;
+            _pendingDiscountPercent = null;
+            _isDiscountJustificationFlow = false;
+            IsItemActionVisible = false;
+
+            if (_cachedDiscountCodes.Count == 0)
+                _ = LoadDiscountCodesAsync().ContinueWith(_ =>
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        PriceJustVm.LoadCodes(_cachedDiscountCodes);
+                        IsPriceJustVisible = true;
+                    }));
+            else
+            {
+                PriceJustVm.LoadCodes(_cachedDiscountCodes);
+                IsPriceJustVisible = true;
+            }
+        }
+
+        private void OnPriceJustOk()
+        {
+            if (PriceJustVm.SelectedCode is not null)
+            {
+                if (_isBulkDiscountFlow)
+                {
+                    if (_pendingDiscountPercent.HasValue)
+                    {
+                        var pct = _pendingDiscountPercent.Value;
+                        var code = PriceJustVm.SelectedCode.Code;
+                        foreach (var item in CartItems.Where(c => c.IsSelected).ToList())
+                        {
+                            item.DiscountPercent = pct;
+                            item.DiscountReasonCode = code;
+                        }
+                    }
+                    _isBulkDiscountFlow = false;
+                    IsSelectionMode = false;
+                }
+                else if (_pendingPriceItem is not null)
+                {
+                    if (_isDiscountJustificationFlow)
+                    {
+                        if (_pendingDiscountPercent.HasValue)
+                            _pendingPriceItem.DiscountPercent = _pendingDiscountPercent.Value;
+                        _pendingPriceItem.DiscountReasonCode = PriceJustVm.SelectedCode.Code;
+                    }
+                    else
+                    {
+                        var newPrice = ItemActionVm.PendingPriceColones;
+                        if (newPrice.HasValue)
+                        {
+                            _pendingPriceItem.OverridePriceColones = newPrice;
+                            _pendingPriceItem.DiscountReasonCode = PriceJustVm.SelectedCode.Code;
+                        }
+                    }
+                }
+            }
+            _pendingPriceItem = null;
+            _pendingDiscountPercent = null;
+            _isDiscountJustificationFlow = false;
+            _isBulkDiscountFlow = false;
+            IsPriceJustVisible = false;
+            RecalculateTotal();
+        }
+
+        private void OnPriceJustCancel()
+        {
+            _pendingPriceItem = null;
+            _pendingDiscountPercent = null;
+            var reopenItemAction = _isDiscountJustificationFlow && !_isBulkDiscountFlow;
+            _isDiscountJustificationFlow = false;
+            _isBulkDiscountFlow = false;
+            IsPriceJustVisible = false;
+            if (reopenItemAction)
+                IsItemActionVisible = true;
+            RecalculateTotal();
+        }
+
+        private void RemoveCartItemIfExists(CartItemModel? item)
+        {
+            if (item is null) return;
+            CartItems.Remove(item);
+            var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
+            if (product is not null) product.CartQuantity = 0;
+            RecalculateTotal();
+        }
+
+        private void DuplicateCartItem(CartItemModel? item)
+        {
+            if (item is null) return;
+            var clone = new CartItemModel
+            {
+                Emoji = item.Emoji,
+                Name = item.Name,
+                Code = item.Code,
+                UnitPrice = item.UnitPrice,
+                UnitPriceColones = item.UnitPriceColones,
+                OverridePriceColones = item.OverridePriceColones,
+                OverrideDescription = item.OverrideDescription,
+                DiscountPercent = item.DiscountPercent,
+                DiscountReasonCode = item.DiscountReasonCode,
+                Stock = item.Stock,
+                Quantity = item.Quantity
+            };
+            var idx = CartItems.IndexOf(item);
+            if (idx >= 0)
+                CartItems.Insert(idx + 1, clone);
+            else
+                CartItems.Add(clone);
+            RecalculateTotal();
+        }
+
+        private void ClearAllSelections()
+        {
+            foreach (var item in CartItems)
+                item.IsSelected = false;
+            OnPropertyChanged(nameof(HasSelectedItems));
+            OnPropertyChanged(nameof(SelectedCountText));
+            ((Command)ApplyBulkDiscountCommand).ChangeCanExecute();
+        }
+
+        private async Task StartBulkDiscountAsync()
+        {
+            if (_cachedDiscountCodes.Count == 0)
+                await LoadDiscountCodesAsync();
+
+            _pendingPriceItem = null;
+            _pendingDiscountPercent = null;
+            _isBulkDiscountFlow = true;
+            _isDiscountJustificationFlow = false;
+            var firstSelected = CartItems.FirstOrDefault(c => c.IsSelected);
+            DiscountVm.LoadPercent(firstSelected?.DiscountPercent ?? 0);
+            IsDiscountPopupVisible = true;
+        }
+
+        private async Task LoadDiscountCodesAsync()
+        {
+            foreach (var endpoint in ReasonCodeEndpoints)
+            {
+                try
+                {
+                    using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                    var url = string.Format(endpoint, 4);
+                    var json = await http.GetStringAsync(url);
+                    var codes = JsonConvert.DeserializeObject<List<ReasonCodeModel>>(json);
+                    if (codes is not null && codes.Count > 0)
+                    {
+                        _cachedDiscountCodes.Clear();
+                        _cachedDiscountCodes.AddRange(codes);
+                        return;
+                    }
+                }
+                catch
+                {
+                }
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
