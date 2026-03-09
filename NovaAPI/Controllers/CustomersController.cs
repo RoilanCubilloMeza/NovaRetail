@@ -38,6 +38,8 @@ namespace NovaAPI.Controllers
             var address = Safe(customer.Address, 50);
             var priceLevel = customer.AccountTypeID <= 0 ? 1 : customer.AccountTypeID;
 
+            var activityCode = Safe(customer.ActivityCode, 50);
+
             var exists = db.ExecuteQuery<int>("SELECT COUNT(1) FROM Customer WHERE AccountNumber = {0}", accountNumber).FirstOrDefault() > 0;
 
             if (exists)
@@ -53,12 +55,12 @@ SET FirstName = {1},
     CustomText2 = {7},
     CustomText3 = {8},
     CustomText4 = {9},
-    Address = {10},
-    CustomText5 = '',
-    PriceLevel = {11}
+    CustomText5 = {10},
+    Address = {11},
+    PriceLevel = {12}
 WHERE AccountNumber = {0}",
                     accountNumber, firstName, lastName, phone1, phone2, email,
-                    state, city, city2, zip, address, priceLevel);
+                    state, city, city2, zip, activityCode, address, priceLevel);
                 return;
             }
 
@@ -66,15 +68,42 @@ WHERE AccountNumber = {0}",
 INSERT INTO Customer
     (AccountNumber, FirstName, LastName, PhoneNumber, FaxNumber, EmailAddress, CustomText1, CustomText2, CustomText3, CustomText4, Address, CustomText5, PriceLevel)
 VALUES
-    ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, '', {11})",
+    ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12})",
                 accountNumber, firstName, lastName, phone1, phone2, email,
-                state, city, city2, zip, address, priceLevel);
+                state, city, city2, zip, address, activityCode, priceLevel);
         }
 
         [HttpGet]
-        public IEnumerable<spWS_GetCustomersResult> Get()
+        public IEnumerable<CustomerLookupDto> Get()
         {
-            return db.spWS_GetCustomers();
+            try
+            {
+                return db.ExecuteQuery<CustomerLookupDto>(@"
+SELECT TOP 5000
+    AccountNumber,
+    FirstName,
+    LastName,
+    ISNULL(PhoneNumber,'')  AS PhoneNumber1,
+    ISNULL(FaxNumber,'')    AS PhoneNumber2,
+    ISNULL(EmailAddress,'') AS EmailAddress,
+    ISNULL(CustomText1,'')  AS State,
+    ISNULL(CustomText2,'')  AS City,
+    ISNULL(CustomText3,'')  AS City2,
+    ISNULL(CustomText4,'')  AS Zip,
+    ISNULL(Address,'')      AS Address,
+    ISNULL(CustomText5,'')  AS ActivityCode,
+    CAST(0 AS INT)          AS CreditDays,
+    CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
+FROM Customer
+ORDER BY AccountNumber").ToList();
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new HttpResponseException(
+                    Request.CreateResponse(System.Net.HttpStatusCode.InternalServerError,
+                        "Get() error: " + msg));
+            }
         }
 
         [HttpGet]
@@ -96,64 +125,41 @@ VALUES
         {
             try
             {
-                var customers = db.spWS_GetCustomersbyCriteria(criteria)
-                    .Select(c => new CustomerLookupDto
-                    {
-                        AccountNumber = c.AccountNumber,
-                        FirstName = c.FirstName,
-                        LastName = c.LastName,
-                        PhoneNumber1 = c.PhoneNumber1,
-                        PhoneNumber2 = c.PhoneNumber2,
-                        EmailAddress = c.EmailAddress,
-                        State = c.STATE,
-                        City = c.CITY,
-                        City2 = c.CITY2,
-                        Zip = c.ZIP,
-                        Address = c.Address,
-                        CreditDays = c.CreditDays,
-                        PriceLevel = c.PriceLevel
-                    })
-                    .ToList();
-
-                if (customers.Count > 0)
-                    return customers;
-
                 var term = (criteria ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(term))
-                    return customers;
 
-                return db.spWS_GetCustomers()
-                    .Where(c =>
-                        string.Equals(c.AccountNumber, term, StringComparison.OrdinalIgnoreCase) ||
-                        c.AccountNumber.Contains(term) ||
-                        c.FirstName.Contains(term) ||
-                        c.LastName.Contains(term) ||
-                        (c.FirstName + " " + c.LastName).Contains(term))
-                    .Select(c => new CustomerLookupDto
-                    {
-                        AccountNumber = c.AccountNumber,
-                        FirstName = c.FirstName,
-                        LastName = c.LastName,
-                        PhoneNumber1 = c.PhoneNumber1,
-                        PhoneNumber2 = c.PhoneNumber2,
-                        EmailAddress = c.EmailAddress,
-                        State = c.STATE,
-                        City = c.CITY,
-                        City2 = c.CITY2,
-                        Zip = c.ZIP,
-                        Address = c.Address,
-                        CreditDays = c.CreditDays,
-                        PriceLevel = c.PriceLevel
-                    })
-                    .ToList();
+                return db.ExecuteQuery<CustomerLookupDto>(@"
+SELECT TOP 200
+    AccountNumber,
+    FirstName,
+    LastName,
+    ISNULL(PhoneNumber,'')  AS PhoneNumber1,
+    ISNULL(FaxNumber,'')    AS PhoneNumber2,
+    ISNULL(EmailAddress,'') AS EmailAddress,
+    ISNULL(CustomText1,'')  AS State,
+    ISNULL(CustomText2,'')  AS City,
+    ISNULL(CustomText3,'')  AS City2,
+    ISNULL(CustomText4,'')  AS Zip,
+    ISNULL(Address,'')      AS Address,
+    ISNULL(CustomText5,'')  AS ActivityCode,
+    CAST(0 AS INT)          AS CreditDays,
+    CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
+FROM Customer
+WHERE AccountNumber = {0}
+   OR FirstName     LIKE '%' + {0} + '%'
+   OR LastName      LIKE '%' + {0} + '%'
+   OR (FirstName + ' ' + LastName) LIKE '%' + {0} + '%'
+ORDER BY AccountNumber", term).ToList();
             }
-            catch
+            catch (Exception ex)
             {
-                return new List<CustomerLookupDto>();
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new HttpResponseException(
+                    Request.CreateResponse(System.Net.HttpStatusCode.InternalServerError,
+                        "Get(criteria) error: " + msg));
             }
         }
 
-        //Metodo para insertar de forma masiva todos los clientes creados en la BD de SQLLite y pasarlos al API Rest
+        //Metodo para insertar
         [HttpPost]
         public HttpResponseMessage Post([FromBody] List<Customer> cliente)
         {

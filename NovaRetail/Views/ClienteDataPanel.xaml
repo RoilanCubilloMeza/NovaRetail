@@ -158,11 +158,11 @@
 
                 <!-- F10 Guardar -->
                 <controls:ActionKeyButton KeyText="F10"
-                                          Text="Guardar"
+                                          Text="{Binding SaveButtonText}"
                                           Command="{Binding SaveCommand}"/>
 
                 <Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="0,8,0,0">
-                    <Button Grid.Column="0" Text="Guardar y facturar"
+                    <Button Grid.Column="0" Text="{Binding SaveAndReturnButtonText}"
                             Style="{DynamicResource SecondaryButton}"
                             Command="{Binding SaveAndReturnCommand}"/>
                     <Button Grid.Column="1" Text="Cancelar"

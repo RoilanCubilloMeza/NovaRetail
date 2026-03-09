@@ -28,6 +28,8 @@
 
         public string Address { get; set; }
 
+        public string ActivityCode { get; set; }
+
         public int? CreditDays { get; set; }
 
         public string Source { get; set; }

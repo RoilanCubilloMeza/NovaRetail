@@ -126,15 +126,43 @@ namespace NovaRetail.Services
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
             try
             {
                 var hacienda = await GetDatosHaciendaAsync(cedula, cts.Token);
-                if (hacienda is not null)
+                if (hacienda is not null && hacienda.Actividades.Count > 0)
                     return hacienda;
 
-                return await GetDatosGoMetaAsync(cedula, cts.Token);
+                var goMeta = await GetDatosGoMetaAsync(cedula, cts.Token);
+                if (goMeta is null)
+                    return hacienda;
+
+                if (hacienda is null)
+                    return goMeta;
+
+                if (string.IsNullOrWhiteSpace(goMeta.FullName))
+                    goMeta.FullName = hacienda.FullName;
+
+                if (string.IsNullOrWhiteSpace(goMeta.FirstName))
+                    goMeta.FirstName = hacienda.FirstName;
+
+                if (string.IsNullOrWhiteSpace(goMeta.LastName))
+                    goMeta.LastName = hacienda.LastName;
+
+                if (string.IsNullOrWhiteSpace(goMeta.RegimenDescripcion))
+                    goMeta.RegimenDescripcion = hacienda.RegimenDescripcion;
+
+                if (string.IsNullOrWhiteSpace(goMeta.TipoIdentificacion))
+                    goMeta.TipoIdentificacion = hacienda.TipoIdentificacion;
+
+                if (string.IsNullOrWhiteSpace(goMeta.SituacionEstado))
+                    goMeta.SituacionEstado = hacienda.SituacionEstado;
+
+                if (goMeta.Actividades.Count == 0)
+                    goMeta.Actividades = hacienda.Actividades;
+
+                return goMeta;
             }
             catch
             {

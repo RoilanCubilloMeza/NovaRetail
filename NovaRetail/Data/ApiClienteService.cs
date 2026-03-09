@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 using NovaRetail.Services;
@@ -61,6 +62,7 @@ namespace NovaRetail.Data
                     if (match is null)
                         continue;
 
+                    System.Diagnostics.Debug.WriteLine($"API raw: State={match.State}|{match.STATE}, City={match.City}|{match.CITY}, City2={match.City2}|{match.CITY2}, Zip={match.Zip}|{match.ZIP}, Address={match.Address}");
                     return MapToClienteModel(match);
                 }
                 catch (Exception ex)
@@ -119,7 +121,10 @@ namespace NovaRetail.Data
                 {
                     var url = $"{baseUrl}/api/Customers";
                     using var http = new HttpClient { Timeout = LocalApiTimeout };
-                    var response = await http.PostAsJsonAsync(url, new List<ApiCustomer> { apiCustomer });
+                    var payload = JsonConvert.SerializeObject(new List<ApiCustomer> { apiCustomer },
+                        new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+                    using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                    var response = await http.PostAsync(url, content);
                     if (!response.IsSuccessStatusCode)
                     {
                         var body = await response.Content.ReadAsStringAsync();
@@ -130,7 +135,7 @@ namespace NovaRetail.Data
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Guardar cliente excepción: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Guardar cliente excepción: {ex}");
                 }
             }
 
@@ -238,6 +243,8 @@ namespace NovaRetail.Data
                 District = FirstNonEmpty(c.City2, c.CITY2),
                 Barrio = FirstNonEmpty(c.Zip, c.ZIP),
                 Address = c.Address ?? string.Empty,
+                ActivityCode = c.ActivityCode ?? string.Empty,
+                ActivityCodes = ParseActivityCodes(c.ActivityCode ?? string.Empty),
                 CustomerType = MapAccountTypeIdToName(c.AccountTypeID > 0 ? c.AccountTypeID : c.PriceLevel),
                 IsReceiver = !string.IsNullOrWhiteSpace(c.EmailAddress)
             };
@@ -269,11 +276,25 @@ namespace NovaRetail.Data
                 City2 = m.District ?? string.Empty,
                 Zip = m.Barrio ?? string.Empty,
                 Address = m.Address,
+                ActivityCode = m.ActivityCode,
                 AccountTypeID = MapCustomerTypeToId(m.CustomerType),
                 Source = "WC_API",
                 Vendedor = "WC_API",
                 CreditDays = 0
             };
+        }
+
+        private static List<string> ParseActivityCodes(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return new List<string>();
+
+            return value
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         // ──────── AccountTypeID ↔ Nombre ────────
@@ -314,7 +335,7 @@ namespace NovaRetail.Data
 
         // ──────── DTO para comunicación con la API ────────
 
-        private class ApiCustomer
+        public class ApiCustomer
         {
             [JsonProperty("ID")]
             public int ID { get; set; }
@@ -372,6 +393,9 @@ namespace NovaRetail.Data
 
             [JsonProperty("Address")]
             public string? Address { get; set; }
+
+            [JsonProperty("ActivityCode")]
+            public string? ActivityCode { get; set; }
 
             [JsonProperty("CreditDays")]
             public int? CreditDays { get; set; }

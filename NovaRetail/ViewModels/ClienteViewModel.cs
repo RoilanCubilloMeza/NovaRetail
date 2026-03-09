@@ -40,6 +40,7 @@ namespace NovaRetail.ViewModels
         private string _lastAutoSyncedClientId = string.Empty;
         private bool _isAutoSyncInProgress;
         private bool _isExistingCustomer;
+        private ClienteModel? _pendingLocationModel;
 
 
         public string ClientId
@@ -84,6 +85,8 @@ namespace NovaRetail.ViewModels
                 _isExistingCustomer = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ClientStatusHint));
+                OnPropertyChanged(nameof(SaveButtonText));
+                OnPropertyChanged(nameof(SaveAndReturnButtonText));
             }
         }
 
@@ -267,6 +270,8 @@ namespace NovaRetail.ViewModels
         public string ClientStatusHint => IsExistingCustomer
             ? "Cliente ya existe. Se cargó la información y no se agregará duplicado."
             : "Crea un registro nuevo para el cliente.";
+        public string SaveButtonText => IsExistingCustomer ? "Actualizar" : "Guardar";
+        public string SaveAndReturnButtonText => IsExistingCustomer ? "Actualizar y facturar" : "Guardar y facturar";
 
         // ──────── Computed (Color) — Sync button ────────
 
@@ -337,6 +342,12 @@ namespace NovaRetail.ViewModels
             }
 
             RefreshProvinceCollection(_provinciasData);
+
+            if (_pendingLocationModel is not null)
+            {
+                ApplyLocationFromModel(_pendingLocationModel);
+                _pendingLocationModel = null;
+            }
         }
 
         private void LoadCantons(string? province)
@@ -526,10 +537,27 @@ namespace NovaRetail.ViewModels
             {
                 LoadFromModel(local);
                 IsExistingCustomer = true;
-                LocationSearch = string.Empty;
                 SyncStatus = SyncStatus.Synced;
                 ValidationMessage = "Cliente existente cargado para edición.";
                 _lastSyncedClientId = ClientId;
+
+                var remote = await _clienteService.SincronizarHaciendaAsync(ClientId);
+                if (remote is not null)
+                    MergeRemoteTaxData(remote);
+
+                // Give the UI dispatcher one frame to apply the deferred barrio selection.
+                await Task.Delay(50);
+
+                var hints = new List<string>();
+                if (string.IsNullOrWhiteSpace(SelectedProvince) || string.IsNullOrWhiteSpace(SelectedBarrio))
+                    hints.Add("ubicación incompleta");
+                if (string.IsNullOrWhiteSpace(ActivityCode))
+                    hints.Add("código de actividad vacío (ingrese manualmente)");
+
+                ValidationMessage = hints.Count > 0
+                    ? $"Cliente existente cargado. Nota: {string.Join(", ", hints)}."
+                    : "Cliente existente cargado para edición.";
+
                 return;
             }
 
@@ -539,7 +567,6 @@ namespace NovaRetail.ViewModels
             {
                 LoadFromModel(result);
                 IsExistingCustomer = false;
-                LocationSearch = string.Empty;
                 SyncStatus = SyncStatus.Synced;
                 ValidationMessage = string.Empty;
                 _lastSyncedClientId = ClientId;
@@ -561,7 +588,12 @@ namespace NovaRetail.ViewModels
 
         private async Task ExecuteSave()
         {
-            if (!Validate()) return;
+            System.Diagnostics.Debug.WriteLine($"ExecuteSave intento: Id={ClientId}, Provincia={SelectedProvince}, Canton={SelectedCanton}, Distrito={SelectedDistrict}, Barrio={SelectedBarrio}, ActivityCode={ActivityCode}");
+            if (!Validate())
+            {
+                System.Diagnostics.Debug.WriteLine($"ExecuteSave validación falló: {ValidationMessage}");
+                return;
+            }
 
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
@@ -577,7 +609,12 @@ namespace NovaRetail.ViewModels
 
         private async Task ExecuteSaveAndReturn()
         {
-            if (!Validate()) return;
+            System.Diagnostics.Debug.WriteLine($"ExecuteSaveAndReturn intento: Id={ClientId}, Provincia={SelectedProvince}, Canton={SelectedCanton}, Distrito={SelectedDistrict}, Barrio={SelectedBarrio}, ActivityCode={ActivityCode}");
+            if (!Validate())
+            {
+                System.Diagnostics.Debug.WriteLine($"ExecuteSaveAndReturn validación falló: {ValidationMessage}");
+                return;
+            }
 
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
@@ -619,11 +656,6 @@ namespace NovaRetail.ViewModels
             Phone = model.Phone;
             Email = model.Email;
 
-            SelectedProvince = model.Province;
-            SelectedCanton = model.Canton;
-            SelectedDistrict = model.District;
-            SelectedBarrio = model.Barrio;
-
             Address = model.Address;
             SelectedCustomerType = model.CustomerType;
 
@@ -633,6 +665,218 @@ namespace NovaRetail.ViewModels
 
             ActivityCode = string.Join(", ", parsed);
             ActivityDescription = model.ActivityDescription;
+            LocationSearch = string.Empty;
+
+            if (_provinciasData.Count == 0)
+            {
+                _pendingLocationModel = model;
+            }
+            else
+            {
+                ApplyLocationFromModel(model);
+                _pendingLocationModel = null;
+            }
+        }
+
+        private void MergeRemoteTaxData(ClienteModel model)
+        {
+            if (string.IsNullOrWhiteSpace(ActivityCode))
+            {
+                var parsed = model.ActivityCodes?.Count > 0
+                    ? model.ActivityCodes
+                    : ParseActivityCodes(model.ActivityCode);
+                ActivityCode = string.Join(", ", parsed);
+            }
+
+            if (string.IsNullOrWhiteSpace(ActivityDescription))
+                ActivityDescription = model.ActivityDescription;
+
+            if (string.IsNullOrWhiteSpace(Email))
+                Email = model.Email;
+
+            if (string.IsNullOrWhiteSpace(Phone))
+                Phone = model.Phone;
+        }
+
+        private static string BuildLocationSummary(string? province, string? canton, string? district, string? barrio, string? address)
+        {
+            var parts = new[] { province, canton, district, barrio }
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!.Trim())
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(address))
+                parts.Add(address.Trim());
+
+            return string.Join(", ", parts.Distinct(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private void ApplyLocationFromModel(ClienteModel model)
+        {
+            var provincia = FindProvinceName(model.Province, model.Address, model.Canton, model.District, model.Barrio);
+            var canton = FindCantonName(provincia, model.Canton, model.Address, model.District, model.Barrio);
+            var distrito = FindDistrictName(provincia, canton, model.District, model.Address, model.Barrio);
+            var barrio = FindBarrioName(provincia, canton, distrito, model.Barrio, model.Address);
+
+            _selectedProvince = provincia;
+            OnPropertyChanged(nameof(SelectedProvince));
+            LoadCantons(provincia);
+            OnPropertyChanged(nameof(CanHaveCanton));
+            OnPropertyChanged(nameof(CantonOpacity));
+
+            _selectedCanton = canton;
+            OnPropertyChanged(nameof(SelectedCanton));
+            LoadDistricts(canton);
+            OnPropertyChanged(nameof(CanHaveDistrict));
+            OnPropertyChanged(nameof(DistrictOpacity));
+
+            _selectedDistrict = distrito;
+            OnPropertyChanged(nameof(SelectedDistrict));
+            LoadBarrios(provincia, canton, distrito);
+            OnPropertyChanged(nameof(CanHaveBarrio));
+            OnPropertyChanged(nameof(BarrioOpacity));
+
+            // Defer barrio selection to next dispatcher frame so the Picker's
+            // ItemsSource Reset (from Barrios.Clear) doesn't wipe SelectedItem afterwards.
+            _selectedBarrio = null;
+            OnPropertyChanged(nameof(SelectedBarrio));
+            if (barrio is not null)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _selectedBarrio = barrio;
+                    OnPropertyChanged(nameof(SelectedBarrio));
+                });
+            }
+
+            System.Diagnostics.Debug.WriteLine($"ApplyLocation: P={provincia}, C={canton}, D={distrito}, B={barrio}, Barrios={Barrios.Count}");
+        }
+
+        private string? FindProvinceName(params string?[] values)
+        {
+            var normalizedValues = values
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(Normalize)
+                .ToList();
+
+            var directMatch = _provinciasData
+                .Select(p => p.Nombre)
+                .FirstOrDefault(nombre => normalizedValues.Any(v => v.Contains(Normalize(nombre))));
+
+            if (!string.IsNullOrWhiteSpace(directMatch))
+                return directMatch;
+
+            foreach (var provincia in _provinciasData)
+            {
+                if (provincia.Cantones.Any(c => normalizedValues.Any(v => v.Contains(Normalize(c.Nombre)))))
+                    return provincia.Nombre;
+
+                if (provincia.Cantones.Any(c => c.Distritos.Any(d => normalizedValues.Any(v => v.Contains(Normalize(d.Nombre))))))
+                    return provincia.Nombre;
+
+                if (provincia.Cantones.Any(c => c.Distritos.Any(d => d.Barrios.Any(b => normalizedValues.Any(v => v.Contains(Normalize(b)))))))
+                    return provincia.Nombre;
+            }
+
+            return null;
+        }
+
+        private string? FindCantonName(string? province, params string?[] values)
+        {
+            if (string.IsNullOrWhiteSpace(province))
+                return null;
+
+            var provinciaNode = _provinciasData.FirstOrDefault(p => string.Equals(p.Nombre, province, StringComparison.OrdinalIgnoreCase));
+            if (provinciaNode is null)
+                return null;
+
+            var normalizedValues = values
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(Normalize)
+                .ToList();
+
+            var directMatch = provinciaNode.Cantones
+                .Select(c => c.Nombre)
+                .FirstOrDefault(nombre => normalizedValues.Any(v => v.Contains(Normalize(nombre))));
+
+            if (!string.IsNullOrWhiteSpace(directMatch))
+                return directMatch;
+
+            foreach (var canton in provinciaNode.Cantones)
+            {
+                if (canton.Distritos.Any(d => normalizedValues.Any(v => v.Contains(Normalize(d.Nombre)))))
+                    return canton.Nombre;
+
+                if (canton.Distritos.Any(d => d.Barrios.Any(b => normalizedValues.Any(v => v.Contains(Normalize(b))))))
+                    return canton.Nombre;
+            }
+
+            return null;
+        }
+
+        private string? FindDistrictName(string? province, string? canton, params string?[] values)
+        {
+            if (string.IsNullOrWhiteSpace(province) || string.IsNullOrWhiteSpace(canton))
+                return null;
+
+            var provinciaNode = _provinciasData.FirstOrDefault(p => string.Equals(p.Nombre, province, StringComparison.OrdinalIgnoreCase));
+            var cantonNode = provinciaNode?.Cantones.FirstOrDefault(c => string.Equals(c.Nombre, canton, StringComparison.OrdinalIgnoreCase));
+            if (cantonNode is null)
+                return null;
+
+            var normalizedValues = values
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(Normalize)
+                .ToList();
+
+            var directMatch = cantonNode.Distritos
+                .Select(d => d.Nombre)
+                .FirstOrDefault(nombre => normalizedValues.Any(v => v.Contains(Normalize(nombre))));
+
+            if (!string.IsNullOrWhiteSpace(directMatch))
+                return directMatch;
+
+            foreach (var distrito in cantonNode.Distritos)
+            {
+                if (distrito.Barrios.Any(b => normalizedValues.Any(v => v.Contains(Normalize(b)))))
+                    return distrito.Nombre;
+            }
+
+            return null;
+        }
+
+        private string? FindBarrioName(string? province, string? canton, string? district, params string?[] values)
+        {
+            if (string.IsNullOrWhiteSpace(province) || string.IsNullOrWhiteSpace(canton) || string.IsNullOrWhiteSpace(district))
+                return null;
+
+            var provinciaNode = _provinciasData.FirstOrDefault(p => string.Equals(p.Nombre, province, StringComparison.OrdinalIgnoreCase));
+            var cantonNode = provinciaNode?.Cantones.FirstOrDefault(c => string.Equals(c.Nombre, canton, StringComparison.OrdinalIgnoreCase));
+            var distritoNode = cantonNode?.Distritos.FirstOrDefault(d => string.Equals(d.Nombre, district, StringComparison.OrdinalIgnoreCase));
+            if (distritoNode is null)
+                return null;
+
+            var rawValues = values
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(v => v!.Trim())
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"FindBarrio: distrito={district}, rawValues=[{string.Join(", ", rawValues)}], catalogBarrios={distritoNode.Barrios.Count}");
+
+            var exactMatch = distritoNode.Barrios
+                .FirstOrDefault(b => rawValues.Any(v => string.Equals(b, v, StringComparison.OrdinalIgnoreCase)));
+            if (exactMatch is not null)
+                return exactMatch;
+
+            var normalizedValues = rawValues.Select(Normalize).ToList();
+
+            var normalizedMatch = distritoNode.Barrios
+                .FirstOrDefault(nombre => normalizedValues.Any(v => Normalize(nombre) == v));
+            if (normalizedMatch is not null)
+                return normalizedMatch;
+
+            return distritoNode.Barrios
+                .FirstOrDefault(nombre => normalizedValues.Any(v => v.Contains(Normalize(nombre))));
         }
 
         private async Task ExecuteCancel()
