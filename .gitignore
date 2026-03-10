@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 .github/copilot-instructions.md
 .github/copilot-instructions.md
+/.github
+*.md
+.github/copilot-instructions.md
