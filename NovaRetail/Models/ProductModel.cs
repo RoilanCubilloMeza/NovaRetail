@@ -5,7 +5,7 @@ namespace NovaRetail.Models
 {
     public class ProductModel : INotifyPropertyChanged
     {
-        private int _cartQuantity;
+        private decimal _cartQuantity;
 
         public string  Emoji           { get; set; } = string.Empty;
         public string  Name            { get; set; } = string.Empty;
@@ -14,11 +14,11 @@ namespace NovaRetail.Models
         public string  OldPrice        { get; set; } = string.Empty;
         public decimal PriceValue      { get; set; }
         public decimal PriceColonesValue { get; set; }
-        public string  PriceColonesText => $"₡{PriceColonesValue:N0}";
+        public string  PriceColonesText => $"₡{PriceColonesValue:N2}";
         public string  Category        { get; set; } = string.Empty;
-        public int     Stock           { get; set; }
+        public decimal     Stock           { get; set; }
 
-        public int CartQuantity
+        public decimal CartQuantity
         {
             get => _cartQuantity;
             set

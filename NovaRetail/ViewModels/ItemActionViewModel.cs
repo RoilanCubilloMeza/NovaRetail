@@ -11,7 +11,7 @@ namespace NovaRetail.ViewModels
     {
         private CartItemModel? _item;
         private decimal _originalPrice;
-        private int _maxStock = int.MaxValue;
+        private decimal _maxStock = int.MaxValue;
         private string _activeField = "Cantidad";
         private string _inputBuffer = string.Empty;
 
@@ -92,7 +92,7 @@ namespace NovaRetail.ViewModels
 
         public bool IsAtMaxStock =>
             _maxStock < int.MaxValue &&
-            int.TryParse(_tempQty, out var q) &&
+            decimal.TryParse(_tempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) &&
             q >= _maxStock;
 
         // ── Active field indicators ──
@@ -135,8 +135,6 @@ namespace NovaRetail.ViewModels
 
         public event Action? RequestOk;
         public event Action? RequestCancel;
-        public event Action? RequestDelete;
-        public event Action? RequestDuplicate;
         public event Action? RequestPriceJustification;
         public event Action? RequestItemDiscount;
 
@@ -150,8 +148,6 @@ namespace NovaRetail.ViewModels
         public ICommand SetActiveFieldCommand { get; }
         public ICommand OkCommand { get; }
         public ICommand CancelCommand { get; }
-        public ICommand BorrarCommand { get; }
-        public ICommand DuplicadoCommand { get; }
         public ICommand ShowDiscountCommand { get; }
         public ICommand SelectDiscountCommand { get; }
         public ICommand ConfirmDiscountCommand { get; }
@@ -180,8 +176,6 @@ namespace NovaRetail.ViewModels
                 }
             });
             CancelCommand = new Command(() => RequestCancel?.Invoke());
-            BorrarCommand = new Command(() => RequestDelete?.Invoke());
-            DuplicadoCommand = new Command(() => { ApplyChanges(); RequestDuplicate?.Invoke(); });
             ShowDiscountCommand = new Command(() => RequestItemDiscount?.Invoke());
             SelectDiscountCommand = new Command<ReasonCodeModel>(SelectDiscount);
             ConfirmDiscountCommand = new Command(ConfirmDiscount);
@@ -198,19 +192,19 @@ namespace NovaRetail.ViewModels
             ItemCode = item.Code;
 
             var ep = item.EffectivePriceColones;
-            PrecioText = $"₡{ep:N0}";
-            DisponibleText = item.Stock > 0 ? item.Stock.ToString("N0") : "N/D";
+            PrecioText = $"₡{ep:N2}";
+            DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
             ComprometidoText = "0";
 
-            _tempQty = item.Quantity.ToString();
-            _tempPrice = ep.ToString("G", CultureInfo.InvariantCulture);
-            _tempExtPrice = (ep * item.Quantity).ToString("G", CultureInfo.InvariantCulture);
+            _tempQty = item.Quantity.ToString("0.##", CultureInfo.InvariantCulture);
+            _tempPrice = ep.ToString("0.##", CultureInfo.InvariantCulture);
+            _tempExtPrice = (ep * item.Quantity).ToString("0.##", CultureInfo.InvariantCulture);
             _tempDesc = item.OverrideDescription ?? item.Name;
             _discountPercentText = item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F0", CultureInfo.InvariantCulture) : "0";
             _selectedDiscountCode = null;
 
-            _activeField = "Cantidad";
-            _inputBuffer = _tempQty;
+            _activeField = "Precio";
+            _inputBuffer = _tempPrice;
 
             IsDiscountVisible = false;
             IsDiscountConfirmVisible = false;
@@ -291,24 +285,7 @@ namespace NovaRetail.ViewModels
                     else
                         NavigateNext();
                     return;
-                case "+":
-                    if (_activeField == "Cantidad") AdjustQty(1);
-                    else if (_activeField == "DescuentoPct") AdjustDiscountPct(1);
-                    return;
-                case "-":
-                    if (_activeField == "Cantidad") AdjustQty(-1);
-                    else if (_activeField == "DescuentoPct") AdjustDiscountPct(-1);
-                    return;
-                case "Arriba":
-                    CommitCurrentBuffer();
-                    NavigatePrev();
-                    return;
-                case "Abajo":
-                    CommitCurrentBuffer();
-                    NavigateNext();
-                    return;
                 case ".":
-                    if (_activeField == "Cantidad") return;
                     if (!_inputBuffer.Contains('.'))
                         _inputBuffer += ".";
                     break;
@@ -327,9 +304,9 @@ namespace NovaRetail.ViewModels
             switch (_activeField)
             {
                 case "Cantidad":
-                    if (int.TryParse(_inputBuffer, out var qty) && qty > 0)
+                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var qty) && qty > 0)
                     {
-                        TempQty = Math.Min(qty, _maxStock).ToString();
+                        TempQty = Math.Min(qty, _maxStock).ToString("0.##", CultureInfo.InvariantCulture);
                         RecalcExtPrice();
                     }
                     break;
@@ -344,7 +321,7 @@ namespace NovaRetail.ViewModels
                     if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var ext) && ext >= 0)
                     {
                         TempExtPrice = ext.ToString("G", CultureInfo.InvariantCulture);
-                        if (int.TryParse(TempQty, out var q) && q > 0)
+                        if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) && q > 0)
                             TempPrice = (ext / q).ToString("G", CultureInfo.InvariantCulture);
                     }
                     break;
@@ -373,7 +350,7 @@ namespace NovaRetail.ViewModels
 
         private void RecalcExtPrice()
         {
-            if (int.TryParse(TempQty, out var q) &&
+            if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) &&
                 decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
                 TempExtPrice = (q * p).ToString("G", CultureInfo.InvariantCulture);
         }
@@ -381,9 +358,9 @@ namespace NovaRetail.ViewModels
         private void AdjustQty(int delta)
         {
             CommitCurrentBuffer();
-            if (!int.TryParse(TempQty, out var q)) q = 1;
-            q = Math.Clamp(q + delta, 1, _maxStock);
-            TempQty = q.ToString();
+            if (!decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q)) q = 1;
+            q = Math.Clamp(q + delta, 1m, _maxStock);
+            TempQty = q.ToString("0.##", CultureInfo.InvariantCulture);
             _inputBuffer = TempQty;
             RecalcExtPrice();
         }
@@ -404,8 +381,6 @@ namespace NovaRetail.ViewModels
             _activeField = _activeField switch
             {
                 "Cantidad" => "Precio",
-                "Precio" => "PrecioExt",
-                "PrecioExt" => "Descripcion",
                 _ => "Cantidad"
             };
             _inputBuffer = GetCurrentFieldValue();
@@ -417,9 +392,7 @@ namespace NovaRetail.ViewModels
             _activeField = _activeField switch
             {
                 "Precio" => "Cantidad",
-                "PrecioExt" => "Precio",
-                "Descripcion" => "PrecioExt",
-                _ => "Descripcion"
+                _ => "Precio"
             };
             _inputBuffer = GetCurrentFieldValue();
             BroadcastActiveField();
@@ -451,7 +424,7 @@ namespace NovaRetail.ViewModels
             if (_item is null) return;
             CommitCurrentBuffer();
 
-            if (int.TryParse(TempQty, out var qty) && qty > 0)
+            if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var qty) && qty > 0)
                 _item.Quantity = qty;
 
             if (decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) && price > 0)
@@ -469,7 +442,7 @@ namespace NovaRetail.ViewModels
         {
             if (_item is null) return;
 
-            if (int.TryParse(TempQty, out var qty) && qty > 0)
+            if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var qty) && qty > 0)
                 _item.Quantity = qty;
 
             var trimDesc = TempDesc.Trim();

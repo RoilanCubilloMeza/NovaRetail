@@ -40,7 +40,7 @@ namespace NovaRetail.Controls
                 propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
 
         public static readonly BindableProperty StockProperty =
-            BindableProperty.Create(nameof(Stock), typeof(int), typeof(ProductCard), 0,
+            BindableProperty.Create(nameof(Stock), typeof(decimal), typeof(ProductCard), 0m,
                 propertyChanged: (b, _, __) => ((ProductCard)b).RefreshStock());
 
         public static readonly BindableProperty PriceColonesProperty =
@@ -53,7 +53,7 @@ namespace NovaRetail.Controls
             BindableProperty.Create(nameof(CommandParameter), typeof(object), typeof(ProductCard), null);
 
         public static readonly BindableProperty QuantityProperty =
-            BindableProperty.Create(nameof(Quantity), typeof(int), typeof(ProductCard), 0);
+            BindableProperty.Create(nameof(Quantity), typeof(decimal), typeof(ProductCard), 0m);
 
         public static readonly BindableProperty DecrementCommandProperty =
             BindableProperty.Create(nameof(DecrementCommand), typeof(ICommand), typeof(ProductCard), null);
@@ -66,11 +66,11 @@ namespace NovaRetail.Controls
         public string    Code                      { get => (string)GetValue(CodeProperty);                     set => SetValue(CodeProperty, value); }
         public string    Price                     { get => (string)GetValue(PriceProperty);                    set => SetValue(PriceProperty, value); }
         public string    OldPrice                  { get => (string)GetValue(OldPriceProperty);                 set => SetValue(OldPriceProperty, value); }
-        public int       Stock                     { get => (int)GetValue(StockProperty);                       set => SetValue(StockProperty, value); }
+        public decimal       Stock                     { get => (decimal)GetValue(StockProperty);                       set => SetValue(StockProperty, value); }
         public string    PriceColones              { get => (string)GetValue(PriceColonesProperty);             set => SetValue(PriceColonesProperty, value); }
         public ICommand? Command                   { get => (ICommand?)GetValue(CommandProperty);               set => SetValue(CommandProperty, value); }
         public object?   CommandParameter          { get => GetValue(CommandParameterProperty);                 set => SetValue(CommandParameterProperty, value); }
-        public int       Quantity                  { get => (int)GetValue(QuantityProperty);                    set => SetValue(QuantityProperty, value); }
+        public decimal       Quantity                  { get => (decimal)GetValue(QuantityProperty);                    set => SetValue(QuantityProperty, value); }
         public ICommand? DecrementCommand          { get => (ICommand?)GetValue(DecrementCommandProperty);      set => SetValue(DecrementCommandProperty, value); }
         public object?   DecrementCommandParameter { get => GetValue(DecrementCommandParameterProperty);        set => SetValue(DecrementCommandParameterProperty, value); }
 
@@ -265,19 +265,19 @@ namespace NovaRetail.Controls
             }
             else if (Stock <= 4)
             {
-                _stockLabel.Text           = $"Disp: {Stock} (bajo)";
+                _stockLabel.Text           = $"Disp: {Stock:0.##} (bajo)";
                 _stockLabel.TextColor      = UiConfig.ErrorRed;
                 _stockLabel.FontAttributes = FontAttributes.None;
             }
             else if (Stock <= 9)
             {
-                _stockLabel.Text           = $"Disp: {Stock}";
+                _stockLabel.Text           = $"Disp: {Stock:0.##}";
                 _stockLabel.TextColor      = UiConfig.AccentOrange;
                 _stockLabel.FontAttributes = FontAttributes.None;
             }
             else
             {
-                _stockLabel.Text           = $"Disp: {Stock}";
+                _stockLabel.Text           = $"Disp: {Stock:0.##}";
                 _stockLabel.TextColor      = UiConfig.TextSecondary;
                 _stockLabel.FontAttributes = FontAttributes.None;
             }

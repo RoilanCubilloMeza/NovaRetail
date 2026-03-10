@@ -334,8 +334,8 @@ namespace NovaRetail.ViewModels
         private decimal TotalDiscountAmount => ItemDiscountAmount + TicketDiscountAmount;
         public string DiscountAmountText => $"-{TotalDiscountAmount:F2}";
         public string DiscountColonesText => TotalDiscountAmount > 0
-            ? $"-₡{Math.Round(TotalDiscountAmount * _exchangeRate):N0}"
-            : "₡0";
+            ? $"-₡{Math.Round(TotalDiscountAmount * _exchangeRate, 2):N2}"
+            : "₡0.00";
         private decimal SubtotalAfterDiscount => Subtotal - TicketDiscountAmount;
         public decimal Tax => Math.Round(SubtotalAfterDiscount * 0.055m, 2);
         public string TaxText => $"${Tax:F2}";
@@ -434,9 +434,9 @@ namespace NovaRetail.ViewModels
         // ── Totales en colones ──
 
         public string SubtotalText => $"${Subtotal:F2}";
-        public string SubtotalColonesText => $"₡{Math.Round(Subtotal * _exchangeRate):N0}";
-        public string TaxColonesText => $"₡{Math.Round(Tax * _exchangeRate):N0}";
-        public string TotalColonesText => $"₡{Math.Round((SubtotalAfterDiscount + Tax) * _exchangeRate):N0}";
+        public string SubtotalColonesText => $"₡{Math.Round(Subtotal * _exchangeRate, 2):N2}";
+        public string TaxColonesText => $"₡{Math.Round(Tax * _exchangeRate, 2):N2}";
+        public string TotalColonesText => $"₡{Math.Round((SubtotalAfterDiscount + Tax) * _exchangeRate, 2):N2}";
 
         public MainViewModel(IDialogService dialogService)
         {
@@ -468,8 +468,6 @@ namespace NovaRetail.ViewModels
             ApplyBulkDiscountCommand = new Command(async () => await StartBulkDiscountAsync(), () => HasSelectedItems);
             ItemActionVm.RequestOk += CloseItemAction;
             ItemActionVm.RequestCancel += CloseItemAction;
-            ItemActionVm.RequestDelete += () => { RemoveCartItemIfExists(ItemActionVm.CurrentItem); CloseItemAction(); };
-            ItemActionVm.RequestDuplicate += () => { DuplicateCartItem(ItemActionVm.CurrentItem); CloseItemAction(); };
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
             ItemActionVm.RequestItemDiscount += async () => await StartItemDiscountAsync();
             DiscountVm.RequestOk += OnDiscountEntryOk;
@@ -516,7 +514,7 @@ namespace NovaRetail.ViewModels
                             PriceValue = priceDollars,
                             Price = $"${priceDollars:F2}",
                             Category = DetermineCategory(item),
-                            Stock = Convert.ToInt32(item.Quantity ?? 0),
+                            Stock = Convert.ToDecimal(item.Quantity ?? 0),
                             PriceColonesValue = priceColones
                         });
                     }
@@ -777,7 +775,7 @@ namespace NovaRetail.ViewModels
             if (item.Quantity <= 0)
                 CartItems.Remove(item);
             var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
-            if (product is not null) product.CartQuantity = Math.Max(0, item.Quantity);
+            if (product is not null) product.CartQuantity = Math.Max(0m, item.Quantity);
             RecalculateTotal();
         }
 
@@ -789,7 +787,7 @@ namespace NovaRetail.ViewModels
             existing.Quantity--;
             if (existing.Quantity <= 0)
                 CartItems.Remove(existing);
-            product.CartQuantity = Math.Max(0, existing.Quantity);
+            product.CartQuantity = Math.Max(0m, existing.Quantity);
             RecalculateTotal();
         }
 
@@ -1011,40 +1009,6 @@ namespace NovaRetail.ViewModels
             IsPriceJustVisible = false;
             if (reopenItemAction)
                 IsItemActionVisible = true;
-            RecalculateTotal();
-        }
-
-        private void RemoveCartItemIfExists(CartItemModel? item)
-        {
-            if (item is null) return;
-            CartItems.Remove(item);
-            var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
-            if (product is not null) product.CartQuantity = 0;
-            RecalculateTotal();
-        }
-
-        private void DuplicateCartItem(CartItemModel? item)
-        {
-            if (item is null) return;
-            var clone = new CartItemModel
-            {
-                Emoji = item.Emoji,
-                Name = item.Name,
-                Code = item.Code,
-                UnitPrice = item.UnitPrice,
-                UnitPriceColones = item.UnitPriceColones,
-                OverridePriceColones = item.OverridePriceColones,
-                OverrideDescription = item.OverrideDescription,
-                DiscountPercent = item.DiscountPercent,
-                DiscountReasonCode = item.DiscountReasonCode,
-                Stock = item.Stock,
-                Quantity = item.Quantity
-            };
-            var idx = CartItems.IndexOf(item);
-            if (idx >= 0)
-                CartItems.Insert(idx + 1, clone);
-            else
-                CartItems.Add(clone);
             RecalculateTotal();
         }
 

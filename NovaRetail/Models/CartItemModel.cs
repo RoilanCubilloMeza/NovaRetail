@@ -5,7 +5,7 @@ namespace NovaRetail.Models
 {
     public class CartItemModel : INotifyPropertyChanged
     {
-        private int _quantity = 1;
+        private decimal _quantity = 1m;
         private decimal? _overridePriceColones;
         private string? _overrideDescription;
         private decimal _discountPercent;
@@ -16,7 +16,7 @@ namespace NovaRetail.Models
         public string Code { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public decimal UnitPriceColones { get; set; }
-        public int Stock { get; set; }
+        public decimal Stock { get; set; }
 
         public decimal? OverridePriceColones
         {
@@ -33,6 +33,7 @@ namespace NovaRetail.Models
                     OnPropertyChanged(nameof(TotalUsdText));
                     OnPropertyChanged(nameof(HasOverridePrice));
                     OnPropertyChanged(nameof(PriceOverrideIndicator));
+                    OnPropertyChanged(nameof(IsModified));
                 }
             }
         }
@@ -64,6 +65,7 @@ namespace NovaRetail.Models
                     OnPropertyChanged(nameof(TotalUsdText));
                     OnPropertyChanged(nameof(DiscountText));
                     OnPropertyChanged(nameof(HasDiscount));
+                    OnPropertyChanged(nameof(IsModified));
                 }
             }
         }
@@ -81,7 +83,7 @@ namespace NovaRetail.Models
             set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); } }
         }
 
-        public int Quantity
+        public decimal Quantity
         {
             get => _quantity;
             set
@@ -102,6 +104,7 @@ namespace NovaRetail.Models
         public string DisplayName => _overrideDescription ?? Name;
         public bool HasOverridePrice => _overridePriceColones.HasValue;
         public bool HasDiscount => _discountPercent > 0;
+        public bool IsModified => HasOverridePrice || HasDiscount;
         public string DiscountText => HasDiscount ? $"-{_discountPercent:F0}%" : string.Empty;
         public string PriceOverrideIndicator => _overridePriceColones.HasValue ? "✱ " : string.Empty;
         private decimal DiscountFactor => 1m - _discountPercent / 100m;
@@ -109,11 +112,11 @@ namespace NovaRetail.Models
             ? Math.Round(EffectivePriceColones * UnitPrice / UnitPriceColones, 2)
             : UnitPrice;
 
-        public string QuantityText => $"{Quantity} ×";
-        public string QuantityPrefix => $"x{Quantity}";
-        public string UnitPriceColonesText => $"₡{EffectivePriceColones:N0}";
-        public string OriginalPriceColonesText => $"₡{UnitPriceColones:N0}";
-        public string TotalColonesText => $"₡{EffectivePriceColones * Quantity * DiscountFactor:N0}";
+        public string QuantityText => $"{Quantity:0.##} ×";
+        public string QuantityPrefix => $"x{Quantity:0.##}";
+        public string UnitPriceColonesText => $"₡{EffectivePriceColones:N2}";
+        public string OriginalPriceColonesText => $"₡{UnitPriceColones:N2}";
+        public string TotalColonesText => $"₡{EffectivePriceColones * Quantity * DiscountFactor:N2}";
         public string UnitPriceUsdText => $"${UnitPrice:F2}";
         public string TotalUsdText => $"${EffectiveUnitPriceUsd * Quantity * DiscountFactor:F2}";
 
