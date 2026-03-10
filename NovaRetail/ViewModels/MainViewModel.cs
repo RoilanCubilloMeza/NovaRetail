@@ -31,6 +31,7 @@ namespace NovaRetail.ViewModels
         private readonly IDialogService _dialogService;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
+        private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
@@ -114,6 +115,52 @@ namespace NovaRetail.ViewModels
 
         public ObservableCollection<ProductModel> Products { get; } = new();
         public ObservableCollection<CartItemModel> CartItems { get; } = new();
+        public ObservableCollection<CartItemModel> FilteredCartItems { get; } = new();
+        public IReadOnlyList<string> CartSortFields => _cartSortFields;
+
+        private string _selectedCartSortField = string.Empty;
+        private bool _isCartSortDescending = true;
+        public string SelectedCartSortField
+        {
+            get => _selectedCartSortField;
+            set
+            {
+                if (_selectedCartSortField != value)
+                {
+                    _selectedCartSortField = value ?? string.Empty;
+                    OnPropertyChanged();
+                    OnCartSortChanged();
+                }
+            }
+        }
+
+        public bool IsCartSortDescending
+        {
+            get => _isCartSortDescending;
+            private set
+            {
+                if (_isCartSortDescending != value)
+                {
+                    _isCartSortDescending = value;
+                    OnPropertyChanged();
+                    OnCartSortChanged();
+                }
+            }
+        }
+
+        public string CartSortText => string.IsNullOrWhiteSpace(SelectedCartSortField)
+            ? "Orden manual"
+            : $"Ordenado por {SelectedCartSortField.ToLowerInvariant()} {(IsCartSortDescending ? "↓" : "↑")}";
+        public bool IsCartSortByName => SelectedCartSortField == "Nombre";
+        public bool IsCartSortByCode => SelectedCartSortField == "Código";
+        public bool IsCartSortByPrice => SelectedCartSortField == "Precio";
+        public bool IsCartSortByUnits => SelectedCartSortField == "Unidades";
+        public string NameHeaderText => GetCartSortHeaderText("Descripción Producto", IsCartSortByName);
+        public string CodeHeaderText => GetCartSortHeaderText("Código", IsCartSortByCode);
+        public string QuantityHeaderText => GetCartSortHeaderText("Cant.", IsCartSortByUnits);
+        public string PriceHeaderText => GetCartSortHeaderText("Precio", IsCartSortByPrice);
+        public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.##} artículo(s) · {CartItems.Count} línea(s)";
+        public string CartEmptyText => "Carrito vacío";
 
         public ICommand AddProductCommand { get; }
         public ICommand IncrementCommand { get; }
@@ -132,6 +179,7 @@ namespace NovaRetail.ViewModels
         public ICommand EditCartItemCommand { get; }
         public ICommand ToggleSelectionModeCommand { get; }
         public ICommand ToggleItemSelectionCommand { get; }
+        public ICommand SelectCartSortCommand { get; }
         public ICommand ApplyBulkDiscountCommand { get; }
 
         private decimal _subtotal;
@@ -370,7 +418,7 @@ namespace NovaRetail.ViewModels
             {
                 if (_preferredSpan != value)
                 {
-                    _preferredSpan = Math.Clamp(value, 2, 4);
+                    _preferredSpan = Math.Clamp(value, 2, 3);
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsSpan2));
                     OnPropertyChanged(nameof(IsSpan3));
@@ -382,7 +430,7 @@ namespace NovaRetail.ViewModels
         public bool IsSpan3 => PreferredSpan == 3;
         public bool IsSpan4 => PreferredSpan == 4;
 
-        private int _maxSpan = 4;
+        private int _maxSpan = 3;
         public int MaxSpan
         {
             get => _maxSpan;
@@ -390,12 +438,14 @@ namespace NovaRetail.ViewModels
             {
                 if (_maxSpan != value)
                 {
-                    _maxSpan = value;
+                    _maxSpan = Math.Clamp(value, 2, 3);
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsSpan3Available));
                     OnPropertyChanged(nameof(IsSpan4Available));
                 }
             }
         }
+        public bool IsSpan3Available => _maxSpan >= 3;
         public bool IsSpan4Available => _maxSpan >= 4;
 
         private bool _isLoadingMoreProducts;
@@ -457,13 +507,12 @@ namespace NovaRetail.ViewModels
             LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
             EditCartItemCommand = new Command<CartItemModel>(async item => await OpenItemActionAsync(item));
             ToggleSelectionModeCommand = new Command(() => IsSelectionMode = !IsSelectionMode);
+            SelectCartSortCommand = new Command<string>(ToggleCartSort);
             ToggleItemSelectionCommand = new Command<CartItemModel>(item =>
             {
                 if (!IsSelectionMode || item is null) return;
                 item.IsSelected = !item.IsSelected;
-                OnPropertyChanged(nameof(HasSelectedItems));
-                OnPropertyChanged(nameof(SelectedCountText));
-                ((Command)ApplyBulkDiscountCommand).ChangeCanExecute();
+                RefreshCartItemsView();
             });
             ApplyBulkDiscountCommand = new Command(async () => await StartBulkDiscountAsync(), () => HasSelectedItems);
             ItemActionVm.RequestOk += CloseItemAction;
@@ -475,6 +524,7 @@ namespace NovaRetail.ViewModels
             PriceJustVm.RequestOk += OnPriceJustOk;
             PriceJustVm.RequestCancel += OnPriceJustCancel;
             PriceJustVm.RequestRefresh += async () => { _cachedDiscountCodes.Clear(); await LoadDiscountCodesAsync(); PriceJustVm.LoadCodes(_cachedDiscountCodes); };
+            RefreshCartItemsView();
             _ = LoadProductsAsync();
         }
 
@@ -620,6 +670,75 @@ namespace NovaRetail.ViewModels
                 Products.Add(p);
         }
 
+        private void RefreshCartItemsView()
+        {
+            var ordered = ApplyCartSort(CartItems).ToList();
+
+            FilteredCartItems.Clear();
+            foreach (var item in ordered)
+                FilteredCartItems.Add(item);
+
+            OnPropertyChanged(nameof(CartItemsSummaryText));
+            OnPropertyChanged(nameof(CartEmptyText));
+            OnPropertyChanged(nameof(CartCountText));
+            OnPropertyChanged(nameof(HasSelectedItems));
+            OnPropertyChanged(nameof(SelectedCountText));
+            ((Command)ApplyBulkDiscountCommand).ChangeCanExecute();
+        }
+
+        private void ToggleCartSort(string? field)
+        {
+            if (string.IsNullOrWhiteSpace(field))
+                return;
+
+            if (SelectedCartSortField == field)
+            {
+                IsCartSortDescending = !IsCartSortDescending;
+                return;
+            }
+
+            _isCartSortDescending = true;
+            OnPropertyChanged(nameof(IsCartSortDescending));
+            SelectedCartSortField = field;
+        }
+
+        private void OnCartSortChanged()
+        {
+            OnPropertyChanged(nameof(CartSortText));
+            OnPropertyChanged(nameof(IsCartSortByName));
+            OnPropertyChanged(nameof(IsCartSortByCode));
+            OnPropertyChanged(nameof(IsCartSortByPrice));
+            OnPropertyChanged(nameof(IsCartSortByUnits));
+            OnPropertyChanged(nameof(NameHeaderText));
+            OnPropertyChanged(nameof(CodeHeaderText));
+            OnPropertyChanged(nameof(QuantityHeaderText));
+            OnPropertyChanged(nameof(PriceHeaderText));
+            RefreshCartItemsView();
+        }
+
+        private string GetCartSortHeaderText(string label, bool isActive)
+            => isActive ? $"{label} {(IsCartSortDescending ? "↓" : "↑")}" : label;
+
+        private IEnumerable<CartItemModel> ApplyCartSort(IEnumerable<CartItemModel> items)
+        {
+            return SelectedCartSortField switch
+            {
+                "Código" => IsCartSortDescending
+                    ? items.OrderByDescending(item => item.Code).ThenByDescending(item => item.DisplayName)
+                    : items.OrderBy(item => item.Code).ThenBy(item => item.DisplayName),
+                "Nombre" => IsCartSortDescending
+                    ? items.OrderByDescending(item => NormalizeText(item.DisplayName)).ThenByDescending(item => item.Code)
+                    : items.OrderBy(item => NormalizeText(item.DisplayName)).ThenBy(item => item.Code),
+                "Precio" => IsCartSortDescending
+                    ? items.OrderByDescending(item => item.EffectivePriceColones).ThenByDescending(item => item.DisplayName)
+                    : items.OrderBy(item => item.EffectivePriceColones).ThenBy(item => item.DisplayName),
+                "Unidades" => IsCartSortDescending
+                    ? items.OrderByDescending(item => item.Quantity).ThenByDescending(item => item.DisplayName)
+                    : items.OrderBy(item => item.Quantity).ThenBy(item => item.DisplayName),
+                _ => items
+            };
+        }
+
         private static bool MatchesCategory(string productCategory, string selectedCategory)
         {
             if (string.Equals(selectedCategory, "Supermercado", StringComparison.OrdinalIgnoreCase) ||
@@ -757,6 +876,7 @@ namespace NovaRetail.ViewModels
                 product.CartQuantity = 1;
             }
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private void Increment(CartItemModel? item)
@@ -766,6 +886,7 @@ namespace NovaRetail.ViewModels
             var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
             if (product is not null) product.CartQuantity = item.Quantity;
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private void Decrement(CartItemModel? item)
@@ -777,6 +898,7 @@ namespace NovaRetail.ViewModels
             var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
             if (product is not null) product.CartQuantity = Math.Max(0m, item.Quantity);
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private void DecrementProduct(ProductModel? product)
@@ -789,6 +911,7 @@ namespace NovaRetail.ViewModels
                 CartItems.Remove(existing);
             product.CartQuantity = Math.Max(0m, existing.Quantity);
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private void ClearCart()
@@ -798,6 +921,7 @@ namespace NovaRetail.ViewModels
             foreach (var p in _allProducts)
                 p.CartQuantity = 0;
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private async Task InvoiceAsync()
@@ -872,6 +996,7 @@ namespace NovaRetail.ViewModels
         {
             IsItemActionVisible = false;
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private async Task StartItemDiscountAsync()
@@ -997,6 +1122,7 @@ namespace NovaRetail.ViewModels
             _isBulkDiscountFlow = false;
             IsPriceJustVisible = false;
             RecalculateTotal();
+            RefreshCartItemsView();
         }
 
         private void OnPriceJustCancel()
@@ -1016,9 +1142,7 @@ namespace NovaRetail.ViewModels
         {
             foreach (var item in CartItems)
                 item.IsSelected = false;
-            OnPropertyChanged(nameof(HasSelectedItems));
-            OnPropertyChanged(nameof(SelectedCountText));
-            ((Command)ApplyBulkDiscountCommand).ChangeCanExecute();
+            RefreshCartItemsView();
         }
 
         private async Task StartBulkDiscountAsync()

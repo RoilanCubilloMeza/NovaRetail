@@ -5,14 +5,33 @@ namespace NovaRetail.Views
 {
     public partial class CartPanel : ContentView
     {
+        public static readonly BindableProperty ShowProductCodeProperty = BindableProperty.Create(
+            nameof(ShowProductCode),
+            typeof(bool),
+            typeof(CartPanel),
+            false);
+
+        private const double ProductCodeBreakpoint = 900;
         private CancellationTokenSource? _longPressCts;
+
+        public bool ShowProductCode
+        {
+            get => (bool)GetValue(ShowProductCodeProperty);
+            private set => SetValue(ShowProductCodeProperty, value);
+        }
 
         public CartPanel()
         {
             InitializeComponent();
+            SizeChanged += OnCartPanelSizeChanged;
         }
 
-        private void OnItemPointerPressed(object sender, PointerEventArgs e)
+        private void OnCartPanelSizeChanged(object? sender, EventArgs e)
+        {
+            ShowProductCode = Width >= ProductCodeBreakpoint;
+        }
+
+        private void OnItemPointerPressed(object? sender, PointerEventArgs e)
         {
             _longPressCts?.Cancel();
             _longPressCts = new CancellationTokenSource();
@@ -37,7 +56,7 @@ namespace NovaRetail.Views
             });
         }
 
-        private void OnItemPointerReleased(object sender, PointerEventArgs e)
+        private void OnItemPointerReleased(object? sender, PointerEventArgs e)
         {
             _longPressCts?.Cancel();
         }

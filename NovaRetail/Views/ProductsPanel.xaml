@@ -47,49 +47,6 @@
                                FontAttributes="Bold"
                                VerticalOptions="Center"/>
 
-                        <!-- Column picker: 2 | 3 | 4 -->
-                        <HorizontalStackLayout Grid.Column="2"
-                                               HorizontalOptions="End" Spacing="3"
-                                               VerticalOptions="Center">
-                            <Border Style="{DynamicResource SpanPickerBtn}">
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSpan2}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{DynamicResource SlateActive}"/>
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectSpanCommand}" CommandParameter="2"/>
-                                </Border.GestureRecognizers>
-                                <Label Text="2" FontSize="11" FontAttributes="Bold"
-                                       TextColor="White" VerticalOptions="Center"/>
-                            </Border>
-                            <Border Style="{DynamicResource SpanPickerBtn}">
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSpan3}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{DynamicResource SlateActive}"/>
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectSpanCommand}" CommandParameter="3"/>
-                                </Border.GestureRecognizers>
-                                <Label Text="3" FontSize="11" FontAttributes="Bold"
-                                       TextColor="White" VerticalOptions="Center"/>
-                            </Border>
-                            <Border Style="{DynamicResource SpanPickerBtn}"
-                                    IsVisible="{Binding IsSpan4Available}">
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSpan4}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{DynamicResource SlateActive}"/>
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectSpanCommand}" CommandParameter="4"/>
-                                </Border.GestureRecognizers>
-                                <Label Text="4" FontSize="11" FontAttributes="Bold"
-                                       TextColor="White" VerticalOptions="Center"/>
-                            </Border>
-                        </HorizontalStackLayout>
-
                         <!-- Collapse button -->
                         <Border Grid.Column="3"
                                 BackgroundColor="#475569"
@@ -109,8 +66,7 @@
                 <!-- Panel content -->
                 <Grid x:Name="ProductsPanelGrid" Grid.Row="1"
                       RowDefinitions="Auto, Auto, *, Auto"
-                      RowSpacing="0" Padding="10,8,10,10"
-                      SizeChanged="OnProductsPanelSizeChanged">
+                      RowSpacing="0" Padding="10,8,10,10">
 
                     <!-- Row 0: Search bar -->
                     <Border Grid.Row="0" Style="{DynamicResource InputBox}" Margin="0,2,0,8">
@@ -154,7 +110,7 @@
                         </HorizontalStackLayout>
                     </ScrollView>
 
-                    <!-- Row 2: Product Grid (2-4 columns, responsive) -->
+                    <!-- Row 2: Product Grid (2 columns) -->
                     <CollectionView Grid.Row="2"
                                     ItemsSource="{Binding Products}"
                                     SelectionMode="None"

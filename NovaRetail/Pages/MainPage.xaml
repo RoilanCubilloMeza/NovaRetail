@@ -6,7 +6,7 @@
              BackgroundColor="{DynamicResource PageBackground}"
              Shell.NavBarIsVisible="False">
 
-    <Grid x:Name="MainGrid" ColumnDefinitions="560, *, 220" ColumnSpacing="0">
+    <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0">
         <views:CartPanel     Grid.Column="0"/>
         <views:ProductsPanel Grid.Column="1"/>
         <views:ActionsPanel  Grid.Column="2"/>
