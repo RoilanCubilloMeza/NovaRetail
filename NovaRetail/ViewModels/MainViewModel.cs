@@ -1,33 +1,18 @@
+using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
-using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows.Input;
-using Newtonsoft.Json;
 
 namespace NovaRetail.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        private static readonly string[] ItemsEndpoints =
-        {
-            "http://localhost:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize=100",
-            "http://127.0.0.1:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize=100"
-        };
-        private static readonly string[] SearchEndpoints =
-        {
-            "http://localhost:52500/api/Items/Search?criteria={0}&top=300",
-            "http://127.0.0.1:52500/api/Items/Search?criteria={0}&top=300"
-        };
-        private static readonly string[] ReasonCodeEndpoints =
-        {
-            "http://localhost:52500/api/ReasonCodes?type={0}",
-            "http://127.0.0.1:52500/api/ReasonCodes?type={0}"
-        };
+        private readonly IProductService _productService;
         private readonly IDialogService _dialogService;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
@@ -307,42 +292,20 @@ namespace NovaRetail.ViewModels
                     ? "tornillo"
                     : "escoba";
 
-            foreach (var endpoint in SearchEndpoints)
+            try
             {
-                try
-                {
-                    using var http = new HttpClient();
-                    var url = string.Format(endpoint, Uri.EscapeDataString(seed));
-                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
-                    if (apiItems is null || apiItems.Count == 0)
-                        continue;
-
-                    _allProducts.Clear();
-                    foreach (var item in apiItems)
-                    {
-                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
-                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
-                        _allProducts.Add(new ProductModel
-                        {
-                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
-                            Code = item.ItemLookupCode ?? item.ID.ToString(),
-                            PriceValue = priceDollars,
-                            Price = $"${priceDollars:F2}",
-                            Category = DetermineCategory(item),
-                            Stock = Convert.ToInt32(item.Quantity ?? 0),
-                            PriceColonesValue = priceColones
-                        });
-                    }
-
-                    _loadedItemsPage = 0;
-                    _canLoadMoreFromApi = false;
-
-                    FilterProducts();
+                var products = await _productService.SearchAsync(seed, 300, _exchangeRate);
+                if (products.Count == 0)
                     return;
-                }
-                catch
-                {
-                }
+
+                _allProducts.Clear();
+                _allProducts.AddRange(products);
+                _loadedItemsPage = 0;
+                _canLoadMoreFromApi = false;
+                FilterProducts();
+            }
+            catch
+            {
             }
         }
 
@@ -488,8 +451,9 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(Tax * _exchangeRate, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round((SubtotalAfterDiscount + Tax) * _exchangeRate, 2):N2}";
 
-        public MainViewModel(IDialogService dialogService)
+        public MainViewModel(IProductService productService, IDialogService dialogService)
         {
+            _productService = productService;
             _dialogService = dialogService;
             AddProductCommand = new Command<ProductModel>(AddProduct);
             IncrementCommand = new Command<CartItemModel>(Increment);
@@ -539,108 +503,39 @@ namespace NovaRetail.ViewModels
             _isLoadingItems = true;
             var nextPage = loadMore ? _loadedItemsPage + 1 : 1;
 
-            foreach (var endpoint in ItemsEndpoints)
+            try
             {
-                try
+                var products = await _productService.GetProductsAsync(nextPage, 100, _exchangeRate);
+
+                if (products.Count == 0)
                 {
-                    using var http = new HttpClient();
-                    var url = string.Format(endpoint, nextPage);
-                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
-
-                    if (apiItems is null || apiItems.Count == 0)
-                        continue;
-
-                    if (!loadMore)
-                        _allProducts.Clear();
-
-                    foreach (var item in apiItems)
-                    {
-                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
-                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
-                        _allProducts.Add(new ProductModel
-                        {
-                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
-                            Code = item.ItemLookupCode ?? item.ID.ToString(),
-                            PriceValue = priceDollars,
-                            Price = $"${priceDollars:F2}",
-                            Category = DetermineCategory(item),
-                            Stock = Convert.ToDecimal(item.Quantity ?? 0),
-                            PriceColonesValue = priceColones
-                        });
-                    }
-
-                    _loadedItemsPage = nextPage;
-                    _canLoadMoreFromApi = apiItems.Count >= 100;
-
-                    FilterProducts();
                     _isLoadingItems = false;
-                    return true;
+                    if (!loadMore)
+                    {
+                        _allProducts.Clear();
+                        _loadedItemsPage = 0;
+                        _canLoadMoreFromApi = false;
+                        FilterProducts();
+                    }
+                    return false;
                 }
-                catch
-                {
-                }
-            }
 
-            _isLoadingItems = false;
+                if (!loadMore)
+                    _allProducts.Clear();
 
-            if (!loadMore)
-            {
-                _allProducts.Clear();
-                _loadedItemsPage = 0;
-                _canLoadMoreFromApi = false;
+                _allProducts.AddRange(products);
+                _loadedItemsPage = nextPage;
+                _canLoadMoreFromApi = products.Count >= 100;
+
                 FilterProducts();
+                _isLoadingItems = false;
+                return true;
+            }
+            catch
+            {
+                _isLoadingItems = false;
                 return false;
             }
-
-            return false;
-        }
-
-        private void LoadMockProducts()
-        {
-            _loadedItemsPage = 0;
-            _canLoadMoreFromApi = false;
-
-            // Calcular precios en colones
-            foreach (var p in _allProducts)
-                p.PriceColonesValue = Math.Round(p.PriceValue * _exchangeRate);
-
-            FilterProducts();
-        }
-
-        private sealed class ApiItem
-        {
-            public int ID { get; set; }
-            public string? ItemLookupCode { get; set; }
-            public string? ExtendedDescription { get; set; }
-            public double? Quantity { get; set; }
-            public int DepartmentID { get; set; }
-            public decimal PRICE { get; set; }
-            public decimal PriceA { get; set; }
-            public string? Description { get; set; }
-            public string? SubDescription2 { get; set; }
-        }
-
-        private static string DetermineCategory(ApiItem item)
-        {
-            var text = $"{item.Description} {item.ExtendedDescription} {item.SubDescription2}".ToLowerInvariant();
-
-            if (text.Contains("sandalia") || text.Contains("zapato") || text.Contains("tenis") ||
-                text.Contains("zapat") || text.Contains("bota") || text.Contains("calcetin") ||
-                text.Contains("plantilla"))
-                return "Calzado";
-
-            if (text.Contains("martillo") || text.Contains("tornillo") || text.Contains("clavo") ||
-                text.Contains("llave") || text.Contains("pintura") || text.Contains("broca") ||
-                text.Contains("cinta") || text.Contains("pvc") || text.Contains("taco") ||
-                text.Contains("ferreter"))
-                return "Ferreteria";
-
-            if (text.Contains("escoba") || text.Contains("cojin") || text.Contains("cubeta") ||
-                text.Contains("almohada") || text.Contains("hogar") || text.Contains("vela") ||
-                text.Contains("limpiador"))
-                return "Hogar";
-
-            return "Supermercado";
         }
 
         private void FilterProducts()
@@ -757,42 +652,20 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(normalized) || normalized.Length < 3)
                 return;
 
-            foreach (var endpoint in SearchEndpoints)
+            try
             {
-                try
-                {
-                    using var http = new HttpClient();
-                    var url = string.Format(endpoint, Uri.EscapeDataString(normalized));
-                    var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
-                    if (apiItems is null || apiItems.Count == 0)
-                        continue;
-
-                    _allProducts.Clear();
-                    foreach (var item in apiItems)
-                    {
-                        var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
-                        var priceDollars = _exchangeRate > 0 ? Math.Round(priceColones / _exchangeRate, 2) : priceColones;
-                        _allProducts.Add(new ProductModel
-                        {
-                            Name = string.IsNullOrWhiteSpace(item.Description) ? item.ExtendedDescription ?? string.Empty : item.Description,
-                            Code = item.ItemLookupCode ?? item.ID.ToString(),
-                            PriceValue = priceDollars,
-                            Price = $"${priceDollars:F2}",
-                            Category = DetermineCategory(item),
-                            Stock = Convert.ToInt32(item.Quantity ?? 0),
-                            PriceColonesValue = priceColones
-                        });
-                    }
-
-                    _loadedItemsPage = 0;
-                    _canLoadMoreFromApi = false;
-
-                    FilterProducts();
+                var products = await _productService.SearchAsync(normalized, 300, _exchangeRate);
+                if (products.Count == 0)
                     return;
-                }
-                catch
-                {
-                }
+
+                _allProducts.Clear();
+                _allProducts.AddRange(products);
+                _loadedItemsPage = 0;
+                _canLoadMoreFromApi = false;
+                FilterProducts();
+            }
+            catch
+            {
             }
         }
 
@@ -1161,24 +1034,17 @@ namespace NovaRetail.ViewModels
 
         private async Task LoadDiscountCodesAsync()
         {
-            foreach (var endpoint in ReasonCodeEndpoints)
+            try
             {
-                try
+                var codes = await _productService.GetReasonCodesAsync(4);
+                if (codes.Count > 0)
                 {
-                    using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-                    var url = string.Format(endpoint, 4);
-                    var json = await http.GetStringAsync(url);
-                    var codes = JsonConvert.DeserializeObject<List<ReasonCodeModel>>(json);
-                    if (codes is not null && codes.Count > 0)
-                    {
-                        _cachedDiscountCodes.Clear();
-                        _cachedDiscountCodes.AddRange(codes);
-                        return;
-                    }
+                    _cachedDiscountCodes.Clear();
+                    _cachedDiscountCodes.AddRange(codes);
                 }
-                catch
-                {
-                }
+            }
+            catch
+            {
             }
         }
 
