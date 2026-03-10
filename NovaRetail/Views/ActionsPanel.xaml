@@ -8,26 +8,56 @@
             Margin="6,10,12,10">
 
         <ScrollView>
-            <VerticalStackLayout Spacing="0" Padding="14,14">
+            <VerticalStackLayout Spacing="0" Padding="8,10">
 
                 <!-- Tipo de Cambio -->
-                <Label Text="Tipo de Cambio"
-                       Style="{DynamicResource SectionSubheaderLabel}"/>
-
                 <Border Style="{DynamicResource InfoDisplayBorder}"
-                        Margin="0,0,0,14">
-                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="6">
-                        <Label Grid.Column="0" Text="USD &#x2192; CRC" FontSize="12"
-                               TextColor="{DynamicResource Gray500}"
-                               VerticalOptions="Center"/>
-                        <Label Grid.Column="1" Text="{Binding ExchangeRateText}"
-                               FontSize="14" FontAttributes="Bold"
-                               TextColor="{DynamicResource Gray900}"
-                               HorizontalTextAlignment="End"
-                               VerticalOptions="Center"/>
-                        <Label Grid.Column="2" Text="&#x1F504;" FontSize="12"
-                               TextColor="{DynamicResource Gray400}"
-                               VerticalOptions="Center"/>
+                        Margin="0,0,0,12"
+                        Padding="10,8">
+                    <Grid RowDefinitions="Auto, Auto, Auto" RowSpacing="2">
+
+                        <!-- Fila 1: etiqueta + icono refresh -->
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*, Auto" ColumnSpacing="4">
+                            <Label Grid.Column="0"
+                                   Text="Tipo de Cambio"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Gray500}"
+                                   VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="&#x1F504;"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   TextColor="#94A3B8"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Fila 2: valor principal -->
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="*">
+                            <Label Grid.Column="0"
+                                   Text="{Binding ExchangeRateText}"
+                                   FontSize="{DynamicResource UIFontLG}"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="NoWrap"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Fila 3: leyenda de moneda -->
+                        <Grid Grid.Row="2"
+                              ColumnDefinitions="*">
+                            <Label Grid.Column="0"
+                                   Text="USD &#x2192; CRC"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   TextColor="#9CA3AF"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="NoWrap"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
                     </Grid>
                 </Border>
 

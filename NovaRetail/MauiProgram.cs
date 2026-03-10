@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NovaRetail.Data;
 using NovaRetail.Pages;
 using NovaRetail.Services;
+using NovaRetail.State;
 using NovaRetail.ViewModels;
 
 namespace NovaRetail
@@ -23,7 +25,19 @@ namespace NovaRetail
             builder.Services.AddSingleton<IDialogService, MauiDialogService>();
             builder.Services.AddSingleton<IClienteService, ApiClienteService>();
             builder.Services.AddSingleton<IProductService, ApiProductService>();
+            builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
+            builder.Services.AddSingleton<AppStore>();
             builder.Services.AddSingleton<Utilities>();
+
+            // Named HttpClients (evita socket exhaustion, centraliza timeouts)
+            builder.Services.AddHttpClient("NovaItems",
+                c => c.Timeout = TimeSpan.FromSeconds(10));
+            builder.Services.AddHttpClient("NovaCustomers",
+                c => c.Timeout = TimeSpan.FromSeconds(15));
+            builder.Services.AddHttpClient("NovaReasonCodes",
+                c => c.Timeout = TimeSpan.FromSeconds(8));
+            builder.Services.AddHttpClient("NovaStoreConfig",
+                c => c.Timeout = TimeSpan.FromSeconds(8));
 
             // ViewModels
             builder.Services.AddSingleton<MainViewModel>();

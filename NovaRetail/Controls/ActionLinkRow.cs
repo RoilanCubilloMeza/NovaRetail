@@ -52,7 +52,7 @@ namespace NovaRetail.Controls
         {
             var iconLabel = new Label
             {
-                FontSize          = 16,
+                FontSize          = 15,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions   = LayoutOptions.Center
             };
@@ -62,8 +62,8 @@ namespace NovaRetail.Controls
             {
                 StrokeShape     = new RoundRectangle { CornerRadius = UiConfig.CornerRadiusMd },
                 StrokeThickness = 0,
-                WidthRequest    = 36,
-                HeightRequest   = 36,
+                WidthRequest    = 28,
+                HeightRequest   = 28,
                 Padding         = Thickness.Zero,
                 VerticalOptions = LayoutOptions.Center,
                 Content         = iconLabel
@@ -74,9 +74,12 @@ namespace NovaRetail.Controls
 
             var textLabel = new Label
             {
-                FontSize        = 13,
+                FontSize        = 11,
                 FontAttributes  = FontAttributes.Bold,
-                VerticalOptions = LayoutOptions.Center
+                VerticalOptions = LayoutOptions.Center,
+                VerticalTextAlignment = TextAlignment.Center,
+                LineBreakMode   = LineBreakMode.WordWrap,
+                MaxLines        = 2
             };
             textLabel.SetBinding(Label.TextProperty,
                 new Binding(nameof(Text), source: this));
@@ -87,8 +90,8 @@ namespace NovaRetail.Controls
             var arrowLabel = new Label
             {
                 Text            = "\u276F",
-                FontSize        = 14,
-                Opacity         = 0.6,
+                FontSize        = 11,
+                Opacity         = 0.5,
                 VerticalOptions = LayoutOptions.Center
             };
             arrowLabel.SetBinding(Label.TextColorProperty,
@@ -103,7 +106,7 @@ namespace NovaRetail.Controls
                     new ColumnDefinition(GridLength.Star),
                     new ColumnDefinition(GridLength.Auto)
                 },
-                ColumnSpacing = 10,
+                ColumnSpacing = 6,
                 Children      = { iconBadge, textLabel, arrowLabel }
             };
 
@@ -111,8 +114,8 @@ namespace NovaRetail.Controls
             {
                 StrokeShape     = new RoundRectangle { CornerRadius = UiConfig.CornerRadiusLg },
                 StrokeThickness = UiConfig.StrokeThin,
-                HeightRequest   = 52,
-                Padding         = new Thickness(12, 0),
+                MinimumHeightRequest = 52,
+                Padding         = new Thickness(8, 0),
                 Stroke          = new SolidColorBrush(StrokeColor),
                 Content         = grid
             };

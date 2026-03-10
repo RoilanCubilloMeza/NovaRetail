@@ -137,7 +137,7 @@
 
     <!-- Texto dentro de botones +/- -->
     <Style x:Key="CartBtnText" TargetType="Label">
-        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontXL}"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="TextColor" Value="White"/>
         <Setter Property="HorizontalOptions" Value="Center"/>
@@ -146,7 +146,7 @@
 
     <!-- Cantidad entre los botones -->
     <Style x:Key="CartQty" TargetType="Label">
-        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontLG}"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
         <Setter Property="HorizontalTextAlignment" Value="Center"/>
@@ -211,7 +211,7 @@
 
     <!-- Encabezado de columna en tabla (carrito, etc.) -->
     <Style x:Key="TableHeaderLabel" TargetType="Label">
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontXS}"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="TextColor" Value="{DynamicResource Gray500}"/>
     </Style>
@@ -330,7 +330,7 @@
 
     <!-- Precio principal en filas del carrito (colones, negrita, alineado derecha) -->
     <Style x:Key="CartPriceMainLabel" TargetType="Label">
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontMD}"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
         <Setter Property="HorizontalTextAlignment" Value="End"/>
@@ -338,7 +338,7 @@
 
     <!-- Precio secundario en filas del carrito (USD, pequeño, gris, derecha) -->
     <Style x:Key="CartPriceSubLabel" TargetType="Label">
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontXS}"/>
         <Setter Property="TextColor" Value="{DynamicResource Gray400}"/>
         <Setter Property="HorizontalTextAlignment" Value="End"/>
     </Style>
@@ -404,7 +404,7 @@
 
     <!-- Subtítulo de sección dentro de un panel (encima de un widget) -->
     <Style x:Key="SectionSubheaderLabel" TargetType="Label">
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource UIFontSM}"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="TextColor" Value="{DynamicResource Gray600}"/>
         <Setter Property="Margin" Value="0,0,0,6"/>

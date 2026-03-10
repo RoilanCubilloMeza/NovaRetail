@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Net.Http.Json;
 using Newtonsoft.Json;
 using NovaRetail.Models;
@@ -6,38 +7,33 @@ namespace NovaRetail.Data
 {
     public class ApiProductService : IProductService
     {
-        private static readonly string[] ItemsEndpoints =
+        private const string ItemsClientName = "NovaItems";
+        private const string ReasonCodeClientName = "NovaReasonCodes";
+
+        private static readonly string[] ItemsBaseUrls =
         {
-            "http://localhost:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize={1}",
-            "http://127.0.0.1:52500/api/Items?storeid=1&tipo=1&page={0}&pageSize={1}"
+            "http://localhost:52500",
+            "http://127.0.0.1:52500"
         };
 
-        private static readonly string[] SearchEndpoints =
-        {
-            "http://localhost:52500/api/Items/Search?criteria={0}&top={1}",
-            "http://127.0.0.1:52500/api/Items/Search?criteria={0}&top={1}"
-        };
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        private static readonly string[] ReasonCodeEndpoints =
+        public ApiProductService(IHttpClientFactory httpClientFactory)
         {
-            "http://localhost:52500/api/ReasonCodes?type={0}",
-            "http://127.0.0.1:52500/api/ReasonCodes?type={0}"
-        };
-
-        private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan ReasonCodeTimeout = TimeSpan.FromSeconds(8);
+            _httpClientFactory = httpClientFactory;
+        }
 
         public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate)
         {
             var safePage = page < 1 ? 1 : page;
             var safePageSize = Math.Clamp(pageSize, 1, 500);
 
-            foreach (var endpoint in ItemsEndpoints)
+            foreach (var baseUrl in ItemsBaseUrls)
             {
                 try
                 {
-                    using var http = new HttpClient { Timeout = DefaultTimeout };
-                    var url = string.Format(endpoint, safePage, safePageSize);
+                    var http = _httpClientFactory.CreateClient(ItemsClientName);
+                    var url = $"{baseUrl}/api/Items?storeid=1&tipo=1&page={safePage}&pageSize={safePageSize}";
                     var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
                     if (apiItems is null || apiItems.Count == 0)
@@ -57,12 +53,12 @@ namespace NovaRetail.Data
         {
             var safeTop = Math.Clamp(top, 1, 1000);
 
-            foreach (var endpoint in SearchEndpoints)
+            foreach (var baseUrl in ItemsBaseUrls)
             {
                 try
                 {
-                    using var http = new HttpClient { Timeout = DefaultTimeout };
-                    var url = string.Format(endpoint, Uri.EscapeDataString(criteria), safeTop);
+                    var http = _httpClientFactory.CreateClient(ItemsClientName);
+                    var url = $"{baseUrl}/api/Items/Search?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
                     var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
                     if (apiItems is null || apiItems.Count == 0)
@@ -80,12 +76,12 @@ namespace NovaRetail.Data
 
         public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)
         {
-            foreach (var endpoint in ReasonCodeEndpoints)
+            foreach (var baseUrl in ItemsBaseUrls)
             {
                 try
                 {
-                    using var http = new HttpClient { Timeout = ReasonCodeTimeout };
-                    var url = string.Format(endpoint, type);
+                    var http = _httpClientFactory.CreateClient(ReasonCodeClientName);
+                    var url = $"{baseUrl}/api/ReasonCodes?type={type}";
                     var json = await http.GetStringAsync(url);
                     var codes = JsonConvert.DeserializeObject<List<ReasonCodeModel>>(json);
 

@@ -1,6 +1,7 @@
 using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
+using NovaRetail.State;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -14,50 +15,78 @@ namespace NovaRetail.ViewModels
     {
         private readonly IProductService _productService;
         private readonly IDialogService _dialogService;
+        private readonly IStoreConfigService _storeConfigService;
+        private readonly AppStore _appStore;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
+        private CancellationTokenSource _searchCts = new();
+
+        private string _taxSystemText = string.Empty;
+        public string TaxSystemText
+        {
+            get => _taxSystemText;
+            private set { if (_taxSystemText != value) { _taxSystemText = value; OnPropertyChanged(); } }
+        }
+
+        private int _quoteDays;
+        public int QuoteDays
+        {
+            get => _quoteDays;
+            private set { if (_quoteDays != value) { _quoteDays = value; OnPropertyChanged(); OnPropertyChanged(nameof(QuoteDaysText)); } }
+        }
+        public string QuoteDaysText => _quoteDays > 0 ? $"{_quoteDays} días" : "—";
+
+        private int _defaultTenderID;
+        public ObservableCollection<TenderModel> Tenders { get; } = new();
 
         private CartItemModel? _pendingPriceItem;
         private int? _pendingDiscountPercent;
         private bool _isDiscountJustificationFlow;
         private bool _isBulkDiscountFlow;
 
-        private bool _isItemActionVisible;
         public bool IsItemActionVisible
         {
-            get => _isItemActionVisible;
-            private set { if (_isItemActionVisible != value) { _isItemActionVisible = value; OnPropertyChanged(); } }
-        }
-
-        private bool _isPriceJustVisible;
-        public bool IsPriceJustVisible
-        {
-            get => _isPriceJustVisible;
-            private set { if (_isPriceJustVisible != value) { _isPriceJustVisible = value; OnPropertyChanged(); } }
-        }
-
-        private bool _isDiscountPopupVisible;
-        public bool IsDiscountPopupVisible
-        {
-            get => _isDiscountPopupVisible;
-            private set { if (_isDiscountPopupVisible != value) { _isDiscountPopupVisible = value; OnPropertyChanged(); } }
-        }
-
-        private bool _isSelectionMode;
-        public bool IsSelectionMode
-        {
-            get => _isSelectionMode;
+            get => _appStore.State.IsItemActionVisible;
             private set
             {
-                if (_isSelectionMode != value)
+                if (IsItemActionVisible != value)
+                    _appStore.Dispatch(new SetItemActionVisibleAction(value));
+            }
+        }
+
+        public bool IsPriceJustVisible
+        {
+            get => _appStore.State.IsPriceJustVisible;
+            private set
+            {
+                if (IsPriceJustVisible != value)
+                    _appStore.Dispatch(new SetPriceJustVisibleAction(value));
+            }
+        }
+
+        public bool IsDiscountPopupVisible
+        {
+            get => _appStore.State.IsDiscountPopupVisible;
+            private set
+            {
+                if (IsDiscountPopupVisible != value)
+                    _appStore.Dispatch(new SetDiscountPopupVisibleAction(value));
+            }
+        }
+
+        public bool IsSelectionMode
+        {
+            get => _appStore.State.IsSelectionMode;
+            private set
+            {
+                if (IsSelectionMode != value)
                 {
-                    _isSelectionMode = value;
-                    OnPropertyChanged();
-                    if (!_isSelectionMode)
+                    _appStore.Dispatch(new SetSelectionModeAction(value));
+                    if (!value)
                         ClearAllSelections();
                 }
             }
@@ -69,33 +98,31 @@ namespace NovaRetail.ViewModels
         public ItemActionViewModel ItemActionVm { get; } = new();
         public DiscountEntryViewModel DiscountVm { get; } = new();
         public PriceJustificationViewModel PriceJustVm { get; } = new();
+        public CheckoutViewModel CheckoutVm { get; } = new();
 
-        private string _currentClientId = string.Empty;
-        private string _currentClientName = string.Empty;
-
-        public string CurrentClientId
+        public bool IsCheckoutVisible
         {
-            get => _currentClientId;
-            private set { _currentClientId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ClientDisplayId)); OnPropertyChanged(nameof(ClientDisplayName)); OnPropertyChanged(nameof(HasClient)); }
+            get => _appStore.State.IsCheckoutVisible;
+            private set
+            {
+                if (IsCheckoutVisible != value)
+                    _appStore.Dispatch(new SetCheckoutVisibleAction(value));
+            }
         }
 
-        public string CurrentClientName
-        {
-            get => _currentClientName;
-            private set { _currentClientName = value; OnPropertyChanged(); OnPropertyChanged(nameof(ClientDisplayName)); }
-        }
+        public string CurrentClientId => _appStore.State.CurrentClientId;
+        public string CurrentClientName => _appStore.State.CurrentClientName;
 
-        public bool HasClient => !string.IsNullOrWhiteSpace(_currentClientId);
-        public string ClientDisplayId => HasClient ? _currentClientId : "Sin cliente";
+        public bool HasClient => !string.IsNullOrWhiteSpace(CurrentClientId);
+        public string ClientDisplayId => HasClient ? CurrentClientId : "Sin cliente";
         public string ClientDisplayName => HasClient
-            ? (string.IsNullOrWhiteSpace(_currentClientName) ? "—" : _currentClientName)
+            ? (string.IsNullOrWhiteSpace(CurrentClientName) ? "—" : CurrentClientName)
             : "Seleccione un cliente";
 
         public void SetCliente(string clientId, string name)
         {
             if (string.IsNullOrWhiteSpace(clientId)) return;
-            CurrentClientId = clientId.Trim();
-            CurrentClientName = (name ?? string.Empty).Trim();
+            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim()));
         }
 
         public ObservableCollection<ProductModel> Products { get; } = new();
@@ -107,13 +134,12 @@ namespace NovaRetail.ViewModels
         private bool _isCartSortDescending = true;
         public string SelectedCartSortField
         {
-            get => _selectedCartSortField;
+            get => _appStore.State.CartSortField;
             set
             {
-                if (_selectedCartSortField != value)
+                if (SelectedCartSortField != value)
                 {
-                    _selectedCartSortField = value ?? string.Empty;
-                    OnPropertyChanged();
+                    _appStore.Dispatch(new SetCartSortFieldAction(value ?? string.Empty));
                     OnCartSortChanged();
                 }
             }
@@ -121,13 +147,12 @@ namespace NovaRetail.ViewModels
 
         public bool IsCartSortDescending
         {
-            get => _isCartSortDescending;
+            get => _appStore.State.IsCartSortDescending;
             private set
             {
-                if (_isCartSortDescending != value)
+                if (IsCartSortDescending != value)
                 {
-                    _isCartSortDescending = value;
-                    OnPropertyChanged();
+                    _appStore.Dispatch(new SetCartSortDescendingAction(value));
                     OnCartSortChanged();
                 }
             }
@@ -188,15 +213,27 @@ namespace NovaRetail.ViewModels
         private string _productSearchText = string.Empty;
         public string ProductSearchText
         {
-            get => _productSearchText;
+            get => _appStore.State.ProductSearchText;
             set
             {
-                if (_productSearchText != value)
+                if (ProductSearchText != value)
                 {
-                    _productSearchText = value;
-                    OnPropertyChanged();
+                    _appStore.Dispatch(new SetProductSearchTextAction(value));
                     FilterProducts();
-                    _ = SearchFromApiAsync(_productSearchText);
+
+                    _searchCts.Cancel();
+                    _searchCts = new CancellationTokenSource();
+                    var cts = _searchCts;
+                    var text = value;
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(300, cts.Token);
+                            await SearchFromApiAsync(text, cts.Token);
+                        }
+                        catch (OperationCanceledException) { }
+                    }, cts.Token);
                 }
             }
         }
@@ -206,18 +243,12 @@ namespace NovaRetail.ViewModels
         private string _selectedTab = "Rápido";
         public string SelectedTab
         {
-            get => _selectedTab;
+            get => _appStore.State.SelectedTab;
             set
             {
-                if (_selectedTab != value)
+                if (SelectedTab != value)
                 {
-                    _selectedTab = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsTabRapido));
-                    OnPropertyChanged(nameof(IsTabCategorias));
-                    OnPropertyChanged(nameof(IsTabPromos));
-                    OnPropertyChanged(nameof(ShowCategoryTabs));
-                    OnPropertyChanged(nameof(BreadcrumbText));
+                    _appStore.Dispatch(new SetSelectedTabAction(value));
 
                     if (value == "Rápido" || value == "Promos")
                         SelectedCategory = "Todos";
@@ -237,25 +268,18 @@ namespace NovaRetail.ViewModels
         private string _selectedCategory = "Todos";
         public string SelectedCategory
         {
-            get => _selectedCategory;
+            get => _appStore.State.SelectedCategory;
             set
             {
-                if (_selectedCategory != value)
+                if (SelectedCategory != value)
                 {
-                    _selectedCategory = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsCatTodos));
-                    OnPropertyChanged(nameof(IsCatSuper));
-                    OnPropertyChanged(nameof(IsCatFerreteria));
-                    OnPropertyChanged(nameof(IsCatCalzado));
-                    OnPropertyChanged(nameof(IsCatHogar));
-                    OnPropertyChanged(nameof(BreadcrumbText));
+                    _appStore.Dispatch(new SetSelectedCategoryAction(value));
                     FilterProducts();
 
-                    if (_selectedCategory == "Todos" || _selectedCategory == "Super" || _selectedCategory == "Supermercado")
+                    if (value == "Todos" || value == "Super" || value == "Supermercado")
                         _ = LoadProductsAsync();
 
-                    _ = LoadCategoryProductsAsync(_selectedCategory);
+                    _ = LoadCategoryProductsAsync(value);
                 }
             }
         }
@@ -314,19 +338,11 @@ namespace NovaRetail.ViewModels
         private int _discountPercent;
         public int DiscountPercent
         {
-            get => _discountPercent;
+            get => _appStore.State.DiscountPercent;
             set
             {
-                if (_discountPercent != value)
-                {
-                    _discountPercent = Math.Clamp(value, 0, 100);
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(DiscountText));
-                    OnPropertyChanged(nameof(DiscountAmountText));
-                    OnPropertyChanged(nameof(DiscountColonesText));
-                    OnPropertyChanged(nameof(TaxText));
-                    OnPropertyChanged(nameof(TotalText));
-                }
+                if (DiscountPercent != value)
+                    _appStore.Dispatch(new SetDiscountPercentAction(value));
             }
         }
 
@@ -355,18 +371,13 @@ namespace NovaRetail.ViewModels
 
         // ── Panel de productos: visible / ancho ──
 
-        private bool _isProductsPanelVisible = true;
         public bool IsProductsPanelVisible
         {
-            get => _isProductsPanelVisible;
+            get => _appStore.State.IsProductsPanelVisible;
             set
             {
-                if (_isProductsPanelVisible != value)
-                {
-                    _isProductsPanelVisible = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(ProductsPanelVisibilityText));
-                }
+                if (IsProductsPanelVisible != value)
+                    _appStore.Dispatch(new SetProductsPanelVisibleAction(value));
             }
         }
         public string ProductsPanelVisibilityText => IsProductsPanelVisible ? "◀  Ocultar panel" : "Mostrar panel  ▶";
@@ -451,10 +462,13 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(Tax * _exchangeRate, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round((SubtotalAfterDiscount + Tax) * _exchangeRate, 2):N2}";
 
-        public MainViewModel(IProductService productService, IDialogService dialogService)
+        public MainViewModel(IProductService productService, IDialogService dialogService, IStoreConfigService storeConfigService, AppStore appStore)
         {
             _productService = productService;
             _dialogService = dialogService;
+            _storeConfigService = storeConfigService;
+            _appStore = appStore;
+            _appStore.StateChanged += OnAppStateChanged;
             AddProductCommand = new Command<ProductModel>(AddProduct);
             IncrementCommand = new Command<CartItemModel>(Increment);
             DecrementCommand = new Command<CartItemModel>(Decrement);
@@ -488,8 +502,85 @@ namespace NovaRetail.ViewModels
             PriceJustVm.RequestOk += OnPriceJustOk;
             PriceJustVm.RequestCancel += OnPriceJustCancel;
             PriceJustVm.RequestRefresh += async () => { _cachedDiscountCodes.Clear(); await LoadDiscountCodesAsync(); PriceJustVm.LoadCodes(_cachedDiscountCodes); };
+            CheckoutVm.RequestConfirm += OnCheckoutConfirm;
+            CheckoutVm.RequestCancel += () => IsCheckoutVisible = false;
             RefreshCartItemsView();
             _ = LoadProductsAsync();
+            _ = LoadStoreConfigAsync();
+        }
+
+        private void OnAppStateChanged(AppState state)
+        {
+            // ── UI overlays ──
+            OnPropertyChanged(nameof(IsItemActionVisible));
+            OnPropertyChanged(nameof(IsPriceJustVisible));
+            OnPropertyChanged(nameof(IsDiscountPopupVisible));
+            OnPropertyChanged(nameof(IsSelectionMode));
+            OnPropertyChanged(nameof(IsCheckoutVisible));
+            OnPropertyChanged(nameof(IsProductsPanelVisible));
+            OnPropertyChanged(nameof(ProductsPanelVisibilityText));
+
+            // ── Cliente ──
+            OnPropertyChanged(nameof(CurrentClientId));
+            OnPropertyChanged(nameof(CurrentClientName));
+            OnPropertyChanged(nameof(HasClient));
+            OnPropertyChanged(nameof(ClientDisplayId));
+            OnPropertyChanged(nameof(ClientDisplayName));
+
+            // ── Carrito: ordenamiento ──
+            OnPropertyChanged(nameof(SelectedCartSortField));
+            OnPropertyChanged(nameof(IsCartSortDescending));
+            OnPropertyChanged(nameof(CartSortText));
+            OnPropertyChanged(nameof(IsCartSortByName));
+            OnPropertyChanged(nameof(IsCartSortByCode));
+            OnPropertyChanged(nameof(IsCartSortByPrice));
+            OnPropertyChanged(nameof(IsCartSortByUnits));
+            OnPropertyChanged(nameof(NameHeaderText));
+            OnPropertyChanged(nameof(CodeHeaderText));
+            OnPropertyChanged(nameof(QuantityHeaderText));
+            OnPropertyChanged(nameof(PriceHeaderText));
+
+            // ── Búsqueda de productos ──
+            OnPropertyChanged(nameof(ProductSearchText));
+            OnPropertyChanged(nameof(SelectedTab));
+            OnPropertyChanged(nameof(IsTabRapido));
+            OnPropertyChanged(nameof(IsTabCategorias));
+            OnPropertyChanged(nameof(IsTabPromos));
+            OnPropertyChanged(nameof(ShowCategoryTabs));
+            OnPropertyChanged(nameof(SelectedCategory));
+            OnPropertyChanged(nameof(IsCatTodos));
+            OnPropertyChanged(nameof(IsCatSuper));
+            OnPropertyChanged(nameof(IsCatFerreteria));
+            OnPropertyChanged(nameof(IsCatCalzado));
+            OnPropertyChanged(nameof(IsCatHogar));
+            OnPropertyChanged(nameof(BreadcrumbText));
+
+            // ── Descuento del ticket ──
+            OnPropertyChanged(nameof(DiscountPercent));
+            OnPropertyChanged(nameof(DiscountText));
+            OnPropertyChanged(nameof(DiscountAmountText));
+            OnPropertyChanged(nameof(DiscountColonesText));
+            OnPropertyChanged(nameof(TaxText));
+            OnPropertyChanged(nameof(TotalText));
+        }
+
+        private async Task LoadStoreConfigAsync()
+        {
+            try
+            {
+                var config = await _storeConfigService.GetConfigAsync();
+                TaxSystemText = config.TaxSystemText;
+                QuoteDays = config.QuoteExpirationDays;
+                _defaultTenderID = config.DefaultTenderID;
+
+                var tenders = await _storeConfigService.GetTendersAsync();
+                Tenders.Clear();
+                foreach (var t in tenders)
+                    Tenders.Add(t);
+            }
+            catch
+            {
+            }
         }
 
         private async Task<bool> LoadProductsAsync(bool loadMore = false)
@@ -646,7 +737,7 @@ namespace NovaRetail.ViewModels
             return string.Equals(productCategory, selectedCategory, StringComparison.OrdinalIgnoreCase);
         }
 
-        private async Task SearchFromApiAsync(string term)
+        private async Task SearchFromApiAsync(string term, CancellationToken cancellationToken = default)
         {
             var normalized = NormalizeText(term);
             if (string.IsNullOrWhiteSpace(normalized) || normalized.Length < 3)
@@ -655,6 +746,8 @@ namespace NovaRetail.ViewModels
             try
             {
                 var products = await _productService.SearchAsync(normalized, 300, _exchangeRate);
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (products.Count == 0)
                     return;
 
@@ -662,8 +755,10 @@ namespace NovaRetail.ViewModels
                 _allProducts.AddRange(products);
                 _loadedItemsPage = 0;
                 _canLoadMoreFromApi = false;
-                FilterProducts();
+
+                await MainThread.InvokeOnMainThreadAsync(FilterProducts);
             }
+            catch (OperationCanceledException) { }
             catch
             {
             }
@@ -805,18 +900,29 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            var total = SubtotalAfterDiscount + Tax;
-            var confirm = await _dialogService.ConfirmAsync("Facturar",
-                $"¿Confirmar factura por ${total:F2}?\n" +
-                $"Artículos: {CartItems.Count}\n" +
-                $"Descuento: {DiscountPercent}%",
-                "Confirmar", "Cancelar");
+            CheckoutVm.Load(
+                subtotalText: SubtotalText,
+                discountAmountText: DiscountAmountText,
+                taxText: TaxText,
+                totalText: TotalText,
+                totalColonesText: TotalColonesText,
+                taxSystemText: TaxSystemText,
+                quoteDaysText: QuoteDaysText,
+                hasDiscount: TotalDiscountAmount > 0,
+                defaultTenderID: _defaultTenderID,
+                tenders: Tenders
+            );
+            IsCheckoutVisible = true;
+        }
 
-            if (confirm)
-            {
-                await _dialogService.AlertAsync("✅ Facturado", $"Factura generada por ${total:F2}", "OK");
-                ClearCart();
-            }
+        private void OnCheckoutConfirm()
+        {
+            IsCheckoutVisible = false;
+            var tender = CheckoutVm.SelectedTender?.Description ?? "";
+            var total = TotalText;
+            _ = _dialogService.AlertAsync("✅ Facturado",
+                $"Factura generada por {total}\nForma de pago: {tender}", "OK");
+            ClearCart();
         }
 
         private async Task ApplyDiscountAsync()

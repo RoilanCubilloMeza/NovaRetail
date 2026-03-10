@@ -163,37 +163,8 @@
                         </CollectionView.Footer>
                     </CollectionView>
 
-                    <!-- Row 3: Exchange Rate + Cobrar -->
+                    <!-- Row 3: Cobrar -->
                     <VerticalStackLayout Grid.Row="3" Spacing="8" Margin="0,8,0,0">
-
-                        <!-- Tipo de Cambio -->
-                        <Border BackgroundColor="White"
-                                StrokeShape="RoundRectangle 8" StrokeThickness="1"
-                                Stroke="{DynamicResource Gray200Brush}"
-                                Padding="12,8">
-                            <Grid ColumnDefinitions="Auto, Auto, Auto, *, Auto" ColumnSpacing="8">
-                                <Label Grid.Column="0" Text="&#x1F1FA;&#x1F1F8;" FontSize="16"
-                                       VerticalOptions="Center"/>
-                                <Label Grid.Column="1" Text="Tipo de Cambio" FontSize="12"
-                                       FontAttributes="Bold" TextColor="{DynamicResource Gray600}"
-                                       VerticalOptions="Center"/>
-                                <Label Grid.Column="2" Text="USD &#x2192; CRC" FontSize="12"
-                                       TextColor="{DynamicResource Gray400}"
-                                       VerticalOptions="Center"/>
-                                <Border Grid.Column="3"
-                                        BackgroundColor="{DynamicResource InputBackground}"
-                                        StrokeShape="RoundRectangle 6" StrokeThickness="1"
-                                        Stroke="{DynamicResource Gray200Brush}"
-                                        Padding="10,4" HorizontalOptions="Start">
-                                    <Label Text="{Binding ExchangeRateText}" FontSize="13"
-                                           FontAttributes="Bold"
-                                           TextColor="{DynamicResource Gray900}"/>
-                                </Border>
-                                <Label Grid.Column="4" Text="&#x1F504;" FontSize="14"
-                                       TextColor="{DynamicResource Gray400}"
-                                       VerticalOptions="Center"/>
-                            </Grid>
-                        </Border>
 
                         <!-- Cobrar Button -->
                         <Border Style="{DynamicResource PrimaryActionBorder}">

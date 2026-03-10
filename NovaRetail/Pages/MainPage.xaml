@@ -6,7 +6,8 @@
              BackgroundColor="{DynamicResource PageBackground}"
              Shell.NavBarIsVisible="False">
 
-    <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0">
+    <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0"
+          SizeChanged="OnMainGridSizeChanged">
         <views:CartPanel     Grid.Column="0"/>
         <views:ProductsPanel Grid.Column="1"/>
         <views:ActionsPanel  Grid.Column="2"/>
@@ -26,6 +27,12 @@
         <Grid Grid.Column="0" Grid.ColumnSpan="3"
               IsVisible="{Binding IsPriceJustVisible}">
             <views:PriceJustificationPopup BindingContext="{Binding PriceJustVm}"/>
+        </Grid>
+
+        <!-- Checkout overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCheckoutVisible}">
+            <views:CheckoutPopup BindingContext="{Binding CheckoutVm}"/>
         </Grid>
     </Grid>
 

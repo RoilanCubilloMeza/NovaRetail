@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using Newtonsoft.Json;
@@ -9,20 +10,21 @@ namespace NovaRetail.Data
   
     public class ApiClienteService : IClienteService
     {
-        private static readonly TimeSpan LocalApiTimeout = TimeSpan.FromSeconds(12);
-        private static readonly TimeSpan LocalCustomerLookupTimeout = TimeSpan.FromSeconds(30);
+        private const string ClientName = "NovaCustomers";
         private static readonly string[] BaseUrls =
         {
             "http://localhost:52500"
         };
 
         private readonly Utilities _utilities;
+        private readonly IHttpClientFactory _httpClientFactory;
         private List<ActividadDto> _cachedActividades = new();
         private string _cachedActividadesCedula = string.Empty;
 
-        public ApiClienteService(Utilities utilities)
+        public ApiClienteService(Utilities utilities, IHttpClientFactory httpClientFactory)
         {
             _utilities = utilities;
+            _httpClientFactory = httpClientFactory;
         }
 
         // ──────── Buscar cliente existente en la BD via API ────────
@@ -37,20 +39,9 @@ namespace NovaRetail.Data
                 try
                 {
                     var url = $"{baseUrl}/api/Customers?criteria={Uri.EscapeDataString(clienteId.Trim())}";
-                    using var http = new HttpClient { Timeout = LocalCustomerLookupTimeout };
+                    var http = _httpClientFactory.CreateClient(ClientName);
                     var json = await http.GetStringAsync(url);
                     var results = JsonConvert.DeserializeObject<List<ApiCustomer>>(json);
-                    System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync resultados en {baseUrl}: {results?.Count ?? 0}");
-
-                    if (results is null || results.Count == 0)
-                    {
-                        var allJson = await http.GetStringAsync($"{baseUrl}/api/Customers");
-                        var allCustomers = JsonConvert.DeserializeObject<List<ApiCustomer>>(allJson) ?? new List<ApiCustomer>();
-                        results = allCustomers
-                            .Where(c => string.Equals((c.AccountNumber ?? string.Empty).Trim(), clienteId.Trim(), StringComparison.OrdinalIgnoreCase))
-                            .ToList();
-                        System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync fallback general en {baseUrl}: {results.Count}");
-                    }
 
                     var match = results?.FirstOrDefault(c =>
                         string.Equals((c.AccountNumber ?? string.Empty).Trim(), clienteId.Trim(), StringComparison.OrdinalIgnoreCase))
@@ -59,12 +50,10 @@ namespace NovaRetail.Data
                     if (match is null)
                         continue;
 
-                    System.Diagnostics.Debug.WriteLine($"API raw: State={match.State}|{match.STATE}, City={match.City}|{match.CITY}, City2={match.City2}|{match.CITY2}, Zip={match.Zip}|{match.ZIP}, Address={match.Address}");
                     return MapToClienteModel(match);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine($"BuscarPorIdAsync falló en {baseUrl}: {ex.Message}");
                 }
             }
 
@@ -117,22 +106,15 @@ namespace NovaRetail.Data
                 try
                 {
                     var url = $"{baseUrl}/api/Customers";
-                    using var http = new HttpClient { Timeout = LocalApiTimeout };
+                    var http = _httpClientFactory.CreateClient(ClientName);
                     var payload = JsonConvert.SerializeObject(new List<ApiCustomer> { apiCustomer },
                         new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
                     using var content = new StringContent(payload, Encoding.UTF8, "application/json");
                     var response = await http.PostAsync(url, content);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var body = await response.Content.ReadAsStringAsync();
-                        System.Diagnostics.Debug.WriteLine($"Guardar cliente falló ({(int)response.StatusCode}): {body}");
-                    }
-
                     return response.IsSuccessStatusCode;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine($"Guardar cliente excepción: {ex}");
                 }
             }
 

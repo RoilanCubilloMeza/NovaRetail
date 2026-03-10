@@ -118,7 +118,7 @@ namespace NovaRetail.Controls
             // ── Nombre ──
             var nameLabel = new Label
             {
-                FontSize       = 12,
+                FontSize       = 10,
                 FontAttributes = FontAttributes.Bold,
                 TextColor      = UiConfig.TextPrimary,
                 LineBreakMode  = LineBreakMode.WordWrap,
@@ -129,21 +129,21 @@ namespace NovaRetail.Controls
             // ── Precio colones ──
             _colonesLabel = new Label
             {
-                FontSize       = 13,
+                FontSize       = 12,
                 FontAttributes = FontAttributes.Bold,
                 TextColor      = UiConfig.TextDarkBlue
             };
             _colonesLabel.SetBinding(Label.TextProperty, new Binding(nameof(PriceColones), source: this));
 
             // ── Código ──
-            var codeLabel = new Label { FontSize = 11, TextColor = UiConfig.TextSecondary };
+            var codeLabel = new Label { FontSize = 10, TextColor = UiConfig.TextSecondary };
             codeLabel.SetBinding(Label.TextProperty, new Binding(nameof(Code), source: this));
             _codeLayout = new HorizontalStackLayout { Spacing = 4, Children = { codeLabel } };
 
             // ── Precio normal ──
             _regularPrice = new Label
             {
-                FontSize       = 14,
+                FontSize       = 13,
                 FontAttributes = FontAttributes.Bold,
                 TextColor      = UiConfig.TextPrimary
             };
@@ -152,7 +152,7 @@ namespace NovaRetail.Controls
             // ── Precio oferta: tachado + naranja ──
             var oldLabel = new Label
             {
-                FontSize        = 11,
+                FontSize        = 10,
                 TextColor       = UiConfig.TextSecondary,
                 TextDecorations = TextDecorations.Strikethrough,
                 VerticalOptions = LayoutOptions.Center
@@ -161,7 +161,7 @@ namespace NovaRetail.Controls
 
             var newLabel = new Label
             {
-                FontSize        = 16,
+                FontSize        = 14,
                 FontAttributes  = FontAttributes.Bold,
                 TextColor       = UiConfig.AccentOrange,
                 VerticalOptions = LayoutOptions.Center
@@ -178,7 +178,7 @@ namespace NovaRetail.Controls
             // ── Stock ──
             _stockLabel = new Label
             {
-                FontSize  = 11,
+                FontSize  = 10,
                 TextColor = UiConfig.TextSecondary,
                 Margin    = new Thickness(0, 2, 0, 0)
             };

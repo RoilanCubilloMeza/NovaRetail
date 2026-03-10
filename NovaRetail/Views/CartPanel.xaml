@@ -22,11 +22,11 @@
                 </Border>
                 <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                     <Label Text="{Binding ClientDisplayId}"
-                           FontSize="13" FontAttributes="Bold"
+                           FontSize="{DynamicResource UIFontMD}" FontAttributes="Bold"
                            TextColor="{DynamicResource Gray900}"
                            LineBreakMode="TailTruncation"/>
                     <Label Text="{Binding ClientDisplayName}"
-                           FontSize="11" TextColor="{DynamicResource Gray500}"/>
+                           FontSize="{DynamicResource UIFontXS}" TextColor="{DynamicResource Gray500}"/>
                 </VerticalStackLayout>
                 <Border Grid.Column="2"
                         BackgroundColor="{DynamicResource AccentBlue}"
@@ -91,14 +91,14 @@
                             HorizontalOptions="Start"
                             VerticalOptions="Center">
                         <Label Text="{Binding CartItemsSummaryText}"
-                               FontSize="11"
+                               FontSize="{DynamicResource UIFontXS}"
                                FontAttributes="Bold"
                                TextColor="#0F766E"/>
                     </Border>
 
                     <Label Grid.Column="1"
                            Text="Toque los encabezados para ordenar"
-                           FontSize="11"
+                           FontSize="{DynamicResource UIFontXS}"
                            FontAttributes="Bold"
                            TextColor="{DynamicResource Gray500}"
                            VerticalOptions="Center"/>
@@ -111,7 +111,7 @@
                     StrokeShape="RoundRectangle 0" StrokeThickness="0"
                     Padding="12,8">
                 <Grid>
-                    <Grid ColumnDefinitions="24, *, 30, 80, 86, 96" ColumnSpacing="6">
+                    <Grid ColumnDefinitions="20, *, 26, 72, 78, 84" ColumnSpacing="6">
                         <Grid.Triggers>
                             <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
                                 <Setter Property="IsVisible" Value="False"/>
@@ -158,7 +158,7 @@
                                HorizontalTextAlignment="End"/>
                     </Grid>
 
-                    <Grid ColumnDefinitions="24, 92, *, 30, 80, 86, 96" ColumnSpacing="6" IsVisible="False">
+                    <Grid ColumnDefinitions="20, 80, *, 26, 72, 78, 84" ColumnSpacing="6" IsVisible="False">
                         <Grid.Triggers>
                             <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
                                 <Setter Property="IsVisible" Value="True"/>
@@ -289,7 +289,7 @@
                             </VerticalStackLayout.GestureRecognizers>
 
                             <Grid>
-                                <Grid ColumnDefinitions="24, *, 30, 80, 86, 96"
+                                <Grid ColumnDefinitions="20, *, 26, 72, 78, 84"
                                       ColumnSpacing="6" Padding="8,9,12,9">
                                     <Grid.Triggers>
                                         <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
@@ -319,7 +319,7 @@
 
                                     <Label Grid.Column="1"
                                            Text="{Binding DisplayName}"
-                                           FontSize="13"
+                                           FontSize="{DynamicResource UIFontMD}"
                                            TextColor="{DynamicResource Gray900}"
                                            LineBreakMode="WordWrap"
                                            VerticalOptions="Center">
@@ -335,7 +335,7 @@
 
                                     <Label Grid.Column="2"
                                            Text="{Binding QuantityPrefix}"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource UIFontSM}"
                                            TextColor="{DynamicResource Gray600}"
                                            HorizontalTextAlignment="Center"
                                            VerticalOptions="Center"/>
@@ -350,23 +350,23 @@
                                                HorizontalTextAlignment="End"
                                                TextDecorations="Strikethrough"
                                                IsVisible="{Binding HasOverridePrice}"/>
-                                        <Label Text="{Binding UnitPriceColonesText}"
-                                               FontSize="13"
-                                               HorizontalTextAlignment="End">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
-                                                    <Setter Property="TextColor" Value="#F59E0B"/>
-                                                    <Setter Property="FontAttributes" Value="Bold"/>
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
-                                                    <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
-                                                    <Setter Property="FontAttributes" Value="None"/>
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </VerticalStackLayout>
+                                            <Label Text="{Binding UnitPriceColonesText}"
+                                                   FontSize="{DynamicResource UIFontMD}"
+                                                   HorizontalTextAlignment="End">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
+                                                        <Setter Property="TextColor" Value="#F59E0B"/>
+                                                        <Setter Property="FontAttributes" Value="Bold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
+                                                        <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
+                                                        <Setter Property="FontAttributes" Value="None"/>
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </VerticalStackLayout>
 
-                                    <VerticalStackLayout Grid.Column="4"
+                                        <VerticalStackLayout Grid.Column="4"
                                                          VerticalOptions="Center"
                                                          HorizontalOptions="End"
                                                          Spacing="2">
@@ -388,18 +388,18 @@
                                     </VerticalStackLayout>
 
                                     <Grid Grid.Column="5"
-                                          ColumnDefinitions="28, *, 28" ColumnSpacing="2"
+                                          ColumnDefinitions="24, *, 24" ColumnSpacing="2"
                                           VerticalOptions="Center">
                                         <Border Grid.Column="0"
                                                 BackgroundColor="{DynamicResource AccentOrange}"
                                                 StrokeShape="RoundRectangle 7" StrokeThickness="0"
-                                                HeightRequest="34" Padding="0">
+                                                HeightRequest="30" Padding="0">
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementCommand}"
                                                     CommandParameter="{Binding .}"/>
                                             </Border.GestureRecognizers>
-                                            <Label Text="−" FontSize="18" FontAttributes="Bold"
+                                            <Label Text="−" FontSize="{DynamicResource UIFontXL}" FontAttributes="Bold"
                                                    TextColor="White"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center"/>
@@ -410,25 +410,25 @@
                                                TextColor="{DynamicResource Gray900}"
                                                HorizontalTextAlignment="Center"
                                                VerticalOptions="Center"/>
-                                        <Border Grid.Column="2"
-                                                BackgroundColor="{DynamicResource AccentGreen}"
-                                                StrokeShape="RoundRectangle 7" StrokeThickness="0"
-                                                HeightRequest="34" Padding="0">
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IncrementCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Border.GestureRecognizers>
-                                            <Label Text="+" FontSize="18" FontAttributes="Bold"
-                                                   TextColor="White"
-                                                   HorizontalOptions="Center"
-                                                   VerticalOptions="Center"/>
-                                        </Border>
-                                    </Grid>
-                                </Grid>
+                                                 <Border Grid.Column="2"
+                                                         BackgroundColor="{DynamicResource AccentGreen}"
+                                                         StrokeShape="RoundRectangle 7" StrokeThickness="0"
+                                                         HeightRequest="30" Padding="0">
+                                                     <Border.GestureRecognizers>
+                                                         <TapGestureRecognizer
+                                                             Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IncrementCommand}"
+                                                             CommandParameter="{Binding .}"/>
+                                                     </Border.GestureRecognizers>
+                                                     <Label Text="+" FontSize="{DynamicResource UIFontXL}" FontAttributes="Bold"
+                                                            TextColor="White"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center"/>
+                                                 </Border>
+                                             </Grid>
+                                        </Grid>
 
-                                <Grid ColumnDefinitions="24, 92, *, 30, 80, 86, 96"
-                                      ColumnSpacing="6" Padding="8,9,12,9" IsVisible="False">
+                                        <Grid ColumnDefinitions="20, 80, *, 26, 72, 78, 84"
+                                              ColumnSpacing="6" Padding="8,9,12,9" IsVisible="False">
                                     <Grid.Triggers>
                                         <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
                                             <Setter Property="IsVisible" Value="True"/>
@@ -457,7 +457,7 @@
 
                                     <Label Grid.Column="1"
                                            Text="{Binding Code}"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource UIFontSM}"
                                            TextColor="#475569"
                                            LineBreakMode="TailTruncation"
                                            VerticalOptions="Center">
@@ -471,7 +471,7 @@
 
                                     <Label Grid.Column="2"
                                            Text="{Binding DisplayName}"
-                                           FontSize="13"
+                                           FontSize="{DynamicResource UIFontMD}"
                                            TextColor="{DynamicResource Gray900}"
                                            LineBreakMode="WordWrap"
                                            VerticalOptions="Center">
@@ -487,7 +487,7 @@
 
                                     <Label Grid.Column="3"
                                            Text="{Binding QuantityPrefix}"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource UIFontSM}"
                                            TextColor="{DynamicResource Gray600}"
                                            HorizontalTextAlignment="Center"
                                            VerticalOptions="Center"/>
@@ -502,23 +502,23 @@
                                                HorizontalTextAlignment="End"
                                                TextDecorations="Strikethrough"
                                                IsVisible="{Binding HasOverridePrice}"/>
-                                        <Label Text="{Binding UnitPriceColonesText}"
-                                               FontSize="13"
-                                               HorizontalTextAlignment="End">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
-                                                    <Setter Property="TextColor" Value="#F59E0B"/>
-                                                    <Setter Property="FontAttributes" Value="Bold"/>
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
-                                                    <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
-                                                    <Setter Property="FontAttributes" Value="None"/>
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </VerticalStackLayout>
+                                            <Label Text="{Binding UnitPriceColonesText}"
+                                                   FontSize="{DynamicResource UIFontMD}"
+                                                   HorizontalTextAlignment="End">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
+                                                        <Setter Property="TextColor" Value="#F59E0B"/>
+                                                        <Setter Property="FontAttributes" Value="Bold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
+                                                        <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
+                                                        <Setter Property="FontAttributes" Value="None"/>
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </VerticalStackLayout>
 
-                                    <VerticalStackLayout Grid.Column="5"
+                                        <VerticalStackLayout Grid.Column="5"
                                                          VerticalOptions="Center"
                                                          HorizontalOptions="End"
                                                          Spacing="2">
@@ -540,18 +540,18 @@
                                     </VerticalStackLayout>
 
                                     <Grid Grid.Column="6"
-                                          ColumnDefinitions="28, *, 28" ColumnSpacing="2"
+                                          ColumnDefinitions="24, *, 24" ColumnSpacing="2"
                                           VerticalOptions="Center">
                                         <Border Grid.Column="0"
                                                 BackgroundColor="{DynamicResource AccentOrange}"
                                                 StrokeShape="RoundRectangle 7" StrokeThickness="0"
-                                                HeightRequest="34" Padding="0">
+                                                HeightRequest="30" Padding="0">
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementCommand}"
                                                     CommandParameter="{Binding .}"/>
                                             </Border.GestureRecognizers>
-                                            <Label Text="−" FontSize="18" FontAttributes="Bold"
+                                            <Label Text="−" FontSize="{DynamicResource UIFontXL}" FontAttributes="Bold"
                                                    TextColor="White"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center"/>
@@ -562,24 +562,24 @@
                                                TextColor="{DynamicResource Gray900}"
                                                HorizontalTextAlignment="Center"
                                                VerticalOptions="Center"/>
-                                        <Border Grid.Column="2"
-                                                BackgroundColor="{DynamicResource AccentGreen}"
-                                                StrokeShape="RoundRectangle 7" StrokeThickness="0"
-                                                HeightRequest="34" Padding="0">
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IncrementCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Border.GestureRecognizers>
-                                            <Label Text="+" FontSize="18" FontAttributes="Bold"
-                                                   TextColor="White"
-                                                   HorizontalOptions="Center"
-                                                   VerticalOptions="Center"/>
-                                        </Border>
-                                    </Grid>
-                                </Grid>
-                            </Grid>
-                            <BoxView Style="{DynamicResource CartRowDivider}"/>
+                                                    <Border Grid.Column="2"
+                                                            BackgroundColor="{DynamicResource AccentGreen}"
+                                                            StrokeShape="RoundRectangle 7" StrokeThickness="0"
+                                                            HeightRequest="30" Padding="0">
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer
+                                                                Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.IncrementCommand}"
+                                                                CommandParameter="{Binding .}"/>
+                                                        </Border.GestureRecognizers>
+                                                        <Label Text="+" FontSize="{DynamicResource UIFontXL}" FontAttributes="Bold"
+                                                               TextColor="White"
+                                                               HorizontalOptions="Center"
+                                                               VerticalOptions="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+                                        <BoxView Style="{DynamicResource CartRowDivider}"/>
                         </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -597,11 +597,11 @@
                 <!-- Total en USD -->
                 <Grid ColumnDefinitions="*, Auto" Padding="14,9,14,9" ColumnSpacing="8">
                     <Label Grid.Column="0" Text="Total en USD"
-                           FontSize="12"
+                           FontSize="{DynamicResource UIFontSM}"
                            TextColor="#6B7280"
                            VerticalOptions="Center"/>
                     <Label Grid.Column="1" Text="{Binding TotalText}"
-                           FontSize="16" FontAttributes="Bold"
+                           FontSize="{DynamicResource UIFontLG}" FontAttributes="Bold"
                            TextColor="#404040"
                            HorizontalTextAlignment="End"/>
                 </Grid>
@@ -638,15 +638,15 @@
                                   RowSpacing="5" Margin="0,0,0,7">
 
                                 <Label Grid.Row="0" Grid.Column="0" Text="Subtotal"
-                                       FontSize="11" TextColor="White" Opacity="0.75"
+                                       FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
                                        VerticalOptions="Center"/>
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding SubtotalColonesText}"
-                                       FontSize="12" FontAttributes="Bold" TextColor="White"
+                                       FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
 
                                 <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="5" VerticalOptions="Center">
                                     <Label Text="Descuentos"
-                                           FontSize="11" TextColor="White" Opacity="0.75"
+                                           FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
                                            VerticalOptions="Center"/>
                                     <Border BackgroundColor="#FEF3C7"
                                             StrokeShape="RoundRectangle 4" StrokeThickness="0"
@@ -659,14 +659,14 @@
                                     </Border>
                                 </HorizontalStackLayout>
                                 <Label Grid.Row="1" Grid.Column="1" Text="{Binding DiscountColonesText}"
-                                       FontSize="12" FontAttributes="Bold" TextColor="White"
+                                       FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
 
                                 <Label Grid.Row="2" Grid.Column="0" Text="IVA"
-                                       FontSize="11" TextColor="White" Opacity="0.75"
+                                       FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
                                        VerticalOptions="Center"/>
                                 <Label Grid.Row="2" Grid.Column="1" Text="{Binding TaxColonesText}"
-                                       FontSize="12" FontAttributes="Bold" TextColor="White"
+                                       FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
                             </Grid>
 
@@ -676,11 +676,11 @@
                             <!-- TOTAL grande -->
                             <Grid ColumnDefinitions="*, Auto">
                                 <Label Grid.Column="0" Text="TOTAL"
-                                       FontSize="13" FontAttributes="Bold"
+                                       FontSize="{DynamicResource UIFontMD}" FontAttributes="Bold"
                                        TextColor="White" Opacity="0.9"
                                        VerticalOptions="End" Margin="0,0,0,4"/>
                                 <Label Grid.Column="1" Text="{Binding TotalColonesText}"
-                                       FontSize="30" FontAttributes="Bold"
+                                       FontSize="{DynamicResource UIFontXXL}" FontAttributes="Bold"
                                        TextColor="White"
                                        HorizontalTextAlignment="End"/>
                             </Grid>

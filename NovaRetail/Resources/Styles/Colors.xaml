@@ -22,4 +22,22 @@
     <SolidColorBrush x:Key="ErrorRedBrush"       Color="{StaticResource ErrorRed}"/>
     <SolidColorBrush x:Key="InputBackgroundBrush" Color="{StaticResource InputBackground}"/>
     <SolidColorBrush x:Key="GreenSurfaceBrush"   Color="{StaticResource GreenSurface}"/>
+
+    <!-- Escala de grises (usados en textos, bordes, fondos) -->
+    <Color x:Key="Gray100">#F3F4F6</Color>
+    <Color x:Key="Gray200">#E5E7EB</Color>
+    <Color x:Key="Gray300">#D1D5DB</Color>
+    <Color x:Key="Gray400">#9CA3AF</Color>
+    <Color x:Key="Gray500">#6B7280</Color>
+    <Color x:Key="Gray600">#4B5563</Color>
+    <Color x:Key="Gray900">#111827</Color>
+    <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}"/>
+
+    <!-- Escala tipográfica responsiva-->
+    <x:Double x:Key="UIFontXS">11</x:Double>
+    <x:Double x:Key="UIFontSM">12</x:Double>
+    <x:Double x:Key="UIFontMD">13</x:Double>
+    <x:Double x:Key="UIFontLG">16</x:Double>
+    <x:Double x:Key="UIFontXL">18</x:Double>
+    <x:Double x:Key="UIFontXXL">30</x:Double>
 </ResourceDictionary>
