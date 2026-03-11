@@ -96,6 +96,26 @@ namespace NovaRetail.Data
             return [];
         }
 
+        public async Task<int> GetProductCountAsync()
+        {
+            foreach (var baseUrl in ItemsBaseUrls)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(ItemsClientName);
+                    var url = $"{baseUrl}/api/Items/Count?storeid=1&tipo=1";
+                    var result = await http.GetFromJsonAsync<ProductCountResult>(url);
+                    if (result is not null && result.Total > 0)
+                        return result.Total;
+                }
+                catch
+                {
+                }
+            }
+
+            return 0;
+        }
+
         private static ProductModel MapToProduct(ApiItem item, decimal exchangeRate)
         {
             var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
@@ -149,6 +169,11 @@ namespace NovaRetail.Data
             public decimal PriceA { get; set; }
             public string? Description { get; set; }
             public string? SubDescription2 { get; set; }
+        }
+
+        private sealed class ProductCountResult
+        {
+            public int Total { get; set; }
         }
     }
 }

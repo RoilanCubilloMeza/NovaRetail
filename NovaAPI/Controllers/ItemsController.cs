@@ -33,6 +33,22 @@ namespace NovaAPI.Controllers
 
 
         [HttpGet]
+        [Route("api/Items/Count")]
+        public IHttpActionResult Count(int storeid = 1, int tipo = 1)
+        {
+            try
+            {
+                var total = db.ExecuteQuery<spWS_GetProductsResult>("EXEC dbo.spWS_GetProducts {0}", storeid)
+                              .Count();
+                return Ok(new { Total = total });
+            }
+            catch
+            {
+                return Ok(new { Total = 0 });
+            }
+        }
+
+        [HttpGet]
         public IEnumerable<spWS_GetProductsbyCriteriaResult> Get(string criteria)
         {
             try

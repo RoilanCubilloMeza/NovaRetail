@@ -20,6 +20,7 @@ namespace NovaRetail.ViewModels
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
+        private const int ProductsPageSize = 500;
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
@@ -436,6 +437,32 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        private int _totalApiProducts;
+        public int TotalApiProducts
+        {
+            get => _totalApiProducts;
+            private set
+            {
+                if (_totalApiProducts != value)
+                {
+                    _totalApiProducts = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ProductCountText));
+                    OnPropertyChanged(nameof(HasProductCount));
+                }
+            }
+        }
+
+        public int LoadedProductCount => _allProducts.Count;
+        public string ProductCountText => TotalApiProducts > 0
+            ? $"{LoadedProductCount} de {TotalApiProducts} productos cargados"
+            : $"{LoadedProductCount} productos cargados";
+        public bool HasProductCount => TotalApiProducts > 0;
+        public bool CanLoadMore => _canLoadMoreFromApi && !IsLoadingMoreProducts;
+        public double LoadProgress => TotalApiProducts > 0
+            ? Math.Min(1.0, (double)LoadedProductCount / TotalApiProducts)
+            : 0.0;
+
         // ── Tipo de cambio ──
 
         private decimal _exchangeRate = 510.00m;
@@ -507,6 +534,7 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
             _ = LoadProductsAsync();
             _ = LoadStoreConfigAsync();
+            _ = LoadProductCountAsync();
         }
 
         private void OnAppStateChanged(AppState state)
@@ -596,7 +624,7 @@ namespace NovaRetail.ViewModels
 
             try
             {
-                var products = await _productService.GetProductsAsync(nextPage, 100, _exchangeRate);
+                var products = await _productService.GetProductsAsync(nextPage, ProductsPageSize, _exchangeRate);
 
                 if (products.Count == 0)
                 {
@@ -616,9 +644,14 @@ namespace NovaRetail.ViewModels
 
                 _allProducts.AddRange(products);
                 _loadedItemsPage = nextPage;
-                _canLoadMoreFromApi = products.Count >= 100;
+                _canLoadMoreFromApi = products.Count >= ProductsPageSize;
 
-                FilterProducts();
+                if (loadMore && CanAppendPagedProductsDirectly())
+                    AppendPagedProducts(products);
+                else
+                    FilterProducts();
+
+                RefreshProductCountText();
                 _isLoadingItems = false;
                 return true;
             }
@@ -654,6 +687,36 @@ namespace NovaRetail.ViewModels
             Products.Clear();
             foreach (var p in filtered)
                 Products.Add(p);
+        }
+
+        private bool CanAppendPagedProductsDirectly()
+        {
+            if (!string.IsNullOrWhiteSpace(ProductSearchText))
+                return false;
+
+            return string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase)
+                || MatchesCategory("Super", SelectedCategory);
+        }
+
+        private void AppendPagedProducts(IEnumerable<ProductModel> pageProducts)
+        {
+            var page = pageProducts;
+
+            if (!string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase))
+                page = page.Where(p => MatchesCategory(p.Category, SelectedCategory));
+
+            var existingCodes = Products
+                .Select(p => p.Code ?? string.Empty)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var product in page
+                .OrderByDescending(p => p.Stock > 0)
+                .ThenBy(p => p.Name))
+            {
+                var code = product.Code ?? string.Empty;
+                if (existingCodes.Add(code))
+                    Products.Add(product);
+            }
         }
 
         private void RefreshCartItemsView()
@@ -783,7 +846,28 @@ namespace NovaRetail.ViewModels
             finally
             {
                 IsLoadingMoreProducts = false;
+                RefreshProductCountText();
             }
+        }
+
+        private async Task LoadProductCountAsync()
+        {
+            try
+            {
+                var count = await _productService.GetProductCountAsync();
+                TotalApiProducts = count;
+            }
+            catch
+            {
+            }
+        }
+
+        private void RefreshProductCountText()
+        {
+            OnPropertyChanged(nameof(LoadedProductCount));
+            OnPropertyChanged(nameof(ProductCountText));
+            OnPropertyChanged(nameof(CanLoadMore));
+            OnPropertyChanged(nameof(LoadProgress));
         }
 
         private static string NormalizeText(string value)

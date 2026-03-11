@@ -7,5 +7,6 @@ namespace NovaRetail.Data
         Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate);
         Task<List<ProductModel>> SearchAsync(string criteria, int top, decimal exchangeRate);
         Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type);
+        Task<int> GetProductCountAsync();
     }
 }
