@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using NovaRetail.Pages;
 
 namespace NovaRetail
 {
@@ -14,7 +15,22 @@ namespace NovaRetail
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(_services.GetRequiredService<AppShell>());
+            var window = new Window(_services.GetRequiredService<LoginPage>());
+            ConfigureLoginWindow(window);
+            return window;
         }
+
+        public void ShowMainShell()
+        {
+            var window = Windows.FirstOrDefault();
+            if (window is null)
+                return;
+
+            window.Page = _services.GetRequiredService<AppShell>();
+            ConfigureMainWindow(window);
+        }
+
+        partial void ConfigureLoginWindow(Window window);
+        partial void ConfigureMainWindow(Window window);
     }
 }

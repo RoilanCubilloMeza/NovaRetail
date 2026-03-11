@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Web.Http;
 
@@ -44,6 +45,27 @@ namespace NovaAPI.Controllers
                 return new List<TenderDto>();
             }
         }
+
+        [HttpGet]
+        [Route("api/StoreConfig/ConnectionInfo")]
+        public ConnectionInfoDto GetConnectionInfo()
+        {
+            try
+            {
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString ?? string.Empty;
+                var builder = new SqlConnectionStringBuilder(connectionString);
+
+                return new ConnectionInfoDto
+                {
+                    DatabaseServer = builder.DataSource,
+                    DatabaseName = builder.InitialCatalog
+                };
+            }
+            catch
+            {
+                return new ConnectionInfoDto();
+            }
+        }
     }
 
     public class StoreConfigDto
@@ -59,5 +81,11 @@ namespace NovaAPI.Controllers
         public string Description { get; set; }
         public int CurrencyID { get; set; }
         public int DisplayOrder { get; set; }
+    }
+
+    public class ConnectionInfoDto
+    {
+        public string DatabaseServer { get; set; }
+        public string DatabaseName { get; set; }
     }
 }

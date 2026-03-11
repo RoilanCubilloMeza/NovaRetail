@@ -1,10 +1,5 @@
 using System.ComponentModel;
 using NovaRetail.ViewModels;
-#if WINDOWS
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-#endif
 
 namespace NovaRetail.Views
 {
@@ -14,10 +9,6 @@ namespace NovaRetail.Views
         private int _preLoadProductCount;
         private int _lastKnownFirstVisible = -1;
         private MainViewModel? _subscribedVm;
-#if WINDOWS
-        // Offset nativo del ScrollViewer en WinUI para evitar que el scroll vuelva al inicio.
-        private double _savedVerticalOffset;
-#endif
 
         public ProductsPanel()
         {
@@ -49,28 +40,18 @@ namespace NovaRetail.Views
             {
                 // Guarda el estado actual antes de agregar una nueva página.
                 _preLoadProductCount = vm.Products.Count;
-#if WINDOWS
                 SaveNativeScrollPosition();
-#endif
             }
             else if (_preLoadProductCount > 0)
             {
                 // Cuando termina la carga, devuelve el scroll a la posición previa.
                 var savedCount = _preLoadProductCount;
                 _preLoadProductCount = 0;
-#if WINDOWS
-                await RestoreNativeScrollPosition();
-#else
                 var scrollTarget = _lastKnownFirstVisible >= 0
                     ? _lastKnownFirstVisible
                     : savedCount - 1;
 
-                await Task.Delay(80);
-
-                if (scrollTarget >= 0 && scrollTarget < vm.Products.Count)
-                    ProductsCollectionView.ScrollTo(scrollTarget,
-                        position: ScrollToPosition.Start, animate: false);
-#endif
+                await RestoreScrollPositionAsync(scrollTarget, vm.Products.Count);
             }
         }
 
@@ -100,47 +81,23 @@ namespace NovaRetail.Views
                 viewModel.LoadMoreProductsCommand.Execute(null);
         }
 
-#if WINDOWS
-        private void SaveNativeScrollPosition()
-        {
-            // Lee el offset vertical real del ScrollViewer nativo de WinUI.
-            var scrollViewer = GetNativeScrollViewer();
-            if (scrollViewer is not null)
-                _savedVerticalOffset = scrollViewer.VerticalOffset;
-        }
+        partial void SaveNativeScrollPosition();
+        partial void RestoreNativeScrollPosition();
 
-        private async Task RestoreNativeScrollPosition()
+        private async Task RestoreScrollPositionAsync(int scrollTarget, int productCount)
         {
-            // Espera a que WinUI termine el layout antes de restaurar el offset.
-            await Task.Delay(150);
-            var scrollViewer = GetNativeScrollViewer();
-            scrollViewer?.ChangeView(null, _savedVerticalOffset, null, disableAnimation: true);
-        }
-
-        private ScrollViewer? GetNativeScrollViewer()
-        {
-            // Obtiene el ScrollViewer interno que usa el CollectionView en Windows.
-            if (ProductsCollectionView.Handler?.PlatformView is not UIElement nativeView)
-                return null;
-            return FindDescendant<ScrollViewer>(nativeView);
-        }
-
-        private static T? FindDescendant<T>(DependencyObject parent)
-            where T : DependencyObject
-        {
-            // Recorre el árbol visual hasta encontrar el control solicitado.
-            var count = VisualTreeHelper.GetChildrenCount(parent);
-            for (var i = 0; i < count; i++)
+            if (OperatingSystem.IsWindows())
             {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T match)
-                    return match;
-                var result = FindDescendant<T>(child);
-                if (result is not null)
-                    return result;
+                RestoreNativeScrollPosition();
+                await Task.CompletedTask;
+                return;
             }
-            return null;
+
+            await Task.Delay(80);
+
+            if (scrollTarget >= 0 && scrollTarget < productCount)
+                ProductsCollectionView.ScrollTo(scrollTarget,
+                    position: ScrollToPosition.Start, animate: false);
         }
-#endif
     }
 }

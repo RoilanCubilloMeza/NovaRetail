@@ -1,124 +1,131 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
 using System.Net;
 using System.Net.Http;
+using System.Linq;
 using System.Web.Http;
 using NovaAPI.Models;
-using NovaAPI.wsSecurityMain;
 
 namespace NovaAPI.Controllers
 {
     public class LoginController : ApiController
     {
-        wsSecurityMain.FacturaMeCrContractClient wsCliente = new wsSecurityMain.FacturaMeCrContractClient();
-        /*
-        [HttpGet]
-        public F_Cliente_AppEntitie Get(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
-        {
-            try
-            {
-                return wsCliente.ValidaCliente_App(ID_CLIENTE, LOGIN, CLAVE, TOKEN); 
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }*/
+        readonly string rmhConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
+     
 
         [HttpGet]
         public Cliente_App Get(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
         {
-            Cliente_App usuario = new Cliente_App();
-            using (var client = new FacturaMeCrContractClient())
+            if (string.IsNullOrWhiteSpace(LOGIN))
+                return null;
+
+            try
             {
-                var resultado = wsCliente.ValidaCliente_App(ID_CLIENTE, LOGIN, CLAVE, TOKEN);
-                if (resultado != null)
+                using (var connection = new SqlConnection(rmhConnectionString))
                 {
-                    usuario.ID_CLIENTE = resultado.ID_CLIENTE;
-                    usuario.CEDULA_CLIENTE = resultado.CEDULA_CLIENTE;
-                    usuario.DEV_MODELO = resultado.DEV_MODELO;
-                    usuario.DEV_NAME = resultado.DEV_NAME;
-                    usuario.DEV_SERIAL_PHONE = resultado.DEV_SERIAL_PHONE;
-                    usuario.DEV_VERSION = resultado.DEV_VERSION;
-                    usuario.DIR_FISICA = resultado.DIR_FISICA;
-                    usuario.US_EMAIL = resultado.US_EMAIL;
-                    usuario.EMAIL_CC = resultado.EMAIL_CC;
-                    usuario.EMAIL_CCO = resultado.EMAIL_CCO;
-                    usuario.EMAIl_EMPRESA = resultado.EMAIl_EMPRESA;
-                    usuario.EMAIL_INVOICE = resultado.EMAIL_INVOICE;
-                    usuario.EMAIL_ORDER_IND = resultado.EMAIL_ORDER_IND;
-                    usuario.EMAIL_ORDER_RESUMEN = resultado.EMAIL_ORDER_RESUMEN;
-                    usuario.EMAIL_QUOTE_IND = resultado.EMAIL_QUOTE_IND;
-                    usuario.EMAIL_QUOTE_RESUMEN = resultado.EMAIL_QUOTE_RESUMEN;
+                    connection.Open();
+                    var columns = GetCashierColumns(connection);
+                    var loginColumn = GetFirstExistingColumn(columns, "Number", "Login", "UserName", "Username", "Code", "CashierNumber", "Name");
+                    var passwordColumn = GetFirstExistingColumn(columns, "Password", "Clave", "Pass", "UserPassword");
+                    var idColumn = GetFirstExistingColumn(columns, "ID", "CashierID");
+                    var nameColumn = GetFirstExistingColumn(columns, "Name", "FullName", "Description", "Login", "Number");
+                    var storeColumn = GetFirstExistingColumn(columns, "StoreID", "ID_STORE", "Store");
 
-                    usuario.NOMBRE_COMERCIAL = resultado.NOMBRE_COMERCIAL;
-                    usuario.NOTAS_GENERAL = resultado.NOTAS_GENERAL;
-                    usuario.NOTAS_ORDENES = resultado.NOTAS_ORDENES;
-                    usuario.SMTP_CODIGO = resultado.SMTP_CODIGO;
-                    usuario.SMTP_DEVICE = resultado.SMTP_DEVICE;
-                    usuario.TELEFONO = resultado.TELEFONO;
-                    usuario.US_CLAVE = resultado.US_CLAVE;
-                    usuario.US_COD_VENDEDOR = resultado.US_COD_VENDEDOR;
-                    usuario.US_ESTADO = resultado.US_ESTADO;
-                    usuario.US_GET_CLIENTE_VENDEDOR = resultado.US_GET_CLIENTE_VENDEDOR;
-                    usuario.US_DESCUENTOS_MODO = resultado.US_DESCUENTOS_MODO;
-                    usuario.US_IDIOMA = resultado.US_IDIOMA;
-                    usuario.US_LOGIN = resultado.US_LOGIN;
-                    usuario.US_NOMBRE = resultado.US_NOMBRE;
-                    usuario.US_OFFLINE = resultado.US_OFFLINE;
-                    usuario.US_SYNC_CLIENTES = resultado.US_SYNC_CLIENTES;
-                    usuario.US_SYNC_COTIZA = resultado.US_SYNC_COTIZA;
-                    usuario.US_SYNC_ORDENES = resultado.US_SYNC_ORDENES;
-                    usuario.US_SYNC_PRODUCTOS = resultado.US_SYNC_PRODUCTOS;
-                    usuario.US_SYNC_VENTAS = resultado.US_SYNC_VENTAS;
-                    usuario.US_TOKEN = resultado.US_TOKEN;
-                    usuario.US_TOKEN_FECHA_VENCE = resultado.US_TOKEN_FECHA_VENCE;
-                    usuario.US_URL_API_LOCAL = resultado.US_URL_API_LOCAL;
-                    usuario.US_URL_API_UNIVERSAL = resultado.US_URL_API_UNIVERSAL;
-                    usuario.US_URL_IMAGENES = resultado.US_URL_IMAGENES;
+                    if (string.IsNullOrWhiteSpace(loginColumn))
+                        return null;
 
-                    usuario.US_ORDEN_VER_PRECIOS = resultado.US_ORDEN_VER_PRECIOS;
-                    usuario.US_ORDEN_VER_TOTALES = resultado.US_ORDEN_VER_TOTALES;
-                    usuario.US_ORDEN_FORMATO = resultado.US_ORDEN_FORMATO;
-                    usuario.US_HORARIO_ID = resultado.US_HORARIO_ID;
+                    var sql = "SELECT TOP 1 " +
+                              BuildSelectColumn(idColumn, "ID_CLIENTE", "1") + ", " +
+                              BuildSelectColumn(loginColumn, "US_LOGIN", "''") + ", " +
+                              BuildSelectColumn(nameColumn, "US_NOMBRE", "''") + ", " +
+                              BuildSelectColumn(storeColumn, "US_ID_STORE", "0") +
+                              " FROM [Cashier] WHERE LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + loginColumn + "]))) = @login";
 
-                    usuario.LOGO_URL = resultado.LOGO_URL;
-                    usuario.PR_CONSEC_COT = resultado.PR_CONSEC_COT;
-                    usuario.PR_CONSEC_OP = resultado.PR_CONSEC_OP;
-                    usuario.PR_CONSEC_RECIBOS = resultado.PR_CONSEC_RECIBOS;
+                    if (!string.IsNullOrWhiteSpace(passwordColumn))
+                        sql += " AND ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + passwordColumn + "]))), '') = @password";
 
-                    usuario.AC_LOGO_PARTNER = resultado.AC_LOGO_PARTNER;
-                    usuario.AC_NOMBRE_PARTNER = resultado.AC_NOMBRE_PARTNER;
-                    usuario.US_ALERTA_PROMOS = resultado.US_ALERTA_PROMOS;
-                    usuario.US_CLIENTES_CREA = resultado.US_CLIENTES_CREA;
-                    usuario.US_CLIENTES_EDITA = resultado.US_CLIENTES_EDITA;
-                    usuario.US_DESC_GLOBAL = resultado.US_DESC_GLOBAL;
-                    usuario.US_FOOTER_OP = resultado.US_FOOTER_OP;
-                    usuario.US_FOOTER_PROFORMA = resultado.US_FOOTER_PROFORMA;
-                    usuario.US_FORMATO_RECIBOS = resultado.US_FORMATO_RECIBOS;
-                    usuario.US_LVL_PRICE = resultado.US_LVL_PRICE;
-                    usuario.US_PERMITE_CENTRAL = resultado.US_PERMITE_CENTRAL;
-                    usuario.US_SYNC_FREC = resultado.US_SYNC_FREC;
-                    usuario.US_URL_CENTRAL = resultado.US_URL_CENTRAL;
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@login", LOGIN.Trim());
+                        if (!string.IsNullOrWhiteSpace(passwordColumn))
+                            command.Parameters.AddWithValue("@password", (CLAVE ?? string.Empty).Trim());
 
-                    usuario.US_FORMATO_OP = resultado.US_FORMATO_OP;
-                    usuario.US_FOOTER_VENTAS = resultado.US_FOOTER_VENTAS;
-                    usuario.US_FORMATO_PROFORMA = resultado.US_FORMATO_PROFORMA;
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (!reader.Read())
+                                return null;
 
-
-                    usuario.US_ID_STORE = Convert.ToInt32(resultado.US_STOREID);
-
-
-                    //Convierte de Binary a Byte
-
-                    usuario.IMAGEN_LOGO = "data:image/png;base64," + Convert.ToBase64String(resultado.IMAGEN_LOGO.ToArray(), 0, resultado.IMAGEN_LOGO.Length);
-                }
-                else
-                {
-                    usuario = null;
+                            return new Cliente_App
+                            {
+                                ID_CLIENTE = ReadInt(reader, "ID_CLIENTE", ID_CLIENTE),
+                                US_LOGIN = ReadString(reader, "US_LOGIN", LOGIN.Trim()),
+                                US_NOMBRE = ReadString(reader, "US_NOMBRE", LOGIN.Trim()),
+                                US_CLAVE = CLAVE,
+                                US_ID_STORE = ReadNullableInt(reader, "US_ID_STORE"),
+                                US_ESTADO = 1
+                            };
+                        }
+                    }
                 }
             }
-            return usuario;
+            catch
+            {
+                return null;
+            }
+        }
 
+        static List<string> GetCashierColumns(SqlConnection connection)
+        {
+            var columns = new List<string>();
+            using (var command = new SqlCommand("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cashier'", connection))
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                    columns.Add(Convert.ToString(reader[0]));
+            }
+
+            return columns;
+        }
+
+        static string GetFirstExistingColumn(IEnumerable<string> columns, params string[] candidates)
+        {
+            return candidates.FirstOrDefault(candidate =>
+                columns.Any(column => string.Equals(column, candidate, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        static string BuildSelectColumn(string sourceColumn, string alias, string fallbackSql)
+        {
+            return string.IsNullOrWhiteSpace(sourceColumn)
+                ? fallbackSql + " AS [" + alias + "]"
+                : "[" + sourceColumn + "] AS [" + alias + "]";
+        }
+
+        static string ReadString(SqlDataReader reader, string columnName, string fallback)
+        {
+            var value = reader[columnName];
+            return value == DBNull.Value ? fallback : Convert.ToString(value);
+        }
+
+        static int ReadInt(SqlDataReader reader, string columnName, int fallback)
+        {
+            var value = reader[columnName];
+            if (value == DBNull.Value)
+                return fallback;
+
+            int parsed;
+            return int.TryParse(Convert.ToString(value), out parsed) ? parsed : fallback;
+        }
+
+        static int? ReadNullableInt(SqlDataReader reader, string columnName)
+        {
+            var value = reader[columnName];
+            if (value == DBNull.Value)
+                return null;
+
+            int parsed;
+            return int.TryParse(Convert.ToString(value), out parsed) ? parsed : (int?)null;
         }
 
 
@@ -130,10 +137,13 @@ namespace NovaAPI.Controllers
             string registroActual = "";
             try
             {
+                using (var wsCliente = new wsSecurityMain.FacturaMeCrContractClient())
+                {
                 var resultado = wsCliente.RegistraCliente_App(Cliente.ID_CLIENTE, Cliente.US_LOGIN, Cliente.US_TOKEN
                     , Cliente.DEV_MODELO, Cliente.DEV_NAME, Cliente.DEV_VERSION, Cliente.DEV_SERIAL_PHONE);
 
                 msg = Request.CreateResponse(HttpStatusCode.OK, resultado);
+                }
             }
             catch (Exception ex)
             {

@@ -410,4 +410,77 @@
         <Setter Property="Margin" Value="0,0,0,6"/>
     </Style>
 
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ─── Componentes de Login                                ─── -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+
+    <Style x:Key="LoginCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="White"/>
+        <Setter Property="Stroke" Value="{DynamicResource Gray200Brush}"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+        <Setter Property="Padding" Value="32"/>
+        <Setter Property="HorizontalOptions" Value="Center"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+        <Setter Property="WidthRequest" Value="420"/>
+        <!-- Sombra sutil para darle profundidad -->
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="{DynamicResource Gray500}" Offset="0,4" Radius="10" Opacity="0.15"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="LoginTitle" TargetType="Label">
+        <Setter Property="FontSize" Value="26"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="HorizontalTextAlignment" Value="Center"/>
+        <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
+    </Style>
+
+    <Style x:Key="LoginSubtitle" TargetType="Label">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="TextColor" Value="{DynamicResource Gray500}"/>
+        <Setter Property="HorizontalTextAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarBrand" TargetType="Label">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarText" TargetType="Label">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarMuted" TargetType="Label">
+        <Setter Property="TextColor" Value="#BAE6FD"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarAccent" TargetType="Label">
+        <Setter Property="TextColor" Value="#FCD34D"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarHighlight" TargetType="Label">
+        <Setter Property="TextColor" Value="#FEF08A"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="LoginTopBarTime" TargetType="Label">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
 </ResourceDictionary>
