@@ -88,6 +88,7 @@ namespace NovaRetail.Data
             return new ClienteModel
             {
                 ClientId = clienteId,
+                IdType = ResolveIdType(datos.TipoIdentificacion, clienteId),
                 Name = string.IsNullOrWhiteSpace(nombre) ? string.Empty : nombre,
                 ActivityCodes = actividades.Select(a => a.Codigo!).ToList(),
                 ActivityCode = string.Join(", ", actividades.Select(a => a.Codigo)),
@@ -214,6 +215,7 @@ namespace NovaRetail.Data
             return new ClienteModel
             {
                 ClientId = c.AccountNumber ?? string.Empty,
+                IdType = ResolveIdType(null, c.AccountNumber),
                 Name = name,
                 Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
                 Email = c.EmailAddress ?? string.Empty,
@@ -310,6 +312,32 @@ namespace NovaRetail.Data
                 return digits[..6];
 
             return digits.PadLeft(6, '0');
+        }
+
+        private static string ResolveIdType(string? identificationCode, string? clientId)
+        {
+            var mapped = identificationCode?.Trim() switch
+            {
+                "01" => "Cédula Física",
+                "02" => "Cédula Jurídica",
+                "03" => "DIMEX",
+                "04" => "NITE",
+                "05" => "Extranjero No Domiciliado",
+                "06" => "No Contribuyente",
+                _ => string.Empty
+            };
+
+            if (!string.IsNullOrWhiteSpace(mapped))
+                return mapped;
+
+            var digits = new string((clientId ?? string.Empty).Where(char.IsDigit).ToArray());
+            return digits.Length switch
+            {
+                9 => "Cédula Física",
+                10 => "Cédula Jurídica",
+                12 => "DIMEX",
+                _ => "Cédula Física"
+            };
         }
 
         // ──────── DTO para comunicación con la API ────────

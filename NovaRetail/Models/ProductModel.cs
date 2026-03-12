@@ -14,6 +14,9 @@ namespace NovaRetail.Models
         public string  OldPrice        { get; set; } = string.Empty;
         public decimal PriceValue      { get; set; }
         public decimal PriceColonesValue { get; set; }
+        public decimal TaxPercentage   { get; set; }
+        public int TaxId              { get; set; }
+        public string Cabys           { get; set; } = string.Empty;
         public string  PriceColonesText => $"₡{PriceColonesValue:N2}";
         public string  Category        { get; set; } = string.Empty;
         public decimal     Stock           { get; set; }

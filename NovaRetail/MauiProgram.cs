@@ -24,6 +24,7 @@ namespace NovaRetail
             // Services
             builder.Services.AddSingleton<IDialogService, MauiDialogService>();
             builder.Services.AddSingleton<IClienteService, ApiClienteService>();
+            builder.Services.AddSingleton<IExonerationService, ApiExonerationService>();
             builder.Services.AddSingleton<ILoginService, ApiLoginService>();
             builder.Services.AddSingleton<IProductService, ApiProductService>();
             builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
@@ -39,6 +40,8 @@ namespace NovaRetail
                 c => c.Timeout = TimeSpan.FromSeconds(8));
             builder.Services.AddHttpClient("NovaStoreConfig",
                 c => c.Timeout = TimeSpan.FromSeconds(8));
+            builder.Services.AddHttpClient("NovaExoneration",
+                c => c.Timeout = TimeSpan.FromSeconds(15));
             builder.Services.AddHttpClient("NovaAuth",
                 c => c.Timeout = TimeSpan.FromSeconds(10));
 

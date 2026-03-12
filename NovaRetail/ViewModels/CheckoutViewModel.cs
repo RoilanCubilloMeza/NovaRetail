@@ -16,7 +16,13 @@ namespace NovaRetail.ViewModels
         private string _totalColonesText = string.Empty;
         private string _taxSystemText = string.Empty;
         private string _quoteDaysText = string.Empty;
+        private string _exonerationAuthorization = string.Empty;
+        private string _exonerationSummaryText = "Sin exoneración aplicada.";
+        private string _exonerationStatusText = "Ingrese una autorización de Hacienda para validar.";
+        private string _exonerationScopeText = "Se aplicará a todo el carrito si no hay selección activa.";
         private bool _hasDiscount;
+        private bool _hasExoneration;
+        private bool _isExonerationBusy;
 
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
@@ -72,20 +78,87 @@ namespace NovaRetail.ViewModels
             get => _hasDiscount;
             private set { _hasDiscount = value; OnPropertyChanged(); }
         }
+        public string ExonerationAuthorization
+        {
+            get => _exonerationAuthorization;
+            set
+            {
+                if (_exonerationAuthorization != value)
+                {
+                    _exonerationAuthorization = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanValidateExoneration));
+                    ((Command)ValidateExonerationCommand).ChangeCanExecute();
+                }
+            }
+        }
+        public string ExonerationSummaryText
+        {
+            get => _exonerationSummaryText;
+            private set { _exonerationSummaryText = value; OnPropertyChanged(); }
+        }
+        public string ExonerationStatusText
+        {
+            get => _exonerationStatusText;
+            private set { _exonerationStatusText = value; OnPropertyChanged(); }
+        }
+        public string ExonerationScopeText
+        {
+            get => _exonerationScopeText;
+            private set { _exonerationScopeText = value; OnPropertyChanged(); }
+        }
+        public bool HasExoneration
+        {
+            get => _hasExoneration;
+            private set
+            {
+                if (_hasExoneration != value)
+                {
+                    _hasExoneration = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanClearExoneration));
+                    ((Command)ClearExonerationCommand).ChangeCanExecute();
+                }
+            }
+        }
+        public bool IsExonerationBusy
+        {
+            get => _isExonerationBusy;
+            private set
+            {
+                if (_isExonerationBusy != value)
+                {
+                    _isExonerationBusy = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanValidateExoneration));
+                    OnPropertyChanged(nameof(CanClearExoneration));
+                    ((Command)ValidateExonerationCommand).ChangeCanExecute();
+                    ((Command)ClearExonerationCommand).ChangeCanExecute();
+                }
+            }
+        }
         public bool CanConfirm => SelectedTender is not null;
+        public bool CanValidateExoneration => !IsExonerationBusy && !string.IsNullOrWhiteSpace(ExonerationAuthorization);
+        public bool CanClearExoneration => !IsExonerationBusy && HasExoneration;
 
         public event Action? RequestConfirm;
         public event Action? RequestCancel;
+        public event Func<Task>? RequestValidateExoneration;
+        public event Action? RequestClearExoneration;
 
         public ICommand SelectTenderCommand { get; }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
+        public ICommand ValidateExonerationCommand { get; }
+        public ICommand ClearExonerationCommand { get; }
 
         public CheckoutViewModel()
         {
             SelectTenderCommand = new Command<TenderModel>(t => SelectedTender = t);
             ConfirmCommand = new Command(() => RequestConfirm?.Invoke(), () => CanConfirm);
             CancelCommand = new Command(() => RequestCancel?.Invoke());
+            ValidateExonerationCommand = new Command(async () => await ValidateExonerationAsync(), () => CanValidateExoneration);
+            ClearExonerationCommand = new Command(() => RequestClearExoneration?.Invoke(), () => CanClearExoneration);
         }
 
         public void Load(
@@ -93,7 +166,8 @@ namespace NovaRetail.ViewModels
             string totalText, string totalColonesText,
             string taxSystemText, string quoteDaysText,
             bool hasDiscount, int defaultTenderID,
-            IEnumerable<TenderModel> tenders)
+            IEnumerable<TenderModel> tenders,
+            CheckoutExonerationState? exonerationState)
         {
             SubtotalText = subtotalText;
             DiscountText = discountAmountText;
@@ -114,6 +188,49 @@ namespace NovaRetail.ViewModels
             }
 
             SelectedTender = defaultTender ?? Tenders.FirstOrDefault();
+            SetExonerationState(exonerationState);
+        }
+
+        public void SetBusy(bool isBusy)
+        {
+            IsExonerationBusy = isBusy;
+        }
+
+        public void UpdateTotals(string subtotalText, string discountAmountText, string taxText, string totalText, string totalColonesText, bool hasDiscount)
+        {
+            SubtotalText = subtotalText;
+            DiscountText = discountAmountText;
+            TaxText = taxText;
+            TotalText = totalText;
+            TotalColonesText = totalColonesText;
+            HasDiscount = hasDiscount;
+        }
+
+        public void SetExonerationState(CheckoutExonerationState? state)
+        {
+            if (state is null)
+            {
+                HasExoneration = false;
+                ExonerationAuthorization = string.Empty;
+                ExonerationSummaryText = "Sin exoneración aplicada.";
+                ExonerationStatusText = "Ingrese una autorización de Hacienda para validar.";
+                ExonerationScopeText = "Se aplicará a todo el carrito si no hay selección activa.";
+                return;
+            }
+
+            HasExoneration = state.HasExoneration;
+            ExonerationAuthorization = state.Authorization;
+            ExonerationSummaryText = state.SummaryText;
+            ExonerationStatusText = state.StatusText;
+            ExonerationScopeText = state.ScopeText;
+        }
+
+        private async Task ValidateExonerationAsync()
+        {
+            if (RequestValidateExoneration is null)
+                return;
+
+            await RequestValidateExoneration.Invoke();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

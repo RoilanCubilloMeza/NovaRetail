@@ -112,6 +112,91 @@
                             </Border>
                         </Grid>
 
+                        <Border BackgroundColor="#F8FAFC"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="1"
+                                Stroke="#E2E8F0"
+                                Padding="16,12"
+                                Margin="0,0,0,16">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Exoneración Hacienda"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#334155"/>
+                                        <Label Text="{Binding ExonerationScopeText}"
+                                               FontSize="11"
+                                               TextColor="#64748B"/>
+                                    </VerticalStackLayout>
+                                    <Border BackgroundColor="#E2E8F0"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8"
+                                            Padding="10,6"
+                                            IsVisible="{Binding HasExoneration}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ClearExonerationCommand}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Quitar"
+                                               FontSize="11" FontAttributes="Bold"
+                                               TextColor="#475569"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="White"
+                                            Stroke="#CBD5E1"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 8"
+                                            Padding="12,0"
+                                            HeightRequest="42">
+                                        <Entry Text="{Binding ExonerationAuthorization}"
+                                               Placeholder="Ej. AL-00020402-24"
+                                               ClearButtonVisibility="WhileEditing"
+                                               FontSize="13"
+                                               TextColor="#0F172A"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="#0F766E"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8"
+                                            Padding="14,0"
+                                            HeightRequest="42">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ValidateExonerationCommand}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Validar"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="White"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+                                </Grid>
+
+                                <ActivityIndicator IsRunning="{Binding IsExonerationBusy}"
+                                                   IsVisible="{Binding IsExonerationBusy}"
+                                                   Color="#0F766E"
+                                                   HorizontalOptions="Start"/>
+
+                                <Border BackgroundColor="#ECFDF5"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        Padding="10,8"
+                                        IsVisible="{Binding HasExoneration}">
+                                    <Label Text="{Binding ExonerationSummaryText}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#065F46"/>
+                                </Border>
+
+                                <Label Text="{Binding ExonerationStatusText}"
+                                       FontSize="11"
+                                       TextColor="#64748B"
+                                       LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                        </Border>
+
                         <!-- Formas de pago -->
                         <Label Text="Forma de Pago"
                                FontSize="12" FontAttributes="Bold"

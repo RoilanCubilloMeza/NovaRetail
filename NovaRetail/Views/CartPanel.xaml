@@ -158,7 +158,7 @@
                                HorizontalTextAlignment="End"/>
                     </Grid>
 
-                    <Grid ColumnDefinitions="20, 80, *, 26, 72, 78, 84" ColumnSpacing="6" IsVisible="False">
+                    <Grid ColumnDefinitions="20, 120, *, 24, 64, 72, 82" ColumnSpacing="4" IsVisible="False">
                         <Grid.Triggers>
                             <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
                                 <Setter Property="IsVisible" Value="True"/>
@@ -317,21 +317,99 @@
                                                IsVisible="{Binding IsSelected}"/>
                                     </Border>
 
-                                    <Label Grid.Column="1"
-                                           Text="{Binding DisplayName}"
-                                           FontSize="{DynamicResource UIFontMD}"
-                                           TextColor="{DynamicResource Gray900}"
-                                           LineBreakMode="WordWrap"
-                                           VerticalOptions="Center">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="True">
-                                                <Setter Property="FontAttributes" Value="Bold"/>
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="False">
-                                                <Setter Property="FontAttributes" Value="None"/>
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="3"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="{DynamicResource UIFontMD}"
+                                               TextColor="{DynamicResource Gray900}"
+                                               LineBreakMode="WordWrap">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="True">
+                                                    <Setter Property="FontAttributes" Value="Bold"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="False">
+                                                    <Setter Property="FontAttributes" Value="None"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                         <HorizontalStackLayout Spacing="6">
+                                             <Border BackgroundColor="#DCFCE7"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding HasExoneration}">
+                                                 <Label Text="{Binding ExonerationText}"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#166534"/>
+                                             </Border>
+                                             <Border StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding HasExonerationEligibility}">
+                                                 <Border.Triggers>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding IsExonerationEligible}" Value="True">
+                                                         <Setter Property="BackgroundColor" Value="#DCFCE7"/>
+                                                     </DataTrigger>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding IsExonerationEligible}" Value="False">
+                                                         <Setter Property="BackgroundColor" Value="#FEE2E2"/>
+                                                     </DataTrigger>
+                                                 </Border.Triggers>
+                                                 <Label Text="{Binding ExonerationEligibilityText}"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold">
+                                                     <Label.Triggers>
+                                                         <DataTrigger TargetType="Label" Binding="{Binding IsExonerationEligible}" Value="True">
+                                                             <Setter Property="TextColor" Value="#166534"/>
+                                                         </DataTrigger>
+                                                         <DataTrigger TargetType="Label" Binding="{Binding IsExonerationEligible}" Value="False">
+                                                             <Setter Property="TextColor" Value="#B91C1C"/>
+                                                         </DataTrigger>
+                                                     </Label.Triggers>
+                                                 </Label>
+                                             </Border>
+                                             <Border BackgroundColor="#DBEAFE"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding CanShowApplyExoneration}">
+                                                 <Border.GestureRecognizers>
+                                                     <TapGestureRecognizer
+                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.ApplyItemExonerationCommand}"
+                                                         CommandParameter="{Binding .}"/>
+                                                 </Border.GestureRecognizers>
+                                                 <Label Text="Exonerar"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#1D4ED8"/>
+                                             </Border>
+                                             <Border BackgroundColor="#F1F5F9"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="False">
+                                                 <Border.Triggers>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding HasExoneration}" Value="True">
+                                                         <Setter Property="IsVisible" Value="True"/>
+                                                     </DataTrigger>
+                                                 </Border.Triggers>
+                                                 <Border.GestureRecognizers>
+                                                     <TapGestureRecognizer
+                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.ClearItemExonerationCommand}"
+                                                         CommandParameter="{Binding .}"/>
+                                                 </Border.GestureRecognizers>
+                                                 <Label Text="Quitar"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#475569"/>
+                                             </Border>
+                                         </HorizontalStackLayout>
+                                    </VerticalStackLayout>
 
                                     <Label Grid.Column="2"
                                            Text="{Binding QuantityPrefix}"
@@ -427,8 +505,8 @@
                                              </Grid>
                                         </Grid>
 
-                                        <Grid ColumnDefinitions="20, 80, *, 26, 72, 78, 84"
-                                              ColumnSpacing="6" Padding="8,9,12,9" IsVisible="False">
+                                        <Grid ColumnDefinitions="20, 120, *, 24, 64, 72, 82"
+                                              ColumnSpacing="4" Padding="8,9,12,9" IsVisible="False">
                                     <Grid.Triggers>
                                         <DataTrigger TargetType="Grid" Binding="{Binding Source={x:Reference ThisPanel}, Path=ShowProductCode}" Value="True">
                                             <Setter Property="IsVisible" Value="True"/>
@@ -469,21 +547,99 @@
                                         </Label.Triggers>
                                     </Label>
 
-                                    <Label Grid.Column="2"
-                                           Text="{Binding DisplayName}"
-                                           FontSize="{DynamicResource UIFontMD}"
-                                           TextColor="{DynamicResource Gray900}"
-                                           LineBreakMode="WordWrap"
-                                           VerticalOptions="Center">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="True">
-                                                <Setter Property="FontAttributes" Value="Bold"/>
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="False">
-                                                <Setter Property="FontAttributes" Value="None"/>
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
+                                    <VerticalStackLayout Grid.Column="2"
+                                                         Spacing="3"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="{DynamicResource UIFontMD}"
+                                               TextColor="{DynamicResource Gray900}"
+                                               LineBreakMode="WordWrap">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="True">
+                                                    <Setter Property="FontAttributes" Value="Bold"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsModified}" Value="False">
+                                                    <Setter Property="FontAttributes" Value="None"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                         <HorizontalStackLayout Spacing="6">
+                                             <Border BackgroundColor="#DCFCE7"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding HasExoneration}">
+                                                 <Label Text="{Binding ExonerationText}"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#166534"/>
+                                             </Border>
+                                             <Border StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding HasExonerationEligibility}">
+                                                 <Border.Triggers>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding IsExonerationEligible}" Value="True">
+                                                         <Setter Property="BackgroundColor" Value="#DCFCE7"/>
+                                                     </DataTrigger>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding IsExonerationEligible}" Value="False">
+                                                         <Setter Property="BackgroundColor" Value="#FEE2E2"/>
+                                                     </DataTrigger>
+                                                 </Border.Triggers>
+                                                 <Label Text="{Binding ExonerationEligibilityText}"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold">
+                                                     <Label.Triggers>
+                                                         <DataTrigger TargetType="Label" Binding="{Binding IsExonerationEligible}" Value="True">
+                                                             <Setter Property="TextColor" Value="#166534"/>
+                                                         </DataTrigger>
+                                                         <DataTrigger TargetType="Label" Binding="{Binding IsExonerationEligible}" Value="False">
+                                                             <Setter Property="TextColor" Value="#B91C1C"/>
+                                                         </DataTrigger>
+                                                     </Label.Triggers>
+                                                 </Label>
+                                             </Border>
+                                             <Border BackgroundColor="#DBEAFE"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="{Binding CanShowApplyExoneration}">
+                                                 <Border.GestureRecognizers>
+                                                     <TapGestureRecognizer
+                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.ApplyItemExonerationCommand}"
+                                                         CommandParameter="{Binding .}"/>
+                                                 </Border.GestureRecognizers>
+                                                 <Label Text="Exonerar"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#1D4ED8"/>
+                                             </Border>
+                                             <Border BackgroundColor="#F1F5F9"
+                                                     StrokeThickness="0"
+                                                     StrokeShape="RoundRectangle 12"
+                                                     Padding="7,3"
+                                                     HorizontalOptions="Start"
+                                                     IsVisible="False">
+                                                 <Border.Triggers>
+                                                     <DataTrigger TargetType="Border" Binding="{Binding HasExoneration}" Value="True">
+                                                         <Setter Property="IsVisible" Value="True"/>
+                                                     </DataTrigger>
+                                                 </Border.Triggers>
+                                                 <Border.GestureRecognizers>
+                                                     <TapGestureRecognizer
+                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.ClearItemExonerationCommand}"
+                                                         CommandParameter="{Binding .}"/>
+                                                 </Border.GestureRecognizers>
+                                                 <Label Text="Quitar"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#475569"/>
+                                             </Border>
+                                         </HorizontalStackLayout>
+                                    </VerticalStackLayout>
 
                                     <Label Grid.Column="3"
                                            Text="{Binding QuantityPrefix}"
@@ -634,7 +790,7 @@
 
                             <!-- Subtotal / Descuentos / IVA -->
                             <Grid ColumnDefinitions="*, Auto"
-                                  RowDefinitions="Auto, Auto, Auto"
+                                  RowDefinitions="Auto, Auto, Auto, Auto"
                                   RowSpacing="5" Margin="0,0,0,7">
 
                                 <Label Grid.Row="0" Grid.Column="0" Text="Subtotal"
@@ -662,10 +818,19 @@
                                        FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
 
-                                <Label Grid.Row="2" Grid.Column="0" Text="IVA"
+                                <Label Grid.Row="2" Grid.Column="0" Text="Exonerado"
+                                       FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding HasExonerationAmount}"/>
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding ExonerationColonesText}"
+                                       FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
+                                       HorizontalTextAlignment="End"
+                                       IsVisible="{Binding HasExonerationAmount}"/>
+
+                                <Label Grid.Row="3" Grid.Column="0" Text="IVA"
                                        FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
                                        VerticalOptions="Center"/>
-                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding TaxColonesText}"
+                                <Label Grid.Row="3" Grid.Column="1" Text="{Binding TaxColonesText}"
                                        FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
                             </Grid>

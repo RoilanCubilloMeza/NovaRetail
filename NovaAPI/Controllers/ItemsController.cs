@@ -63,18 +63,72 @@ namespace NovaAPI.Controllers
 
         [HttpGet]
         [Route("api/Items/Search")]
-        public IEnumerable<spWS_GetProductsbyCriteriaResult> Search(string criteria, int top = 300)
+        public IEnumerable<ProductSearchDto> Search(string criteria, int top = 300)
         {
             try
             {
                 var safeTop = top < 1 ? 100 : (top > 1000 ? 1000 : top);
-                return db.spWS_GetProductsbyCriteria(criteria).Take(safeTop);
+                var taxes = db.ExecuteQuery<TaxDto>("SELECT ID, Percentage FROM Tax")
+                    .ToDictionary(t => t.ID, t => t.Percentage);
+
+                return db.spWS_GetProductsbyCriteria(criteria)
+                    .Take(safeTop)
+                    .ToList()
+                    .Select(item => new ProductSearchDto
+                    {
+                        ID = item.ID,
+                        ItemLookupCode = item.ItemLookupCode,
+                        Description = item.Description,
+                        ExtendedDescription = item.ExtendedDescription,
+                        Quantity = item.Quantity,
+                        DepartmentID = item.DepartmentID,
+                        CategoryID = item.CategoryID,
+                        PRICE = item.Price,
+                        PriceA = item.PriceA,
+                        PriceB = item.PriceB,
+                        PriceC = item.PriceC,
+                        TaxID = item.TaxID,
+                        Cost = item.Cost,
+                        SubDescription1 = item.SubDescription1,
+                        SubDescription2 = item.SubDescription2,
+                        SubDescription3 = item.SubDescription3,
+                        WebItem = item.WebItem,
+                        Percentage = taxes.TryGetValue(item.TaxID, out var percentage) ? percentage : 0f
+                    });
             }
             catch
             {
-                return new List<spWS_GetProductsbyCriteriaResult>();
+                return new List<ProductSearchDto>();
             }
         }
 
+    }
+
+    public class ProductSearchDto
+    {
+        public int ID { get; set; }
+        public string ItemLookupCode { get; set; }
+        public string Description { get; set; }
+        public double Quantity { get; set; }
+        public int DepartmentID { get; set; }
+        public int CategoryID { get; set; }
+        public decimal PRICE { get; set; }
+        public decimal PriceA { get; set; }
+        public decimal PriceB { get; set; }
+        public decimal PriceC { get; set; }
+        public int TaxID { get; set; }
+        public decimal Cost { get; set; }
+        public string ExtendedDescription { get; set; }
+        public string SubDescription1 { get; set; }
+        public string SubDescription2 { get; set; }
+        public string SubDescription3 { get; set; }
+        public bool WebItem { get; set; }
+        public float Percentage { get; set; }
+    }
+
+    public class TaxDto
+    {
+        public int ID { get; set; }
+        public float Percentage { get; set; }
     }
 }

@@ -19,8 +19,7 @@
             <HorizontalStackLayout Grid.Column="0"
                                    Spacing="8"
                                    VerticalOptions="Center">
-                <Label Text="&#x2605;"
-                       Style="{StaticResource LoginTopBarAccent}"/>
+                <!-- Icono eliminado -->
                 <Label Text="Nova Retail"
                        Style="{StaticResource LoginTopBarBrand}"/>
                 <BoxView WidthRequest="1"
@@ -42,13 +41,6 @@
                        VerticalOptions="Center"/>
                 <Label Text="{Binding DatabaseStatusText}"
                        Style="{StaticResource LoginTopBarHighlight}"/>
-                <BoxView WidthRequest="1"
-                         HeightRequest="20"
-                         Color="#FFFFFF50"
-                         VerticalOptions="Center"
-                         Margin="4,0"/>
-                <Label Text="{Binding HostText}"
-                       Style="{StaticResource LoginTopBarText}"/>
             </HorizontalStackLayout>
 
             <HorizontalStackLayout Grid.Column="2"

@@ -14,6 +14,7 @@ namespace NovaRetail.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly IProductService _productService;
+        private readonly IExonerationService _exonerationService;
         private readonly IDialogService _dialogService;
         private readonly IStoreConfigService _storeConfigService;
         private readonly AppStore _appStore;
@@ -25,6 +26,20 @@ namespace NovaRetail.ViewModels
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
         private CancellationTokenSource _searchCts = new();
+        private int _storeTaxSystem;
+        private decimal _tax;
+        private decimal _total;
+        private decimal _discountAmount;
+        private decimal _exonerationAmount;
+        private decimal _subtotalColones;
+        private decimal _taxColones;
+        private decimal _totalColones;
+        private decimal _discountColones;
+        private decimal _exonerationColones;
+        private ExonerationModel? _appliedExoneration;
+        private string _appliedExonerationAuthorization = string.Empty;
+        private string _appliedExonerationScopeText = string.Empty;
+        private int _appliedExonerationItemCount;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -89,6 +104,22 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetSelectionModeAction(value));
                     if (!value)
                         ClearAllSelections();
+                }
+            }
+        }
+
+        public decimal ExonerationAmount
+        {
+            get => _exonerationAmount;
+            private set
+            {
+                if (_exonerationAmount != value)
+                {
+                    _exonerationAmount = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ExonerationAmountText));
+                    OnPropertyChanged(nameof(ExonerationColonesText));
+                    OnPropertyChanged(nameof(HasExonerationAmount));
                 }
             }
         }
@@ -192,6 +223,8 @@ namespace NovaRetail.ViewModels
         public ICommand ToggleItemSelectionCommand { get; }
         public ICommand SelectCartSortCommand { get; }
         public ICommand ApplyBulkDiscountCommand { get; }
+        public ICommand ApplyItemExonerationCommand { get; }
+        public ICommand ClearItemExonerationCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -203,8 +236,51 @@ namespace NovaRetail.ViewModels
                 {
                     _subtotal = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(SubtotalText));
+                    OnPropertyChanged(nameof(SubtotalColonesText));
+                }
+            }
+        }
+
+        public decimal Tax
+        {
+            get => _tax;
+            private set
+            {
+                if (_tax != value)
+                {
+                    _tax = value;
+                    OnPropertyChanged();
                     OnPropertyChanged(nameof(TaxText));
+                    OnPropertyChanged(nameof(TaxColonesText));
+                }
+            }
+        }
+
+        public decimal Total
+        {
+            get => _total;
+            private set
+            {
+                if (_total != value)
+                {
+                    _total = value;
+                    OnPropertyChanged();
                     OnPropertyChanged(nameof(TotalText));
+                    OnPropertyChanged(nameof(TotalColonesText));
+                }
+            }
+        }
+
+        public decimal DiscountAmount
+        {
+            get => _discountAmount;
+            private set
+            {
+                if (_discountAmount != value)
+                {
+                    _discountAmount = value;
+                    OnPropertyChanged();
                     OnPropertyChanged(nameof(DiscountAmountText));
                     OnPropertyChanged(nameof(DiscountColonesText));
                 }
@@ -358,16 +434,17 @@ namespace NovaRetail.ViewModels
         public string DiscountText => DiscountPercent > 0
             ? (HasItemDiscounts ? $"Art. + {DiscountPercent} %" : $"{DiscountPercent} %")
             : (HasItemDiscounts ? "Artículos" : "0 %");
-        private decimal TicketDiscountAmount => Math.Round(Subtotal * DiscountPercent / 100m, 2);
-        private decimal TotalDiscountAmount => ItemDiscountAmount + TicketDiscountAmount;
-        public string DiscountAmountText => $"-{TotalDiscountAmount:F2}";
-        public string DiscountColonesText => TotalDiscountAmount > 0
-            ? $"-₡{Math.Round(TotalDiscountAmount * _exchangeRate, 2):N2}"
+        public string DiscountAmountText => $"-{DiscountAmount:F2}";
+        public string DiscountColonesText => DiscountAmount > 0
+            ? $"-₡{Math.Round(_discountColones, 2):N2}"
             : "₡0.00";
-        private decimal SubtotalAfterDiscount => Subtotal - TicketDiscountAmount;
-        public decimal Tax => Math.Round(SubtotalAfterDiscount * 0.055m, 2);
+        public string ExonerationAmountText => $"-{ExonerationAmount:F2}";
+        public string ExonerationColonesText => ExonerationAmount > 0
+            ? $"-₡{Math.Round(_exonerationColones, 2):N2}"
+            : "₡0.00";
+        public bool HasExonerationAmount => ExonerationAmount > 0;
         public string TaxText => $"${Tax:F2}";
-        public string TotalText => $"${SubtotalAfterDiscount + Tax:F2}";
+        public string TotalText => $"${Total:F2}";
         public string CartCountText => $"{CartItems.Count} ↑";
 
         // ── Panel de productos: visible / ancho ──
@@ -485,13 +562,14 @@ namespace NovaRetail.ViewModels
         // ── Totales en colones ──
 
         public string SubtotalText => $"${Subtotal:F2}";
-        public string SubtotalColonesText => $"₡{Math.Round(Subtotal * _exchangeRate, 2):N2}";
-        public string TaxColonesText => $"₡{Math.Round(Tax * _exchangeRate, 2):N2}";
-        public string TotalColonesText => $"₡{Math.Round((SubtotalAfterDiscount + Tax) * _exchangeRate, 2):N2}";
+        public string SubtotalColonesText => $"₡{Math.Round(_subtotalColones, 2):N2}";
+        public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
+        public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IDialogService dialogService, IStoreConfigService storeConfigService, AppStore appStore)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, IStoreConfigService storeConfigService, AppStore appStore)
         {
             _productService = productService;
+            _exonerationService = exonerationService;
             _dialogService = dialogService;
             _storeConfigService = storeConfigService;
             _appStore = appStore;
@@ -520,6 +598,8 @@ namespace NovaRetail.ViewModels
                 RefreshCartItemsView();
             });
             ApplyBulkDiscountCommand = new Command(async () => await StartBulkDiscountAsync(), () => HasSelectedItems);
+            ApplyItemExonerationCommand = new Command<CartItemModel>(async item => await ApplyItemExonerationAsync(item));
+            ClearItemExonerationCommand = new Command<CartItemModel>(ClearItemExoneration);
             ItemActionVm.RequestOk += CloseItemAction;
             ItemActionVm.RequestCancel += CloseItemAction;
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
@@ -531,6 +611,8 @@ namespace NovaRetail.ViewModels
             PriceJustVm.RequestRefresh += async () => { _cachedDiscountCodes.Clear(); await LoadDiscountCodesAsync(); PriceJustVm.LoadCodes(_cachedDiscountCodes); };
             CheckoutVm.RequestConfirm += OnCheckoutConfirm;
             CheckoutVm.RequestCancel += () => IsCheckoutVisible = false;
+            CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
+            CheckoutVm.RequestClearExoneration += ClearExoneration;
             RefreshCartItemsView();
             _ = LoadProductsAsync();
             _ = LoadStoreConfigAsync();
@@ -597,6 +679,7 @@ namespace NovaRetail.ViewModels
             try
             {
                 var config = await _storeConfigService.GetConfigAsync();
+                _storeTaxSystem = config.TaxSystem;
                 TaxSystemText = config.TaxSystemText;
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
@@ -605,6 +688,8 @@ namespace NovaRetail.ViewModels
                 Tenders.Clear();
                 foreach (var t in tenders)
                     Tenders.Add(t);
+
+                RecalculateTotal();
             }
             catch
             {
@@ -916,16 +1001,20 @@ namespace NovaRetail.ViewModels
             }
             else
             {
-                CartItems.Insert(0, new CartItemModel
+                var newItem = new CartItemModel
                 {
                     Emoji = product.Emoji,
                     Name = product.Name,
                     Code = product.Code,
                     UnitPrice = product.PriceValue,
                     UnitPriceColones = product.PriceColonesValue,
+                    TaxPercentage = product.TaxPercentage,
+                    Cabys = product.Cabys,
                     Stock = product.Stock
-                });
+                };
+                CartItems.Insert(0, newItem);
                 product.CartQuantity = 1;
+                UpdateExonerationEligibility(newItem, _appliedExoneration);
             }
             RecalculateTotal();
             RefreshCartItemsView();
@@ -947,6 +1036,10 @@ namespace NovaRetail.ViewModels
             item.Quantity--;
             if (item.Quantity <= 0)
                 CartItems.Remove(item);
+            if (CartItems.Count == 0)
+                ResetExonerationState();
+            else
+                NormalizeAppliedExonerationState();
             var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
             if (product is not null) product.CartQuantity = Math.Max(0m, item.Quantity);
             RecalculateTotal();
@@ -961,6 +1054,10 @@ namespace NovaRetail.ViewModels
             existing.Quantity--;
             if (existing.Quantity <= 0)
                 CartItems.Remove(existing);
+            if (CartItems.Count == 0)
+                ResetExonerationState();
+            else
+                NormalizeAppliedExonerationState();
             product.CartQuantity = Math.Max(0m, existing.Quantity);
             RecalculateTotal();
             RefreshCartItemsView();
@@ -968,6 +1065,7 @@ namespace NovaRetail.ViewModels
 
         private void ClearCart()
         {
+            ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;
             foreach (var p in _allProducts)
@@ -992,9 +1090,10 @@ namespace NovaRetail.ViewModels
                 totalColonesText: TotalColonesText,
                 taxSystemText: TaxSystemText,
                 quoteDaysText: QuoteDaysText,
-                hasDiscount: TotalDiscountAmount > 0,
+                hasDiscount: DiscountAmount > 0,
                 defaultTenderID: _defaultTenderID,
-                tenders: Tenders
+                tenders: Tenders,
+                exonerationState: BuildCheckoutExonerationState()
             );
             IsCheckoutVisible = true;
         }
@@ -1027,19 +1126,405 @@ namespace NovaRetail.ViewModels
 
         private void RecalculateTotal()
         {
-            Subtotal = CartItems.Sum(c =>
+            decimal subtotalBaseColones = 0m;
+            decimal taxAmountColones = 0m;
+            decimal totalAmountColones = 0m;
+            decimal discountAmountColones = 0m;
+            decimal exonerationAmountColones = 0m;
+
+            foreach (var item in CartItems)
             {
-                var colonesLine = c.EffectivePriceColones * c.Quantity * (1m - c.DiscountPercent / 100m);
-                return _exchangeRate > 0 ? Math.Round(colonesLine / _exchangeRate, 4) : colonesLine;
-            });
+                var lineTotals = CalculateLineTotals(item);
+                subtotalBaseColones += lineTotals.SubtotalBaseColones;
+                taxAmountColones += lineTotals.TaxColones;
+                totalAmountColones += lineTotals.TotalColones;
+                discountAmountColones += lineTotals.DiscountColones;
+                exonerationAmountColones += lineTotals.ExonerationColones;
+            }
+
+            _subtotalColones = Math.Round(subtotalBaseColones, 2);
+            _taxColones = Math.Round(taxAmountColones, 2);
+            _totalColones = Math.Round(totalAmountColones, 2);
+            _discountColones = Math.Round(discountAmountColones, 2);
+            _exonerationColones = Math.Round(exonerationAmountColones, 2);
+
+            Subtotal = ConvertFromColones(_subtotalColones);
+            Tax = ConvertFromColones(_taxColones);
+            Total = ConvertFromColones(_totalColones);
+            DiscountAmount = ConvertFromColones(_discountColones);
+            ExonerationAmount = ConvertFromColones(_exonerationColones);
+
             OnPropertyChanged(nameof(CartCountText));
             OnPropertyChanged(nameof(DiscountText));
             OnPropertyChanged(nameof(DiscountAmountText));
             OnPropertyChanged(nameof(DiscountColonesText));
+            OnPropertyChanged(nameof(ExonerationAmountText));
+            OnPropertyChanged(nameof(ExonerationColonesText));
+            OnPropertyChanged(nameof(HasExonerationAmount));
             OnPropertyChanged(nameof(SubtotalText));
             OnPropertyChanged(nameof(SubtotalColonesText));
+            OnPropertyChanged(nameof(TaxText));
             OnPropertyChanged(nameof(TaxColonesText));
+            OnPropertyChanged(nameof(TotalText));
             OnPropertyChanged(nameof(TotalColonesText));
+
+            if (IsCheckoutVisible)
+                RefreshCheckoutPopup();
+        }
+
+        private void RefreshCheckoutPopup()
+        {
+            CheckoutVm.UpdateTotals(SubtotalText, DiscountAmountText, TaxText, TotalText, TotalColonesText, DiscountAmount > 0);
+            CheckoutVm.SetExonerationState(BuildCheckoutExonerationState());
+        }
+
+        private LineTotals CalculateLineTotals(CartItemModel item)
+        {
+            var originalGrossColones = item.EffectivePriceColones * item.Quantity;
+            var itemDiscountFactor = 1m - (item.DiscountPercent / 100m);
+            var ticketDiscountFactor = 1m - (DiscountPercent / 100m);
+            var displayedGrossAfterItemDiscount = originalGrossColones * itemDiscountFactor;
+            var displayedGrossAfterAllDiscounts = displayedGrossAfterItemDiscount * ticketDiscountFactor;
+            var originalTaxRate = item.TaxPercentage / 100m;
+            var effectiveTaxRate = item.EffectiveTaxPercentage / 100m;
+
+            if (IsTaxIncluded)
+            {
+                var divisor = 1m + originalTaxRate;
+                if (divisor <= 0m)
+                    divisor = 1m;
+
+                var subtotalBaseColones = displayedGrossAfterItemDiscount / divisor;
+                var discountedBaseColones = displayedGrossAfterAllDiscounts / divisor;
+                var taxColones = discountedBaseColones * effectiveTaxRate;
+                var totalColones = discountedBaseColones + taxColones;
+
+                return new LineTotals
+                {
+                    SubtotalBaseColones = subtotalBaseColones,
+                    TaxColones = taxColones,
+                    TotalColones = totalColones,
+                    DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
+                    ExonerationColones = Math.Max(0m, discountedBaseColones * (originalTaxRate - effectiveTaxRate))
+                };
+            }
+
+            var subtotalBase = displayedGrossAfterItemDiscount;
+            var discountedBase = displayedGrossAfterAllDiscounts;
+            var taxAmount = discountedBase * effectiveTaxRate;
+
+            return new LineTotals
+            {
+                SubtotalBaseColones = subtotalBase,
+                TaxColones = taxAmount,
+                TotalColones = discountedBase + taxAmount,
+                DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
+                ExonerationColones = Math.Max(0m, discountedBase * (originalTaxRate - effectiveTaxRate))
+            };
+        }
+
+        private decimal ConvertFromColones(decimal amount)
+            => _exchangeRate > 0 ? Math.Round(amount / _exchangeRate, 4) : amount;
+
+        private bool IsTaxIncluded => _storeTaxSystem == 1;
+
+        private CheckoutExonerationState BuildCheckoutExonerationState()
+        {
+            var appliedItemCount = CartItems.Count(c => c.HasExoneration);
+            if (_appliedExoneration is null || appliedItemCount == 0)
+            {
+                return new CheckoutExonerationState
+                {
+                    HasExoneration = false,
+                    Authorization = CheckoutVm.ExonerationAuthorization,
+                    SummaryText = "Sin exoneración aplicada.",
+                    StatusText = "Ingrese una autorización de Hacienda para validar la exoneración.",
+                    ScopeText = CartItems.Any(c => c.IsSelected)
+                        ? $"Se aplicará a {CartItems.Count(c => c.IsSelected)} artículo(s) seleccionados."
+                        : "Se aplicará a todo el carrito si no hay selección activa."
+                };
+            }
+
+            var vencimiento = _appliedExoneration.FechaVencimiento?.ToString("dd/MM/yyyy") ?? "—";
+            return new CheckoutExonerationState
+            {
+                HasExoneration = true,
+                Authorization = _appliedExonerationAuthorization,
+                SummaryText = $"{_appliedExoneration.NombreInstitucion} · {_appliedExoneration.PorcentajeExoneracion:0.##}% · {_appliedExoneration.TipoDocumentoDescripcion}",
+                StatusText = $"Doc. {_appliedExoneration.NumeroDocumento} · vence {vencimiento} · {appliedItemCount} artículo(s).",
+                ScopeText = _appliedExonerationScopeText
+            };
+        }
+
+        private async Task ApplyExonerationAsync()
+        {
+            CheckoutVm.SetBusy(true);
+
+            try
+            {
+                var authorization = CheckoutVm.ExonerationAuthorization?.Trim() ?? string.Empty;
+                var document = await ValidateExonerationDocumentAsync(authorization);
+                if (document is null)
+                    return;
+
+                var targetItems = GetExonerationTargetItems();
+                if (targetItems.Count == 0)
+                {
+                    await _dialogService.AlertAsync("Exoneración", "No hay artículos disponibles para exonerar.", "OK");
+                    return;
+                }
+
+                var invalidItems = GetInvalidCabysItems(targetItems, document);
+                var eligibleItems = targetItems
+                    .Where(item => IsCabysAllowed(item, document))
+                    .ToList();
+
+                if (eligibleItems.Count == 0)
+                {
+                    var detail = string.Join(Environment.NewLine, invalidItems.Take(5));
+                    var suffix = invalidItems.Count > 5 ? $"{Environment.NewLine}... y {invalidItems.Count - 5} más." : string.Empty;
+                    await _dialogService.AlertAsync("Exoneración", $"Hay artículos sin CABYS válido para esta autorización:{Environment.NewLine}{detail}{suffix}", "OK");
+                    return;
+                }
+
+                ResetExonerationState();
+                foreach (var item in eligibleItems)
+                    item.ExonerationPercent = document.PorcentajeExoneracion;
+
+                var scopeText = eligibleItems.Count == CartItems.Count
+                    ? "Exoneración aplicada a todo el carrito."
+                    : eligibleItems.Count == targetItems.Count
+                        ? $"Exoneración aplicada a {eligibleItems.Count} artículo(s) seleccionados."
+                        : $"Exoneración aplicada a {eligibleItems.Count} de {targetItems.Count} artículo(s).";
+
+                SetAppliedExoneration(document, authorization, scopeText);
+
+                RecalculateTotal();
+                RefreshCartItemsView();
+
+                if (invalidItems.Count > 0)
+                {
+                    var detail = string.Join(Environment.NewLine, invalidItems.Take(5));
+                    var suffix = invalidItems.Count > 5 ? $"{Environment.NewLine}... y {invalidItems.Count - 5} más." : string.Empty;
+                    await _dialogService.AlertAsync(
+                        "Exoneración",
+                        $"Se aplicó la exoneración a los artículos válidos.{Environment.NewLine}No aplicó para:{Environment.NewLine}{detail}{suffix}",
+                        "OK");
+                }
+            }
+            finally
+            {
+                CheckoutVm.SetBusy(false);
+            }
+        }
+
+        private void ClearExoneration()
+        {
+            ResetExonerationState();
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private async Task ApplyItemExonerationAsync(CartItemModel? item)
+        {
+            if (item is null)
+                return;
+
+            var authorization = await _dialogService.PromptAsync(
+                "Exoneración",
+                $"Ingrese la autorización de Hacienda para {item.DisplayName}.",
+                accept: "Aplicar",
+                cancel: "Cancelar",
+                placeholder: "Ej. AL-00020402-24",
+                initialValue: CheckoutVm.ExonerationAuthorization);
+
+            authorization = authorization?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(authorization))
+                return;
+
+            var document = await ValidateExonerationDocumentAsync(authorization);
+            if (document is null)
+                return;
+
+            var invalidItems = GetInvalidCabysItems(new[] { item }, document);
+            if (invalidItems.Count > 0)
+            {
+                await _dialogService.AlertAsync("Exoneración", $"El artículo {item.DisplayName} no tiene un CABYS válido para esta autorización.", "OK");
+                return;
+            }
+
+            item.ExonerationPercent = document.PorcentajeExoneracion;
+            SetAppliedExoneration(document, authorization, $"Exoneración aplicada a {item.DisplayName}.");
+            UpdateExonerationEligibility(document);
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private void ClearItemExoneration(CartItemModel? item)
+        {
+            if (item is null)
+                return;
+
+            item.ExonerationPercent = 0m;
+            NormalizeAppliedExonerationState();
+            UpdateExonerationEligibility(_appliedExoneration);
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private void ResetExonerationState()
+        {
+            foreach (var item in CartItems)
+            {
+                item.ExonerationPercent = 0m;
+                item.HasExonerationEligibility = false;
+                item.IsExonerationEligible = false;
+            }
+
+            _appliedExoneration = null;
+            _appliedExonerationAuthorization = string.Empty;
+            _appliedExonerationScopeText = string.Empty;
+            _appliedExonerationItemCount = 0;
+        }
+
+        private async Task<ExonerationModel?> ValidateExonerationDocumentAsync(string authorization)
+        {
+            if (!HasClient)
+            {
+                await _dialogService.AlertAsync("Exoneración", "Seleccione un cliente antes de validar la exoneración.", "OK");
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(authorization))
+            {
+                await _dialogService.AlertAsync("Exoneración", "Ingrese el número de autorización de Hacienda.", "OK");
+                return null;
+            }
+
+            var validation = await _exonerationService.ValidateAsync(authorization);
+            if (!validation.IsValid || validation.Document is null)
+            {
+                await _dialogService.AlertAsync("Exoneración", validation.Message, "OK");
+                return null;
+            }
+
+            var document = validation.Document;
+            if (document.IsExpired)
+            {
+                await _dialogService.AlertAsync("Exoneración", "La autorización de Hacienda ya está vencida.", "OK");
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(document.Identificacion) &&
+                !string.Equals(NormalizeIdentity(document.Identificacion), NormalizeIdentity(CurrentClientId), StringComparison.OrdinalIgnoreCase))
+            {
+                await _dialogService.AlertAsync(
+                    "Exoneración",
+                    $"La identificación de la exoneración no coincide con el cliente seleccionado.{Environment.NewLine}Hacienda: {document.Identificacion}{Environment.NewLine}Cliente actual: {CurrentClientId}",
+                    "OK");
+                return null;
+            }
+
+            return document;
+        }
+
+        private void SetAppliedExoneration(ExonerationModel document, string authorization, string scopeText)
+        {
+            _appliedExoneration = document;
+            _appliedExonerationAuthorization = authorization;
+            _appliedExonerationScopeText = scopeText;
+            _appliedExonerationItemCount = CartItems.Count(c => c.HasExoneration);
+            CheckoutVm.ExonerationAuthorization = authorization;
+            UpdateExonerationEligibility(document);
+        }
+
+        private void NormalizeAppliedExonerationState()
+        {
+            _appliedExonerationItemCount = CartItems.Count(c => c.HasExoneration);
+            if (_appliedExonerationItemCount > 0)
+            {
+                _appliedExonerationScopeText = _appliedExonerationItemCount == CartItems.Count
+                    ? "Exoneración aplicada a todo el carrito."
+                    : $"Exoneración aplicada a {_appliedExonerationItemCount} artículo(s).";
+                UpdateExonerationEligibility(_appliedExoneration);
+                return;
+            }
+
+            _appliedExoneration = null;
+            _appliedExonerationAuthorization = string.Empty;
+            _appliedExonerationScopeText = string.Empty;
+            UpdateExonerationEligibility(null);
+        }
+
+        private void UpdateExonerationEligibility(ExonerationModel? document)
+        {
+            foreach (var item in CartItems)
+                UpdateExonerationEligibility(item, document);
+        }
+
+        private void UpdateExonerationEligibility(CartItemModel item, ExonerationModel? document)
+        {
+            if (document is null)
+            {
+                item.HasExonerationEligibility = false;
+                item.IsExonerationEligible = false;
+                return;
+            }
+
+            item.HasExonerationEligibility = true;
+            item.IsExonerationEligible = IsCabysAllowed(item, document);
+        }
+
+        private static bool IsCabysAllowed(CartItemModel item, ExonerationModel document)
+        {
+            if (!document.PoseeCabys || document.Cabys.Count == 0)
+                return true;
+
+            var cabys = NormalizeCabys(item.Cabys);
+            if (string.IsNullOrWhiteSpace(cabys))
+                return false;
+
+            return document.Cabys
+                .Select(NormalizeCabys)
+                .Any(c => string.Equals(c, cabys, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private List<CartItemModel> GetExonerationTargetItems()
+        {
+            var selected = CartItems.Where(c => c.IsSelected).ToList();
+            return selected.Count > 0 ? selected : CartItems.ToList();
+        }
+
+        private List<string> GetInvalidCabysItems(IEnumerable<CartItemModel> items, ExonerationModel document)
+        {
+            if (!document.PoseeCabys || document.Cabys.Count == 0)
+                return new List<string>();
+
+            var allowedCabys = document.Cabys
+                .Select(NormalizeCabys)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return items
+                .Where(item => string.IsNullOrWhiteSpace(NormalizeCabys(item.Cabys)) || !allowedCabys.Contains(NormalizeCabys(item.Cabys)))
+                .Select(item => $"{item.Code} - {item.DisplayName}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string NormalizeCabys(string? value)
+            => new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        private static string NormalizeIdentity(string? value)
+            => new string((value ?? string.Empty).Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
+        private sealed class LineTotals
+        {
+            public decimal SubtotalBaseColones { get; set; }
+            public decimal TaxColones { get; set; }
+            public decimal TotalColones { get; set; }
+            public decimal DiscountColones { get; set; }
+            public decimal ExonerationColones { get; set; }
         }
 
         // ── Item Action popup ──

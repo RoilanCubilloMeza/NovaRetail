@@ -131,8 +131,23 @@ namespace NovaRetail.Data
                 Price = $"${priceDollars:F2}",
                 Category = DetermineCategory(item),
                 Stock = Convert.ToDecimal(item.Quantity ?? 0),
-                PriceColonesValue = priceColones
+                PriceColonesValue = priceColones,
+                TaxPercentage = NormalizeTaxPercentage(item.Percentage),
+                TaxId = item.TaxID,
+                Cabys = NormalizeCabys(item.SubDescription3)
             };
+        }
+
+        private static decimal NormalizeTaxPercentage(float percentage)
+            => percentage <= 0 ? 0m : Convert.ToDecimal(percentage);
+
+        private static string NormalizeCabys(string? cabys)
+        {
+            if (string.IsNullOrWhiteSpace(cabys))
+                return string.Empty;
+
+            var normalized = new string(cabys.Where(char.IsDigit).ToArray());
+            return normalized.Length == 13 ? normalized : string.Empty;
         }
 
         private static string DetermineCategory(ApiItem item)
@@ -169,6 +184,9 @@ namespace NovaRetail.Data
             public decimal PriceA { get; set; }
             public string? Description { get; set; }
             public string? SubDescription2 { get; set; }
+            public string? SubDescription3 { get; set; }
+            public int TaxID { get; set; }
+            public float Percentage { get; set; }
         }
 
         private sealed class ProductCountResult

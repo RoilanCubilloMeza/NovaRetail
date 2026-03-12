@@ -9,6 +9,7 @@ using System.Windows.Input;
 using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
+using NovaRetail.State;
 
 namespace NovaRetail.ViewModels
 {
@@ -18,6 +19,7 @@ namespace NovaRetail.ViewModels
     {
         private readonly IClienteService _clienteService;
         private readonly IDialogService _dialogService;
+        private readonly AppStore _appStore;
 
         private string _clientId = string.Empty;
         private string _idType = "Cédula Física";
@@ -311,10 +313,11 @@ namespace NovaRetail.ViewModels
         public ICommand CancelCommand         { get; }
         public ICommand SearchActivityCommand { get; }
 
-        public ClienteViewModel(IClienteService clienteService, IDialogService dialogService)
+        public ClienteViewModel(IClienteService clienteService, IDialogService dialogService, AppStore appStore)
         {
             _clienteService = clienteService;
             _dialogService = dialogService;
+            _appStore = appStore;
             SyncCommand           = new Command(async () => await ExecuteSync());
             SaveCommand           = new Command(async () => await ExecuteSave());
             SaveAndReturnCommand  = new Command(async () => await ExecuteSaveAndReturn());
@@ -598,6 +601,7 @@ namespace NovaRetail.ViewModels
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
             {
+                SelectCurrentClient();
                 await _dialogService.AlertAsync("✅ Guardado", IsExistingCustomer ? "Cliente actualizado correctamente." : "Cliente guardado correctamente.", "OK");
                 await TryNavigateBack();
             }
@@ -619,6 +623,7 @@ namespace NovaRetail.ViewModels
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
             {
+                SelectCurrentClient();
                 await _dialogService.AlertAsync("✅ Guardado", IsExistingCustomer ? "Cliente actualizado. Regresando a facturar." : "Cliente guardado. Regresando a facturar.", "OK");
                 await TryNavigateBack();
             }
@@ -647,10 +652,18 @@ namespace NovaRetail.ViewModels
             ActivityDescription = ActivityDescription
         };
 
+        private void SelectCurrentClient()
+        {
+            if (string.IsNullOrWhiteSpace(ClientId))
+                return;
+
+            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim()));
+        }
+
         private void LoadFromModel(ClienteModel model)
         {
             ClientId = model.ClientId;
-            IdType = model.IdType;
+            IdType = ResolveLoadedIdType(model);
             Name = model.Name;
             IsReceiver = model.IsReceiver;
             Phone = model.Phone;
@@ -680,6 +693,10 @@ namespace NovaRetail.ViewModels
 
         private void MergeRemoteTaxData(ClienteModel model)
         {
+            var remoteIdType = ResolveLoadedIdType(model);
+            if (!string.Equals(IdType, remoteIdType, StringComparison.Ordinal))
+                IdType = remoteIdType;
+
             if (string.IsNullOrWhiteSpace(ActivityCode))
             {
                 var parsed = model.ActivityCodes?.Count > 0
@@ -696,6 +713,31 @@ namespace NovaRetail.ViewModels
 
             if (string.IsNullOrWhiteSpace(Phone))
                 Phone = model.Phone;
+        }
+
+        private string ResolveLoadedIdType(ClienteModel model)
+        {
+            if (!string.IsNullOrWhiteSpace(model.IdType) &&
+                !string.Equals(model.IdType, "Cédula Física", StringComparison.OrdinalIgnoreCase))
+            {
+                return model.IdType;
+            }
+
+            if (string.Equals(model.ClientId, ClientId, StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(IdType) &&
+                !string.Equals(IdType, "Cédula Física", StringComparison.OrdinalIgnoreCase))
+            {
+                return IdType;
+            }
+
+            var digits = new string((model.ClientId ?? string.Empty).Where(char.IsDigit).ToArray());
+            return digits.Length switch
+            {
+                9 => "Cédula Física",
+                10 => "Cédula Jurídica",
+                12 => "DIMEX",
+                _ => string.IsNullOrWhiteSpace(model.IdType) ? "Cédula Física" : model.IdType
+            };
         }
 
         private static string BuildLocationSummary(string? province, string? canton, string? district, string? barrio, string? address)

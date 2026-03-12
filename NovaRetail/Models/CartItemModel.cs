@@ -9,6 +9,9 @@ namespace NovaRetail.Models
         private decimal? _overridePriceColones;
         private string? _overrideDescription;
         private decimal _discountPercent;
+        private decimal _exonerationPercent;
+        private bool _hasExonerationEligibility;
+        private bool _isExonerationEligible;
         private string _discountReasonCode = string.Empty;
 
         public string Emoji { get; set; } = string.Empty;
@@ -16,6 +19,8 @@ namespace NovaRetail.Models
         public string Code { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public decimal UnitPriceColones { get; set; }
+        public decimal TaxPercentage { get; set; }
+        public string Cabys { get; set; } = string.Empty;
         public decimal Stock { get; set; }
 
         public decimal? OverridePriceColones
@@ -76,6 +81,55 @@ namespace NovaRetail.Models
             set { _discountReasonCode = value ?? string.Empty; OnPropertyChanged(); }
         }
 
+        public decimal ExonerationPercent
+        {
+            get => _exonerationPercent;
+            set
+            {
+                var normalized = Math.Clamp(value, 0m, 100m);
+                if (_exonerationPercent != normalized)
+                {
+                    _exonerationPercent = normalized;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(EffectiveTaxPercentage));
+                    OnPropertyChanged(nameof(HasExoneration));
+                    OnPropertyChanged(nameof(ExonerationText));
+                    OnPropertyChanged(nameof(CanShowApplyExoneration));
+                    OnPropertyChanged(nameof(IsModified));
+                }
+            }
+        }
+
+        public bool HasExonerationEligibility
+        {
+            get => _hasExonerationEligibility;
+            set
+            {
+                if (_hasExonerationEligibility != value)
+                {
+                    _hasExonerationEligibility = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ExonerationEligibilityText));
+                    OnPropertyChanged(nameof(CanShowApplyExoneration));
+                }
+            }
+        }
+
+        public bool IsExonerationEligible
+        {
+            get => _isExonerationEligible;
+            set
+            {
+                if (_isExonerationEligible != value)
+                {
+                    _isExonerationEligible = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ExonerationEligibilityText));
+                    OnPropertyChanged(nameof(CanShowApplyExoneration));
+                }
+            }
+        }
+
         private bool _isSelected;
         public bool IsSelected
         {
@@ -104,8 +158,15 @@ namespace NovaRetail.Models
         public string DisplayName => _overrideDescription ?? Name;
         public bool HasOverridePrice => _overridePriceColones.HasValue;
         public bool HasDiscount => _discountPercent > 0;
-        public bool IsModified => HasOverridePrice || HasDiscount;
+        public bool HasExoneration => _exonerationPercent > 0;
+        public bool CanShowApplyExoneration => !HasExoneration && HasExonerationEligibility && IsExonerationEligible;
+        public decimal EffectiveTaxPercentage => Math.Max(0m, TaxPercentage - _exonerationPercent);
+        public bool IsModified => HasOverridePrice || HasDiscount || HasExoneration;
         public string DiscountText => HasDiscount ? $"-{_discountPercent:F0}%" : string.Empty;
+        public string ExonerationText => HasExoneration ? $"Exon. {Math.Min(TaxPercentage, _exonerationPercent):0.##}%" : string.Empty;
+        public string ExonerationEligibilityText => HasExonerationEligibility
+            ? (IsExonerationEligible ? "Exonerable" : "No exonerable")
+            : string.Empty;
         public string PriceOverrideIndicator => _overridePriceColones.HasValue ? "✱ " : string.Empty;
         private decimal DiscountFactor => 1m - _discountPercent / 100m;
         private decimal EffectiveUnitPriceUsd => UnitPriceColones > 0
