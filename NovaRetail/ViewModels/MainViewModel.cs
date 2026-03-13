@@ -162,8 +162,6 @@ namespace NovaRetail.ViewModels
         public ObservableCollection<CartItemModel> FilteredCartItems { get; } = new();
         public IReadOnlyList<string> CartSortFields => _cartSortFields;
 
-        private string _selectedCartSortField = string.Empty;
-        private bool _isCartSortDescending = true;
         public string SelectedCartSortField
         {
             get => _appStore.State.CartSortField;
@@ -225,6 +223,8 @@ namespace NovaRetail.ViewModels
         public ICommand ApplyBulkDiscountCommand { get; }
         public ICommand ApplyItemExonerationCommand { get; }
         public ICommand ClearItemExonerationCommand { get; }
+        public ICommand ApplyManualExonerationCommand { get; }
+        public ICommand AddManualItemCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -317,7 +317,6 @@ namespace NovaRetail.ViewModels
 
         // ── Tab del panel izquierdo: Rápido / Categorías / Promos ──
 
-        private string _selectedTab = "Rápido";
         public string SelectedTab
         {
             get => _appStore.State.SelectedTab;
@@ -342,7 +341,6 @@ namespace NovaRetail.ViewModels
 
         // ── Categoría del panel central ──
 
-        private string _selectedCategory = "Todos";
         public string SelectedCategory
         {
             get => _appStore.State.SelectedCategory;
@@ -412,7 +410,6 @@ namespace NovaRetail.ViewModels
 
         // ── Descuento ──
 
-        private int _discountPercent;
         public int DiscountPercent
         {
             get => _appStore.State.DiscountPercent;
@@ -600,6 +597,8 @@ namespace NovaRetail.ViewModels
             ApplyBulkDiscountCommand = new Command(async () => await StartBulkDiscountAsync(), () => HasSelectedItems);
             ApplyItemExonerationCommand = new Command<CartItemModel>(async item => await ApplyItemExonerationAsync(item));
             ClearItemExonerationCommand = new Command<CartItemModel>(ClearItemExoneration);
+            ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
+            AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ItemActionVm.RequestOk += CloseItemAction;
             ItemActionVm.RequestCancel += CloseItemAction;
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
@@ -613,6 +612,7 @@ namespace NovaRetail.ViewModels
             CheckoutVm.RequestCancel += () => IsCheckoutVisible = false;
             CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
             CheckoutVm.RequestClearExoneration += ClearExoneration;
+            CheckoutVm.RequestApplyManualExoneration += ApplyManualExonerationAsync;
             RefreshCartItemsView();
             _ = LoadProductsAsync();
             _ = LoadStoreConfigAsync();
@@ -798,6 +798,24 @@ namespace NovaRetail.ViewModels
             return false;
         }
 
+        private static decimal GetMaxAvailableQuantity(decimal stock)
+        {
+            if (stock <= 0m)
+                return 0m;
+
+            return Math.Floor(stock);
+        }
+
+        private void ShowStockLimitAlert(string? productName, decimal stock)
+        {
+            var safeProductName = string.IsNullOrWhiteSpace(productName) ? "este producto" : productName.Trim();
+            var message = stock <= 0m
+                ? $"El producto \"{safeProductName}\" está agotado."
+                : $"Solo hay {stock:0.##} unidad(es) disponibles de \"{safeProductName}\".";
+
+            _ = _dialogService.AlertAsync("Stock insuficiente", message, "OK");
+        }
+
         private async Task<bool> LoadProductsAsync(bool loadMore = false)
         {
             if (_isLoadingItems)
@@ -933,8 +951,7 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            _isCartSortDescending = true;
-            OnPropertyChanged(nameof(IsCartSortDescending));
+            IsCartSortDescending = true;
             SelectedCartSortField = field;
         }
 
@@ -1099,11 +1116,22 @@ namespace NovaRetail.ViewModels
             if (product is null) return;
 
             var safeQuantity = quantityToAdd <= 0m ? 1m : Math.Floor(quantityToAdd);
-
             var existing = CartItems.FirstOrDefault(c => c.Name == product.Name);
+            var maxAvailableQuantity = GetMaxAvailableQuantity(product.Stock);
+            var currentQuantity = existing?.Quantity ?? 0m;
+            var availableToAdd = maxAvailableQuantity - currentQuantity;
+
+            if (availableToAdd <= 0m)
+            {
+                ShowStockLimitAlert(product.Name, maxAvailableQuantity);
+                return;
+            }
+
+            var quantityToApply = Math.Min(safeQuantity, availableToAdd);
+
             if (existing is not null)
             {
-                existing.Quantity += safeQuantity;
+                existing.Quantity += quantityToApply;
                 product.CartQuantity = existing.Quantity;
             }
             else
@@ -1118,12 +1146,84 @@ namespace NovaRetail.ViewModels
                     TaxPercentage = product.TaxPercentage,
                     Cabys = product.Cabys,
                     Stock = product.Stock,
-                    Quantity = safeQuantity
+                    Quantity = quantityToApply
                 };
                 CartItems.Insert(0, newItem);
-                product.CartQuantity = safeQuantity;
+                product.CartQuantity = quantityToApply;
                 UpdateExonerationEligibility(newItem, _appliedExoneration);
             }
+
+            if (quantityToApply < safeQuantity)
+                ShowStockLimitAlert(product.Name, maxAvailableQuantity);
+
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private async Task AddManualItemAsync()
+        {
+            var name = await _dialogService.PromptAsync(
+                "Artículo manual",
+                "Ingrese la descripción del artículo.",
+                accept: "Siguiente",
+                cancel: "Cancelar",
+                placeholder: "Descripción");
+
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            var priceText = await _dialogService.PromptAsync(
+                "Artículo manual",
+                "Ingrese el precio en colones.",
+                accept: "Siguiente",
+                cancel: "Cancelar",
+                placeholder: "Ej. 1500",
+                keyboard: Keyboard.Numeric);
+
+            if (string.IsNullOrWhiteSpace(priceText) ||
+                !TryParseDecimal(priceText, out var priceColones) ||
+                priceColones <= 0)
+            {
+                await _dialogService.AlertAsync("Artículo manual", "Ingrese un precio válido mayor a cero.", "OK");
+                return;
+            }
+
+            var quantityText = await _dialogService.PromptAsync(
+                "Artículo manual",
+                "Ingrese la cantidad.",
+                accept: "Agregar",
+                cancel: "Cancelar",
+                placeholder: "Ej. 1",
+                keyboard: Keyboard.Numeric,
+                initialValue: "1");
+
+            if (quantityText is null)
+                return;
+
+            var quantity = 1m;
+            if (!string.IsNullOrWhiteSpace(quantityText) &&
+                (!TryParseDecimal(quantityText, out quantity) || quantity <= 0))
+            {
+                await _dialogService.AlertAsync("Artículo manual", "Ingrese una cantidad válida mayor a cero.", "OK");
+                return;
+            }
+
+            var roundedPriceColones = Math.Round(priceColones, 2);
+            var item = new CartItemModel
+            {
+                Emoji = "📝",
+                Name = name.Trim(),
+                Code = $"MANUAL-{DateTime.Now:HHmmss}",
+                UnitPriceColones = roundedPriceColones,
+                UnitPrice = ConvertFromColones(roundedPriceColones),
+                TaxPercentage = 13m,
+                Cabys = string.Empty,
+                Stock = quantity,
+                Quantity = quantity
+            };
+
+            CartItems.Insert(0, item);
+            UpdateExonerationEligibility(item, _appliedExoneration);
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -1131,7 +1231,15 @@ namespace NovaRetail.ViewModels
         private void Increment(CartItemModel? item)
         {
             if (item is null) return;
-            item.Quantity++;
+
+            var maxAvailableQuantity = GetMaxAvailableQuantity(item.Stock);
+            if (item.Quantity >= maxAvailableQuantity)
+            {
+                ShowStockLimitAlert(item.DisplayName, maxAvailableQuantity);
+                return;
+            }
+
+            item.Quantity = Math.Min(item.Quantity + 1m, maxAvailableQuantity);
             var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
             if (product is not null) product.CartQuantity = item.Quantity;
             RecalculateTotal();
@@ -1433,6 +1541,76 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
         }
 
+        private async Task ApplyManualExonerationAsync()
+        {
+            if (!HasClient)
+            {
+                await _dialogService.AlertAsync("Exoneración Manual", "Seleccione un cliente antes de aplicar la exoneración.", "OK");
+                return;
+            }
+
+            var targetItems = GetExonerationTargetItems();
+            if (targetItems.Count == 0)
+            {
+                await _dialogService.AlertAsync("Exoneración Manual", "No hay artículos disponibles para exonerar.", "OK");
+                return;
+            }
+
+            var authorization = await _dialogService.PromptAsync(
+                "Exoneración Manual",
+                "Ingrese el número de autorización (o déjelo vacío si no lo tiene).",
+                accept: "Siguiente",
+                cancel: "Cancelar",
+                placeholder: "Ej. AL-00020402-24",
+                initialValue: CheckoutVm.ExonerationAuthorization);
+
+            if (authorization is null)
+                return;
+
+            authorization = authorization.Trim();
+
+            var percentText = await _dialogService.PromptAsync(
+                "Exoneración Manual",
+                "Ingrese el porcentaje de exoneración a aplicar.",
+                accept: "Aplicar",
+                cancel: "Cancelar",
+                placeholder: "Ej. 13",
+                keyboard: Keyboard.Numeric);
+
+            if (string.IsNullOrWhiteSpace(percentText))
+                return;
+
+            if (!decimal.TryParse(percentText.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var percent) || percent <= 0 || percent > 100)
+            {
+                await _dialogService.AlertAsync("Exoneración Manual", "Ingrese un porcentaje válido entre 1 y 100.", "OK");
+                return;
+            }
+
+            ResetExonerationState();
+
+            foreach (var item in targetItems)
+                item.ExonerationPercent = percent;
+
+            var document = new ExonerationModel
+            {
+                NumeroDocumento = "MANUAL",
+                PorcentajeExoneracion = percent,
+                NombreInstitucion = "Ingreso manual",
+                TipoDocumentoDescripcion = "Exoneración manual",
+                Autorizacion = 0,
+                FechaVencimiento = DateTime.Today.AddYears(1),
+                PoseeCabys = false
+            };
+
+            var scopeText = targetItems.Count == CartItems.Count
+                ? "Exoneración manual aplicada a todo el carrito."
+                : $"Exoneración manual aplicada a {targetItems.Count} artículo(s).";
+
+            SetAppliedExoneration(document, authorization, scopeText);
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
         private async Task ApplyItemExonerationAsync(CartItemModel? item)
         {
             if (item is null)
@@ -1625,6 +1803,10 @@ namespace NovaRetail.ViewModels
 
         private static string NormalizeIdentity(string? value)
             => new string((value ?? string.Empty).Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
+        private static bool TryParseDecimal(string? value, out decimal result)
+            => decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result)
+                || decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
 
         private sealed class LineTotals
         {

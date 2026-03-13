@@ -5,10 +5,10 @@ namespace NovaRetail.Services
         private static Page CurrentPage => Application.Current!.Windows[0].Page!;
 
         public Task AlertAsync(string title, string message, string cancel) =>
-            CurrentPage.DisplayAlert(title, message, cancel);
+            CurrentPage.DisplayAlertAsync(title, message, cancel);
 
         public Task<bool> ConfirmAsync(string title, string message, string accept, string cancel) =>
-            CurrentPage.DisplayAlert(title, message, accept, cancel);
+            CurrentPage.DisplayAlertAsync(title, message, accept, cancel);
 
         public Task<string?> PromptAsync(string title, string message, string accept = "OK", string cancel = "Cancel",
             string? placeholder = null, int maxLength = -1, Keyboard? keyboard = null, string initialValue = "") =>

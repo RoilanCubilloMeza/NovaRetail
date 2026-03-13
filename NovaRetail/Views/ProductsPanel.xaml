@@ -218,11 +218,32 @@
 
                     </VerticalStackLayout>
 
-                    <!-- Row 4: Cobrar -->
-                    <VerticalStackLayout Grid.Row="4" Spacing="8" Margin="0,8,0,0">
+                    <!-- Row 4: Exonerar + Cobrar -->
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="Auto, *"
+                          ColumnSpacing="8"
+                          Margin="0,8,0,0">
 
-                        <!-- Cobrar Button -->
-                        <Border Style="{DynamicResource PrimaryActionBorder}">
+                        <Border Grid.Column="0"
+                                BackgroundColor="#DBEAFE"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="0"
+                                Padding="14,0"
+                                MinimumWidthRequest="140">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ApplyManualExonerationCommand}"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   Spacing="6">
+                                <Label Text="%" FontSize="16" TextColor="#1D4ED8"
+                                       VerticalOptions="Center"/>
+                                <Label Text="Exonerar" FontSize="15" FontAttributes="Bold"
+                                       TextColor="#1D4ED8" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{DynamicResource PrimaryActionBorder}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding InvoiceCommand}"/>
                             </Border.GestureRecognizers>
@@ -235,7 +256,7 @@
                             </HorizontalStackLayout>
                         </Border>
 
-                    </VerticalStackLayout>
+                    </Grid>
                 </Grid>
             </Grid>
         </Border>

@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using System.Globalization;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -38,22 +37,15 @@ namespace NovaRetail.Services
 
         public string GetDatosCedula(string cedula)
         {
-            ServicePointManager.Expect100Continue = true;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
             var url = $"https://apis.gometa.org/cedulas/{cedula}";
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.Method = "GET";
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
 
             try
             {
-                using var response = request.GetResponse();
-                using var strReader = response.GetResponseStream();
-                if (strReader == null) return "Error";
-                using var objReader = new StreamReader(strReader);
-                return objReader.ReadToEnd();
+                using var response = _http.GetAsync(url).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                    return "Error";
+
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch
             {
@@ -63,22 +55,15 @@ namespace NovaRetail.Services
 
         public string ValidaExoneracion(string numero)
         {
-            ServicePointManager.Expect100Continue = true;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
             var url = $"https://api.hacienda.go.cr/fe/ex?autorizacion={numero}";
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.Method = "GET";
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
 
             try
             {
-                using var response = request.GetResponse();
-                using var strReader = response.GetResponseStream();
-                if (strReader == null) return "Error";
-                using var objReader = new StreamReader(strReader);
-                return objReader.ReadToEnd();
+                using var response = _http.GetAsync(url).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                    return "Error";
+
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch
             {
@@ -93,10 +78,10 @@ namespace NovaRetail.Services
 
             try
             {
-                var request = WebRequest.Create("https://www.google.com/");
-                request.Timeout = 5000;
-                using var response = request.GetResponse();
-                return true;
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                using var request = new HttpRequestMessage(HttpMethod.Head, "https://www.google.com/");
+                using var response = _http.Send(request, cts.Token);
+                return response.IsSuccessStatusCode;
             }
             catch
             {
@@ -123,9 +108,6 @@ namespace NovaRetail.Services
 
         public async Task<CedulaDatosDto?> GetDatosCedulaAsync(string cedula)
         {
-            ServicePointManager.Expect100Continue = true;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
             try

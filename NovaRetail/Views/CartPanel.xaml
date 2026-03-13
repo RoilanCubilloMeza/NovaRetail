@@ -818,10 +818,12 @@
                                        FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"/>
 
-                                <Label Grid.Row="2" Grid.Column="0" Text="Exonerado"
-                                       FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
-                                       VerticalOptions="Center"
-                                       IsVisible="{Binding HasExonerationAmount}"/>
+                                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                                    <Label Text="Exonerado"
+                                           FontSize="{DynamicResource UIFontXS}" TextColor="White" Opacity="0.75"
+                                           VerticalOptions="Center"
+                                           IsVisible="{Binding HasExonerationAmount}"/>
+                                </HorizontalStackLayout>
                                 <Label Grid.Row="2" Grid.Column="1" Text="{Binding ExonerationColonesText}"
                                        FontSize="{DynamicResource UIFontSM}" FontAttributes="Bold" TextColor="White"
                                        HorizontalTextAlignment="End"

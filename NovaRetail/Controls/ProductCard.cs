@@ -221,8 +221,8 @@ namespace NovaRetail.Controls
                 new Binding(nameof(CommandParameter), source: this));
             tap.Tapped += async (_, _) =>
             {
-                await outerBorder.ScaleTo(0.93, 70, Easing.CubicIn);
-                await outerBorder.ScaleTo(1.00, 90, Easing.CubicOut);
+                await outerBorder.ScaleToAsync(0.93, 70, Easing.CubicIn);
+                await outerBorder.ScaleToAsync(1.00, 90, Easing.CubicOut);
             };
             outerBorder.GestureRecognizers.Add(tap);
 

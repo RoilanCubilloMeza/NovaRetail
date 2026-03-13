@@ -31,7 +31,7 @@ namespace NovaRetail.Data
             if (string.IsNullOrWhiteSpace(nombre))
                 nombre = string.Join(" ", new[] { datos?.FirstName, datos?.LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
-            var actividades = (datos.Actividades ?? new List<ActividadDto>())
+            var actividades = (datos?.Actividades ?? new List<ActividadDto>())
                 .Select(a => new
                 {
                     Codigo = NormalizeActivityCode(a.Codigo ?? a.CIIU4),

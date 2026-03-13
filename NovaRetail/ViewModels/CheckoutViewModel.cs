@@ -145,12 +145,14 @@ namespace NovaRetail.ViewModels
         public event Action? RequestCancel;
         public event Func<Task>? RequestValidateExoneration;
         public event Action? RequestClearExoneration;
+        public event Func<Task>? RequestApplyManualExoneration;
 
         public ICommand SelectTenderCommand { get; }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
         public ICommand ValidateExonerationCommand { get; }
         public ICommand ClearExonerationCommand { get; }
+        public ICommand ApplyManualExonerationCommand { get; }
 
         public CheckoutViewModel()
         {
@@ -159,6 +161,13 @@ namespace NovaRetail.ViewModels
             CancelCommand = new Command(() => RequestCancel?.Invoke());
             ValidateExonerationCommand = new Command(async () => await ValidateExonerationAsync(), () => CanValidateExoneration);
             ClearExonerationCommand = new Command(() => RequestClearExoneration?.Invoke(), () => CanClearExoneration);
+            ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
+        }
+
+        private async Task ApplyManualExonerationAsync()
+        {
+            if (RequestApplyManualExoneration is not null)
+                await RequestApplyManualExoneration.Invoke();
         }
 
         public void Load(

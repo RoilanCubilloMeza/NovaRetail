@@ -506,8 +506,8 @@ namespace NovaRetail.ViewModels
                 Provinces.Add(p);
         }
 
-        private static string Normalize(string value)
-            => string.Concat(value
+        private static string Normalize(string? value)
+            => string.Concat((value ?? string.Empty)
                 .Normalize(NormalizationForm.FormD)
                 .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark))
                 .ToUpperInvariant();
