@@ -698,8 +698,9 @@ namespace NovaRetail.ViewModels
 
         private async Task SearchOrAddProductByCodeAsync()
         {
-            var raw = ProductSearchText;
-            var code = raw?.Trim() ?? string.Empty;
+            var parsedInput = ParseCodeAndQuantity(ProductSearchText);
+            var code = parsedInput.Code;
+            var quantityToAdd = parsedInput.Quantity;
 
             if (string.IsNullOrWhiteSpace(code))
             {
@@ -726,7 +727,7 @@ namespace NovaRetail.ViewModels
 
             if (product is not null)
             {
-                AddProduct(product);
+                AddProduct(product, quantityToAdd);
                 ProductSearchText = string.Empty;
 
                 // Restablecer catálogo normal después de agregar por código.
@@ -746,6 +747,55 @@ namespace NovaRetail.ViewModels
                 return false;
 
             return products.Any(p => string.Equals((p.Code ?? string.Empty).Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static (string Code, decimal Quantity) ParseCodeAndQuantity(string? input)
+        {
+            var text = input?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+                return (string.Empty, 1m);
+
+            decimal quantity = 1m;
+            var code = text;
+
+            var separatorIndex = text.IndexOf('*');
+            if (separatorIndex < 0)
+                separatorIndex = text.IndexOf('x');
+            if (separatorIndex < 0)
+                separatorIndex = text.IndexOf('X');
+
+            if (separatorIndex > 0 && separatorIndex < text.Length - 1)
+            {
+                var codePart = text[..separatorIndex].Trim();
+                var quantityPart = text[(separatorIndex + 1)..].Trim();
+
+                if (TryParseQuantity(quantityPart, out var parsedQuantity))
+                {
+                    code = codePart;
+                    quantity = parsedQuantity;
+                }
+            }
+
+            return (code, quantity);
+        }
+
+        private static bool TryParseQuantity(string value, out decimal quantity)
+        {
+            quantity = 1m;
+
+            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out var parsed) ||
+                decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out parsed))
+            {
+                if (parsed > 0)
+                {
+                    quantity = Math.Floor(parsed);
+                    if (quantity < 1m)
+                        quantity = 1m;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private async Task<bool> LoadProductsAsync(bool loadMore = false)
@@ -1042,13 +1092,18 @@ namespace NovaRetail.ViewModels
         }
 
         private void AddProduct(ProductModel? product)
+            => AddProduct(product, 1m);
+
+        private void AddProduct(ProductModel? product, decimal quantityToAdd)
         {
             if (product is null) return;
+
+            var safeQuantity = quantityToAdd <= 0m ? 1m : Math.Floor(quantityToAdd);
 
             var existing = CartItems.FirstOrDefault(c => c.Name == product.Name);
             if (existing is not null)
             {
-                existing.Quantity++;
+                existing.Quantity += safeQuantity;
                 product.CartQuantity = existing.Quantity;
             }
             else
@@ -1062,10 +1117,11 @@ namespace NovaRetail.ViewModels
                     UnitPriceColones = product.PriceColonesValue,
                     TaxPercentage = product.TaxPercentage,
                     Cabys = product.Cabys,
-                    Stock = product.Stock
+                    Stock = product.Stock,
+                    Quantity = safeQuantity
                 };
                 CartItems.Insert(0, newItem);
-                product.CartQuantity = 1;
+                product.CartQuantity = safeQuantity;
                 UpdateExonerationEligibility(newItem, _appliedExoneration);
             }
             RecalculateTotal();
