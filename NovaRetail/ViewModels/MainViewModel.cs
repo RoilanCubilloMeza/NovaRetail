@@ -579,7 +579,7 @@ namespace NovaRetail.ViewModels
             DecrementCommand = new Command<CartItemModel>(Decrement);
             ClearCartCommand = new Command(ClearCart);
             InvoiceCommand = new Command(async () => await InvoiceAsync());
-            SearchProductCommand = new Command(FilterProducts);
+            SearchProductCommand = new Command(async () => await SearchOrAddProductByCodeAsync());
             SelectCategoryCommand = new Command<string>(SelectCategory);
             SelectTabCommand = new Command<string>(SelectTab);
             ApplyDiscountCommand = new Command(async () => await ApplyDiscountAsync());
@@ -694,6 +694,58 @@ namespace NovaRetail.ViewModels
             catch
             {
             }
+        }
+
+        private async Task SearchOrAddProductByCodeAsync()
+        {
+            var raw = ProductSearchText;
+            var code = raw?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                FilterProducts();
+                return;
+            }
+
+            var product = FindProductByCode(_allProducts, code);
+
+            if (product is null)
+            {
+                try
+                {
+                    var results = await _productService.SearchAsync(code, 20, _exchangeRate);
+                    product = FindProductByCode(results, code);
+
+                    if (product is not null && !ContainsProductCode(_allProducts, product.Code))
+                        _allProducts.Add(product);
+                }
+                catch
+                {
+                }
+            }
+
+            if (product is not null)
+            {
+                AddProduct(product);
+                ProductSearchText = string.Empty;
+
+                // Restablecer catálogo normal después de agregar por código.
+                await LoadProductsAsync();
+                return;
+            }
+
+            FilterProducts();
+        }
+
+        private static ProductModel? FindProductByCode(IEnumerable<ProductModel> products, string code)
+            => products.FirstOrDefault(p => string.Equals((p.Code ?? string.Empty).Trim(), code, StringComparison.OrdinalIgnoreCase));
+
+        private static bool ContainsProductCode(IEnumerable<ProductModel> products, string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return products.Any(p => string.Equals((p.Code ?? string.Empty).Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<bool> LoadProductsAsync(bool loadMore = false)
