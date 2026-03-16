@@ -30,6 +30,9 @@ namespace NovaRetail.ViewModels
         private CancellationTokenSource _searchCts = new();
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
+        private string _storeName = string.Empty;
+        private string _storeAddress = string.Empty;
+        private string _storePhone = string.Empty;
         private decimal _tax;
         private decimal _total;
         private decimal _discountAmount;
@@ -135,6 +138,7 @@ namespace NovaRetail.ViewModels
         public DiscountEntryViewModel DiscountVm { get; } = new();
         public PriceJustificationViewModel PriceJustVm { get; } = new();
         public CheckoutViewModel CheckoutVm { get; } = new();
+        public ReceiptViewModel ReceiptVm { get; } = new();
 
         public bool IsCheckoutVisible
         {
@@ -143,6 +147,16 @@ namespace NovaRetail.ViewModels
             {
                 if (IsCheckoutVisible != value)
                     _appStore.Dispatch(new SetCheckoutVisibleAction(value));
+            }
+        }
+
+        public bool IsReceiptVisible
+        {
+            get => _appStore.State.IsReceiptVisible;
+            private set
+            {
+                if (IsReceiptVisible != value)
+                    _appStore.Dispatch(new SetReceiptVisibleAction(value));
             }
         }
 
@@ -619,9 +633,15 @@ namespace NovaRetail.ViewModels
             CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
             CheckoutVm.RequestClearExoneration += ClearExoneration;
             CheckoutVm.RequestApplyManualExoneration += ApplyManualExonerationAsync;
+            ReceiptVm.RequestClose += () => IsReceiptVisible = false;
             RefreshCartItemsView();
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            await LoadStoreConfigAsync();
             _ = LoadProductsAsync();
-            _ = LoadStoreConfigAsync();
             _ = LoadProductCountAsync();
         }
 
@@ -633,6 +653,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsDiscountPopupVisible));
             OnPropertyChanged(nameof(IsSelectionMode));
             OnPropertyChanged(nameof(IsCheckoutVisible));
+            OnPropertyChanged(nameof(IsReceiptVisible));
             OnPropertyChanged(nameof(IsProductsPanelVisible));
             OnPropertyChanged(nameof(ProductsPanelVisibilityText));
 
@@ -687,6 +708,9 @@ namespace NovaRetail.ViewModels
                 var config = await _storeConfigService.GetConfigAsync();
                 _storeTaxSystem = config.TaxSystem;
                 _storeIdFromConfig = config.StoreID;
+                _storeName = config.StoreName;
+                _storeAddress = config.StoreAddress;
+                _storePhone = config.StorePhone;
                 TaxSystemText = config.TaxSystemText;
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
@@ -1375,10 +1399,29 @@ namespace NovaRetail.ViewModels
 
                 CheckoutVm.SetCheckoutState(false, string.Empty);
                 IsCheckoutVisible = false;
-                await _dialogService.AlertAsync(
-                    "✅ Facturado",
-                    $"{result.Message}\nTransacción: {result.TransactionNumber}\nForma de pago: {tender.Description}",
-                    "OK");
+
+                ReceiptVm.Load(
+                    transactionNumber: result.TransactionNumber,
+                    clientId: CurrentClientId,
+                    clientName: HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                    cashierName: currentUser.DisplayName,
+                    registerNumber: 1,
+                    storeName: _storeName,
+                    storeAddress: _storeAddress,
+                    storePhone: _storePhone,
+                    cartItems: CartItems.ToList(),
+                    subtotalText: SubtotalColonesText,
+                    taxText: TaxColonesText,
+                    discountText: DiscountColonesText,
+                    hasDiscount: DiscountAmount > 0,
+                    exonerationText: ExonerationColonesText,
+                    hasExoneration: ExonerationAmount > 0,
+                    totalText: TotalText,
+                    totalColonesText: TotalColonesText,
+                    tenderDescription: tender.Description ?? string.Empty
+                );
+                IsReceiptVisible = true;
+
                 ClearCart();
                 _ = LoadProductsAsync();
             }
@@ -1510,10 +1553,10 @@ namespace NovaRetail.ViewModels
 
         private static int ParseCashierId(LoginUserModel currentUser)
         {
-            if (int.TryParse(currentUser.UserName, out var cashierId) && cashierId > 0)
-                return cashierId;
+            if (currentUser.ClientId > 0)
+                return currentUser.ClientId;
 
-            if (int.TryParse(currentUser.DisplayName, out cashierId) && cashierId > 0)
+            if (int.TryParse(currentUser.UserName, out var cashierId) && cashierId > 0)
                 return cashierId;
 
             return 1;

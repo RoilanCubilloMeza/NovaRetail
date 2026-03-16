@@ -1,4 +1,5 @@
-﻿using System.Web.Http;
+﻿using Newtonsoft.Json;
+using System.Web.Http;
 
 namespace NovaAPI
 {
@@ -16,6 +17,12 @@ namespace NovaAPI
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
+
+            // Encode non-ASCII characters (ñ, á, é, ₡, etc.) as \uXXXX escape sequences
+            // so the JSON payload is pure ASCII and immune to charset/encoding mismatches
+            // between the .NET Framework 4.8 API and the .NET 10 MAUI client.
+            config.Formatters.JsonFormatter.SerializerSettings.StringEscapeHandling =
+                StringEscapeHandling.EscapeNonAscii;
         }
     }
 }

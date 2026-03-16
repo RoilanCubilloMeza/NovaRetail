@@ -34,6 +34,12 @@
               IsVisible="{Binding IsCheckoutVisible}">
             <views:CheckoutPopup BindingContext="{Binding CheckoutVm}"/>
         </Grid>
+
+        <!-- Receipt overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsReceiptVisible}">
+            <views:ReceiptPopup BindingContext="{Binding ReceiptVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

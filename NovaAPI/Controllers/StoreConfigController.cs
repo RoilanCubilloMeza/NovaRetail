@@ -53,6 +53,37 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString) && dto.StoreID > 0)
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        @"SELECT TOP 1
+                            ISNULL(Name,'')     AS StoreName,
+                            ISNULL(Address1,'') AS Addr1,
+                            ISNULL(Address2,'') AS Addr2,
+                            ISNULL(Phone,'')    AS Phone
+                          FROM dbo.Store
+                          WHERE StoreID = @sid", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@sid", dto.StoreID);
+                        cn.Open();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                dto.StoreName    = reader["StoreName"].ToString();
+                                dto.StoreAddress = $"{reader["Addr1"]} {reader["Addr2"]}".Trim();
+                                dto.StorePhone   = reader["Phone"].ToString();
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
             return dto;
         }
 
@@ -99,6 +130,9 @@ namespace NovaAPI.Controllers
         public int TaxSystem { get; set; }
         public int QuoteExpirationDays { get; set; }
         public int DefaultTenderID { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public string StoreAddress { get; set; } = string.Empty;
+        public string StorePhone { get; set; } = string.Empty;
     }
 
     public class TenderDto

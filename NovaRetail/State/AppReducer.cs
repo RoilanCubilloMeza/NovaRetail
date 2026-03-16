@@ -12,6 +12,7 @@ namespace NovaRetail.State
             SetDiscountPopupVisibleAction a => state with { IsDiscountPopupVisible = a.Value },
             SetSelectionModeAction a => state with { IsSelectionMode = a.Value },
             SetCheckoutVisibleAction a => state with { IsCheckoutVisible = a.Value },
+            SetReceiptVisibleAction a => state with { IsReceiptVisible = a.Value },
             SetProductsPanelVisibleAction a => state with { IsProductsPanelVisible = a.Value },
 
             // ── Cliente ──

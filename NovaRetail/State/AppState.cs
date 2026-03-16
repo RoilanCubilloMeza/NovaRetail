@@ -7,6 +7,7 @@ namespace NovaRetail.State
         bool IsDiscountPopupVisible = false,
         bool IsSelectionMode = false,
         bool IsCheckoutVisible = false,
+        bool IsReceiptVisible = false,
         bool IsProductsPanelVisible = true,
 
         // ── Cliente ──

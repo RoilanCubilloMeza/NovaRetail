@@ -122,16 +122,16 @@ namespace NovaRetail.Controls
                 FontAttributes = FontAttributes.Bold,
                 TextColor      = UiConfig.TextPrimary,
                 LineBreakMode  = LineBreakMode.WordWrap,
-                MaxLines       = 2
+                MaxLines       = 3
             };
             nameLabel.SetBinding(Label.TextProperty, new Binding(nameof(ProductName), source: this));
 
             // ── Precio colones ──
             _colonesLabel = new Label
             {
-                FontSize       = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor      = UiConfig.TextDarkBlue
+                FontSize   = 12,
+                FontFamily = "OpenSansSemibold",
+                TextColor  = UiConfig.TextDarkBlue
             };
             _colonesLabel.SetBinding(Label.TextProperty, new Binding(nameof(PriceColones), source: this));
 
@@ -180,13 +180,14 @@ namespace NovaRetail.Controls
             {
                 FontSize  = 10,
                 TextColor = UiConfig.TextSecondary,
-                Margin    = new Thickness(0, 2, 0, 0)
+                Margin    = new Thickness(0, 2, 0, 3)
             };
 
             var contentStack = new VerticalStackLayout
             {
                 Spacing         = 3,
-                VerticalOptions = LayoutOptions.Center,
+                Padding         = new Thickness(0, 0, 0, 3),
+                VerticalOptions = LayoutOptions.Start,
                 Children        = { nameLabel, _colonesLabel, _codeLayout, _regularPrice, _offerLayout, _stockLabel }
             };
 
@@ -210,7 +211,8 @@ namespace NovaRetail.Controls
                 StrokeShape     = new RoundRectangle { CornerRadius = UiConfig.CornerRadiusLg },
                 Stroke          = new SolidColorBrush(UiConfig.BorderGray),
                 StrokeThickness = UiConfig.StrokeThin,
-                Padding         = new Thickness(8),
+                Padding         = new Thickness(8, 8, 8, 12),
+                MinimumHeightRequest = 118,
                 Content         = cardGrid
             };
 

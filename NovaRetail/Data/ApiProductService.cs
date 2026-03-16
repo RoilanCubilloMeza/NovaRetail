@@ -62,18 +62,17 @@ namespace NovaRetail.Data
                     var url = $"{baseUrl}/api/Items/Search?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
                     var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
-                    // El servidor respondió (200): retornar aunque venga vacío.
-                    // No intentar el segundo URL cuando el primero responde correctamente.
-                    return apiItems?.Select(item => MapToProduct(item, exchangeRate)).ToList() ?? [];
+                    if (apiItems is null || apiItems.Count == 0)
+                        continue;
+
+                    return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
                 }
                 catch
                 {
-                    // Error de red: intentar el siguiente URL.
                 }
             }
 
             return [];
-
         }
 
         public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)

@@ -7,6 +7,9 @@ namespace NovaRetail.Models
         public int TaxSystem { get; set; }
         public int QuoteExpirationDays { get; set; }
         public int DefaultTenderID { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public string StoreAddress { get; set; } = string.Empty;
+        public string StorePhone { get; set; } = string.Empty;
 
         public string TaxSystemText => TaxSystem == 1 ? "IVA Incluido" : "IVA Excluido";
     }

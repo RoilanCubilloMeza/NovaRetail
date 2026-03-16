@@ -135,6 +135,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	    <Inflator>Default</Inflator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\ReceiptPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	</ItemGroup>
 
 </Project>
