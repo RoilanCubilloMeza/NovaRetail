@@ -199,11 +199,11 @@ namespace NovaRetail.ViewModels
             IsBusy = true;
             try
             {
-                var txtFile = BuildCacheFile("txt", BuildReceiptText());
+                var htmlFile = BuildCacheFile("html", BuildReceiptHtml(false));
                 await Share.RequestAsync(new ShareFileRequest
                 {
                     Title = $"Guardar Factura #{TransactionNumber}",
-                    File  = new ShareFile(txtFile, "text/plain")
+                    File  = new ShareFile(htmlFile, "text/html")
                 });
             }
             catch (Exception ex)
@@ -283,77 +283,100 @@ namespace NovaRetail.ViewModels
             return sb.ToString();
         }
 
-        private string BuildReceiptHtml()
+        private string BuildReceiptHtml(bool autoPrint = true)
         {
             var rows = new StringBuilder();
             foreach (var item in Items)
             {
-                rows.Append("<tr><td>").Append(Esc(item.DisplayName))
-                    .Append("<br><small style='color:#888'>").Append(Esc(item.Code)).Append("</small></td>")
-                    .Append("<td style='text-align:center'>").Append(Esc(item.QuantityText)).Append("</td>")
-                    .Append("<td style='text-align:right'>").Append(Esc(item.UnitPriceColonesText)).Append("</td>")
-                    .Append("<td style='text-align:right'><b>").Append(Esc(item.LineTotalText)).AppendLine("</b></td></tr>");
-                if (item.HasTax)
-                    rows.Append("<tr><td colspan='4'><small style='color:#888'>").Append(Esc(item.TaxRateText)).AppendLine("</small></td></tr>");
+                rows.Append("<tr class='item-row'>")
+                    .Append("<td class='desc-cell'><div class='item-name'>").Append(Esc(item.DisplayName)).Append("</div>");
+
+                if (!string.IsNullOrWhiteSpace(item.Code) || item.HasTax)
+                {
+                    rows.Append("<div class='item-meta'>");
+
+                    if (!string.IsNullOrWhiteSpace(item.Code))
+                        rows.Append("<span>").Append(Esc(item.Code)).Append("</span>");
+
+                    if (item.HasTax)
+                        rows.Append("<span>").Append(Esc(item.TaxRateText)).Append("</span>");
+
+                    rows.Append("</div>");
+                }
+
+                rows.Append("</td>")
+                    .Append("<td class='num'>").Append(Esc(item.QuantityText)).Append("</td>")
+                    .Append("<td class='num'>").Append(Esc(item.UnitPriceColonesText)).Append("</td>")
+                    .Append("<td class='num strong'>").Append(Esc(item.LineTotalText)).Append("</td>")
+                    .Append("</tr>");
             }
 
             var storeBlock = HasStoreInfo
-                ? $"<p class='center'><b>{Esc(StoreName)}</b><br>{Esc(StoreAddress)}<br>{Esc(StorePhone)}</p>"
+                ? $"<div class='store'><div class='store-name'>{Esc(StoreName)}</div><div>{Esc(StoreAddress)}</div><div>{Esc(StorePhone)}</div></div>"
                 : string.Empty;
             var discountRow = HasDiscount
-                ? $"<tr><td>Descuentos</td><td colspan='3' style='text-align:right;color:#e53e3e'>{Esc(DiscountText)}</td></tr>"
+                ? $"<tr><td>Descuentos</td><td>{Esc(DiscountText)}</td></tr>"
                 : string.Empty;
             var exonRow = HasExoneration
-                ? $"<tr><td>Exoneraci\u00f3n</td><td colspan='3' style='text-align:right;color:#2b6cb0'>{Esc(ExonerationText)}</td></tr>"
+                ? $"<tr><td>Exoneración</td><td>{Esc(ExonerationText)}</td></tr>"
+                : string.Empty;
+            var printScript = autoPrint
+                ? "<script>window.onload=function(){window.print();}</script>"
                 : string.Empty;
 
             var html = new StringBuilder();
             html.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'>")
-                .AppendLine($"<title>Factura #{TransactionNumber}</title>")
+                .AppendLine("<meta name='viewport' content='width=device-width, initial-scale=1'>")
+                .AppendLine("<title></title>")
                 .AppendLine("<style>")
-                .AppendLine("body{font-family:'Courier New',monospace;font-size:11px;max-width:380px;margin:20px auto}")
-                .AppendLine("h2{text-align:center;font-size:13px;margin:4px 0}")
-                .AppendLine(".center{text-align:center} .sep{border-top:1px solid #000;margin:4px 0}")
-                .AppendLine("table{width:100%;border-collapse:collapse} td{padding:2px 4px}")
-                .AppendLine(".th{border-top:1px solid #000;border-bottom:1px solid #000;font-weight:bold}")
-                .AppendLine(".total-row td{border-top:2px solid #000;font-weight:bold;font-size:14px}")
-                .AppendLine("@media print{body{margin:0}}")
+                .AppendLine("*{box-sizing:border-box}html,body{margin:0;padding:0}body{background:#eef3f8;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}")
+                .AppendLine(".wrap{padding:28px 20px}.paper{width:min(760px,100%);margin:0 auto;background:#fff;border:1px solid #dbe3ee;border-radius:22px;box-shadow:0 14px 36px rgba(15,23,42,.10);overflow:hidden}")
+                .AppendLine(".hero{background:#0f172a;padding:18px 22px}.hero-table,.meta-table,.items-table,.summary-table,.payment-table{width:100%;border-collapse:collapse}.hero-title{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.3px}.hero-sub{font-size:13px;color:#bfdbfe;padding-top:4px}.doc-badge{display:inline-block;background:#2563eb;color:#fff;border-radius:14px;padding:10px 14px;text-align:center;min-width:92px}.doc-badge small{display:block;font-size:10px;color:#dbeafe;margin-bottom:2px}.doc-badge strong{font-size:20px}")
+                .AppendLine(".content{padding:26px}.receipt-title{text-align:center;font-size:30px;font-weight:800;margin:0 0 10px}.store{text-align:center;font-size:16px;color:#334155;line-height:1.45;margin:0 0 8px}.store-name{font-size:26px;font-weight:800;color:#0f172a}.sep{border-top:1px solid #cbd5e1;margin:14px 0}")
+                .AppendLine(".meta-table td{padding:4px 0;font-size:16px;vertical-align:top}.meta-label{width:160px;font-weight:700;color:#334155}.meta-value{color:#0f172a}.meta-split{display:flex;justify-content:space-between;gap:12px}")
+                .AppendLine(".items-table{table-layout:fixed}.items-head th{padding:10px 0 8px;border-bottom:2px solid #cbd5e1;font-size:15px;color:#334155;text-align:left}.items-head th:nth-child(2),.items-head th:nth-child(3),.items-head th:nth-child(4){text-align:right}.items-table th:nth-child(1){width:52%}.items-table th:nth-child(2){width:12%}.items-table th:nth-child(3){width:18%}.items-table th:nth-child(4){width:18%}.items-table td{padding:12px 0 10px;border-bottom:1px solid #eef2f7;vertical-align:top;font-size:16px}.desc-cell{padding-right:12px}.item-name{font-weight:800;line-height:1.35}.item-meta{display:flex;gap:10px;flex-wrap:wrap;color:#64748b;font-size:13px;margin-top:4px}.num{text-align:right}.strong{font-weight:800}")
+                .AppendLine(".summary-table td,.payment-table td{padding:5px 0;font-size:16px}.summary-table td:last-child,.payment-table td:last-child{text-align:right;font-weight:700}.summary-total td{padding-top:10px;border-top:2px solid #cbd5e1;font-size:22px;font-weight:800}.payment-table{margin-top:2px}.policy{text-align:center;font-size:15px;line-height:1.45;color:#0f172a}.policy-sep{text-align:center;color:#94a3b8;font-size:14px;letter-spacing:1px;margin:10px 0 6px}.soon{text-align:center;font-size:20px;font-weight:800;margin-top:4px}.legal{text-align:center;font-size:12px;line-height:1.45;color:#475569;padding-top:16px}.legal strong{color:#0f172a}")
+                .AppendLine("@media print{@page{size:auto;margin:0}html,body{margin:0;padding:0;background:#fff}.wrap{padding:10mm}.paper{width:100%;max-width:none;border:none;box-shadow:none;border-radius:0}.hero{padding:12px 0 14px;background:#fff;border-bottom:1px solid #cbd5e1}.hero-title{color:#0f172a;font-size:24px}.hero-sub,.doc-badge small{color:#475569}.doc-badge{background:#f8fafc;color:#0f172a;border:1px solid #cbd5e1}.content{padding:14px 0 0}.store-name{font-size:20px}.store{font-size:13px}.meta-table td,.summary-table td,.payment-table td,.items-table td{font-size:13px}.items-head th{font-size:12px}.item-name{font-size:13px}.item-meta{font-size:11px}.summary-total td{font-size:17px}.policy{font-size:12px}.soon{font-size:16px}.legal{font-size:10px;padding-top:10px}}")
                 .AppendLine("</style>")
-                .AppendLine("<script>window.onload=function(){window.print();}</script>")
-                .AppendLine("</head><body>")
-                .AppendLine("<h2>Recibo Duplicado</h2>")
+                .AppendLine(printScript)
+                .AppendLine("</head><body><div class='wrap'><div class='paper'>")
+                .AppendLine("<div class='hero'><table class='hero-table'><tr><td><div class='hero-title'>Recibo Duplicado</div><div class='hero-sub'>Resumen de la venta listo para imprimir, enviar o guardar.</div></td><td style='text-align:right;vertical-align:middle'><div class='doc-badge'><small>DOC</small><strong>")
+                .Append(TransactionNumber)
+                .AppendLine("</strong></div></td></tr></table></div>")
+                .AppendLine("<div class='content'>")
+                .AppendLine("<div class='receipt-title'>Recibo Duplicado</div>")
                 .AppendLine(storeBlock)
                 .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table>")
-                .AppendLine($"<tr><td>Doc. Interno #:</td><td><b>{TransactionNumber}</b></td></tr>")
-                .AppendLine($"<tr><td>C\u00f3d. Cliente:</td><td>{Esc(ClientId)}</td></tr>")
-                .AppendLine($"<tr><td>Nombre:</td><td>{Esc(ClientName)}</td></tr>")
-                .AppendLine($"<tr><td>Fecha/Hora:</td><td>{Esc(TransactionDate)}</td></tr>")
-                .AppendLine($"<tr><td>Cajero:</td><td>{Esc(CashierName)} &nbsp;&nbsp; {Esc(RegisterText)}</td></tr>")
+                .AppendLine("<table class='meta-table'>")
+                .AppendLine($"<tr><td class='meta-label'>Doc. Interno #:</td><td class='meta-value strong'>{TransactionNumber}</td></tr>")
+                .AppendLine($"<tr><td class='meta-label'>Cód. Cliente:</td><td class='meta-value'>{Esc(ClientId)}</td></tr>")
+                .AppendLine($"<tr><td class='meta-label'>Nombre:</td><td class='meta-value'>{Esc(ClientName)}</td></tr>")
+                .AppendLine($"<tr><td class='meta-label'>Fecha/Hora:</td><td class='meta-value'>{Esc(TransactionDate)}</td></tr>")
+                .AppendLine($"<tr><td class='meta-label'>Cajero:</td><td class='meta-value'><div class='meta-split'><span>{Esc(CashierName)}</span><span class='strong'>{Esc(RegisterText)}</span></div></td></tr>")
                 .AppendLine("</table>")
                 .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table>")
-                .AppendLine("<tr class='th'><td>DESC/COD</td><td style='text-align:center'>CANT.</td><td style='text-align:right'>PRECIO</td><td style='text-align:right'>TOTAL</td></tr>")
+                .AppendLine("<table class='items-table'><thead><tr class='items-head'><th>DESC/COD</th><th>CANT.</th><th>PRECIO</th><th>TOTAL</th></tr></thead><tbody>")
                 .Append(rows)
+                .AppendLine("</tbody></table>")
+                .AppendLine("<div class='sep'></div>")
+                .AppendLine("<table class='summary-table'>")
+                .AppendLine($"<tr><td>Sub Total</td><td>{Esc(SubtotalText)}</td></tr>")
+                .AppendLine(discountRow)
+                .AppendLine(exonRow)
+                .AppendLine($"<tr><td>Imp.Ventas</td><td>{Esc(TaxText)}</td></tr>")
+                .AppendLine($"<tr class='summary-total'><td>Total</td><td>{Esc(TotalColonesText)}</td></tr>")
                 .AppendLine("</table>")
                 .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table>")
-                .AppendLine($"<tr><td>Subtotal</td><td colspan='3' style='text-align:right'>{Esc(SubtotalText)}</td></tr>")
-                .AppendLine(discountRow).AppendLine(exonRow)
-                .AppendLine($"<tr><td>Imp.Ventas</td><td colspan='3' style='text-align:right'>{Esc(TaxText)}</td></tr>")
-                .AppendLine($"<tr class='total-row'><td>TOTAL</td><td colspan='3' style='text-align:right'>{Esc(TotalColonesText)}</td></tr>")
+                .AppendLine("<table class='payment-table'>")
+                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TotalColonesText)}</td></tr>")
+                .AppendLine("<tr><td>CAMBIO</td><td>₡0.00</td></tr>")
                 .AppendLine("</table>")
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table>")
-                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td style='text-align:right'>{Esc(TotalColonesText)}</td></tr>")
-                .AppendLine("<tr><td>CAMBIO</td><td style='text-align:right'>\u20a10.00</td></tr>")
-                .AppendLine("</table>")
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<p class='center' style='font-size:9px'>No se cambia ropa<br>No se aceptan devoluciones sin factura<br>No se aceptan devoluciones despu\u00e9s de 45 d\u00edas</p>")
-                .AppendLine("<p class='center'><b>\u00a1Le Esperamos Pronto!</b></p>")
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<p class='center' style='font-size:8px'>DGT-R-053-2019 del 20/06/2019 &middot; Versi\u00f3n 4.3 (Cabys)<br>*** Generado por AVS Solutions ***</p>")
-                .AppendLine("</body></html>");
+                .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
+                .AppendLine("<div class='policy'>No se cambia ropa<br>No se aceptan devoluciones sin factura<br>No se aceptan devoluciones después de 45 días</div>")
+                .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
+                .AppendLine("<div class='soon'>¡Le Esperamos Pronto!</div>")
+                .AppendLine("<div class='legal'>Documento emitido conforme lo establecido<br>en la resolución de Factura Electrónica<br>DGT-R-053-2019 del 20/06/2019<br>de la Dirección General de Tributación<br>Versión: 4.3 (Cabys)<br><strong>*** Generado por AVS Solutions ***</strong></div>")
+                .AppendLine("</div></div></div></body></html>");
 
             return html.ToString();
         }
