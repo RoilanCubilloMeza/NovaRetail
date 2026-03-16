@@ -14,12 +14,14 @@ namespace NovaRetail.Models
         private bool _isExonerationEligible;
         private string _discountReasonCode = string.Empty;
 
+        public int ItemID { get; set; }
         public string Emoji { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public decimal UnitPriceColones { get; set; }
         public decimal TaxPercentage { get; set; }
+        public int TaxID { get; set; }
         public string Cabys { get; set; } = string.Empty;
         public decimal Stock { get; set; }
 

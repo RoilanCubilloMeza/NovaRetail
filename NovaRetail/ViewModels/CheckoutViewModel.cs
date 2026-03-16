@@ -20,9 +20,11 @@ namespace NovaRetail.ViewModels
         private string _exonerationSummaryText = "Sin exoneración aplicada.";
         private string _exonerationStatusText = "Ingrese una autorización de Hacienda para validar.";
         private string _exonerationScopeText = "Se aplicará a todo el carrito si no hay selección activa.";
+        private string _statusMessage = string.Empty;
         private bool _hasDiscount;
         private bool _hasExoneration;
         private bool _isExonerationBusy;
+        private bool _isSubmitting;
 
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
@@ -33,10 +35,17 @@ namespace NovaRetail.ViewModels
             {
                 _selectedTender = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedTenderText));
                 OnPropertyChanged(nameof(CanConfirm));
                 ((Command)ConfirmCommand).ChangeCanExecute();
+                ((Command)SelectTenderCommand).ChangeCanExecute();
             }
         }
+
+        public string SelectedTenderText
+            => SelectedTender is null
+                ? "Seleccione una forma de pago."
+                : $"Pago seleccionado: {SelectedTender.Description}";
 
         public string SubtotalText
         {
@@ -107,6 +116,20 @@ namespace NovaRetail.ViewModels
             get => _exonerationScopeText;
             private set { _exonerationScopeText = value; OnPropertyChanged(); }
         }
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            private set
+            {
+                if (_statusMessage != value)
+                {
+                    _statusMessage = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasStatusMessage));
+                }
+            }
+        }
+        public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
         public bool HasExoneration
         {
             get => _hasExoneration;
@@ -137,9 +160,33 @@ namespace NovaRetail.ViewModels
                 }
             }
         }
-        public bool CanConfirm => SelectedTender is not null;
-        public bool CanValidateExoneration => !IsExonerationBusy && !string.IsNullOrWhiteSpace(ExonerationAuthorization);
-        public bool CanClearExoneration => !IsExonerationBusy && HasExoneration;
+        public bool IsSubmitting
+        {
+            get => _isSubmitting;
+            private set
+            {
+                if (_isSubmitting != value)
+                {
+                    _isSubmitting = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanConfirm));
+                    OnPropertyChanged(nameof(CanCancel));
+                    OnPropertyChanged(nameof(CanSelectTender));
+                    OnPropertyChanged(nameof(ConfirmButtonText));
+                    OnPropertyChanged(nameof(IsBusy));
+                    ((Command)ConfirmCommand).ChangeCanExecute();
+                    ((Command)CancelCommand).ChangeCanExecute();
+                    ((Command)SelectTenderCommand).ChangeCanExecute();
+                }
+            }
+        }
+        public bool IsBusy => IsSubmitting || IsExonerationBusy;
+        public bool CanConfirm => SelectedTender is not null && !IsSubmitting;
+        public bool CanCancel => !IsSubmitting;
+        public bool CanSelectTender => !IsSubmitting;
+        public bool CanValidateExoneration => !IsBusy && !string.IsNullOrWhiteSpace(ExonerationAuthorization);
+        public bool CanClearExoneration => !IsBusy && HasExoneration;
+        public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar";
 
         public event Action? RequestConfirm;
         public event Action? RequestCancel;
@@ -156,9 +203,9 @@ namespace NovaRetail.ViewModels
 
         public CheckoutViewModel()
         {
-            SelectTenderCommand = new Command<TenderModel>(t => SelectedTender = t);
+            SelectTenderCommand = new Command<TenderModel>(t => SelectedTender = t, t => CanSelectTender && t is not null);
             ConfirmCommand = new Command(() => RequestConfirm?.Invoke(), () => CanConfirm);
-            CancelCommand = new Command(() => RequestCancel?.Invoke());
+            CancelCommand = new Command(() => RequestCancel?.Invoke(), () => CanCancel);
             ValidateExonerationCommand = new Command(async () => await ValidateExonerationAsync(), () => CanValidateExoneration);
             ClearExonerationCommand = new Command(() => RequestClearExoneration?.Invoke(), () => CanClearExoneration);
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
@@ -186,6 +233,8 @@ namespace NovaRetail.ViewModels
             TaxSystemText = taxSystemText;
             QuoteDaysText = quoteDaysText;
             HasDiscount = hasDiscount;
+            StatusMessage = string.Empty;
+            IsSubmitting = false;
 
             Tenders.Clear();
             TenderModel? defaultTender = null;
@@ -203,6 +252,21 @@ namespace NovaRetail.ViewModels
         public void SetBusy(bool isBusy)
         {
             IsExonerationBusy = isBusy;
+        }
+
+        public void SetCheckoutState(bool isSubmitting, string? statusMessage = null)
+        {
+            IsSubmitting = isSubmitting;
+
+            if (statusMessage != null)
+                StatusMessage = statusMessage;
+            else if (!isSubmitting)
+                StatusMessage = string.Empty;
+        }
+
+        public void SetStatusMessage(string? statusMessage)
+        {
+            StatusMessage = statusMessage ?? string.Empty;
         }
 
         public void UpdateTotals(string subtotalText, string discountAmountText, string taxText, string totalText, string totalColonesText, bool hasDiscount)

@@ -1,0 +1,391 @@
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+using NovaAPI.Models;
+
+namespace NovaAPI.Controllers
+{
+    [RoutePrefix("api/NovaRetailSales")]
+    public class NovaRetailSalesController : ApiController
+    {
+        private static string GetConnectionString()
+        {
+            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new ConfigurationErrorsException("No se encontró la cadena de conexión RMHPOS para registrar ventas.");
+
+            return connectionString;
+        }
+
+        private static string GetConnectionTarget(string connectionString)
+        {
+            try
+            {
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                return $"{builder.DataSource} / {builder.InitialCatalog}";
+            }
+            catch
+            {
+                return "RMHPOS";
+            }
+        }
+
+        [HttpPost]
+        [Route("create-sale")]
+        public HttpResponseMessage CreateSale([FromBody] NovaRetailCreateSaleRequest request)
+        {
+            if (request == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
+                {
+                    Ok = false,
+                    Message = "Solicitud inválida."
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value != null && x.Value.Errors.Count > 0)
+                    .SelectMany(x => x.Value.Errors.Select(e => string.IsNullOrWhiteSpace(x.Key)
+                        ? e.ErrorMessage
+                        : $"{x.Key}: {e.ErrorMessage}"))
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
+                {
+                    Ok = false,
+                    Message = errors.Count == 0
+                        ? "Solicitud inválida."
+                        : string.Join(" | ", errors)
+                });
+            }
+
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
+                {
+                    Ok = false,
+                    Message = "La venta no contiene ítems."
+                });
+            }
+
+            if (request.Tenders == null || request.Tenders.Count == 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
+                {
+                    Ok = false,
+                    Message = "La venta no contiene formas de pago."
+                });
+            }
+
+            var response = new NovaRetailCreateSaleResponse();
+            var connectionString = GetConnectionString();
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                using (var cmd = new SqlCommand("dbo.spNovaRetail_CreateSale", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 180;
+
+                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                    cmd.Parameters.AddWithValue("@RegisterID", request.RegisterID);
+                    cmd.Parameters.AddWithValue("@CashierID", request.CashierID);
+                    cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+                    cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
+                    cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@Status", request.Status);
+                    cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
+                    cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
+                    cmd.Parameters.AddWithValue("@RecallID", request.RecallID);
+                    cmd.Parameters.AddWithValue("@RecallType", request.RecallType);
+                    cmd.Parameters.AddWithValue("@TransactionTime", (object)request.TransactionTime ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@TotalChange", request.TotalChange);
+                    cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory);
+                    cmd.Parameters.AddWithValue("@CurrencyCode", request.CurrencyCode ?? "CRC");
+                    cmd.Parameters.AddWithValue("@TipoCambio", request.TipoCambio ?? "1");
+                    cmd.Parameters.AddWithValue("@CondicionVenta", request.CondicionVenta ?? "01");
+                    cmd.Parameters.AddWithValue("@CodCliente", request.CodCliente ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NombreCliente", request.NombreCliente ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@CedulaTributaria", request.CedulaTributaria ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@Exonera", request.Exonera);
+                    cmd.Parameters.AddWithValue("@InsertarTiqueteEspera", request.InsertarTiqueteEspera);
+                    cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", request.COMPROBANTE_INTERNO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
+
+                    var itemsParameter = cmd.Parameters.AddWithValue("@Items", ToItemsTable(request.Items));
+                    itemsParameter.SqlDbType = SqlDbType.Structured;
+                    itemsParameter.TypeName = "dbo.NovaRetailSaleItemTVP";
+
+                    var tendersParameter = cmd.Parameters.AddWithValue("@Tenders", ToTendersTable(request.Tenders));
+                    tendersParameter.SqlDbType = SqlDbType.Structured;
+                    tendersParameter.TypeName = "dbo.NovaRetailSaleTenderTVP";
+
+                    var transactionNumberParameter = new SqlParameter("@TransactionNumber", SqlDbType.Int)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(transactionNumberParameter);
+
+                    cn.Open();
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            response.Ok = GetBoolean(reader, "Ok");
+                            response.Message = GetString(reader, "Message", GetString(reader, "ErrorMessage", string.Empty));
+                            response.TransactionNumber = GetInt(reader, "TransactionNumber");
+                            response.BatchNumber = GetNullableInt(reader, "BatchNumber");
+                            response.SubTotal = GetNullableDecimal(reader, "SubTotal");
+                            response.Discounts = GetNullableDecimal(reader, "Discounts");
+                            response.SalesTax = GetNullableDecimal(reader, "SalesTax");
+                            response.Total = GetNullableDecimal(reader, "Total");
+                            response.TenderTotal = GetNullableDecimal(reader, "TenderTotal");
+                            response.ErrorNumber = GetNullableInt(reader, "ErrorNumber");
+                            response.ErrorProcedure = GetString(reader, "ErrorProcedure", string.Empty);
+                            response.ErrorLine = GetNullableInt(reader, "ErrorLine");
+                        }
+                    }
+
+                    if (response.TransactionNumber <= 0 && transactionNumberParameter.Value != DBNull.Value)
+                    {
+                        response.TransactionNumber = Convert.ToInt32(transactionNumberParameter.Value);
+                    }
+                }
+
+                if (!response.Ok && string.IsNullOrWhiteSpace(response.Message))
+                {
+                    response.Message = "No fue posible registrar la venta.";
+                }
+
+                return Request.CreateResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, response);
+            }
+            catch (SqlException ex)
+            {
+                response.Ok = false;
+                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.ErrorNumber = ex.Number;
+                response.ErrorProcedure = ex.Procedure ?? string.Empty;
+                response.ErrorLine = ex.LineNumber;
+
+                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+            }
+            catch (Exception ex)
+            {
+                response.Ok = false;
+                response.Message = ex.Message;
+
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
+            }
+        }
+
+        private static DataTable ToItemsTable(IEnumerable<NovaRetailSaleItemDto> items)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("RowNo", typeof(int));
+            dt.Columns.Add("ItemID", typeof(int));
+            dt.Columns.Add("Quantity", typeof(decimal));
+            dt.Columns.Add("UnitPrice", typeof(decimal));
+            dt.Columns.Add("FullPrice", typeof(decimal));
+            dt.Columns.Add("Cost", typeof(decimal));
+            dt.Columns.Add("Commission", typeof(decimal));
+            dt.Columns.Add("PriceSource", typeof(int));
+            dt.Columns.Add("SalesRepID", typeof(int));
+            dt.Columns.Add("Taxable", typeof(bool));
+            dt.Columns.Add("TaxID", typeof(int));
+            dt.Columns.Add("SalesTax", typeof(decimal));
+            dt.Columns.Add("LineComment", typeof(string));
+            dt.Columns.Add("DiscountReasonCodeID", typeof(int));
+            dt.Columns.Add("ReturnReasonCodeID", typeof(int));
+            dt.Columns.Add("TaxChangeReasonCodeID", typeof(int));
+            dt.Columns.Add("QuantityDiscountID", typeof(int));
+            dt.Columns.Add("ItemType", typeof(int));
+            dt.Columns.Add("ComputedQuantity", typeof(decimal));
+            dt.Columns.Add("IsAddMoney", typeof(bool));
+            dt.Columns.Add("VoucherID", typeof(int));
+            dt.Columns.Add("ExtendedDescription", typeof(string));
+            dt.Columns.Add("PromotionID", typeof(int));
+            dt.Columns.Add("PromotionName", typeof(string));
+            dt.Columns.Add("LineDiscountAmount", typeof(decimal));
+            dt.Columns.Add("LineDiscountPercent", typeof(decimal));
+
+            foreach (var item in items)
+            {
+                dt.Rows.Add(
+                    item.RowNo,
+                    item.ItemID,
+                    item.Quantity,
+                    item.UnitPrice,
+                    item.FullPrice.HasValue ? (object)item.FullPrice.Value : DBNull.Value,
+                    item.Cost,
+                    item.Commission,
+                    item.PriceSource,
+                    item.SalesRepID,
+                    item.Taxable,
+                    item.TaxID.HasValue ? (object)item.TaxID.Value : DBNull.Value,
+                    item.SalesTax,
+                    item.LineComment ?? string.Empty,
+                    item.DiscountReasonCodeID,
+                    item.ReturnReasonCodeID,
+                    item.TaxChangeReasonCodeID,
+                    item.QuantityDiscountID,
+                    item.ItemType,
+                    item.ComputedQuantity,
+                    item.IsAddMoney,
+                    item.VoucherID,
+                    string.IsNullOrWhiteSpace(item.ExtendedDescription) ? (object)DBNull.Value : item.ExtendedDescription,
+                    item.PromotionID.HasValue ? (object)item.PromotionID.Value : DBNull.Value,
+                    string.IsNullOrWhiteSpace(item.PromotionName) ? (object)DBNull.Value : item.PromotionName,
+                    item.LineDiscountAmount,
+                    item.LineDiscountPercent);
+            }
+
+            return dt;
+        }
+
+        private static DataTable ToTendersTable(IEnumerable<NovaRetailSaleTenderDto> tenders)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("RowNo", typeof(int));
+            dt.Columns.Add("TenderID", typeof(int));
+            dt.Columns.Add("PaymentID", typeof(int));
+            dt.Columns.Add("Description", typeof(string));
+            dt.Columns.Add("Amount", typeof(decimal));
+            dt.Columns.Add("AmountForeign", typeof(decimal));
+            dt.Columns.Add("RoundingError", typeof(decimal));
+            dt.Columns.Add("CreditCardExpiration", typeof(string));
+            dt.Columns.Add("CreditCardNumber", typeof(string));
+            dt.Columns.Add("CreditCardApprovalCode", typeof(string));
+            dt.Columns.Add("AccountHolder", typeof(string));
+            dt.Columns.Add("BankNumber", typeof(string));
+            dt.Columns.Add("SerialNumber", typeof(string));
+            dt.Columns.Add("State", typeof(string));
+            dt.Columns.Add("License", typeof(string));
+            dt.Columns.Add("BirthDate", typeof(DateTime));
+            dt.Columns.Add("TransitNumber", typeof(string));
+            dt.Columns.Add("VisaNetAuthorizationID", typeof(int));
+            dt.Columns.Add("DebitSurcharge", typeof(decimal));
+            dt.Columns.Add("CashBackSurcharge", typeof(decimal));
+            dt.Columns.Add("IsCreateNew", typeof(bool));
+            dt.Columns.Add("MedioPagoCodigo", typeof(string));
+
+            foreach (var tender in tenders)
+            {
+                dt.Rows.Add(
+                    tender.RowNo,
+                    tender.TenderID,
+                    tender.PaymentID,
+                    tender.Description ?? string.Empty,
+                    tender.Amount,
+                    tender.AmountForeign.HasValue ? (object)tender.AmountForeign.Value : DBNull.Value,
+                    tender.RoundingError,
+                    string.IsNullOrWhiteSpace(tender.CreditCardExpiration) ? (object)DBNull.Value : tender.CreditCardExpiration,
+                    string.IsNullOrWhiteSpace(tender.CreditCardNumber) ? (object)DBNull.Value : tender.CreditCardNumber,
+                    string.IsNullOrWhiteSpace(tender.CreditCardApprovalCode) ? (object)DBNull.Value : tender.CreditCardApprovalCode,
+                    string.IsNullOrWhiteSpace(tender.AccountHolder) ? (object)DBNull.Value : tender.AccountHolder,
+                    string.IsNullOrWhiteSpace(tender.BankNumber) ? (object)DBNull.Value : tender.BankNumber,
+                    string.IsNullOrWhiteSpace(tender.SerialNumber) ? (object)DBNull.Value : tender.SerialNumber,
+                    string.IsNullOrWhiteSpace(tender.State) ? (object)DBNull.Value : tender.State,
+                    string.IsNullOrWhiteSpace(tender.License) ? (object)DBNull.Value : tender.License,
+                    tender.BirthDate.HasValue ? (object)tender.BirthDate.Value : DBNull.Value,
+                    string.IsNullOrWhiteSpace(tender.TransitNumber) ? (object)DBNull.Value : tender.TransitNumber,
+                    tender.VisaNetAuthorizationID,
+                    tender.DebitSurcharge,
+                    tender.CashBackSurcharge,
+                    tender.IsCreateNew,
+                    string.IsNullOrWhiteSpace(tender.MedioPagoCodigo) ? (object)DBNull.Value : tender.MedioPagoCodigo);
+            }
+
+            return dt;
+        }
+
+        private static bool HasColumn(IDataRecord reader, string columnName)
+        {
+            for (var i = 0; i < reader.FieldCount; i++)
+            {
+                if (string.Equals(reader.GetName(i), columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string GetString(IDataRecord reader, string columnName, string defaultValue)
+        {
+            if (!HasColumn(reader, columnName))
+            {
+                return defaultValue;
+            }
+
+            var value = reader[columnName];
+            return value == DBNull.Value ? defaultValue : Convert.ToString(value);
+        }
+
+        private static int GetInt(IDataRecord reader, string columnName)
+        {
+            if (!HasColumn(reader, columnName))
+            {
+                return 0;
+            }
+
+            var value = reader[columnName];
+            return value == DBNull.Value ? 0 : Convert.ToInt32(value);
+        }
+
+        private static int? GetNullableInt(IDataRecord reader, string columnName)
+        {
+            if (!HasColumn(reader, columnName))
+            {
+                return null;
+            }
+
+            var value = reader[columnName];
+            return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
+        }
+
+        private static decimal? GetNullableDecimal(IDataRecord reader, string columnName)
+        {
+            if (!HasColumn(reader, columnName))
+            {
+                return null;
+            }
+
+            var value = reader[columnName];
+            return value == DBNull.Value ? (decimal?)null : Convert.ToDecimal(value);
+        }
+
+        private static bool GetBoolean(IDataRecord reader, string columnName)
+        {
+            if (!HasColumn(reader, columnName))
+            {
+                return false;
+            }
+
+            var value = reader[columnName];
+            return value != DBNull.Value && Convert.ToBoolean(value);
+        }
+    }
+}

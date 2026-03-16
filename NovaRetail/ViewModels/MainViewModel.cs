@@ -16,8 +16,10 @@ namespace NovaRetail.ViewModels
         private readonly IProductService _productService;
         private readonly IExonerationService _exonerationService;
         private readonly IDialogService _dialogService;
+        private readonly ISaleService _saleService;
         private readonly IStoreConfigService _storeConfigService;
         private readonly AppStore _appStore;
+        private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
@@ -27,6 +29,7 @@ namespace NovaRetail.ViewModels
         private bool _isLoadingItems;
         private CancellationTokenSource _searchCts = new();
         private int _storeTaxSystem;
+        private int _storeIdFromConfig;
         private decimal _tax;
         private decimal _total;
         private decimal _discountAmount;
@@ -40,6 +43,7 @@ namespace NovaRetail.ViewModels
         private string _appliedExonerationAuthorization = string.Empty;
         private string _appliedExonerationScopeText = string.Empty;
         private int _appliedExonerationItemCount;
+        private bool _isProcessingCheckout;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -563,13 +567,15 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, IStoreConfigService storeConfigService, AppStore appStore)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IStoreConfigService storeConfigService, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
             _dialogService = dialogService;
+            _saleService = saleService;
             _storeConfigService = storeConfigService;
             _appStore = appStore;
+            _userSession = userSession;
             _appStore.StateChanged += OnAppStateChanged;
             AddProductCommand = new Command<ProductModel>(AddProduct);
             IncrementCommand = new Command<CartItemModel>(Increment);
@@ -680,6 +686,7 @@ namespace NovaRetail.ViewModels
             {
                 var config = await _storeConfigService.GetConfigAsync();
                 _storeTaxSystem = config.TaxSystem;
+                _storeIdFromConfig = config.StoreID;
                 TaxSystemText = config.TaxSystemText;
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
@@ -829,7 +836,7 @@ namespace NovaRetail.ViewModels
 
             try
             {
-                var products = await _productService.GetProductsAsync(nextPage, ProductsPageSize, _exchangeRate);
+                var products = await _productService.GetProductsAsync(nextPage, ProductsPageSize, _exchangeRate, _storeIdFromConfig > 0 ? _storeIdFromConfig : 1);
 
                 if (products.Count == 0)
                 {
@@ -1058,7 +1065,7 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                var count = await _productService.GetProductCountAsync();
+                var count = await _productService.GetProductCountAsync(_storeIdFromConfig > 0 ? _storeIdFromConfig : 1);
                 TotalApiProducts = count;
             }
             catch
@@ -1138,12 +1145,14 @@ namespace NovaRetail.ViewModels
             {
                 var newItem = new CartItemModel
                 {
+                    ItemID = product.ItemID,
                     Emoji = product.Emoji,
                     Name = product.Name,
                     Code = product.Code,
                     UnitPrice = product.PriceValue,
                     UnitPriceColones = product.PriceColonesValue,
                     TaxPercentage = product.TaxPercentage,
+                    TaxID = product.TaxId,
                     Cabys = product.Cabys,
                     Stock = product.Stock,
                     Quantity = quantityToApply
@@ -1211,12 +1220,14 @@ namespace NovaRetail.ViewModels
             var roundedPriceColones = Math.Round(priceColones, 2);
             var item = new CartItemModel
             {
+                ItemID = 0,
                 Emoji = "📝",
                 Name = name.Trim(),
                 Code = $"MANUAL-{DateTime.Now:HHmmss}",
                 UnitPriceColones = roundedPriceColones,
                 UnitPrice = ConvertFromColones(roundedPriceColones),
                 TaxPercentage = 13m,
+                TaxID = 0,
                 Cabys = string.Empty,
                 Stock = quantity,
                 Quantity = quantity
@@ -1314,14 +1325,198 @@ namespace NovaRetail.ViewModels
             IsCheckoutVisible = true;
         }
 
-        private void OnCheckoutConfirm()
+        private async void OnCheckoutConfirm()
         {
-            IsCheckoutVisible = false;
-            var tender = CheckoutVm.SelectedTender?.Description ?? "";
-            var total = TotalText;
-            _ = _dialogService.AlertAsync("✅ Facturado",
-                $"Factura generada por {total}\nForma de pago: {tender}", "OK");
-            ClearCart();
+            if (_isProcessingCheckout)
+                return;
+
+            var tender = CheckoutVm.SelectedTender;
+            if (tender is null)
+            {
+                await _dialogService.AlertAsync("Facturación", "Seleccione una forma de pago.", "OK");
+                return;
+            }
+
+            if (CartItems.Any(item => item.ItemID <= 0))
+            {
+                await _dialogService.AlertAsync("Facturación", "Hay artículos manuales o sin identificador válido en el carrito.", "OK");
+                return;
+            }
+
+            if (CartItems.Any(item => item.TaxPercentage > 0 && item.TaxID <= 0))
+            {
+                await _dialogService.AlertAsync("Facturación", "Hay artículos gravados sin TaxID configurado.", "OK");
+                return;
+            }
+
+            var currentUser = _userSession.CurrentUser;
+            if (currentUser is null)
+            {
+                await _dialogService.AlertAsync("Facturación", "No hay un usuario autenticado para registrar la venta.", "OK");
+                return;
+            }
+
+            _isProcessingCheckout = true;
+            CheckoutVm.SetCheckoutState(true, "Registrando venta...");
+            try
+            {
+                var request = BuildSaleRequest(currentUser, tender);
+                var result = await _saleService.CreateSaleAsync(request);
+
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "No fue posible registrar la venta."
+                        : result.Message;
+                    CheckoutVm.SetCheckoutState(false, message);
+                    await _dialogService.AlertAsync("Facturación", message, "OK");
+                    return;
+                }
+
+                CheckoutVm.SetCheckoutState(false, string.Empty);
+                IsCheckoutVisible = false;
+                await _dialogService.AlertAsync(
+                    "✅ Facturado",
+                    $"{result.Message}\nTransacción: {result.TransactionNumber}\nForma de pago: {tender.Description}",
+                    "OK");
+                ClearCart();
+                _ = LoadProductsAsync();
+            }
+            catch (Exception ex)
+            {
+                CheckoutVm.SetCheckoutState(false, ex.Message);
+                await _dialogService.AlertAsync("Facturación", ex.Message, "OK");
+            }
+            finally
+            {
+                if (IsCheckoutVisible && CheckoutVm.IsSubmitting)
+                    CheckoutVm.SetCheckoutState(false);
+
+                _isProcessingCheckout = false;
+            }
+        }
+
+        private NovaRetailCreateSaleRequest BuildSaleRequest(LoginUserModel currentUser, TenderModel tender)
+        {
+            var currencyCode = tender.CurrencyID == 2 ? "USD" : "CRC";
+            var amountForeign = tender.CurrencyID == 2 ? Math.Round(Total, 2) : Math.Round(_totalColones, 2);
+            var medioPagoCodigo = ResolveMedioPagoCodigo(tender);
+
+            return new NovaRetailCreateSaleRequest
+            {
+                StoreID = currentUser.StoreId > 0 ? currentUser.StoreId
+                        : _storeIdFromConfig > 0 ? _storeIdFromConfig
+                        : 1,
+                RegisterID = 1,
+                CashierID = ParseCashierId(currentUser),
+                CustomerID = 0,
+                ShipToID = 0,
+                Comment = string.Empty,
+                ReferenceNumber = string.Empty,
+                TransactionTime = null,
+                TotalChange = 0m,
+                AllowNegativeInventory = false,
+                CurrencyCode = currencyCode,
+                TipoCambio = (_exchangeRate > 0 ? _exchangeRate : 1m).ToString(CultureInfo.InvariantCulture),
+                CondicionVenta = "01",
+                CodCliente = HasClient ? CurrentClientId : "00001",
+                NombreCliente = HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
+                Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
+                InsertarTiqueteEspera = false,
+                Items = BuildSaleItems(),
+                Tenders = new List<NovaRetailSaleTenderRequest>
+                {
+                    new()
+                    {
+                        RowNo = 1,
+                        TenderID = tender.ID,
+                        PaymentID = 0,
+                        Description = tender.Description,
+                        Amount = Math.Round(_totalColones, 2),
+                        AmountForeign = amountForeign,
+                        RoundingError = 0m,
+                        MedioPagoCodigo = medioPagoCodigo
+                    }
+                }
+            };
+        }
+
+        private static string ResolveMedioPagoCodigo(TenderModel tender)
+        {
+            var description = (tender.Description ?? string.Empty).Trim().ToUpperInvariant();
+
+            return tender.ID switch
+            {
+                22 => "01",
+                7 => "04",
+                _ when description.Contains("EFECTIVO") => "01",
+                _ when description.Contains("TARJETA") => "02",
+                _ when description.Contains("TRANSFER") => "04",
+                _ when description.Contains("SINPE") => "04",
+                _ => string.Empty
+            };
+        }
+
+        private List<NovaRetailSaleItemRequest> BuildSaleItems()
+        {
+            var result = new List<NovaRetailSaleItemRequest>(CartItems.Count);
+
+            for (var index = 0; index < CartItems.Count; index++)
+            {
+                var item = CartItems[index];
+                var lineTotals = CalculateLineTotals(item);
+                var quantity = item.Quantity <= 0 ? 1m : item.Quantity;
+                var unitPrice = Math.Round(lineTotals.TotalColones / quantity, 4);
+                var fullPrice = Math.Round(item.EffectivePriceColones, 4);
+                var lineDiscountAmount = Math.Round(lineTotals.DiscountColones, 2);
+                var lineDiscountPercent = fullPrice > 0
+                    ? Math.Round((lineDiscountAmount / (fullPrice * quantity)) * 100m, 4)
+                    : 0m;
+
+                result.Add(new NovaRetailSaleItemRequest
+                {
+                    RowNo = index + 1,
+                    ItemID = item.ItemID,
+                    Quantity = quantity,
+                    UnitPrice = unitPrice,
+                    FullPrice = fullPrice,
+                    Cost = 0m,
+                    Commission = 0m,
+                    PriceSource = 1,
+                    SalesRepID = 0,
+                    Taxable = item.TaxPercentage > 0,
+                    TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
+                    SalesTax = Math.Round(lineTotals.TaxColones, 2),
+                    LineComment = item.HasDiscount ? item.DiscountReasonCode : string.Empty,
+                    DiscountReasonCodeID = 0,
+                    ReturnReasonCodeID = 0,
+                    TaxChangeReasonCodeID = 0,
+                    QuantityDiscountID = 0,
+                    ItemType = 0,
+                    ComputedQuantity = 0m,
+                    IsAddMoney = false,
+                    VoucherID = 0,
+                    ExtendedDescription = item.DisplayName,
+                    PromotionID = null,
+                    PromotionName = string.Empty,
+                    LineDiscountAmount = lineDiscountAmount,
+                    LineDiscountPercent = lineDiscountPercent
+                });
+            }
+
+            return result;
+        }
+
+        private static int ParseCashierId(LoginUserModel currentUser)
+        {
+            if (int.TryParse(currentUser.UserName, out var cashierId) && cashierId > 0)
+                return cashierId;
+
+            if (int.TryParse(currentUser.DisplayName, out cashierId) && cashierId > 0)
+                return cashierId;
+
+            return 1;
         }
 
         private async Task ApplyDiscountAsync()

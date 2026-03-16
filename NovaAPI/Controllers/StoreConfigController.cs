@@ -19,16 +19,41 @@ namespace NovaAPI.Controllers
         [HttpGet]
         public StoreConfigDto Get()
         {
+            var dto = new StoreConfigDto();
+
             try
             {
-                return db.ExecuteQuery<StoreConfigDto>(
+                var result = db.ExecuteQuery<StoreConfigDto>(
                     "SELECT TOP 1 TaxSystem, QuoteExpirationDays, DefaultTenderID FROM [Configuration]")
-                    .FirstOrDefault() ?? new StoreConfigDto();
+                    .FirstOrDefault();
+                if (result != null)
+                {
+                    dto.TaxSystem = result.TaxSystem;
+                    dto.QuoteExpirationDays = result.QuoteExpirationDays;
+                    dto.DefaultTenderID = result.DefaultTenderID;
+                }
             }
-            catch
+            catch { }
+
+            try
             {
-                return new StoreConfigDto();
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT TOP 1 StoreID FROM dbo.Batch WHERE Status IN (0, 2, 4, 6) ORDER BY BatchNumber DESC", cn))
+                    {
+                        cn.Open();
+                        var scalar = cmd.ExecuteScalar();
+                        if (scalar != null && scalar != DBNull.Value)
+                            dto.StoreID = Convert.ToInt32(scalar);
+                    }
+                }
             }
+            catch { }
+
+            return dto;
         }
 
         [HttpGet]
@@ -70,6 +95,7 @@ namespace NovaAPI.Controllers
 
     public class StoreConfigDto
     {
+        public int StoreID { get; set; }
         public int TaxSystem { get; set; }
         public int QuoteExpirationDays { get; set; }
         public int DefaultTenderID { get; set; }

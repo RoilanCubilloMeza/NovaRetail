@@ -1,15 +1,18 @@
 using NovaRetail.ViewModels;
+using NovaRetail.State;
 
 namespace NovaRetail.Pages;
 
 public partial class LoginPage : ContentPage
 {
     private readonly LoginViewModel _viewModel;
+    private readonly UserSession _userSession;
 
-    public LoginPage(LoginViewModel viewModel)
+    public LoginPage(LoginViewModel viewModel, UserSession userSession)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _userSession = userSession;
         BindingContext = _viewModel;
         _viewModel.LoginSucceeded += OnLoginSucceeded;
         Loaded += OnLoaded;
@@ -29,6 +32,7 @@ public partial class LoginPage : ContentPage
 
     private void OnLoginSucceeded(object? sender, Models.LoginUserModel e)
     {
+        _userSession.CurrentUser = e;
         if (Application.Current is App app)
             app.ShowMainShell();
     }

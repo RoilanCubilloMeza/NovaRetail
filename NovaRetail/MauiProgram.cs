@@ -27,8 +27,10 @@ namespace NovaRetail
             builder.Services.AddSingleton<IExonerationService, ApiExonerationService>();
             builder.Services.AddSingleton<ILoginService, ApiLoginService>();
             builder.Services.AddSingleton<IProductService, ApiProductService>();
+            builder.Services.AddSingleton<ISaleService, ApiSaleService>();
             builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
             builder.Services.AddSingleton<AppStore>();
+            builder.Services.AddSingleton<UserSession>();
             builder.Services.AddSingleton<Utilities>();
 
             // Named HttpClients (evita socket exhaustion, centraliza timeouts)
@@ -44,6 +46,8 @@ namespace NovaRetail
                 c => c.Timeout = TimeSpan.FromSeconds(15));
             builder.Services.AddHttpClient("NovaAuth",
                 c => c.Timeout = TimeSpan.FromSeconds(10));
+            builder.Services.AddHttpClient("NovaSales",
+                c => c.Timeout = TimeSpan.FromSeconds(30));
 
             // ViewModels
             builder.Services.AddSingleton<LoginViewModel>();

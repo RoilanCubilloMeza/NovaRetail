@@ -7,6 +7,7 @@ namespace NovaRetail.Models
     {
         private decimal _cartQuantity;
 
+        public int     ItemID          { get; set; }
         public string  Emoji           { get; set; } = string.Empty;
         public string  Name            { get; set; } = string.Empty;
         public string  Code            { get; set; } = string.Empty;

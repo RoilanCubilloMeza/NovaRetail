@@ -23,17 +23,18 @@ namespace NovaRetail.Data
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate)
+        public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate, int storeId = 1)
         {
             var safePage = page < 1 ? 1 : page;
             var safePageSize = Math.Clamp(pageSize, 1, 500);
+            var safeStoreId = storeId > 0 ? storeId : 1;
 
             foreach (var baseUrl in ItemsBaseUrls)
             {
                 try
                 {
                     var http = _httpClientFactory.CreateClient(ItemsClientName);
-                    var url = $"{baseUrl}/api/Items?storeid=1&tipo=1&page={safePage}&pageSize={safePageSize}";
+                    var url = $"{baseUrl}/api/Items?storeid={safeStoreId}&tipo=1&page={safePage}&pageSize={safePageSize}";
                     var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
                     if (apiItems is null || apiItems.Count == 0)
@@ -61,17 +62,18 @@ namespace NovaRetail.Data
                     var url = $"{baseUrl}/api/Items/Search?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
                     var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
-                    if (apiItems is null || apiItems.Count == 0)
-                        continue;
-
-                    return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
+                    // El servidor respondió (200): retornar aunque venga vacío.
+                    // No intentar el segundo URL cuando el primero responde correctamente.
+                    return apiItems?.Select(item => MapToProduct(item, exchangeRate)).ToList() ?? [];
                 }
                 catch
                 {
+                    // Error de red: intentar el siguiente URL.
                 }
             }
 
             return [];
+
         }
 
         public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)
@@ -96,14 +98,15 @@ namespace NovaRetail.Data
             return [];
         }
 
-        public async Task<int> GetProductCountAsync()
+        public async Task<int> GetProductCountAsync(int storeId = 1)
         {
+            var safeStoreId = storeId > 0 ? storeId : 1;
             foreach (var baseUrl in ItemsBaseUrls)
             {
                 try
                 {
                     var http = _httpClientFactory.CreateClient(ItemsClientName);
-                    var url = $"{baseUrl}/api/Items/Count?storeid=1&tipo=1";
+                    var url = $"{baseUrl}/api/Items/Count?storeid={safeStoreId}&tipo=1";
                     var result = await http.GetFromJsonAsync<ProductCountResult>(url);
                     if (result is not null && result.Total > 0)
                         return result.Total;
@@ -123,6 +126,7 @@ namespace NovaRetail.Data
 
             return new ProductModel
             {
+                ItemID = item.ID,
                 Name = string.IsNullOrWhiteSpace(item.Description)
                     ? item.ExtendedDescription ?? string.Empty
                     : item.Description,

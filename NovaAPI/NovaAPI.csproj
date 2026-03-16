@@ -180,6 +180,7 @@
     <Compile Include="Controllers\LocationController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\MediaController.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.cs" />
     <Compile Include="Controllers\OrdersController.cs" />
     <Compile Include="Controllers\OrderEntrysController.cs" />
     <Compile Include="Controllers\PaymentController.cs" />
@@ -198,6 +199,7 @@
     <Compile Include="Models\Cliente_App.cs" />
     <Compile Include="Models\Customer.cs" />
     <Compile Include="Models\CustomerLookupDto.cs" />
+    <Compile Include="Models\NovaRetailCreateSaleModels.cs" />
     <Compile Include="Models\Payment.cs" />
     <Compile Include="Models\PickingOrderEntry.cs" />
     <Compile Include="Models\PickingOrder.cs" />
@@ -573,6 +575,7 @@
     <Content Include="Scripts\umd\popper-utils.min.js" />
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
+    <Content Include="SQL\setup_novaretail_sale.sql" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
