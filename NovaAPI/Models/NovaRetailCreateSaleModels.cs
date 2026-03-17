@@ -220,5 +220,14 @@ namespace NovaAPI.Models
 
         [JsonProperty("errorLine")]
         public int? ErrorLine { get; set; }
+
+        [JsonProperty("taxEntriesInserted")]
+        public int TaxEntriesInserted { get; set; }
+
+        [JsonProperty("tiqueteEsperaOk")]
+        public bool TiqueteEsperaOk { get; set; }
+
+        [JsonProperty("warnings")]
+        public List<string> Warnings { get; set; } = new List<string>();
     }
 }

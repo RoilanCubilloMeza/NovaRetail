@@ -189,10 +189,30 @@ namespace NovaAPI.Controllers
                     if (response.Ok && response.TransactionNumber > 0)
                     {
                         response.BatchNumber = EnsureTransactionBatchNumber(cn, response.TransactionNumber, request.StoreID, request.RegisterID, response.BatchNumber ?? activeBatch.BatchNumber);
-                        EnsureTaxEntries(cn, request, response.TransactionNumber, request.StoreID);
+
+                        try
+                        {
+                            response.TaxEntriesInserted = EnsureTaxEntries(cn, request, response.TransactionNumber, request.StoreID);
+                        }
+                        catch (Exception exTax)
+                        {
+                            response.Warnings.Add($"TaxEntry: {exTax.Message}");
+                        }
 
                         if (request.InsertarTiqueteEspera)
-                            EnsureTiqueteEspera(cn, request, response.TransactionNumber);
+                        {
+                            try
+                            {
+                                EnsureClaves(request, response.TransactionNumber, cn);
+                                EnsureTiqueteEspera(cn, request, response.TransactionNumber);
+                                response.TiqueteEsperaOk = true;
+                            }
+                            catch (Exception exTiquete)
+                            {
+                                response.TiqueteEsperaOk = false;
+                                response.Warnings.Add($"TiqueteEspera: {exTiquete.Message}");
+                            }
+                        }
                     }
                 }
 
@@ -508,50 +528,139 @@ namespace NovaAPI.Controllers
             return batchNumber;
         }
 
-        private static void EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
+        private static void EnsureClaves(NovaRetailCreateSaleRequest request, int transactionNumber, SqlConnection cn)
         {
-            if (request.Items == null || request.Items.Count == 0)
+            if (!string.IsNullOrWhiteSpace(request.CLAVE50) && !string.IsNullOrWhiteSpace(request.CLAVE20))
                 return;
 
-            var taxSystem = GetTaxSystem(cn);
-            var entryIdsByDetailId = new Dictionary<int, int>();
+            // Leer cédula del emisor — intentar varias tablas posibles
+            var cedulaEmisor = string.Empty;
+            var cedulaQueries = new[]
+            {
+                // VATDetailID almacena la cédula jurídica/física del emisor en RMH Costa Rica
+                "SELECT TOP 1 ISNULL(CAST(VATDetailID AS NVARCHAR(20)),'')           FROM dbo.[Configuration]",
+                // VATRegistrationNumber puede contener un código interno (ej. "201"), no la cédula real
+                "SELECT TOP 1 ISNULL(CAST(VATRegistrationNumber AS NVARCHAR(20)),'') FROM dbo.[Configuration]",
+                // Fallbacks por si la instalación usa otra tabla/columna
+                "SELECT TOP 1 ISNULL(CAST(Valor AS NVARCHAR(20)),'') FROM dbo.AVS_Parametros WHERE UPPER(Nombre) LIKE '%CEDULA%' OR UPPER(Nombre) LIKE '%NIF%'",
+                "SELECT TOP 1 ISNULL(CAST(TaxNumber AS NVARCHAR(20)),'')     FROM dbo.[Configuration]",
+                "SELECT TOP 1 ISNULL(CAST(NIF AS NVARCHAR(20)),'')           FROM dbo.AVS_DATOS_EMISOR",
+                "SELECT TOP 1 ISNULL(CAST(CedulaEmisor AS NVARCHAR(20)),'')  FROM dbo.AVS_DATOS_EMISOR",
+                "SELECT TOP 1 ISNULL(CAST(TaxNumber AS NVARCHAR(20)),'')     FROM dbo.Store WHERE StoreID = 1",
+            };
 
-            using (var cmd = new SqlCommand("SELECT ID, DetailID FROM dbo.TransactionEntry WHERE TransactionNumber = @TransactionNumber", cn))
+            foreach (var query in cedulaQueries)
+            {
+                try
+                {
+                    using (var cmd = new SqlCommand(query, cn))
+                    {
+                        var val = cmd.ExecuteScalar();
+                        if (val != null && val != DBNull.Value)
+                        {
+                            // Normalizar: quitar guiones y espacios (ej. "3-101-639680" → "3101639680")
+                            var candidate = new string(val.ToString().Where(char.IsDigit).ToArray());
+                            if (!string.IsNullOrWhiteSpace(candidate) && candidate != "0")
+                            {
+                                cedulaEmisor = candidate;
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch { /* tabla no existe, probar la siguiente */ }
+            }
+
+            var date      = DateTime.Now;
+            var ddmmaa    = date.ToString("ddMMyy");
+            var cedulaPad = cedulaEmisor.PadLeft(12, '0');
+            var sucursal  = (request.COD_SUCURSAL ?? "001").PadLeft(3, '0');
+            var terminal  = (request.TERMINAL_POS ?? "00001").PadLeft(5, '0');
+            var tipoCvta  = "01";  // Factura Electrónica
+            var consec    = transactionNumber.ToString().PadLeft(10, '0');
+            var situacion = "1";   // Normal
+            var seguridad = new Random().Next(10000000, 99999999).ToString("D8");
+
+            if (string.IsNullOrWhiteSpace(request.CLAVE20))
+                request.CLAVE20 = sucursal + terminal + tipoCvta + consec;
+
+            if (string.IsNullOrWhiteSpace(request.CLAVE50))
+                request.CLAVE50 = "506" + ddmmaa + cedulaPad + sucursal + terminal + tipoCvta + consec + situacion + seguridad;
+        }
+
+        private static int EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
+        {
+            if (request.Items == null || request.Items.Count == 0)
+                return 0;
+
+            var taxSystem = GetTaxSystem(cn);
+
+            // Cargar TransactionEntry: indexar por DetailID y por posición secuencial
+            var entriesByDetailId = new Dictionary<int, int>();
+            var entriesOrdered    = new List<(int EntryId, int DetailId, int ItemId)>();
+
+            using (var cmd = new SqlCommand(
+                "SELECT ID, ISNULL(DetailID,-1) AS DetailID, ISNULL(ItemID,0) AS ItemID " +
+                "FROM dbo.TransactionEntry WHERE TransactionNumber = @TransactionNumber ORDER BY ID", cn))
             {
                 cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
-
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        var entryId = reader["ID"] != DBNull.Value ? Convert.ToInt32(reader["ID"]) : 0;
-                        var detailId = reader["DetailID"] != DBNull.Value ? Convert.ToInt32(reader["DetailID"]) : -1;
-
-                        if (entryId > 0 && detailId >= 0 && !entryIdsByDetailId.ContainsKey(detailId))
-                            entryIdsByDetailId.Add(detailId, entryId);
+                        var entryId  = Convert.ToInt32(reader["ID"]);
+                        var detailId = Convert.ToInt32(reader["DetailID"]);
+                        var itemId   = Convert.ToInt32(reader["ItemID"]);
+                        entriesOrdered.Add((entryId, detailId, itemId));
+                        if (detailId >= 0 && !entriesByDetailId.ContainsKey(detailId))
+                            entriesByDetailId[detailId] = entryId;
                     }
                 }
             }
+
+            var inserted = 0;
 
             foreach (var item in request.Items.OrderBy(i => i.RowNo))
             {
                 if (!item.Taxable || !item.TaxID.HasValue)
                     continue;
 
+                // 1) Match por DetailID = RowNo - 1 (asignación estándar del SP)
                 var detailId = item.RowNo - 1;
-                if (!entryIdsByDetailId.TryGetValue(detailId, out var transactionEntryId) || transactionEntryId <= 0)
+                int transactionEntryId = 0;
+
+                if (entriesByDetailId.TryGetValue(detailId, out var byDetailId) && byDetailId > 0)
+                {
+                    transactionEntryId = byDetailId;
+                }
+                else
+                {
+                    // 2) Fallback: posición secuencial (índice RowNo-1 en la lista)
+                    var idx = item.RowNo - 1;
+                    if (idx >= 0 && idx < entriesOrdered.Count)
+                        transactionEntryId = entriesOrdered[idx].EntryId;
+
+                    // 3) Fallback: primer TransactionEntry con mismo ItemID
+                    if (transactionEntryId <= 0)
+                    {
+                        var byItem = entriesOrdered.FirstOrDefault(e => e.ItemId == item.ItemID);
+                        transactionEntryId = byItem.EntryId;
+                    }
+                }
+
+                if (transactionEntryId <= 0)
                     continue;
 
-                using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.TaxEntry WHERE TransactionEntryID = @TransactionEntryID", cn))
+                using (var existsCmd = new SqlCommand(
+                    "SELECT COUNT(1) FROM dbo.TaxEntry WHERE TransactionEntryID = @TransactionEntryID", cn))
                 {
                     existsCmd.Parameters.AddWithValue("@TransactionEntryID", transactionEntryId);
-                    var exists = Convert.ToInt32(existsCmd.ExecuteScalar()) > 0;
-                    if (exists)
+                    if (Convert.ToInt32(existsCmd.ExecuteScalar()) > 0)
                         continue;
                 }
 
-                var lineAmount = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
-                var taxAmount = Math.Round(item.SalesTax, 4, MidpointRounding.AwayFromZero);
+                var lineAmount    = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
+                var taxAmount     = Math.Round(item.SalesTax,  4, MidpointRounding.AwayFromZero);
                 var taxableAmount = taxSystem == 1
                     ? Math.Max(0m, Math.Round(lineAmount - taxAmount, 4, MidpointRounding.AwayFromZero))
                     : Math.Max(0m, lineAmount);
@@ -560,15 +669,18 @@ namespace NovaAPI.Controllers
                     @"INSERT INTO dbo.TaxEntry (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)
                       VALUES (@StoreID, @TaxID, @TransactionNumber, @Tax, @TaxableAmount, @TransactionEntryID, NEWID())", cn))
                 {
-                    insertCmd.Parameters.AddWithValue("@StoreID", storeId);
-                    insertCmd.Parameters.AddWithValue("@TaxID", item.TaxID.Value);
-                    insertCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
-                    insertCmd.Parameters.AddWithValue("@Tax", taxAmount);
-                    insertCmd.Parameters.AddWithValue("@TaxableAmount", taxableAmount);
+                    insertCmd.Parameters.AddWithValue("@StoreID",            storeId);
+                    insertCmd.Parameters.AddWithValue("@TaxID",              item.TaxID.Value);
+                    insertCmd.Parameters.AddWithValue("@TransactionNumber",   transactionNumber);
+                    insertCmd.Parameters.AddWithValue("@Tax",                taxAmount);
+                    insertCmd.Parameters.AddWithValue("@TaxableAmount",      taxableAmount);
                     insertCmd.Parameters.AddWithValue("@TransactionEntryID", transactionEntryId);
                     insertCmd.ExecuteNonQuery();
+                    inserted++;
                 }
             }
+
+            return inserted;
         }
 
         private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)

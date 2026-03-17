@@ -1560,12 +1560,14 @@ namespace NovaRetail.ViewModels
                 var lineTotals = CalculateLineTotals(item);
                 var quantity = item.Quantity <= 0 ? 1m : item.Quantity;
 
-                // UnitPrice = precio neto por unidad SIN impuesto (base después de descuento)
+                // UnitPrice = precio neto por unidad SIN impuesto (base después de descuento/override)
                 var netLineColones = lineTotals.TotalColones - lineTotals.TaxColones;
                 var unitPrice = Math.Round(netLineColones / quantity, 4);
 
-                // FullPrice = precio de lista SIN impuesto (antes de descuento)
-                var rawFullPrice = item.EffectivePriceColones;
+                // FullPrice = precio de catálogo SIN impuesto (antes de override o descuento)
+                // Si hay override de precio, el precio original es UnitPriceColones (catálogo)
+                var catalogPriceColones = item.HasOverridePrice ? item.UnitPriceColones : item.EffectivePriceColones;
+                var rawFullPrice = catalogPriceColones;
                 if (IsTaxIncluded && item.TaxPercentage > 0)
                 {
                     var divisor = 1m + (item.TaxPercentage / 100m);
@@ -1598,7 +1600,7 @@ namespace NovaRetail.ViewModels
                     Taxable = item.TaxPercentage > 0,
                     TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
                     SalesTax = Math.Round(lineTotals.TaxColones, 2),
-                    LineComment = item.HasDiscount ? item.DiscountReasonCode : string.Empty,
+                    LineComment = (item.HasDiscount || item.HasOverridePrice) ? item.DiscountReasonCode : string.Empty,
                     DiscountReasonCodeID = discountReasonCodeID,
                     ReturnReasonCodeID = 0,
                     TaxChangeReasonCodeID = taxChangeReasonCodeID,
@@ -1623,7 +1625,7 @@ namespace NovaRetail.ViewModels
 
         private int ResolveDiscountReasonCodeID(CartItemModel item)
         {
-            if (!item.HasDiscount)
+            if (!item.HasDiscount && !item.HasOverridePrice)
                 return 0;
 
             if (item.DiscountReasonCodeID > 0)
@@ -2273,12 +2275,14 @@ namespace NovaRetail.ViewModels
                 {
                     if (_pendingDiscountPercent.HasValue)
                     {
-                        var pct = _pendingDiscountPercent.Value;
+                        var pct  = _pendingDiscountPercent.Value;
                         var code = PriceJustVm.SelectedCode.Code;
+                        var codeId = PriceJustVm.SelectedCode.ID;
                         foreach (var item in CartItems.Where(c => c.IsSelected).ToList())
                         {
                             item.DiscountPercent = pct;
                             item.DiscountReasonCode = code;
+                            item.DiscountReasonCodeID = codeId;
                         }
                     }
                     _isBulkDiscountFlow = false;
@@ -2291,6 +2295,7 @@ namespace NovaRetail.ViewModels
                         if (_pendingDiscountPercent.HasValue)
                             _pendingPriceItem.DiscountPercent = _pendingDiscountPercent.Value;
                         _pendingPriceItem.DiscountReasonCode = PriceJustVm.SelectedCode.Code;
+                        _pendingPriceItem.DiscountReasonCodeID = PriceJustVm.SelectedCode.ID;
                     }
                     else
                     {
@@ -2299,6 +2304,7 @@ namespace NovaRetail.ViewModels
                         {
                             _pendingPriceItem.OverridePriceColones = newPrice;
                             _pendingPriceItem.DiscountReasonCode = PriceJustVm.SelectedCode.Code;
+                            _pendingPriceItem.DiscountReasonCodeID = PriceJustVm.SelectedCode.ID;
                         }
                     }
                 }
