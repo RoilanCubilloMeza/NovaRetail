@@ -1555,6 +1555,7 @@ namespace NovaRetail.ViewModels
                 22 => "01",
                 7 => "04",
                 _ when description.Contains("EFECTIVO") => "01",
+                _ when description.Contains("CONTADO") => "01",
                 _ when description.Contains("TARJETA") => "02",
                 _ when description.Contains("TRANSFER") => "04",
                 _ when description.Contains("SINPE") => "04",
