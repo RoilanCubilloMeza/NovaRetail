@@ -314,27 +314,51 @@
 
                                 <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,8,0,0"/>
 
-                                <VerticalStackLayout Spacing="2">
+                                <VerticalStackLayout Spacing="4">
+                                    <!-- Primera forma de pago (o único pago) -->
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Grid.Column="0" Text="{Binding TenderEntregadoText}"
-                                               FontSize="11"
+                                               FontSize="11" FontAttributes="Bold"
                                                TextColor="#0F172A"/>
                                         <Label Grid.Column="1" Text="{Binding TenderTotalText}"
-                                               FontSize="11"
+                                               FontSize="11" FontAttributes="Bold"
                                                TextColor="#0F172A"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <Label Grid.Column="0" Text="CAMBIO"
-                                               FontSize="11"
+
+                                    <!-- Segunda forma de pago (si aplica) -->
+                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasSecondTender}">
+                                        <Label Grid.Column="0" Text="{Binding SecondTenderEntregadoText}"
+                                               FontSize="11" FontAttributes="Bold"
+                                               TextColor="#0F172A"/>
+                                        <Label Grid.Column="1" Text="{Binding SecondTenderAmountText}"
+                                               FontSize="11" FontAttributes="Bold"
                                                TextColor="#0F172A"
-                                               FontAttributes="Bold"/>
-                                        <Label Grid.Column="1" Text="{Binding ChangeAmountText}"
-                                               FontSize="11"
-                                               FontAttributes="Bold"
-                                               TextColor="#16A34A"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
+
+                                    <!-- Cambio: solo visible cuando hay cambio, destacado en verde -->
+                                    <Border BackgroundColor="#F0FDF4"
+                                            Stroke="#86EFAC"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 7"
+                                            Padding="10,7"
+                                            Margin="0,4,0,0"
+                                            IsVisible="{Binding HasChange}">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0" Text="CAMBIO"
+                                                   FontSize="13"
+                                                   TextColor="#16A34A"
+                                                   FontAttributes="Bold"
+                                                   VerticalOptions="Center"/>
+                                            <Label Grid.Column="1" Text="{Binding ChangeAmountText}"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#16A34A"
+                                                   HorizontalTextAlignment="End"
+                                                   VerticalOptions="Center"/>
+                                        </Grid>
+                                    </Border>
                                 </VerticalStackLayout>
 
                                 <Label Text="----------------------------------------"

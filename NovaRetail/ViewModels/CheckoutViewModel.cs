@@ -39,12 +39,19 @@ namespace NovaRetail.ViewModels
             get => _selectedTender;
             set
             {
-                _selectedTender = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(SelectedTenderText));
-                OnPropertyChanged(nameof(CanConfirm));
-                ((Command)ConfirmCommand).ChangeCanExecute();
-                ((Command)SelectTenderCommand).ChangeCanExecute();
+                if (_selectedTender != value)
+                {
+                    foreach (var t in Tenders) t.IsSelected = false;
+                    _selectedTender = value;
+                    if (_selectedTender != null) _selectedTender.IsSelected = true;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(SelectedTenderText));
+                    OnPropertyChanged(nameof(SelectedTenderName));
+                    OnPropertyChanged(nameof(TenderedSectionTitle));
+                    OnPropertyChanged(nameof(CanConfirm));
+                    ((Command)ConfirmCommand).ChangeCanExecute();
+                    ((Command)SelectTenderCommand).ChangeCanExecute();
+                }
             }
         }
 
@@ -67,6 +74,14 @@ namespace NovaRetail.ViewModels
                 }
             }
         }
+
+        public string TenderedSectionTitle => SelectedTender is not null
+            ? $"MONTO ENTREGADO — {SelectedTender.Description.ToUpper()}"
+            : "MONTO ENTREGADO";
+
+        public string TenderedSectionHint => HasSecondTender
+            ? "Ingrese lo que el cliente entrega por el PRIMER pago. Deje vacío si es monto exacto."
+            : "Si paga exacto déjelo vacío.";
 
         public decimal TenderedColones => TryParseColones(_tenderedText);
         public decimal FirstTenderAmount => Math.Max(0m, _totalColonesValue - (HasSecondTender ? SecondAmount : 0m));
@@ -93,6 +108,7 @@ namespace NovaRetail.ViewModels
                     }
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(SecondTenderToggleText));
+                    OnPropertyChanged(nameof(TenderedSectionHint));
                     RefreshDerivedAmounts();
                 }
             }
@@ -107,7 +123,9 @@ namespace NovaRetail.ViewModels
             {
                 if (_secondTender != value)
                 {
+                    foreach (var t in Tenders) t.IsSecondSelected = false;
                     _secondTender = value;
+                    if (_secondTender != null) _secondTender.IsSecondSelected = true;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(SecondTenderSelectedText));
                     OnPropertyChanged(nameof(CanConfirm));
@@ -136,6 +154,10 @@ namespace NovaRetail.ViewModels
         public string SplitSummaryText => HasSecondTender && SecondAmount > 0m
             ? $"1er pago: ₡{FirstTenderAmount:N2}   2do pago: ₡{SecondAmount:N2}"
             : string.Empty;
+
+        public string SelectedTenderName => SelectedTender?.Description ?? "1er pago";
+        public string SecondAmountFormattedText => SecondAmount > 0m ? $"₡{SecondAmount:N2}" : "₡0.00";
+        public string SplitTotalText => $"₡{FirstTenderAmount + SecondAmount:N2}";
 
         public string SubtotalText
         {
@@ -426,6 +448,9 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(ChangeText));
             OnPropertyChanged(nameof(HasChange));
             OnPropertyChanged(nameof(SplitSummaryText));
+            OnPropertyChanged(nameof(SelectedTenderName));
+            OnPropertyChanged(nameof(SecondAmountFormattedText));
+            OnPropertyChanged(nameof(SplitTotalText));
             OnPropertyChanged(nameof(CanConfirm));
             ((Command)ConfirmCommand).ChangeCanExecute();
             ((Command)ToggleSecondTenderCommand).ChangeCanExecute();

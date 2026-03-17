@@ -80,9 +80,18 @@ namespace NovaRetail.ViewModels
         public string TenderTotalText { get; private set; } = string.Empty;
         public string ChangeAmountText { get; private set; } = "₡0.00";
         public bool HasChange { get; private set; }
-        public string TenderEntregadoText => string.IsNullOrWhiteSpace(TenderDescription)
-            ? "Entregado"
-            : $"{TenderDescription} Entregado";
+        public string TenderEntregadoText =>
+            HasSecondTender && !HasChange
+                ? (string.IsNullOrWhiteSpace(TenderDescription) ? "1er Pago" : $"1er Pago: {TenderDescription}")
+                : (string.IsNullOrWhiteSpace(TenderDescription) ? "Entregado" : $"{TenderDescription} Entregado");
+
+        // Segundo medio de pago
+        public bool HasSecondTender { get; private set; }
+        public string SecondTenderDescription { get; private set; } = string.Empty;
+        public string SecondTenderAmountText { get; private set; } = string.Empty;
+        public string SecondTenderEntregadoText => string.IsNullOrWhiteSpace(SecondTenderDescription)
+            ? "2do Pago"
+            : $"2do Pago: {SecondTenderDescription}";
 
         public ReceiptViewModel()
         {
@@ -112,7 +121,9 @@ namespace NovaRetail.ViewModels
             string totalColonesText,
             string tenderDescription,
             decimal tenderTotalColones = 0m,
-            decimal changeColones = 0m)
+            decimal changeColones = 0m,
+            string secondTenderDescription = "",
+            decimal secondTenderAmountColones = 0m)
         {
             TransactionNumber = transactionNumber;
             TransactionDate = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
@@ -173,6 +184,10 @@ namespace NovaRetail.ViewModels
             TotalText = totalText;
             TotalColonesText = totalColonesText;
             TenderDescription = tenderDescription;
+
+            HasSecondTender = secondTenderAmountColones > 0m && !string.IsNullOrWhiteSpace(secondTenderDescription);
+            SecondTenderDescription = secondTenderDescription;
+            SecondTenderAmountText = secondTenderAmountColones > 0m ? $"₡{secondTenderAmountColones:N2}" : string.Empty;
 
             OnPropertyChanged(string.Empty);
         }
@@ -311,7 +326,10 @@ namespace NovaRetail.ViewModels
             sb.AppendLine(sep);
 
             sb.AppendLine($"{TenderEntregadoText,-32}{TenderTotalText,10}");
-            sb.AppendLine($"{"CAMBIO",-32}{ChangeAmountText,10}");
+            if (HasSecondTender)
+                sb.AppendLine($"{SecondTenderEntregadoText,-32}{SecondTenderAmountText,10}");
+            if (HasChange)
+                sb.AppendLine($"{"CAMBIO",-32}{ChangeAmountText,10}");
             sb.AppendLine(sep);
 
             sb.AppendLine();
@@ -421,9 +439,15 @@ namespace NovaRetail.ViewModels
                 .AppendLine("</table>")
                 .AppendLine("<div class='sep'></div>")
                 .AppendLine("<table class='payment-table'>")
-                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TenderTotalText)}</td></tr>")
-                .AppendLine($"<tr class='{(HasChange ? "pay-change" : "")}'><td>CAMBIO</td><td>{Esc(ChangeAmountText)}</td></tr>")
-                .AppendLine("</table>")
+                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TenderTotalText)}</td></tr>");
+
+            if (HasSecondTender)
+                html.AppendLine($"<tr><td>{Esc(SecondTenderEntregadoText)}</td><td>{Esc(SecondTenderAmountText)}</td></tr>");
+
+            if (HasChange)
+                html.AppendLine($"<tr class='pay-change'><td>CAMBIO</td><td>{Esc(ChangeAmountText)}</td></tr>");
+
+            html.AppendLine("</table>")
                 .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
                 .AppendLine("<div class='policy'>No se cambia ropa<br>No se aceptan devoluciones sin factura<br>No se aceptan devoluciones después de 45 días</div>")
                 .AppendLine("<div class='policy-sep'>----------------------------------------</div>")

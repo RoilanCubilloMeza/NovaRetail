@@ -1430,10 +1430,22 @@ namespace NovaRetail.ViewModels
                     totalText: TotalText,
                     totalColonesText: TotalColonesText,
                     tenderDescription: tender.Description ?? string.Empty,
-                    tenderTotalColones: CheckoutVm.ChangeColones > 0
-                        ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
-                        : 0m,
-                    changeColones: Math.Round(CheckoutVm.ChangeColones, 2)
+                    tenderTotalColones: CheckoutVm.HasSecondTender
+                        ? Math.Round(
+                            CheckoutVm.ChangeColones > 0m
+                                ? CheckoutVm.TenderedColones          // muestra lo entregado cuando hay cambio
+                                : CheckoutVm.FirstTenderAmount,        // monto exacto cuando no hay cambio
+                            2)
+                        : CheckoutVm.ChangeColones > 0
+                            ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
+                            : 0m,
+                    changeColones: Math.Round(CheckoutVm.ChangeColones, 2),
+                    secondTenderDescription: CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null
+                        ? CheckoutVm.SecondTender.Description ?? string.Empty
+                        : string.Empty,
+                    secondTenderAmountColones: CheckoutVm.HasSecondTender
+                        ? Math.Round(CheckoutVm.SecondAmount, 2)
+                        : 0m
                 );
                 IsReceiptVisible = true;
 

@@ -16,8 +16,11 @@ namespace NovaRetail.Models
         public string TaxSystemText => TaxSystem == 1 ? "IVA Incluido" : "IVA Excluido";
     }
 
-    public class TenderModel
+    public class TenderModel : System.ComponentModel.INotifyPropertyChanged
     {
+        private bool _isSelected;
+        private bool _isSecondSelected;
+
         public int ID { get; set; }
         public string Description { get; set; } = string.Empty;
         public int CurrencyID { get; set; }
@@ -32,5 +35,19 @@ namespace NovaRetail.Models
         };
 
         public string DisplayText => $"{Description}  ({CurrencySymbol})";
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { if (_isSelected != value) { _isSelected = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSelected))); } }
+        }
+
+        public bool IsSecondSelected
+        {
+            get => _isSecondSelected;
+            set { if (_isSecondSelected != value) { _isSecondSelected = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSecondSelected))); } }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
     }
 }
