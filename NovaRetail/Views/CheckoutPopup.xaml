@@ -279,6 +279,104 @@
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
 
+                        <!-- ── Monto Entregado y Cambio ──────────────────────────── -->
+                        <Border BackgroundColor="#F0FFF4"
+                                Stroke="#BBF7D0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="14,12"
+                                Margin="0,14,0,0">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Monto Entregado  (dejar vacío = cobro exacto)"
+                                       FontSize="11" FontAttributes="Bold"
+                                       TextColor="#15803D"/>
+                                <Border BackgroundColor="White"
+                                        Stroke="#86EFAC" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        Padding="12,0" HeightRequest="42">
+                                    <Entry Text="{Binding TenderedText}"
+                                           Placeholder="Ej. 5000"
+                                           Keyboard="Numeric"
+                                           FontSize="13" TextColor="#0F172A"
+                                           VerticalOptions="Center"/>
+                                </Border>
+                                <Grid ColumnDefinitions="*, Auto" IsVisible="{Binding HasChange}">
+                                    <Label Text="Cambio" FontSize="14" FontAttributes="Bold"
+                                           TextColor="#16A34A" VerticalOptions="Center"/>
+                                    <Label Grid.Column="1" Text="{Binding ChangeText}"
+                                           FontSize="18" FontAttributes="Bold"
+                                           TextColor="#16A34A" HorizontalTextAlignment="End"/>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- ── Toggle segundo medio de pago ──────────────────────── -->
+                        <Border BackgroundColor="#EFF6FF"
+                                Stroke="#BFDBFE" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="14,10"
+                                Margin="0,10,0,0"
+                                InputTransparent="{Binding IsSubmitting}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleSecondTenderCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="{Binding SecondTenderToggleText}"
+                                   FontSize="12" FontAttributes="Bold" TextColor="#1D4ED8"/>
+                        </Border>
+
+                        <!-- ── Panel segundo medio de pago ───────────────────────── -->
+                        <Border BackgroundColor="#F8FAFC"
+                                Stroke="#CBD5E1" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="14,12"
+                                Margin="0,8,0,0"
+                                IsVisible="{Binding HasSecondTender}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Segundo Medio de Pago"
+                                       FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+
+                                <VerticalStackLayout Spacing="5"
+                                                     BindableLayout.ItemsSource="{Binding Tenders}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border StrokeShape="RoundRectangle 8"
+                                                    StrokeThickness="1" Stroke="#E2E8F0"
+                                                    BackgroundColor="White" Padding="10,8"
+                                                    InputTransparent="{Binding Source={x:Reference Root}, Path=BindingContext.IsSubmitting}">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectSecondTenderCommand}"
+                                                        CommandParameter="{Binding .}"/>
+                                                </Border.GestureRecognizers>
+                                                <Label Text="{Binding Description}"
+                                                       FontSize="12" TextColor="#1E293B"
+                                                       VerticalOptions="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+
+                                <Label Text="{Binding SecondTenderSelectedText}"
+                                       FontSize="11" TextColor="#1D4ED8" FontAttributes="Bold"/>
+
+                                <Label Text="Monto (₡)" FontSize="11" TextColor="#64748B"/>
+                                <Border BackgroundColor="White"
+                                        Stroke="#CBD5E1" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        Padding="12,0" HeightRequest="42">
+                                    <Entry Text="{Binding SecondAmountText}"
+                                           Placeholder="Ej. 2000"
+                                           Keyboard="Numeric"
+                                           FontSize="13" TextColor="#0F172A"
+                                           VerticalOptions="Center"/>
+                                </Border>
+
+                                <Label Text="{Binding SplitSummaryText}"
+                                       FontSize="11" TextColor="#64748B"
+                                       IsVisible="{Binding HasSecondTender}"/>
+                            </VerticalStackLayout>
+                        </Border>
+
                     </VerticalStackLayout>
                 </ScrollView>
 

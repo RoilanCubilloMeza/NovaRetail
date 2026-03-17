@@ -211,39 +211,43 @@
                                                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                                                     <VerticalStackLayout Grid.Column="0" Spacing="1">
                                                         <Label Text="{Binding DisplayName}"
-                                                               FontSize="11"
-                                                               FontAttributes="Bold"
-                                                               TextColor="#0F172A"
-                                                               LineBreakMode="WordWrap"/>
+                                                               FontSize="11" FontAttributes="Bold"
+                                                               TextColor="#0F172A" LineBreakMode="WordWrap"/>
                                                         <HorizontalStackLayout Spacing="6">
                                                             <Label Text="{Binding Code}"
-                                                                   FontSize="10"
-                                                                   TextColor="#334155"/>
+                                                                   FontSize="10" TextColor="#64748B"/>
                                                             <Label Text="{Binding TaxRateText}"
-                                                                   FontSize="10"
-                                                                   TextColor="#334155"
+                                                                   FontSize="10" TextColor="#64748B"
                                                                    IsVisible="{Binding HasTax}"/>
                                                         </HorizontalStackLayout>
+                                                        <Label Text="{Binding PriceChangeDetailText}"
+                                                               FontSize="9" TextColor="#B45309"
+                                                               FontAttributes="Italic"
+                                                               IsVisible="{Binding HasOverridePrice}"/>
+                                                        <Label Text="{Binding DiscountDetailText}"
+                                                               FontSize="9" TextColor="#DC2626"
+                                                               FontAttributes="Italic"
+                                                               IsVisible="{Binding HasDiscount}"/>
+                                                        <Label Text="{Binding ExonerationDetailText}"
+                                                               FontSize="9" TextColor="#0D9488"
+                                                               FontAttributes="Italic"
+                                                               IsVisible="{Binding HasExoneration}"/>
                                                     </VerticalStackLayout>
-
                                                     <Label Grid.Column="1"
                                                            Text="{Binding QuantityText}"
-                                                           FontSize="11"
-                                                           TextColor="#0F172A"
+                                                           FontSize="11" TextColor="#0F172A"
                                                            HorizontalTextAlignment="End"
                                                            VerticalOptions="Start"
                                                            MinimumWidthRequest="42"/>
                                                     <Label Grid.Column="2"
                                                            Text="{Binding UnitPriceColonesText}"
-                                                           FontSize="11"
-                                                           TextColor="#0F172A"
+                                                           FontSize="11" TextColor="#0F172A"
                                                            HorizontalTextAlignment="End"
                                                            VerticalOptions="Start"
                                                            MinimumWidthRequest="84"/>
                                                     <Label Grid.Column="3"
                                                            Text="{Binding LineTotalText}"
-                                                           FontSize="11"
-                                                           FontAttributes="Bold"
+                                                           FontSize="11" FontAttributes="Bold"
                                                            TextColor="#0F172A"
                                                            HorizontalTextAlignment="End"
                                                            VerticalOptions="Start"
@@ -259,51 +263,49 @@
                                 <VerticalStackLayout Spacing="3">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Grid.Column="0" Text="Sub Total"
-                                               FontSize="11"
-                                               TextColor="#0F172A"/>
+                                               FontSize="11" TextColor="#334155"/>
                                         <Label Grid.Column="1" Text="{Binding SubtotalText}"
-                                               FontSize="11"
-                                               TextColor="#0F172A"
+                                               FontSize="11" TextColor="#334155"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
 
                                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
                                         <Label Grid.Column="0" Text="Descuentos"
-                                               FontSize="11"
-                                               TextColor="#0F172A"/>
+                                               FontSize="11" TextColor="#EF4444"
+                                               FontAttributes="Bold"/>
                                         <Label Grid.Column="1" Text="{Binding DiscountText}"
-                                               FontSize="11"
-                                               TextColor="#0F172A"
+                                               FontSize="11" TextColor="#EF4444"
+                                               FontAttributes="Bold"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
 
                                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasExoneration}">
                                         <Label Grid.Column="0" Text="Exoneración"
-                                               FontSize="11"
-                                               TextColor="#0F172A"/>
+                                               FontSize="11" TextColor="#0D9488"
+                                               FontAttributes="Bold"/>
                                         <Label Grid.Column="1" Text="{Binding ExonerationText}"
-                                               FontSize="11"
-                                               TextColor="#0F172A"
+                                               FontSize="11" TextColor="#0D9488"
+                                               FontAttributes="Bold"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
 
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Grid.Column="0" Text="Imp.Ventas"
-                                               FontSize="11"
-                                               TextColor="#0F172A"/>
+                                               FontSize="11" TextColor="#334155"/>
                                         <Label Grid.Column="1" Text="{Binding TaxText}"
-                                               FontSize="11"
-                                               TextColor="#0F172A"
+                                               FontSize="11" TextColor="#334155"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
 
+                                    <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,4,0,2"/>
+
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Grid.Column="0" Text="Total"
-                                               FontSize="13"
+                                               FontSize="15"
                                                FontAttributes="Bold"
                                                TextColor="#0F172A"/>
                                         <Label Grid.Column="1" Text="{Binding TotalColonesText}"
-                                               FontSize="13"
+                                               FontSize="15"
                                                FontAttributes="Bold"
                                                TextColor="#0F172A"
                                                HorizontalTextAlignment="End"/>
@@ -317,7 +319,7 @@
                                         <Label Grid.Column="0" Text="{Binding TenderEntregadoText}"
                                                FontSize="11"
                                                TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="{Binding TotalColonesText}"
+                                        <Label Grid.Column="1" Text="{Binding TenderTotalText}"
                                                FontSize="11"
                                                TextColor="#0F172A"
                                                HorizontalTextAlignment="End"/>
@@ -325,10 +327,12 @@
                                     <Grid ColumnDefinitions="*,Auto">
                                         <Label Grid.Column="0" Text="CAMBIO"
                                                FontSize="11"
-                                               TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="&#x20A1;0.00"
-                                               FontSize="11"
                                                TextColor="#0F172A"
+                                               FontAttributes="Bold"/>
+                                        <Label Grid.Column="1" Text="{Binding ChangeAmountText}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="#16A34A"
                                                HorizontalTextAlignment="End"/>
                                     </Grid>
                                 </VerticalStackLayout>

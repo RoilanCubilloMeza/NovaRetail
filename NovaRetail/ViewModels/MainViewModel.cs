@@ -30,6 +30,8 @@ namespace NovaRetail.ViewModels
         private CancellationTokenSource _searchCts = new();
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
+        private int _registerIdFromConfig = 1;
+        private int _activeBatchNumber;
         private string _storeName = string.Empty;
         private string _storeAddress = string.Empty;
         private string _storePhone = string.Empty;
@@ -708,6 +710,8 @@ namespace NovaRetail.ViewModels
                 var config = await _storeConfigService.GetConfigAsync();
                 _storeTaxSystem = config.TaxSystem;
                 _storeIdFromConfig = config.StoreID;
+                _registerIdFromConfig = config.RegisterID > 0 ? config.RegisterID : 1;
+                _activeBatchNumber = config.BatchNumber;
                 _storeName = config.StoreName;
                 _storeAddress = config.StoreAddress;
                 _storePhone = config.StorePhone;
@@ -1339,6 +1343,7 @@ namespace NovaRetail.ViewModels
                 taxText: TaxText,
                 totalText: TotalText,
                 totalColonesText: TotalColonesText,
+                totalColonesValue: _totalColones,
                 taxSystemText: TaxSystemText,
                 quoteDaysText: QuoteDaysText,
                 hasDiscount: DiscountAmount > 0,
@@ -1405,7 +1410,7 @@ namespace NovaRetail.ViewModels
                     clientId: CurrentClientId,
                     clientName: HasClient ? CurrentClientName : "CLIENTE CONTADO",
                     cashierName: currentUser.DisplayName,
-                    registerNumber: 1,
+                    registerNumber: _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     storeName: _storeName,
                     storeAddress: _storeAddress,
                     storePhone: _storePhone,
@@ -1418,7 +1423,11 @@ namespace NovaRetail.ViewModels
                     hasExoneration: ExonerationAmount > 0,
                     totalText: TotalText,
                     totalColonesText: TotalColonesText,
-                    tenderDescription: tender.Description ?? string.Empty
+                    tenderDescription: tender.Description ?? string.Empty,
+                    tenderTotalColones: CheckoutVm.ChangeColones > 0
+                        ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
+                        : 0m,
+                    changeColones: Math.Round(CheckoutVm.ChangeColones, 2)
                 );
                 IsReceiptVisible = true;
 
@@ -1442,22 +1451,67 @@ namespace NovaRetail.ViewModels
         private NovaRetailCreateSaleRequest BuildSaleRequest(LoginUserModel currentUser, TenderModel tender)
         {
             var currencyCode = tender.CurrencyID == 2 ? "USD" : "CRC";
-            var amountForeign = tender.CurrencyID == 2 ? Math.Round(Total, 2) : Math.Round(_totalColones, 2);
             var medioPagoCodigo = ResolveMedioPagoCodigo(tender);
+
+            var firstAmount = Math.Round(
+                CheckoutVm.HasSecondTender && CheckoutVm.FirstTenderAmount > 0
+                    ? CheckoutVm.FirstTenderAmount
+                    : _totalColones, 2);
+
+            var change = Math.Round(CheckoutVm.ChangeColones, 2);
+            var amountForeign = tender.CurrencyID == 2
+                ? Math.Round(firstAmount / (_exchangeRate > 0 ? _exchangeRate : 1m), 2)
+                : firstAmount;
+
+            var tenders = new List<NovaRetailSaleTenderRequest>
+            {
+                new()
+                {
+                    RowNo = 1,
+                    TenderID = tender.ID,
+                    PaymentID = 0,
+                    Description = tender.Description,
+                    Amount = firstAmount,
+                    AmountForeign = amountForeign,
+                    RoundingError = 0m,
+                    MedioPagoCodigo = medioPagoCodigo
+                }
+            };
+
+            if (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null && CheckoutVm.SecondAmount > 0m)
+            {
+                var secondAmount = Math.Round(CheckoutVm.SecondAmount, 2);
+                var secondMedioPago = ResolveMedioPagoCodigo(CheckoutVm.SecondTender);
+                var secondForeign = CheckoutVm.SecondTender.CurrencyID == 2
+                    ? Math.Round(secondAmount / (_exchangeRate > 0 ? _exchangeRate : 1m), 2)
+                    : secondAmount;
+
+                tenders.Add(new NovaRetailSaleTenderRequest
+                {
+                    RowNo = 2,
+                    TenderID = CheckoutVm.SecondTender.ID,
+                    PaymentID = 0,
+                    Description = CheckoutVm.SecondTender.Description,
+                    Amount = secondAmount,
+                    AmountForeign = secondForeign,
+                    RoundingError = 0m,
+                    MedioPagoCodigo = secondMedioPago
+                });
+            }
 
             return new NovaRetailCreateSaleRequest
             {
                 StoreID = currentUser.StoreId > 0 ? currentUser.StoreId
                         : _storeIdFromConfig > 0 ? _storeIdFromConfig
                         : 1,
-                RegisterID = 1,
+                RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                 CashierID = ParseCashierId(currentUser),
                 CustomerID = 0,
                 ShipToID = 0,
                 Comment = string.Empty,
                 ReferenceNumber = string.Empty,
                 TransactionTime = null,
-                TotalChange = 0m,
+                TotalChange = change,
                 AllowNegativeInventory = false,
                 CurrencyCode = currencyCode,
                 TipoCambio = (_exchangeRate > 0 ? _exchangeRate : 1m).ToString(CultureInfo.InvariantCulture),
@@ -1466,22 +1520,11 @@ namespace NovaRetail.ViewModels
                 NombreCliente = HasClient ? CurrentClientName : "CLIENTE CONTADO",
                 CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
                 Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
-                InsertarTiqueteEspera = false,
+                InsertarTiqueteEspera = true,
+                COD_SUCURSAL = (_storeIdFromConfig > 0 ? _storeIdFromConfig : currentUser.StoreId > 0 ? currentUser.StoreId : 1).ToString("000", CultureInfo.InvariantCulture),
+                TERMINAL_POS = (_registerIdFromConfig > 0 ? _registerIdFromConfig : 1).ToString("00000", CultureInfo.InvariantCulture),
                 Items = BuildSaleItems(),
-                Tenders = new List<NovaRetailSaleTenderRequest>
-                {
-                    new()
-                    {
-                        RowNo = 1,
-                        TenderID = tender.ID,
-                        PaymentID = 0,
-                        Description = tender.Description,
-                        Amount = Math.Round(_totalColones, 2),
-                        AmountForeign = amountForeign,
-                        RoundingError = 0m,
-                        MedioPagoCodigo = medioPagoCodigo
-                    }
-                }
+                Tenders = tenders
             };
         }
 
@@ -1628,7 +1671,7 @@ namespace NovaRetail.ViewModels
 
         private void RefreshCheckoutPopup()
         {
-            CheckoutVm.UpdateTotals(SubtotalText, DiscountAmountText, TaxText, TotalText, TotalColonesText, DiscountAmount > 0);
+            CheckoutVm.UpdateTotals(SubtotalText, DiscountAmountText, TaxText, TotalText, TotalColonesText, _totalColones, DiscountAmount > 0);
             CheckoutVm.SetExonerationState(BuildCheckoutExonerationState());
         }
 

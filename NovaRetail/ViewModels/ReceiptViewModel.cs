@@ -19,6 +19,20 @@ namespace NovaRetail.ViewModels
         public string QuantityText => $"{Quantity:0.##}";
         public string TaxRateText => TaxPercentage > 0 ? $"{TaxPercentage:0.##} %" : string.Empty;
         public bool HasTax => TaxPercentage > 0;
+
+        // Cambio de precio
+        public bool HasOverridePrice { get; init; }
+        public string PriceChangeDetailText { get; init; } = string.Empty;
+
+        // Descuento por línea
+        public bool HasDiscount { get; init; }
+        public string DiscountDetailText { get; init; } = string.Empty;
+
+        // Exoneración por línea
+        public bool HasExoneration { get; init; }
+        public string ExonerationDetailText { get; init; } = string.Empty;
+
+        public bool HasAnyDetail => HasOverridePrice || HasDiscount || HasExoneration;
     }
 
     public sealed class ReceiptViewModel : INotifyPropertyChanged
@@ -63,6 +77,9 @@ namespace NovaRetail.ViewModels
         public string TotalText { get; private set; } = string.Empty;
         public string TotalColonesText { get; private set; } = string.Empty;
         public string TenderDescription { get; private set; } = string.Empty;
+        public string TenderTotalText { get; private set; } = string.Empty;
+        public string ChangeAmountText { get; private set; } = "₡0.00";
+        public bool HasChange { get; private set; }
         public string TenderEntregadoText => string.IsNullOrWhiteSpace(TenderDescription)
             ? "Entregado"
             : $"{TenderDescription} Entregado";
@@ -93,7 +110,9 @@ namespace NovaRetail.ViewModels
             bool hasExoneration,
             string totalText,
             string totalColonesText,
-            string tenderDescription)
+            string tenderDescription,
+            decimal tenderTotalColones = 0m,
+            decimal changeColones = 0m)
         {
             TransactionNumber = transactionNumber;
             TransactionDate = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
@@ -109,16 +128,41 @@ namespace NovaRetail.ViewModels
             Items.Clear();
             foreach (var item in cartItems)
             {
+                var grossUnit = item.EffectivePriceColones;
+                var grossLine = grossUnit * item.Quantity;
+                var discountFactor = 1m - item.DiscountPercent / 100m;
+                var netUnit = Math.Round(grossUnit * discountFactor, 2);
+                var netLine = Math.Round(grossLine * discountFactor, 2);
+
+                // PRECIO y TOTAL muestran el monto neto que paga el cliente.
+                // El texto descriptivo explica el precio original y el descuento aplicado.
                 Items.Add(new ReceiptLineItem
                 {
                     DisplayName = item.DisplayName,
                     Code = item.Code ?? string.Empty,
                     Quantity = item.Quantity,
                     TaxPercentage = item.TaxPercentage,
-                    UnitPriceColonesText = $"₡{item.EffectivePriceColones:N2}",
-                    LineTotalText = $"₡{item.EffectivePriceColones * item.Quantity:N2}"
+                    UnitPriceColonesText = $"₡{(item.HasDiscount ? netUnit : grossUnit):N2}",
+                    LineTotalText = $"₡{(item.HasDiscount ? netLine : grossLine):N2}",
+                    HasOverridePrice = item.HasOverridePrice,
+                    PriceChangeDetailText = item.HasOverridePrice
+                        ? $"Cambio precio: de ₡{item.UnitPriceColones:N2} a ₡{grossUnit:N2}"
+                        : string.Empty,
+                    HasDiscount = item.HasDiscount,
+                    DiscountDetailText = item.HasDiscount
+                        ? $"Desc. {item.DiscountPercent:0.##}%: de ₡{grossUnit:N2} a ₡{netUnit:N2}"
+                        : string.Empty,
+                    HasExoneration = item.HasExoneration,
+                    ExonerationDetailText = item.HasExoneration
+                        ? $"Exoneración: {item.ExonerationText}"
+                        : string.Empty
                 });
             }
+
+            var effectiveTenderTotal = tenderTotalColones > 0m ? tenderTotalColones : 0m;
+            TenderTotalText = effectiveTenderTotal > 0m ? $"₡{effectiveTenderTotal:N2}" : totalColonesText;
+            ChangeAmountText = changeColones > 0m ? $"₡{changeColones:N2}" : "₡0.00";
+            HasChange = changeColones > 0m;
 
             SubtotalText = subtotalText;
             TaxText = taxText;
@@ -252,6 +296,9 @@ namespace NovaRetail.ViewModels
                 sb.AppendLine($"{Truncate(item.DisplayName, 22),-22}{item.QuantityText,4}  {item.UnitPriceColonesText,8}  {item.LineTotalText,8}");
                 if (!string.IsNullOrWhiteSpace(item.Code)) sb.AppendLine($"  {item.Code}");
                 if (item.HasTax) sb.AppendLine($"  {item.TaxRateText}");
+                if (item.HasOverridePrice) sb.AppendLine($"  {item.PriceChangeDetailText}");
+                if (item.HasDiscount) sb.AppendLine($"  {item.DiscountDetailText}");
+                if (item.HasExoneration) sb.AppendLine($"  {item.ExonerationDetailText}");
             }
             sb.AppendLine(dash);
 
@@ -263,8 +310,8 @@ namespace NovaRetail.ViewModels
             sb.AppendLine($"{"TOTAL",-32}{TotalColonesText,10}");
             sb.AppendLine(sep);
 
-            sb.AppendLine($"{TenderEntregadoText,-32}{TotalColonesText,10}");
-            sb.AppendLine($"{"CAMBIO",-32}{"\u20a10.00",10}");
+            sb.AppendLine($"{TenderEntregadoText,-32}{TenderTotalText,10}");
+            sb.AppendLine($"{"CAMBIO",-32}{ChangeAmountText,10}");
             sb.AppendLine(sep);
 
             sb.AppendLine();
@@ -294,15 +341,19 @@ namespace NovaRetail.ViewModels
                 if (!string.IsNullOrWhiteSpace(item.Code) || item.HasTax)
                 {
                     rows.Append("<div class='item-meta'>");
-
                     if (!string.IsNullOrWhiteSpace(item.Code))
                         rows.Append("<span>").Append(Esc(item.Code)).Append("</span>");
-
                     if (item.HasTax)
                         rows.Append("<span>").Append(Esc(item.TaxRateText)).Append("</span>");
-
                     rows.Append("</div>");
                 }
+
+                if (item.HasOverridePrice)
+                    rows.Append("<div class='item-detail detail-price'>").Append(Esc(item.PriceChangeDetailText)).Append("</div>");
+                if (item.HasDiscount)
+                    rows.Append("<div class='item-detail detail-disc'>").Append(Esc(item.DiscountDetailText)).Append("</div>");
+                if (item.HasExoneration)
+                    rows.Append("<div class='item-detail detail-exon'>").Append(Esc(item.ExonerationDetailText)).Append("</div>");
 
                 rows.Append("</td>")
                     .Append("<td class='num'>").Append(Esc(item.QuantityText)).Append("</td>")
@@ -315,10 +366,10 @@ namespace NovaRetail.ViewModels
                 ? $"<div class='store'><div class='store-name'>{Esc(StoreName)}</div><div>{Esc(StoreAddress)}</div><div>{Esc(StorePhone)}</div></div>"
                 : string.Empty;
             var discountRow = HasDiscount
-                ? $"<tr><td>Descuentos</td><td>{Esc(DiscountText)}</td></tr>"
+                ? $"<tr class='sum-disc'><td>Descuentos</td><td>{Esc(DiscountText)}</td></tr>"
                 : string.Empty;
             var exonRow = HasExoneration
-                ? $"<tr><td>Exoneración</td><td>{Esc(ExonerationText)}</td></tr>"
+                ? $"<tr class='sum-exon'><td>Exoneración</td><td>{Esc(ExonerationText)}</td></tr>"
                 : string.Empty;
             var printScript = autoPrint
                 ? "<script>window.onload=function(){window.print();}</script>"
@@ -336,6 +387,8 @@ namespace NovaRetail.ViewModels
                 .AppendLine(".meta-table td{padding:4px 0;font-size:16px;vertical-align:top}.meta-label{width:160px;font-weight:700;color:#334155}.meta-value{color:#0f172a}.meta-split{display:flex;justify-content:space-between;gap:12px}")
                 .AppendLine(".items-table{table-layout:fixed}.items-head th{padding:10px 0 8px;border-bottom:2px solid #cbd5e1;font-size:15px;color:#334155;text-align:left}.items-head th:nth-child(2),.items-head th:nth-child(3),.items-head th:nth-child(4){text-align:right}.items-table th:nth-child(1){width:52%}.items-table th:nth-child(2){width:12%}.items-table th:nth-child(3){width:18%}.items-table th:nth-child(4){width:18%}.items-table td{padding:12px 0 10px;border-bottom:1px solid #eef2f7;vertical-align:top;font-size:16px}.desc-cell{padding-right:12px}.item-name{font-weight:800;line-height:1.35}.item-meta{display:flex;gap:10px;flex-wrap:wrap;color:#64748b;font-size:13px;margin-top:4px}.num{text-align:right}.strong{font-weight:800}")
                 .AppendLine(".summary-table td,.payment-table td{padding:5px 0;font-size:16px}.summary-table td:last-child,.payment-table td:last-child{text-align:right;font-weight:700}.summary-total td{padding-top:10px;border-top:2px solid #cbd5e1;font-size:22px;font-weight:800}.payment-table{margin-top:2px}.policy{text-align:center;font-size:15px;line-height:1.45;color:#0f172a}.policy-sep{text-align:center;color:#94a3b8;font-size:14px;letter-spacing:1px;margin:10px 0 6px}.soon{text-align:center;font-size:20px;font-weight:800;margin-top:4px}.legal{text-align:center;font-size:12px;line-height:1.45;color:#475569;padding-top:16px}.legal strong{color:#0f172a}")
+                .AppendLine(".item-detail{font-size:12px;font-style:italic;margin-top:2px;line-height:1.3}.detail-price{color:#b45309}.detail-disc{color:#dc2626}.detail-exon{color:#0d9488}")
+                .AppendLine(".sum-disc td{color:#dc2626;font-weight:700}.sum-exon td{color:#0d9488;font-weight:700}.sum-tax td{color:#334155}.pay-change td{color:#16a34a;font-weight:800;font-size:17px}")
                 .AppendLine("@media print{@page{size:auto;margin:0}html,body{margin:0;padding:0;background:#fff}.wrap{padding:10mm}.paper{width:100%;max-width:none;border:none;box-shadow:none;border-radius:0}.hero{padding:12px 0 14px;background:#fff;border-bottom:1px solid #cbd5e1}.hero-title{color:#0f172a;font-size:24px}.hero-sub,.doc-badge small{color:#475569}.doc-badge{background:#f8fafc;color:#0f172a;border:1px solid #cbd5e1}.content{padding:14px 0 0}.store-name{font-size:20px}.store{font-size:13px}.meta-table td,.summary-table td,.payment-table td,.items-table td{font-size:13px}.items-head th{font-size:12px}.item-name{font-size:13px}.item-meta{font-size:11px}.summary-total td{font-size:17px}.policy{font-size:12px}.soon{font-size:16px}.legal{font-size:10px;padding-top:10px}}")
                 .AppendLine("</style>")
                 .AppendLine(printScript)
@@ -363,13 +416,13 @@ namespace NovaRetail.ViewModels
                 .AppendLine($"<tr><td>Sub Total</td><td>{Esc(SubtotalText)}</td></tr>")
                 .AppendLine(discountRow)
                 .AppendLine(exonRow)
-                .AppendLine($"<tr><td>Imp.Ventas</td><td>{Esc(TaxText)}</td></tr>")
+                .AppendLine($"<tr class='sum-tax'><td>Imp.Ventas</td><td>{Esc(TaxText)}</td></tr>")
                 .AppendLine($"<tr class='summary-total'><td>Total</td><td>{Esc(TotalColonesText)}</td></tr>")
                 .AppendLine("</table>")
                 .AppendLine("<div class='sep'></div>")
                 .AppendLine("<table class='payment-table'>")
-                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TotalColonesText)}</td></tr>")
-                .AppendLine("<tr><td>CAMBIO</td><td>₡0.00</td></tr>")
+                .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TenderTotalText)}</td></tr>")
+                .AppendLine($"<tr class='{(HasChange ? "pay-change" : "")}'><td>CAMBIO</td><td>{Esc(ChangeAmountText)}</td></tr>")
                 .AppendLine("</table>")
                 .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
                 .AppendLine("<div class='policy'>No se cambia ropa<br>No se aceptan devoluciones sin factura<br>No se aceptan devoluciones después de 45 días</div>")

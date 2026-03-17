@@ -91,86 +91,108 @@ namespace NovaAPI.Controllers
             try
             {
                 using (var cn = new SqlConnection(connectionString))
-                using (var cmd = new SqlCommand("dbo.spNovaRetail_CreateSale", cn))
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 180;
-
-                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                    cmd.Parameters.AddWithValue("@RegisterID", request.RegisterID);
-                    cmd.Parameters.AddWithValue("@CashierID", request.CashierID);
-                    cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
-                    cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
-                    cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@Status", request.Status);
-                    cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
-                    cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
-                    cmd.Parameters.AddWithValue("@RecallID", request.RecallID);
-                    cmd.Parameters.AddWithValue("@RecallType", request.RecallType);
-                    cmd.Parameters.AddWithValue("@TransactionTime", (object)request.TransactionTime ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@TotalChange", request.TotalChange);
-                    cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory);
-                    cmd.Parameters.AddWithValue("@CurrencyCode", request.CurrencyCode ?? "CRC");
-                    cmd.Parameters.AddWithValue("@TipoCambio", request.TipoCambio ?? "1");
-                    cmd.Parameters.AddWithValue("@CondicionVenta", request.CondicionVenta ?? "01");
-                    cmd.Parameters.AddWithValue("@CodCliente", request.CodCliente ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NombreCliente", request.NombreCliente ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@CedulaTributaria", request.CedulaTributaria ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@Exonera", request.Exonera);
-                    cmd.Parameters.AddWithValue("@InsertarTiqueteEspera", request.InsertarTiqueteEspera);
-                    cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", request.COMPROBANTE_INTERNO ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
-
-                    var itemsParameter = cmd.Parameters.AddWithValue("@Items", ToItemsTable(request.Items));
-                    itemsParameter.SqlDbType = SqlDbType.Structured;
-                    itemsParameter.TypeName = "dbo.NovaRetailSaleItemTVP";
-
-                    var tendersParameter = cmd.Parameters.AddWithValue("@Tenders", ToTendersTable(request.Tenders));
-                    tendersParameter.SqlDbType = SqlDbType.Structured;
-                    tendersParameter.TypeName = "dbo.NovaRetailSaleTenderTVP";
-
-                    var transactionNumberParameter = new SqlParameter("@TransactionNumber", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    cmd.Parameters.Add(transactionNumberParameter);
-
                     cn.Open();
 
-                    using (var reader = cmd.ExecuteReader())
+                    var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID);
+                    if (activeBatch == null)
                     {
-                        if (reader.Read())
+                        response.Ok = false;
+                        response.Message = "No existe un lote/caja abierto para registrar la venta.";
+                        return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                    }
+
+                    request.StoreID = activeBatch.StoreID;
+                    request.RegisterID = activeBatch.RegisterID;
+
+                    using (var cmd = new SqlCommand("dbo.spNovaRetail_CreateSale", cn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 180;
+
+                        cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                        cmd.Parameters.AddWithValue("@RegisterID", request.RegisterID);
+                        cmd.Parameters.AddWithValue("@CashierID", request.CashierID);
+                        cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+                        cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
+                        cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@Status", request.Status);
+                        cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
+                        cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
+                        cmd.Parameters.AddWithValue("@RecallID", request.RecallID);
+                        cmd.Parameters.AddWithValue("@RecallType", request.RecallType);
+                        cmd.Parameters.AddWithValue("@TransactionTime", (object)request.TransactionTime ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@TotalChange", request.TotalChange);
+                        cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory);
+                        cmd.Parameters.AddWithValue("@CurrencyCode", request.CurrencyCode ?? "CRC");
+                        cmd.Parameters.AddWithValue("@TipoCambio", request.TipoCambio ?? "1");
+                        cmd.Parameters.AddWithValue("@CondicionVenta", request.CondicionVenta ?? "01");
+                        cmd.Parameters.AddWithValue("@CodCliente", request.CodCliente ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@NombreCliente", request.NombreCliente ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@CedulaTributaria", request.CedulaTributaria ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@Exonera", request.Exonera);
+                        cmd.Parameters.AddWithValue("@InsertarTiqueteEspera", request.InsertarTiqueteEspera);
+                        cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", request.COMPROBANTE_INTERNO ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
+
+                        var itemsParameter = cmd.Parameters.AddWithValue("@Items", ToItemsTable(request.Items));
+                        itemsParameter.SqlDbType = SqlDbType.Structured;
+                        itemsParameter.TypeName = "dbo.NovaRetailSaleItemTVP";
+
+                        var tendersParameter = cmd.Parameters.AddWithValue("@Tenders", ToTendersTable(request.Tenders));
+                        tendersParameter.SqlDbType = SqlDbType.Structured;
+                        tendersParameter.TypeName = "dbo.NovaRetailSaleTenderTVP";
+
+                        var transactionNumberParameter = new SqlParameter("@TransactionNumber", SqlDbType.Int)
                         {
-                            response.Ok = GetBoolean(reader, "Ok");
-                            response.Message = GetString(reader, "Message", GetString(reader, "ErrorMessage", string.Empty));
-                            response.TransactionNumber = GetInt(reader, "TransactionNumber");
-                            response.BatchNumber = GetNullableInt(reader, "BatchNumber");
-                            response.SubTotal = GetNullableDecimal(reader, "SubTotal");
-                            response.Discounts = GetNullableDecimal(reader, "Discounts");
-                            response.SalesTax = GetNullableDecimal(reader, "SalesTax");
-                            response.Total = GetNullableDecimal(reader, "Total");
-                            response.TenderTotal = GetNullableDecimal(reader, "TenderTotal");
-                            response.ErrorNumber = GetNullableInt(reader, "ErrorNumber");
-                            response.ErrorProcedure = GetString(reader, "ErrorProcedure", string.Empty);
-                            response.ErrorLine = GetNullableInt(reader, "ErrorLine");
+                            Direction = ParameterDirection.Output
+                        };
+                        cmd.Parameters.Add(transactionNumberParameter);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                response.Ok = GetBoolean(reader, "Ok");
+                                response.Message = GetString(reader, "Message", GetString(reader, "ErrorMessage", string.Empty));
+                                response.TransactionNumber = GetInt(reader, "TransactionNumber");
+                                response.BatchNumber = GetNullableInt(reader, "BatchNumber");
+                                response.SubTotal = GetNullableDecimal(reader, "SubTotal");
+                                response.Discounts = GetNullableDecimal(reader, "Discounts");
+                                response.SalesTax = GetNullableDecimal(reader, "SalesTax");
+                                response.Total = GetNullableDecimal(reader, "Total");
+                                response.TenderTotal = GetNullableDecimal(reader, "TenderTotal");
+                                response.ErrorNumber = GetNullableInt(reader, "ErrorNumber");
+                                response.ErrorProcedure = GetString(reader, "ErrorProcedure", string.Empty);
+                                response.ErrorLine = GetNullableInt(reader, "ErrorLine");
+                            }
+                        }
+
+                        if (response.TransactionNumber <= 0 && transactionNumberParameter.Value != DBNull.Value)
+                        {
+                            response.TransactionNumber = Convert.ToInt32(transactionNumberParameter.Value);
                         }
                     }
 
-                    if (response.TransactionNumber <= 0 && transactionNumberParameter.Value != DBNull.Value)
+                    if (response.Ok && response.TransactionNumber > 0)
                     {
-                        response.TransactionNumber = Convert.ToInt32(transactionNumberParameter.Value);
+                        response.BatchNumber = EnsureTransactionBatchNumber(cn, response.TransactionNumber, request.StoreID, request.RegisterID, response.BatchNumber ?? activeBatch.BatchNumber);
+                        EnsureTaxEntries(cn, request, response.TransactionNumber, request.StoreID);
+
+                        if (request.InsertarTiqueteEspera)
+                            EnsureTiqueteEspera(cn, request, response.TransactionNumber);
                     }
                 }
 
@@ -386,6 +408,234 @@ namespace NovaAPI.Controllers
 
             var value = reader[columnName];
             return value != DBNull.Value && Convert.ToBoolean(value);
+        }
+
+        private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId)
+        {
+            var candidates = new List<Tuple<string, SqlParameter[]>>();
+
+            if (requestedStoreId > 0 && requestedRegisterId > 0)
+            {
+                candidates.Add(Tuple.Create(
+                    @"SELECT TOP 1 BatchNumber, StoreID, RegisterID
+                      FROM dbo.Batch
+                      WHERE StoreID = @StoreID
+                        AND RegisterID = @RegisterID
+                        AND ClosingTime IS NULL
+                        AND Status IN (0, 2, 4, 6)
+                      ORDER BY OpeningTime DESC, BatchNumber DESC",
+                    new[]
+                    {
+                        new SqlParameter("@StoreID", requestedStoreId),
+                        new SqlParameter("@RegisterID", requestedRegisterId)
+                    }));
+            }
+
+            if (requestedStoreId > 0)
+            {
+                candidates.Add(Tuple.Create(
+                    @"SELECT TOP 1 BatchNumber, StoreID, RegisterID
+                      FROM dbo.Batch
+                      WHERE StoreID = @StoreID
+                        AND ClosingTime IS NULL
+                        AND Status IN (0, 2, 4, 6)
+                      ORDER BY OpeningTime DESC, BatchNumber DESC",
+                    new[] { new SqlParameter("@StoreID", requestedStoreId) }));
+            }
+
+            candidates.Add(Tuple.Create(
+                @"SELECT TOP 1 BatchNumber, StoreID, RegisterID
+                  FROM dbo.Batch
+                  WHERE ClosingTime IS NULL
+                    AND Status IN (0, 2, 4, 6)
+                  ORDER BY OpeningTime DESC, BatchNumber DESC",
+                Array.Empty<SqlParameter>()));
+
+            foreach (var candidate in candidates)
+            {
+                using (var cmd = new SqlCommand(candidate.Item1, cn))
+                {
+                    if (candidate.Item2.Length > 0)
+                        cmd.Parameters.AddRange(candidate.Item2);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new ActiveBatchInfo
+                            {
+                                BatchNumber = reader["BatchNumber"] != DBNull.Value ? Convert.ToInt32(reader["BatchNumber"]) : 0,
+                                StoreID = reader["StoreID"] != DBNull.Value ? Convert.ToInt32(reader["StoreID"]) : requestedStoreId,
+                                RegisterID = reader["RegisterID"] != DBNull.Value ? Convert.ToInt32(reader["RegisterID"]) : requestedRegisterId
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static int EnsureTransactionBatchNumber(SqlConnection cn, int transactionNumber, int storeId, int registerId, int fallbackBatchNumber)
+        {
+            using (var cmd = new SqlCommand("SELECT BatchNumber FROM dbo.[Transaction] WHERE TransactionNumber = @TransactionNumber", cn))
+            {
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                var currentBatchValue = cmd.ExecuteScalar();
+                if (currentBatchValue != null && currentBatchValue != DBNull.Value)
+                {
+                    var currentBatch = Convert.ToInt32(currentBatchValue);
+                    if (currentBatch > 0)
+                        return currentBatch;
+                }
+            }
+
+            var activeBatch = ResolveActiveBatch(cn, storeId, registerId);
+            var batchNumber = activeBatch != null && activeBatch.BatchNumber > 0
+                ? activeBatch.BatchNumber
+                : fallbackBatchNumber;
+
+            if (batchNumber > 0)
+            {
+                using (var cmd = new SqlCommand("UPDATE dbo.[Transaction] SET BatchNumber = @BatchNumber WHERE TransactionNumber = @TransactionNumber AND ISNULL(BatchNumber, 0) = 0", cn))
+                {
+                    cmd.Parameters.AddWithValue("@BatchNumber", batchNumber);
+                    cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            return batchNumber;
+        }
+
+        private static void EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
+        {
+            if (request.Items == null || request.Items.Count == 0)
+                return;
+
+            var taxSystem = GetTaxSystem(cn);
+            var entryIdsByDetailId = new Dictionary<int, int>();
+
+            using (var cmd = new SqlCommand("SELECT ID, DetailID FROM dbo.TransactionEntry WHERE TransactionNumber = @TransactionNumber", cn))
+            {
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var entryId = reader["ID"] != DBNull.Value ? Convert.ToInt32(reader["ID"]) : 0;
+                        var detailId = reader["DetailID"] != DBNull.Value ? Convert.ToInt32(reader["DetailID"]) : -1;
+
+                        if (entryId > 0 && detailId >= 0 && !entryIdsByDetailId.ContainsKey(detailId))
+                            entryIdsByDetailId.Add(detailId, entryId);
+                    }
+                }
+            }
+
+            foreach (var item in request.Items.OrderBy(i => i.RowNo))
+            {
+                if (!item.Taxable || !item.TaxID.HasValue)
+                    continue;
+
+                var detailId = item.RowNo - 1;
+                if (!entryIdsByDetailId.TryGetValue(detailId, out var transactionEntryId) || transactionEntryId <= 0)
+                    continue;
+
+                using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.TaxEntry WHERE TransactionEntryID = @TransactionEntryID", cn))
+                {
+                    existsCmd.Parameters.AddWithValue("@TransactionEntryID", transactionEntryId);
+                    var exists = Convert.ToInt32(existsCmd.ExecuteScalar()) > 0;
+                    if (exists)
+                        continue;
+                }
+
+                var lineAmount = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
+                var taxAmount = Math.Round(item.SalesTax, 4, MidpointRounding.AwayFromZero);
+                var taxableAmount = taxSystem == 1
+                    ? Math.Max(0m, Math.Round(lineAmount - taxAmount, 4, MidpointRounding.AwayFromZero))
+                    : Math.Max(0m, lineAmount);
+
+                using (var insertCmd = new SqlCommand(
+                    @"INSERT INTO dbo.TaxEntry (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)
+                      VALUES (@StoreID, @TaxID, @TransactionNumber, @Tax, @TaxableAmount, @TransactionEntryID, NEWID())", cn))
+                {
+                    insertCmd.Parameters.AddWithValue("@StoreID", storeId);
+                    insertCmd.Parameters.AddWithValue("@TaxID", item.TaxID.Value);
+                    insertCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                    insertCmd.Parameters.AddWithValue("@Tax", taxAmount);
+                    insertCmd.Parameters.AddWithValue("@TaxableAmount", taxableAmount);
+                    insertCmd.Parameters.AddWithValue("@TransactionEntryID", transactionEntryId);
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
+            {
+                existsCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
+                if (Convert.ToInt32(existsCmd.ExecuteScalar()) > 0)
+                    return;
+            }
+
+            var medioPagos = (request.Tenders ?? new List<NovaRetailSaleTenderDto>())
+                .OrderBy(t => t.RowNo)
+                .Select(t => string.IsNullOrWhiteSpace(t.MedioPagoCodigo) ? string.Empty : t.MedioPagoCodigo.Trim())
+                .Take(4)
+                .ToList();
+
+            while (medioPagos.Count < 4)
+                medioPagos.Add(string.Empty);
+
+            using (var cmd = new SqlCommand("dbo.spAVS_InsertTiqueteEspera", cn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 120;
+                cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
+                cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
+                cmd.Parameters.AddWithValue("@TRANSACTIONNUMBER", transactionNumber.ToString());
+                cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
+                cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
+                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
+                cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
+                cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
+                cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
+                cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
+                cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", request.NombreCliente ?? string.Empty);
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO1", medioPagos[0]);
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
+                cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
+                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
+                cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
+                cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
+                cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static int GetTaxSystem(SqlConnection cn)
+        {
+            using (var cmd = new SqlCommand("SELECT TOP 1 TaxSystem FROM dbo.[Configuration]", cn))
+            {
+                var value = cmd.ExecuteScalar();
+                return value == null || value == DBNull.Value ? 0 : Convert.ToInt32(value);
+            }
+        }
+
+        private sealed class ActiveBatchInfo
+        {
+            public int BatchNumber { get; set; }
+            public int StoreID { get; set; }
+            public int RegisterID { get; set; }
         }
     }
 }

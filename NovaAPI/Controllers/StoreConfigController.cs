@@ -42,12 +42,22 @@ namespace NovaAPI.Controllers
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
                     using (var cmd = new System.Data.SqlClient.SqlCommand(
-                        "SELECT TOP 1 StoreID FROM dbo.Batch WHERE Status IN (0, 2, 4, 6) ORDER BY BatchNumber DESC", cn))
+                        @"SELECT TOP 1 BatchNumber, StoreID, RegisterID
+                          FROM dbo.Batch
+                          WHERE ClosingTime IS NULL
+                            AND Status IN (0, 2, 4, 6)
+                          ORDER BY OpeningTime DESC, BatchNumber DESC", cn))
                     {
                         cn.Open();
-                        var scalar = cmd.ExecuteScalar();
-                        if (scalar != null && scalar != DBNull.Value)
-                            dto.StoreID = Convert.ToInt32(scalar);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                dto.BatchNumber = reader["BatchNumber"] != DBNull.Value ? Convert.ToInt32(reader["BatchNumber"]) : 0;
+                                dto.StoreID = reader["StoreID"] != DBNull.Value ? Convert.ToInt32(reader["StoreID"]) : 0;
+                                dto.RegisterID = reader["RegisterID"] != DBNull.Value ? Convert.ToInt32(reader["RegisterID"]) : 0;
+                            }
+                        }
                     }
                 }
             }
@@ -127,6 +137,8 @@ namespace NovaAPI.Controllers
     public class StoreConfigDto
     {
         public int StoreID { get; set; }
+        public int RegisterID { get; set; }
+        public int BatchNumber { get; set; }
         public int TaxSystem { get; set; }
         public int QuoteExpirationDays { get; set; }
         public int DefaultTenderID { get; set; }

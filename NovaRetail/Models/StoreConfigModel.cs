@@ -3,6 +3,8 @@ namespace NovaRetail.Models
     public class StoreConfigModel
     {
         public int StoreID { get; set; }
+        public int RegisterID { get; set; }
+        public int BatchNumber { get; set; }
         /// <summary>0 = IVA Excluido, 1 = IVA Incluido</summary>
         public int TaxSystem { get; set; }
         public int QuoteExpirationDays { get; set; }
