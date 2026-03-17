@@ -22,6 +22,7 @@ namespace NovaRetail.ViewModels
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
+        private readonly List<ReasonCodeModel> _cachedExonerationCodes = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private const int ProductsPageSize = 500;
         private int _loadedItemsPage;
@@ -1337,6 +1338,11 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (_cachedDiscountCodes.Count == 0)
+                await LoadDiscountCodesAsync();
+            if (_cachedExonerationCodes.Count == 0)
+                await LoadExonerationCodesAsync();
+
             CheckoutVm.Load(
                 subtotalText: SubtotalText,
                 discountAmountText: DiscountAmountText,
@@ -1553,12 +1559,30 @@ namespace NovaRetail.ViewModels
                 var item = CartItems[index];
                 var lineTotals = CalculateLineTotals(item);
                 var quantity = item.Quantity <= 0 ? 1m : item.Quantity;
-                var unitPrice = Math.Round(lineTotals.TotalColones / quantity, 4);
-                var fullPrice = Math.Round(item.EffectivePriceColones, 4);
+
+                // UnitPrice = precio neto por unidad SIN impuesto (base después de descuento)
+                var netLineColones = lineTotals.TotalColones - lineTotals.TaxColones;
+                var unitPrice = Math.Round(netLineColones / quantity, 4);
+
+                // FullPrice = precio de lista SIN impuesto (antes de descuento)
+                var rawFullPrice = item.EffectivePriceColones;
+                if (IsTaxIncluded && item.TaxPercentage > 0)
+                {
+                    var divisor = 1m + (item.TaxPercentage / 100m);
+                    rawFullPrice = Math.Round(rawFullPrice / divisor, 4);
+                }
+                var fullPrice = Math.Round(rawFullPrice, 4);
+
                 var lineDiscountAmount = Math.Round(lineTotals.DiscountColones, 2);
                 var lineDiscountPercent = fullPrice > 0
                     ? Math.Round((lineDiscountAmount / (fullPrice * quantity)) * 100m, 4)
                     : 0m;
+
+                // DiscountReasonCodeID: usar el ID seleccionado por el usuario, o resolver desde cache
+                var discountReasonCodeID = ResolveDiscountReasonCodeID(item);
+
+                // TaxChangeReasonCodeID: indicar exoneración aplicada
+                var taxChangeReasonCodeID = ResolveExonerationReasonCodeID(item);
 
                 result.Add(new NovaRetailSaleItemRequest
                 {
@@ -1575,9 +1599,9 @@ namespace NovaRetail.ViewModels
                     TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
                     SalesTax = Math.Round(lineTotals.TaxColones, 2),
                     LineComment = item.HasDiscount ? item.DiscountReasonCode : string.Empty,
-                    DiscountReasonCodeID = 0,
+                    DiscountReasonCodeID = discountReasonCodeID,
                     ReturnReasonCodeID = 0,
-                    TaxChangeReasonCodeID = 0,
+                    TaxChangeReasonCodeID = taxChangeReasonCodeID,
                     QuantityDiscountID = 0,
                     ItemType = 0,
                     ComputedQuantity = 0m,
@@ -1586,12 +1610,45 @@ namespace NovaRetail.ViewModels
                     ExtendedDescription = item.DisplayName,
                     PromotionID = null,
                     PromotionName = string.Empty,
-                    LineDiscountAmount = lineDiscountAmount,
-                    LineDiscountPercent = lineDiscountPercent
+                    // LineDiscountAmount/Percent se omiten (= 0) porque UnitPrice ya refleja
+                    // el descuento. Enviarlos causaría doble deducción en Transaction.Total
+                    // (SP usa: Total = SUM(UnitPrice × Qty) - SUM(LineDiscountAmount)).
+                    LineDiscountAmount = 0m,
+                    LineDiscountPercent = 0m
                 });
             }
 
             return result;
+        }
+
+        private int ResolveDiscountReasonCodeID(CartItemModel item)
+        {
+            if (!item.HasDiscount)
+                return 0;
+
+            if (item.DiscountReasonCodeID > 0)
+                return item.DiscountReasonCodeID;
+
+            if (!string.IsNullOrWhiteSpace(item.DiscountReasonCode))
+            {
+                var match = _cachedDiscountCodes.FirstOrDefault(c =>
+                    string.Equals(c.Code, item.DiscountReasonCode, StringComparison.OrdinalIgnoreCase));
+                if (match is not null)
+                    return match.ID;
+            }
+
+            return _cachedDiscountCodes.FirstOrDefault()?.ID ?? 0;
+        }
+
+        private int ResolveExonerationReasonCodeID(CartItemModel item)
+        {
+            if (!item.HasExoneration)
+                return 0;
+
+            if (item.ExonerationReasonCodeID > 0)
+                return item.ExonerationReasonCodeID;
+
+            return _cachedExonerationCodes.FirstOrDefault()?.ID ?? 0;
         }
 
         private static int ParseCashierId(LoginUserModel currentUser)
@@ -1785,8 +1842,12 @@ namespace NovaRetail.ViewModels
                 }
 
                 ResetExonerationState();
+                var exonReasonCodeID = _cachedExonerationCodes.FirstOrDefault()?.ID ?? 0;
                 foreach (var item in eligibleItems)
+                {
                     item.ExonerationPercent = document.PorcentajeExoneracion;
+                    item.ExonerationReasonCodeID = exonReasonCodeID;
+                }
 
                 var scopeText = eligibleItems.Count == CartItems.Count
                     ? "Exoneración aplicada a todo el carrito."
@@ -1869,8 +1930,12 @@ namespace NovaRetail.ViewModels
 
             ResetExonerationState();
 
+            var exonReasonCodeID = _cachedExonerationCodes.FirstOrDefault()?.ID ?? 0;
             foreach (var item in targetItems)
+            {
                 item.ExonerationPercent = percent;
+                item.ExonerationReasonCodeID = exonReasonCodeID;
+            }
 
             var document = new ExonerationModel
             {
@@ -1921,6 +1986,7 @@ namespace NovaRetail.ViewModels
             }
 
             item.ExonerationPercent = document.PorcentajeExoneracion;
+            item.ExonerationReasonCodeID = _cachedExonerationCodes.FirstOrDefault()?.ID ?? 0;
             SetAppliedExoneration(document, authorization, $"Exoneración aplicada a {item.DisplayName}.");
             UpdateExonerationEligibility(document);
             RecalculateTotal();
@@ -1933,6 +1999,7 @@ namespace NovaRetail.ViewModels
                 return;
 
             item.ExonerationPercent = 0m;
+            item.ExonerationReasonCodeID = 0;
             NormalizeAppliedExonerationState();
             UpdateExonerationEligibility(_appliedExoneration);
             RecalculateTotal();
@@ -1944,6 +2011,7 @@ namespace NovaRetail.ViewModels
             foreach (var item in CartItems)
             {
                 item.ExonerationPercent = 0m;
+                item.ExonerationReasonCodeID = 0;
                 item.HasExonerationEligibility = false;
                 item.IsExonerationEligible = false;
             }
@@ -2287,6 +2355,22 @@ namespace NovaRetail.ViewModels
                 {
                     _cachedDiscountCodes.Clear();
                     _cachedDiscountCodes.AddRange(codes);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private async Task LoadExonerationCodesAsync()
+        {
+            try
+            {
+                var codes = await _productService.GetReasonCodesAsync(6);
+                if (codes.Count > 0)
+                {
+                    _cachedExonerationCodes.Clear();
+                    _cachedExonerationCodes.AddRange(codes);
                 }
             }
             catch

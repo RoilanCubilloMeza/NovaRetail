@@ -251,6 +251,7 @@ namespace NovaRetail.ViewModels
             {
                 _item.DiscountPercent = Math.Clamp(pct, 0, 100);
                 _item.DiscountReasonCode = SelectedDiscountCode?.Code ?? string.Empty;
+                _item.DiscountReasonCodeID = SelectedDiscountCode?.ID ?? 0;
             }
             IsDiscountConfirmVisible = false;
         }

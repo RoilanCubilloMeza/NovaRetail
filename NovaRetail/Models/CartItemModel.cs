@@ -13,6 +13,8 @@ namespace NovaRetail.Models
         private bool _hasExonerationEligibility;
         private bool _isExonerationEligible;
         private string _discountReasonCode = string.Empty;
+        private int _discountReasonCodeID;
+        private int _exonerationReasonCodeID;
 
         public int ItemID { get; set; }
         public string Emoji { get; set; } = string.Empty;
@@ -81,6 +83,18 @@ namespace NovaRetail.Models
         {
             get => _discountReasonCode;
             set { _discountReasonCode = value ?? string.Empty; OnPropertyChanged(); }
+        }
+
+        public int DiscountReasonCodeID
+        {
+            get => _discountReasonCodeID;
+            set { _discountReasonCodeID = value; OnPropertyChanged(); }
+        }
+
+        public int ExonerationReasonCodeID
+        {
+            get => _exonerationReasonCodeID;
+            set { _exonerationReasonCodeID = value; OnPropertyChanged(); }
         }
 
         public decimal ExonerationPercent
