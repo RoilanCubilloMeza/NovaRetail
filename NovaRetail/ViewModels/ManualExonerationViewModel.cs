@@ -48,6 +48,7 @@ namespace NovaRetail.ViewModels
         private string _statusMessage = "* Llene la información y haga click en Aplicar para continuar...";
         private bool _isStatusSuccess;
         private decimal _cartSubtotalColones;
+        private string _clientName = string.Empty;
 
         public IReadOnlyList<ExonerationDocumentType> DocumentTypes => AllDocumentTypes;
 
@@ -147,14 +148,15 @@ namespace NovaRetail.ViewModels
             CancelCommand = new Command(() => RequestCancel?.Invoke());
         }
 
-        public void Load(string existingAuthorization, decimal cartSubtotalColones)
+        public void Load(string existingAuthorization, decimal cartSubtotalColones, string clientName = "")
         {
             _cartSubtotalColones = cartSubtotalColones;
+            _clientName = clientName?.Trim() ?? string.Empty;
             AuthorizationNumber = existingAuthorization;
             SelectedDocumentType = AllDocumentTypes[0];
             FechaEmision = DateTime.Today;
             FechaVencimiento = DateTime.Today;
-            Institucion = string.Empty;
+            Institucion = _clientName;
             PorcentajeText = string.Empty;
             MontoExoneradoText = "...";
             SetBusy(false);
@@ -179,7 +181,7 @@ namespace NovaRetail.ViewModels
                 ?? AllDocumentTypes[^1];
             FechaEmision = doc.FechaEmision ?? DateTime.Today;
             FechaVencimiento = doc.FechaVencimiento ?? DateTime.Today;
-            Institucion = doc.NombreInstitucion;
+            Institucion = string.IsNullOrWhiteSpace(_clientName) ? doc.NombreInstitucion : _clientName;
             PorcentajeText = doc.PorcentajeExoneracion.ToString("0.##", CultureInfo.InvariantCulture);
             SetStatus("✓ Datos cargados desde Hacienda. Verifique y haga click en Aplicar.", true);
             CalcularMonto();

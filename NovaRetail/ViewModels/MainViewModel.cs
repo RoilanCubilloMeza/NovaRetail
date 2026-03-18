@@ -1931,7 +1931,7 @@ namespace NovaRetail.ViewModels
             if (_cachedExonerationCodes.Count == 0)
                 await LoadExonerationCodesAsync();
 
-            ManualExonerationVm.Load(CheckoutVm.ExonerationAuthorization, _subtotalColones);
+            ManualExonerationVm.Load(CheckoutVm.ExonerationAuthorization, _subtotalColones, CurrentClientName);
             IsManualExonerationVisible = true;
         }
 
