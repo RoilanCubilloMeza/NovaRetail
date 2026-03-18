@@ -10,6 +10,7 @@ namespace NovaRetail.State
     public sealed record SetCheckoutVisibleAction(bool Value) : IAppAction;
     public sealed record SetReceiptVisibleAction(bool Value) : IAppAction;
     public sealed record SetProductsPanelVisibleAction(bool Value) : IAppAction;
+    public sealed record SetManualExonerationVisibleAction(bool Value) : IAppAction;
 
     // ── Cliente ──
     public sealed record SetCurrentClientAction(string ClientId, string ClientName) : IAppAction;

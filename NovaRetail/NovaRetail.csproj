@@ -128,6 +128,9 @@
 	  <MauiXaml Update="Views\LoginStatusBar.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\ManualExonerationPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\PriceJustificationPopup.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		  </MauiXaml>

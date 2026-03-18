@@ -32,6 +32,15 @@ namespace NovaRetail.Data
                 var url = $"{BaseUrl}/fe/ex?autorizacion={Uri.EscapeDataString(authorization.Trim())}";
                 using var response = await http.GetAsync(url, cancellationToken);
 
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    return new ExonerationValidationResult
+                    {
+                        IsValid = false,
+                        Message = "El código de autorización no fue reconocido por Hacienda. Verifique el número ingresado (Ej. AL-00020402-24)."
+                    };
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
                     return new ExonerationValidationResult

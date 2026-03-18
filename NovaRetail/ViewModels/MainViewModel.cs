@@ -142,6 +142,17 @@ namespace NovaRetail.ViewModels
         public PriceJustificationViewModel PriceJustVm { get; } = new();
         public CheckoutViewModel CheckoutVm { get; } = new();
         public ReceiptViewModel ReceiptVm { get; } = new();
+        public ManualExonerationViewModel ManualExonerationVm { get; } = new();
+
+        public bool IsManualExonerationVisible
+        {
+            get => _appStore.State.IsManualExonerationVisible;
+            private set
+            {
+                if (IsManualExonerationVisible != value)
+                    _appStore.Dispatch(new SetManualExonerationVisibleAction(value));
+            }
+        }
 
         public bool IsCheckoutVisible
         {
@@ -636,6 +647,9 @@ namespace NovaRetail.ViewModels
             CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
             CheckoutVm.RequestClearExoneration += ClearExoneration;
             CheckoutVm.RequestApplyManualExoneration += ApplyManualExonerationAsync;
+            ManualExonerationVm.RequestBuscar += async auth => await OnManualExonerationBuscarAsync(auth);
+            ManualExonerationVm.RequestApply += OnManualExonerationApply;
+            ManualExonerationVm.RequestCancel += () => IsManualExonerationVisible = false;
             ReceiptVm.RequestClose += () => IsReceiptVisible = false;
             RefreshCartItemsView();
             _ = InitializeAsync();
@@ -659,6 +673,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsReceiptVisible));
             OnPropertyChanged(nameof(IsProductsPanelVisible));
             OnPropertyChanged(nameof(ProductsPanelVisibilityText));
+            OnPropertyChanged(nameof(IsManualExonerationVisible));
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
@@ -1913,61 +1928,41 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            var authorization = await _dialogService.PromptAsync(
-                "Exoneración Manual",
-                "Ingrese el número de autorización (o déjelo vacío si no lo tiene).",
-                accept: "Siguiente",
-                cancel: "Cancelar",
-                placeholder: "Ej. AL-00020402-24",
-                initialValue: CheckoutVm.ExonerationAuthorization);
+            if (_cachedExonerationCodes.Count == 0)
+                await LoadExonerationCodesAsync();
 
-            if (authorization is null)
+            ManualExonerationVm.Load(CheckoutVm.ExonerationAuthorization, _subtotalColones);
+            IsManualExonerationVisible = true;
+        }
+
+        private async Task OnManualExonerationBuscarAsync(string authorizationNumber)
+        {
+            ManualExonerationVm.SetBusy(true);
+            var result = await _exonerationService.ValidateAsync(authorizationNumber);
+            ManualExonerationVm.ApplyApiResult(result);
+        }
+
+        private void OnManualExonerationApply(ManualExonerationResult result)
+        {
+            IsManualExonerationVisible = false;
+
+            var targetItems = GetExonerationTargetItems();
+            if (targetItems.Count == 0)
                 return;
-
-            authorization = authorization.Trim();
-
-            var percentText = await _dialogService.PromptAsync(
-                "Exoneración Manual",
-                "Ingrese el porcentaje de exoneración a aplicar.",
-                accept: "Aplicar",
-                cancel: "Cancelar",
-                placeholder: "Ej. 13",
-                keyboard: Keyboard.Numeric);
-
-            if (string.IsNullOrWhiteSpace(percentText))
-                return;
-
-            if (!decimal.TryParse(percentText.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var percent) || percent <= 0 || percent > 100)
-            {
-                await _dialogService.AlertAsync("Exoneración Manual", "Ingrese un porcentaje válido entre 1 y 100.", "OK");
-                return;
-            }
 
             ResetExonerationState();
-
             var exonReasonCodeID = _cachedExonerationCodes.FirstOrDefault()?.ID ?? 0;
             foreach (var item in targetItems)
             {
-                item.ExonerationPercent = percent;
+                item.ExonerationPercent = result.Document.PorcentajeExoneracion;
                 item.ExonerationReasonCodeID = exonReasonCodeID;
             }
-
-            var document = new ExonerationModel
-            {
-                NumeroDocumento = "MANUAL",
-                PorcentajeExoneracion = percent,
-                NombreInstitucion = "Ingreso manual",
-                TipoDocumentoDescripcion = "Exoneración manual",
-                Autorizacion = 0,
-                FechaVencimiento = DateTime.Today.AddYears(1),
-                PoseeCabys = false
-            };
 
             var scopeText = targetItems.Count == CartItems.Count
                 ? "Exoneración manual aplicada a todo el carrito."
                 : $"Exoneración manual aplicada a {targetItems.Count} artículo(s).";
 
-            SetAppliedExoneration(document, authorization, scopeText);
+            SetAppliedExoneration(result.Document, result.Authorization, scopeText);
             RecalculateTotal();
             RefreshCartItemsView();
         }

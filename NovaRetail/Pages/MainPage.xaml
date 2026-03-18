@@ -40,6 +40,12 @@
               IsVisible="{Binding IsReceiptVisible}">
             <views:ReceiptPopup BindingContext="{Binding ReceiptVm}"/>
         </Grid>
+
+        <!-- Manual exoneration overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsManualExonerationVisible}">
+            <views:ManualExonerationPopup BindingContext="{Binding ManualExonerationVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

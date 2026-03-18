@@ -14,6 +14,7 @@ namespace NovaRetail.State
             SetCheckoutVisibleAction a => state with { IsCheckoutVisible = a.Value },
             SetReceiptVisibleAction a => state with { IsReceiptVisible = a.Value },
             SetProductsPanelVisibleAction a => state with { IsProductsPanelVisible = a.Value },
+            SetManualExonerationVisibleAction a => state with { IsManualExonerationVisible = a.Value },
 
             // ── Cliente ──
             SetCurrentClientAction a => state with
