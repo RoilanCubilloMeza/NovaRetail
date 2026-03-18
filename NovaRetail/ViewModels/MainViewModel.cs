@@ -1554,6 +1554,7 @@ namespace NovaRetail.ViewModels
                 CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
                 Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
                 InsertarTiqueteEspera = true,
+                COMPROBANTE_TIPO = "01",
                 COD_SUCURSAL = (_storeIdFromConfig > 0 ? _storeIdFromConfig : currentUser.StoreId > 0 ? currentUser.StoreId : 1).ToString("000", CultureInfo.InvariantCulture),
                 TERMINAL_POS = (_registerIdFromConfig > 0 ? _registerIdFromConfig : 1).ToString("00000", CultureInfo.InvariantCulture),
                 Items = BuildSaleItems(),
@@ -1644,7 +1645,13 @@ namespace NovaRetail.ViewModels
                     // el descuento. Enviarlos causaría doble deducción en Transaction.Total
                     // (SP usa: Total = SUM(UnitPrice × Qty) - SUM(LineDiscountAmount)).
                     LineDiscountAmount = 0m,
-                    LineDiscountPercent = 0m
+                    LineDiscountPercent = 0m,
+                    ExTipoDoc = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.TipoDocumentoCodigo : string.Empty,
+                    ExNumeroDoc = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.NumeroDocumento : string.Empty,
+                    ExInstitucion = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.NombreInstitucion : string.Empty,
+                    ExFecha = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.FechaEmision : null,
+                    ExPorcentaje = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.PorcentajeExoneracion : 0m,
+                    ExMonto = item.HasExoneration ? Math.Round(lineTotals.ExonerationColones, 2) : 0m
                 });
             }
 

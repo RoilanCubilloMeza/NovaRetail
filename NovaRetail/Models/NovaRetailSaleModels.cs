@@ -70,6 +70,12 @@ public sealed class NovaRetailSaleItemRequest
     public string PromotionName { get; set; } = string.Empty;
     public decimal LineDiscountAmount { get; set; }
     public decimal LineDiscountPercent { get; set; }
+    public string ExTipoDoc { get; set; } = string.Empty;
+    public string ExNumeroDoc { get; set; } = string.Empty;
+    public string ExInstitucion { get; set; } = string.Empty;
+    public DateTime? ExFecha { get; set; }
+    public decimal ExPorcentaje { get; set; }
+    public decimal ExMonto { get; set; }
 }
 
 public sealed class NovaRetailSaleTenderRequest

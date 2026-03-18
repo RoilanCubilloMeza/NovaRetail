@@ -212,6 +212,18 @@ namespace NovaAPI.Controllers
                                 response.TiqueteEsperaOk = false;
                                 response.Warnings.Add($"TiqueteEspera: {exTiquete.Message}");
                             }
+
+                            if (request.Exonera == 1)
+                            {
+                                try
+                                {
+                                    EnsureExonerationEntries(cn, request, response.TransactionNumber);
+                                }
+                                catch (Exception exExon)
+                                {
+                                    response.Warnings.Add($"Exoneracion: {exExon.Message}");
+                                }
+                            }
                         }
                     }
                 }
@@ -748,6 +760,49 @@ namespace NovaAPI.Controllers
             public int BatchNumber { get; set; }
             public int StoreID { get; set; }
             public int RegisterID { get; set; }
+        }
+
+        private static void EnsureExonerationEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            var exonerationItems = (request.Items ?? new List<NovaRetailSaleItemDto>())
+                .Where(i => !string.IsNullOrWhiteSpace(i.ExNumeroDoc))
+                .ToList();
+
+            if (exonerationItems.Count == 0)
+                return;
+
+            string clave50;
+            using (var cmd = new SqlCommand("SELECT TOP 1 CLAVE50 FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TN", cn))
+            {
+                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
+                var val = cmd.ExecuteScalar();
+                clave50 = val != null && val != DBNull.Value ? Convert.ToString(val) : string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(clave50))
+                return;
+
+            foreach (var item in exonerationItems)
+            {
+                using (var cmd = new SqlCommand(@"
+                    INSERT INTO dbo.AVS_INTEGRAFAST_01_EXONERA
+                        (CLAVE50, ITEMID, EX_TARIFA_PORC, EX_TARIFA_MONTO, EX_TIPODOC, EX_NUMERODOC, EX_INSTITUCION, EX_FECHA, EX_MONTO, EX_PORCENTAJE, SyncGuid)
+                    VALUES
+                        (@CLAVE50, @ITEMID, @EX_TARIFA_PORC, @EX_TARIFA_MONTO, @EX_TIPODOC, @EX_NUMERODOC, @EX_INSTITUCION, @EX_FECHA, @EX_MONTO, @EX_PORCENTAJE, NEWID())", cn))
+                {
+                    cmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                    cmd.Parameters.AddWithValue("@ITEMID", item.ItemID);
+                    cmd.Parameters.AddWithValue("@EX_TARIFA_PORC", item.ExPorcentaje);
+                    cmd.Parameters.AddWithValue("@EX_TARIFA_MONTO", item.ExMonto);
+                    cmd.Parameters.AddWithValue("@EX_TIPODOC", item.ExTipoDoc ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@EX_NUMERODOC", item.ExNumeroDoc ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@EX_INSTITUCION", item.ExInstitucion ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@EX_FECHA", (object)item.ExFecha ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@EX_MONTO", item.ExMonto);
+                    cmd.Parameters.AddWithValue("@EX_PORCENTAJE", item.ExPorcentaje);
+                    cmd.ExecuteNonQuery();
+                }
+            }
         }
     }
 }
