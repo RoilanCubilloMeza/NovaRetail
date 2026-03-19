@@ -598,6 +598,9 @@ namespace NovaAPI.Controllers
 
             if (string.IsNullOrWhiteSpace(request.CLAVE50))
                 request.CLAVE50 = "506" + ddmmaa + cedulaPad + sucursal + terminal + tipoCvta + consec + situacion + seguridad;
+
+            if (string.IsNullOrWhiteSpace(request.COMPROBANTE_SITUACION))
+                request.COMPROBANTE_SITUACION = situacion;
         }
 
         private static int EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)

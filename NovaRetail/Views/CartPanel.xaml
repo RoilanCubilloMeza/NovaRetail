@@ -427,16 +427,16 @@
                                                TextColor="#94A3B8"
                                                HorizontalTextAlignment="End"
                                                TextDecorations="Strikethrough"
-                                               IsVisible="{Binding HasOverridePrice}"/>
+                                               IsVisible="{Binding HasDownwardPriceOverride}"/>
                                             <Label Text="{Binding UnitPriceColonesText}"
                                                    FontSize="{DynamicResource UIFontMD}"
                                                    HorizontalTextAlignment="End">
                                                 <Label.Triggers>
-                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasDownwardPriceOverride}" Value="True">
                                                         <Setter Property="TextColor" Value="#F59E0B"/>
                                                         <Setter Property="FontAttributes" Value="Bold"/>
                                                     </DataTrigger>
-                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasDownwardPriceOverride}" Value="False">
                                                         <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
                                                         <Setter Property="FontAttributes" Value="None"/>
                                                     </DataTrigger>
@@ -657,16 +657,16 @@
                                                TextColor="#94A3B8"
                                                HorizontalTextAlignment="End"
                                                TextDecorations="Strikethrough"
-                                               IsVisible="{Binding HasOverridePrice}"/>
+                                               IsVisible="{Binding HasDownwardPriceOverride}"/>
                                             <Label Text="{Binding UnitPriceColonesText}"
                                                    FontSize="{DynamicResource UIFontMD}"
                                                    HorizontalTextAlignment="End">
                                                 <Label.Triggers>
-                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="True">
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasDownwardPriceOverride}" Value="True">
                                                         <Setter Property="TextColor" Value="#F59E0B"/>
                                                         <Setter Property="FontAttributes" Value="Bold"/>
                                                     </DataTrigger>
-                                                    <DataTrigger TargetType="Label" Binding="{Binding HasOverridePrice}" Value="False">
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasDownwardPriceOverride}" Value="False">
                                                         <Setter Property="TextColor" Value="{DynamicResource Gray900}"/>
                                                         <Setter Property="FontAttributes" Value="None"/>
                                                     </DataTrigger>

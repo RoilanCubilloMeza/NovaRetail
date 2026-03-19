@@ -14,6 +14,9 @@ namespace NovaRetail.Models
         public string StorePhone { get; set; } = string.Empty;
 
         public string TaxSystemText => TaxSystem == 1 ? "IVA Incluido" : "IVA Excluido";
+
+        /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (valor de PR-01 en AVS_Parametros).</summary>
+        public int PriceOverridePriceSource { get; set; } = 1;
     }
 
     public class TenderModel : System.ComponentModel.INotifyPropertyChanged

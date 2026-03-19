@@ -41,6 +41,8 @@ namespace NovaRetail.Models
                     OnPropertyChanged(nameof(TotalColonesText));
                     OnPropertyChanged(nameof(TotalUsdText));
                     OnPropertyChanged(nameof(HasOverridePrice));
+                    OnPropertyChanged(nameof(IsUpwardPriceOverride));
+                    OnPropertyChanged(nameof(HasDownwardPriceOverride));
                     OnPropertyChanged(nameof(PriceOverrideIndicator));
                     OnPropertyChanged(nameof(IsModified));
                 }
@@ -173,6 +175,8 @@ namespace NovaRetail.Models
         public decimal EffectivePriceColones => _overridePriceColones ?? UnitPriceColones;
         public string DisplayName => _overrideDescription ?? Name;
         public bool HasOverridePrice => _overridePriceColones.HasValue;
+        public bool IsUpwardPriceOverride => _overridePriceColones.HasValue && _overridePriceColones.Value > UnitPriceColones;
+        public bool HasDownwardPriceOverride => _overridePriceColones.HasValue && _overridePriceColones.Value < UnitPriceColones;
         public bool HasDiscount => _discountPercent > 0;
         public bool HasExoneration => _exonerationPercent > 0;
         public bool CanShowApplyExoneration => !HasExoneration && HasExonerationEligibility && IsExonerationEligible;

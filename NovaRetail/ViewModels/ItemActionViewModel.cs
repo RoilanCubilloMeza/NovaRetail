@@ -166,8 +166,18 @@ namespace NovaRetail.ViewModels
 
                 if (_originalPrice > 0 && Math.Abs(currentPrice - _originalPrice) > 0.001m)
                 {
-                    ApplyNonPriceChanges();
-                    RequestPriceJustification?.Invoke();
+                    if (currentPrice > _originalPrice)
+                    {
+                        // Precio hacia arriba: aplica directamente sin justificación
+                        ApplyChanges();
+                        RequestOk?.Invoke();
+                    }
+                    else
+                    {
+                        // Precio hacia abajo: requiere justificación
+                        ApplyNonPriceChanges();
+                        RequestPriceJustification?.Invoke();
+                    }
                 }
                 else
                 {

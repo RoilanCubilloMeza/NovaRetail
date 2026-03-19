@@ -94,6 +94,24 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT TOP 1 CAST(VALOR AS INT) FROM dbo.AVS_Parametros WHERE CODIGO = 'PR-01'", cn))
+                    {
+                        cn.Open();
+                        var val = cmd.ExecuteScalar();
+                        if (val != null && val != DBNull.Value)
+                            dto.PriceOverridePriceSource = Convert.ToInt32(val);
+                    }
+                }
+            }
+            catch { }
+
             return dto;
         }
 
@@ -145,6 +163,8 @@ namespace NovaAPI.Controllers
         public string StoreName { get; set; } = string.Empty;
         public string StoreAddress { get; set; } = string.Empty;
         public string StorePhone { get; set; } = string.Empty;
+        /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (CODIGO = 'PR-01' en AVS_Parametros).</summary>
+        public int PriceOverridePriceSource { get; set; } = 1;
     }
 
     public class TenderDto

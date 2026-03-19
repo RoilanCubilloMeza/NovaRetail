@@ -67,6 +67,7 @@ namespace NovaRetail.ViewModels
         public string QuoteDaysText => _quoteDays > 0 ? $"{_quoteDays} días" : "—";
 
         private int _defaultTenderID;
+        private int _priceOverridePriceSource = 1;
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
         private CartItemModel? _pendingPriceItem;
@@ -734,6 +735,7 @@ namespace NovaRetail.ViewModels
                 TaxSystemText = config.TaxSystemText;
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
+                _priceOverridePriceSource = config.PriceOverridePriceSource > 0 ? config.PriceOverridePriceSource : 1;
 
                 var tenders = await _storeConfigService.GetTendersAsync();
                 Tenders.Clear();
@@ -1624,12 +1626,12 @@ namespace NovaRetail.ViewModels
                     FullPrice = fullPrice,
                     Cost = 0m,
                     Commission = 0m,
-                    PriceSource = 1,
+                    PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
                     SalesRepID = 0,
                     Taxable = item.TaxPercentage > 0,
                     TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
                     SalesTax = Math.Round(lineTotals.TaxColones, 2),
-                    LineComment = (item.HasDiscount || item.HasOverridePrice) ? item.DiscountReasonCode : string.Empty,
+                    LineComment = (item.HasDiscount || (item.HasOverridePrice && !item.IsUpwardPriceOverride)) ? item.DiscountReasonCode : string.Empty,
                     DiscountReasonCodeID = discountReasonCodeID,
                     ReturnReasonCodeID = 0,
                     TaxChangeReasonCodeID = taxChangeReasonCodeID,
@@ -1660,7 +1662,7 @@ namespace NovaRetail.ViewModels
 
         private int ResolveDiscountReasonCodeID(CartItemModel item)
         {
-            if (!item.HasDiscount && !item.HasOverridePrice)
+            if (!item.HasDiscount && (!item.HasOverridePrice || item.IsUpwardPriceOverride))
                 return 0;
 
             if (item.DiscountReasonCodeID > 0)
