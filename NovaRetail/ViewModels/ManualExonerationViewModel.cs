@@ -170,7 +170,7 @@ namespace NovaRetail.ViewModels
             SetBusy(false);
             if (!result.IsValid || result.Document is null)
             {
-                SetStatus(result.Message, false);
+                SetStatus("ℹ No encontrado en Hacienda como autorización directa. Complete los datos manualmente y haga clic en Aplicar.", false);
                 return;
             }
 

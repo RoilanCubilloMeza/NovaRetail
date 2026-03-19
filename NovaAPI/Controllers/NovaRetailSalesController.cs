@@ -794,15 +794,20 @@ namespace NovaAPI.Controllers
                     cmd.Parameters.AddWithValue("@ITEMID", item.ItemID);
                     cmd.Parameters.AddWithValue("@EX_TARIFA_PORC", item.ExPorcentaje);
                     cmd.Parameters.AddWithValue("@EX_TARIFA_MONTO", item.ExMonto);
-                    cmd.Parameters.AddWithValue("@EX_TIPODOC", item.ExTipoDoc ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@EX_NUMERODOC", item.ExNumeroDoc ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@EX_INSTITUCION", item.ExInstitucion ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@EX_FECHA", (object)item.ExFecha ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@EX_TIPODOC", Truncate(item.ExTipoDoc, 2));
+                    cmd.Parameters.AddWithValue("@EX_NUMERODOC", Truncate(item.ExNumeroDoc, 17));
+                    cmd.Parameters.AddWithValue("@EX_INSTITUCION", Truncate(item.ExInstitucion, 100));
+                    cmd.Parameters.AddWithValue("@EX_FECHA", (object)(item.ExFecha ?? DateTime.Today));
                     cmd.Parameters.AddWithValue("@EX_MONTO", item.ExMonto);
                     cmd.Parameters.AddWithValue("@EX_PORCENTAJE", item.ExPorcentaje);
                     cmd.ExecuteNonQuery();
                 }
             }
         }
+            private static string Truncate(string value, int maxLength)
+            {
+                var s = value ?? string.Empty;
+                return s.Length <= maxLength ? s : s.Substring(0, maxLength);
+            }
+        }
     }
-}
