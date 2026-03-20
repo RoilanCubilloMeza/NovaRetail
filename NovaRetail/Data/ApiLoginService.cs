@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using NovaRetail.Models;
 
 namespace NovaRetail.Data;
@@ -35,16 +37,45 @@ public class ApiLoginService : ILoginService
             try
             {
                 var http = _httpClientFactory.CreateClient(AuthClientName);
-                var url = $"{baseUrl}/api/Login?ID_CLIENTE=1&LOGIN={Uri.EscapeDataString(login)}&CLAVE={Uri.EscapeDataString(clave)}&TOKEN=";
-                var result = await http.GetFromJsonAsync<ApiLoginResponse>(url);
-                if (result is not null && !string.IsNullOrWhiteSpace(result.US_LOGIN))
+
+                // Intentar POST primero (más seguro: credenciales en body)
+                try
+                {
+                    var postUrl = $"{baseUrl}/api/Login";
+                    var payload = new { ID_CLIENTE = 1, LOGIN = login, CLAVE = clave, TOKEN = "" };
+                    var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                    var postResponse = await http.PostAsync(postUrl, content);
+                    if (postResponse.IsSuccessStatusCode)
+                    {
+                        var result = await postResponse.Content.ReadFromJsonAsync<ApiLoginResponse>();
+                        if (result is not null && !string.IsNullOrWhiteSpace(result.US_LOGIN))
+                        {
+                            return new LoginUserModel
+                            {
+                                ClientId = result.ID_CLIENTE,
+                                UserName = result.US_LOGIN ?? login,
+                                DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
+                                StoreId = result.US_ID_STORE ?? 0
+                            };
+                        }
+                    }
+                }
+                catch
+                {
+                    // POST no soportado, caer al GET como fallback
+                }
+
+                // Fallback: GET (compatibilidad con API existente)
+                var getUrl = $"{baseUrl}/api/Login?ID_CLIENTE=1&LOGIN={Uri.EscapeDataString(login)}&CLAVE={Uri.EscapeDataString(clave)}&TOKEN=";
+                var getResult = await http.GetFromJsonAsync<ApiLoginResponse>(getUrl);
+                if (getResult is not null && !string.IsNullOrWhiteSpace(getResult.US_LOGIN))
                 {
                     return new LoginUserModel
                     {
-                        ClientId = result.ID_CLIENTE,
-                        UserName = result.US_LOGIN ?? login,
-                        DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
-                        StoreId = result.US_ID_STORE ?? 0
+                        ClientId = getResult.ID_CLIENTE,
+                        UserName = getResult.US_LOGIN ?? login,
+                        DisplayName = string.IsNullOrWhiteSpace(getResult.US_NOMBRE) ? login : getResult.US_NOMBRE,
+                        StoreId = getResult.US_ID_STORE ?? 0
                     };
                 }
             }

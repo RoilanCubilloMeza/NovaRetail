@@ -283,6 +283,13 @@ public class LoginViewModel : INotifyPropertyChanged
             return;
 
         ErrorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(UserName))
+        {
+            ErrorMessage = "Ingrese el usuario.";
+            return;
+        }
+
         IsBusy = true;
 
         try
@@ -295,6 +302,14 @@ public class LoginViewModel : INotifyPropertyChanged
             }
 
             LoginSucceeded?.Invoke(this, user);
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMessage = "No se pudo conectar con el servidor. Verifique la conexión.";
+        }
+        catch (TaskCanceledException)
+        {
+            ErrorMessage = "La solicitud tardó demasiado. Intente de nuevo.";
         }
         finally
         {
@@ -330,6 +345,12 @@ public class LoginViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(NewPassword))
         {
             ChangePasswordError = "Digite la clave nueva.";
+            return;
+        }
+
+        if (NewPassword.Length < 4)
+        {
+            ChangePasswordError = "La clave nueva debe tener al menos 4 caracteres.";
             return;
         }
 

@@ -155,8 +155,8 @@ namespace NovaRetail.ViewModels
                     TaxPercentage = item.TaxPercentage,
                     UnitPriceColonesText = $"₡{(item.HasDiscount ? netUnit : grossUnit):N2}",
                     LineTotalText = $"₡{(item.HasDiscount ? netLine : grossLine):N2}",
-                    HasOverridePrice = item.HasOverridePrice,
-                    PriceChangeDetailText = item.HasOverridePrice
+                    HasOverridePrice = item.HasDownwardPriceOverride,
+                    PriceChangeDetailText = item.HasDownwardPriceOverride
                         ? $"Cambio precio: de ₡{item.UnitPriceColones:N2} a ₡{grossUnit:N2}"
                         : string.Empty,
                     HasDiscount = item.HasDiscount,

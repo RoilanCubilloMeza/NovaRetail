@@ -763,6 +763,7 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            // Intentar primero búsqueda exacta (código de barras / código de producto)
             var product = FindProductByCode(_allProducts, code);
 
             if (product is null)
@@ -771,6 +772,13 @@ namespace NovaRetail.ViewModels
                 {
                     var results = await _productService.SearchAsync(code, 20, _exchangeRate);
                     product = FindProductByCode(results, code);
+
+                    // Si no hay match exacto y el código parece un código de barras (solo dígitos, 8-14 caracteres), intentar sin check-digit
+                    if (product is null && IsBarcodeFormat(code))
+                    {
+                        var codeWithoutCheckDigit = code[..^1];
+                        product = FindProductByCode(results, codeWithoutCheckDigit);
+                    }
 
                     if (product is not null && !ContainsProductCode(_allProducts, product.Code))
                         _allProducts.Add(product);
@@ -792,6 +800,9 @@ namespace NovaRetail.ViewModels
 
             FilterProducts();
         }
+
+        private static bool IsBarcodeFormat(string code)
+            => code.Length >= 8 && code.Length <= 14 && code.All(char.IsDigit);
 
         private static ProductModel? FindProductByCode(IEnumerable<ProductModel> products, string code)
             => products.FirstOrDefault(p => string.Equals((p.Code ?? string.Empty).Trim(), code, StringComparison.OrdinalIgnoreCase));
@@ -944,6 +955,11 @@ namespace NovaRetail.ViewModels
                 .OrderByDescending(p => p.Stock > 0)
                 .ThenBy(p => p.Name)
                 .ToList();
+
+            // Actualizar solo si hay diferencias reales (evitar N eventos innecesarios)
+            if (Products.Count == filtered.Count && Products.SequenceEqual(filtered))
+                return;
+
             Products.Clear();
             foreach (var p in filtered)
                 Products.Add(p);
@@ -1171,7 +1187,7 @@ namespace NovaRetail.ViewModels
             if (product is null) return;
 
             var safeQuantity = quantityToAdd <= 0m ? 1m : Math.Floor(quantityToAdd);
-            var existing = CartItems.FirstOrDefault(c => c.Name == product.Name);
+            var existing = CartItems.FirstOrDefault(c => c.ItemID == product.ItemID && string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
             var maxAvailableQuantity = GetMaxAvailableQuantity(product.Stock);
             var currentQuantity = existing?.Quantity ?? 0m;
             var availableToAdd = maxAvailableQuantity - currentQuantity;
@@ -1303,7 +1319,7 @@ namespace NovaRetail.ViewModels
             }
 
             item.Quantity = Math.Min(item.Quantity + 1m, maxAvailableQuantity);
-            var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
+            var product = _allProducts.FirstOrDefault(p => p.ItemID == item.ItemID && string.Equals(p.Code, item.Code, StringComparison.OrdinalIgnoreCase));
             if (product is not null) product.CartQuantity = item.Quantity;
             RecalculateTotal();
             RefreshCartItemsView();
@@ -1319,7 +1335,7 @@ namespace NovaRetail.ViewModels
                 ResetExonerationState();
             else
                 NormalizeAppliedExonerationState();
-            var product = _allProducts.FirstOrDefault(p => p.Name == item.Name);
+            var product = _allProducts.FirstOrDefault(p => p.ItemID == item.ItemID && string.Equals(p.Code, item.Code, StringComparison.OrdinalIgnoreCase));
             if (product is not null) product.CartQuantity = Math.Max(0m, item.Quantity);
             RecalculateTotal();
             RefreshCartItemsView();
@@ -1328,7 +1344,7 @@ namespace NovaRetail.ViewModels
         private void DecrementProduct(ProductModel? product)
         {
             if (product is null) return;
-            var existing = CartItems.FirstOrDefault(c => c.Name == product.Name);
+            var existing = CartItems.FirstOrDefault(c => c.ItemID == product.ItemID && string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
             if (existing is null) return;
             existing.Quantity--;
             if (existing.Quantity <= 0)

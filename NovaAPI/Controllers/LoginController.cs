@@ -129,6 +129,16 @@ namespace NovaAPI.Controllers
         }
 
 
+        [Route("api/Login")]
+        [HttpPost]
+        public Cliente_App Post([FromBody] LoginRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.LOGIN))
+                return null;
+
+            return Get(request.ID_CLIENTE, request.LOGIN, request.CLAVE ?? string.Empty, request.TOKEN ?? string.Empty);
+        }
+
         [Route("api/Login/PostUpdate")]
         [HttpPost]
         public HttpResponseMessage PostUpdate(Cliente_App Cliente)
