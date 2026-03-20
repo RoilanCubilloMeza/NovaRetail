@@ -29,15 +29,14 @@ namespace NovaAPI.Controllers
             var firstName = Safe(customer.FirstName, 30);
             var lastName = Safe(customer.LastName, 50);
             var phone1 = Safe(customer.PhoneNumber1, 10);
-            var phone2 = Safe(customer.PhoneNumber2, 10);
             var email = Safe(customer.EmailAddress, 255);
+            var email2 = Safe(customer.Email2, 255);
             var state = Safe(customer.State, 20);
             var city = Safe(customer.City, 20);
             var city2 = Safe(customer.City2, 20);
             var zip = Safe(customer.Zip, 20);
             var address = Safe(customer.Address, 50);
             var priceLevel = customer.AccountTypeID <= 0 ? 1 : customer.AccountTypeID;
-
             var activityCode = Safe(customer.ActivityCode, 50);
 
             var exists = db.ExecuteQuery<int>("SELECT COUNT(1) FROM Customer WHERE AccountNumber = {0}", accountNumber).FirstOrDefault() > 0;
@@ -49,28 +48,31 @@ UPDATE Customer
 SET FirstName = {1},
     LastName = {2},
     PhoneNumber = {3},
-    FaxNumber = {4},
-    EmailAddress = {5},
-    CustomText1 = {6},
-    CustomText2 = {7},
-    CustomText3 = {8},
-    CustomText4 = {9},
-    CustomText5 = {10},
-    Address = {11},
-    PriceLevel = {12}
+    EmailAddress = {4},
+    CustomText1 = {5},
+    CustomText2 = {6},
+    State = {7},
+    City = {8},
+    CustomText3 = {9},
+    Zip = {10},
+    CustomText5 = {11},
+    Address = {12},
+    PriceLevel = {13},
+    FaxNumber = '',
+    CustomText4 = ''
 WHERE AccountNumber = {0}",
-                    accountNumber, firstName, lastName, phone1, phone2, email,
-                    state, city, city2, zip, activityCode, address, priceLevel);
+                    accountNumber, firstName, lastName, phone1, email,
+                    accountNumber, email2, state, city, city2, zip, activityCode, address, priceLevel);
                 return;
             }
 
             db.ExecuteCommand(@"
 INSERT INTO Customer
-    (AccountNumber, FirstName, LastName, PhoneNumber, FaxNumber, EmailAddress, CustomText1, CustomText2, CustomText3, CustomText4, Address, CustomText5, PriceLevel)
+    (AccountNumber, FirstName, LastName, PhoneNumber, EmailAddress, CustomText1, CustomText2, State, City, CustomText3, Zip, CustomText5, Address, PriceLevel)
 VALUES
-    ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12})",
-                accountNumber, firstName, lastName, phone1, phone2, email,
-                state, city, city2, zip, address, activityCode, priceLevel);
+    ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13})",
+                accountNumber, firstName, lastName, phone1, email,
+                accountNumber, email2, state, city, city2, zip, activityCode, address, priceLevel);
         }
 
         [HttpGet]
@@ -84,14 +86,15 @@ SELECT TOP 5000
     FirstName,
     LastName,
     ISNULL(PhoneNumber,'')  AS PhoneNumber1,
-    ISNULL(FaxNumber,'')    AS PhoneNumber2,
+    ''                      AS PhoneNumber2,
     ISNULL(EmailAddress,'') AS EmailAddress,
-    ISNULL(CustomText1,'')  AS State,
-    ISNULL(CustomText2,'')  AS City,
+    ISNULL(State,'')        AS State,
+    ISNULL(City,'')         AS City,
     ISNULL(CustomText3,'')  AS City2,
-    ISNULL(CustomText4,'')  AS Zip,
+    ISNULL(Zip,'')          AS Zip,
     ISNULL(Address,'')      AS Address,
     ISNULL(CustomText5,'')  AS ActivityCode,
+    ISNULL(CustomText2,'')  AS Email2,
     CAST(0 AS INT)          AS CreditDays,
     CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
 FROM Customer
@@ -133,14 +136,15 @@ SELECT TOP 200
     FirstName,
     LastName,
     ISNULL(PhoneNumber,'')  AS PhoneNumber1,
-    ISNULL(FaxNumber,'')    AS PhoneNumber2,
+    ''                      AS PhoneNumber2,
     ISNULL(EmailAddress,'') AS EmailAddress,
-    ISNULL(CustomText1,'')  AS State,
-    ISNULL(CustomText2,'')  AS City,
+    ISNULL(State,'')        AS State,
+    ISNULL(City,'')         AS City,
     ISNULL(CustomText3,'')  AS City2,
-    ISNULL(CustomText4,'')  AS Zip,
+    ISNULL(Zip,'')          AS Zip,
     ISNULL(Address,'')      AS Address,
     ISNULL(CustomText5,'')  AS ActivityCode,
+    ISNULL(CustomText2,'')  AS Email2,
     CAST(0 AS INT)          AS CreditDays,
     CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
 FROM Customer

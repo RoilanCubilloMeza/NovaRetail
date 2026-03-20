@@ -8,6 +8,7 @@ namespace NovaRetail.Models
         public bool IsReceiver { get; set; }
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string Email2 { get; set; } = string.Empty;
         public string? Province { get; set; }
         public string? Canton { get; set; }
         public string? District { get; set; }

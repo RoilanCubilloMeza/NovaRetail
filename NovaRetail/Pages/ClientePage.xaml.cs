@@ -17,7 +17,7 @@ namespace NovaRetail.Pages
         {
             base.OnDisappearing();
             if (BindingContext is ClienteViewModel clienteVm)
-                _mainVm.SetCliente(clienteVm.ClientId, clienteVm.Name);
+                _mainVm.SetCliente(clienteVm.ClientId, clienteVm.Name, clienteVm.IsReceiver);
         }
     }
 }

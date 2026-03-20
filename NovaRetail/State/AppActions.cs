@@ -13,7 +13,7 @@ namespace NovaRetail.State
     public sealed record SetManualExonerationVisibleAction(bool Value) : IAppAction;
 
     // ── Cliente ──
-    public sealed record SetCurrentClientAction(string ClientId, string ClientName) : IAppAction;
+    public sealed record SetCurrentClientAction(string ClientId, string ClientName, bool IsReceiver = false) : IAppAction;
 
     // ── Carrito: ordenamiento ──
     public sealed record SetCartSortFieldAction(string Field) : IAppAction;

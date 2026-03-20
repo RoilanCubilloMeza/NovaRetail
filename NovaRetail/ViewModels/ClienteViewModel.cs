@@ -27,6 +27,7 @@ namespace NovaRetail.ViewModels
         private bool _isReceiver;
         private string _phone = string.Empty;
         private string _email = string.Empty;
+        private string _email2 = string.Empty;
         private string? _selectedProvince;
         private string? _selectedCanton;
         private string? _selectedDistrict;
@@ -120,6 +121,12 @@ namespace NovaRetail.ViewModels
         {
             get => _email;
             set { _email = value; OnPropertyChanged(); }
+        }
+
+        public string Email2
+        {
+            get => _email2;
+            set { _email2 = value; OnPropertyChanged(); }
         }
 
         public string? SelectedProvince
@@ -641,6 +648,7 @@ namespace NovaRetail.ViewModels
             IsReceiver          = IsReceiver,
             Phone               = Phone,
             Email               = Email,
+            Email2              = string.IsNullOrWhiteSpace(Email2) ? Email : Email2,
             Province            = SelectedProvince,
             Canton              = SelectedCanton,
             District            = SelectedDistrict,
@@ -657,7 +665,7 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(ClientId))
                 return;
 
-            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim()));
+            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim(), IsReceiver));
         }
 
         private void LoadFromModel(ClienteModel model)
@@ -668,6 +676,7 @@ namespace NovaRetail.ViewModels
             IsReceiver = model.IsReceiver;
             Phone = model.Phone;
             Email = model.Email;
+            Email2 = model.Email2;
 
             Address = model.Address;
             SelectedCustomerType = model.CustomerType;
@@ -961,6 +970,9 @@ namespace NovaRetail.ViewModels
                     errors.Add("• El correo electrónico es requerido.");
                 else if (!IsValidEmail(Email))
                     errors.Add("• El correo electrónico no es válido (ej: usuario@dominio.com).");
+
+                if (!string.IsNullOrWhiteSpace(Email2) && !IsValidEmail(Email2))
+                    errors.Add("• El correo electrónico #2 no es válido.");
 
                 if (string.IsNullOrWhiteSpace(SelectedProvince))
                     errors.Add("• La provincia es requerida.");

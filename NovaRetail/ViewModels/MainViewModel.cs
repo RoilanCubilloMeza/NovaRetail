@@ -184,10 +184,12 @@ namespace NovaRetail.ViewModels
             ? (string.IsNullOrWhiteSpace(CurrentClientName) ? "—" : CurrentClientName)
             : "Seleccione un cliente";
 
-        public void SetCliente(string clientId, string name)
+        public bool IsCurrentClientReceiver => _appStore.State.IsCurrentClientReceiver;
+
+        public void SetCliente(string clientId, string name, bool isReceiver = false)
         {
             if (string.IsNullOrWhiteSpace(clientId)) return;
-            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim()));
+            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim(), isReceiver));
         }
 
         public ObservableCollection<ProductModel> Products { get; } = new();
@@ -1205,7 +1207,9 @@ namespace NovaRetail.ViewModels
                 };
                 CartItems.Insert(0, newItem);
                 product.CartQuantity = quantityToApply;
-                UpdateExonerationEligibility(newItem, _appliedExoneration);
+                // Los ítems agregados después de una exoneración activa no son elegibles;
+                // la exoneración debe aplicarse explícitamente.
+                UpdateExonerationEligibility(newItem, null);
             }
 
             if (quantityToApply < safeQuantity)
@@ -1280,7 +1284,9 @@ namespace NovaRetail.ViewModels
             };
 
             CartItems.Insert(0, item);
-            UpdateExonerationEligibility(item, _appliedExoneration);
+            // Los ítems agregados después de una exoneración activa no son elegibles;
+            // la exoneración debe aplicarse explícitamente.
+            UpdateExonerationEligibility(item, null);
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -1556,7 +1562,7 @@ namespace NovaRetail.ViewModels
                 CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
                 Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
                 InsertarTiqueteEspera = true,
-                COMPROBANTE_TIPO = "01",
+                COMPROBANTE_TIPO = HasClient && IsCurrentClientReceiver ? "01" : "04",
                 COD_SUCURSAL = (_storeIdFromConfig > 0 ? _storeIdFromConfig : currentUser.StoreId > 0 ? currentUser.StoreId : 1).ToString("000", CultureInfo.InvariantCulture),
                 TERMINAL_POS = (_registerIdFromConfig > 0 ? _registerIdFromConfig : 1).ToString("00000", CultureInfo.InvariantCulture),
                 Items = BuildSaleItems(),

@@ -219,6 +219,7 @@ namespace NovaRetail.Data
                 Name = name,
                 Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
                 Email = c.EmailAddress ?? string.Empty,
+                Email2 = c.Email2 ?? string.Empty,
                 Province = FirstNonEmpty(c.State, c.STATE),
                 Canton = FirstNonEmpty(c.City, c.CITY),
                 District = FirstNonEmpty(c.City2, c.CITY2),
@@ -252,6 +253,7 @@ namespace NovaRetail.Data
                 PhoneNumber1 = m.Phone,
                 PhoneNumber2 = string.Empty,
                 EmailAddress = m.Email,
+                Email2 = m.Email2 ?? string.Empty,
                 State = m.Province ?? string.Empty,
                 City = m.Canton ?? string.Empty,
                 City2 = m.District ?? string.Empty,
@@ -373,6 +375,9 @@ namespace NovaRetail.Data
 
             [JsonProperty("EmailAddress")]
             public string? EmailAddress { get; set; }
+
+            [JsonProperty("Email2")]
+            public string? Email2 { get; set; }
 
             [JsonProperty("State")]
             public string? State { get; set; }

@@ -20,7 +20,8 @@ namespace NovaRetail.State
             SetCurrentClientAction a => state with
             {
                 CurrentClientId = a.ClientId ?? string.Empty,
-                CurrentClientName = a.ClientName ?? string.Empty
+                CurrentClientName = a.ClientName ?? string.Empty,
+                IsCurrentClientReceiver = a.IsReceiver
             },
 
             // ── Carrito: ordenamiento ──

@@ -51,6 +51,12 @@
                                         Text="{Binding Email}"
                                         Keyboard="Email"/>
 
+                    <!-- Email 2 -->
+                    <controls:IconFieldHeader Icon="&#x2709;&#xFE0E;" Text="Email #2" Margin="0,8,0,2"/>
+                    <controls:FormEntry Placeholder="email2@example.com"
+                                        Text="{Binding Email2}"
+                                        Keyboard="Email"/>
+
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,12,0,0"/>
 
                     <controls:FormEntry Placeholder="Buscar ubicación (ej: Quepos)"

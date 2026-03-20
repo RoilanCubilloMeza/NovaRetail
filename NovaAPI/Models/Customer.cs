@@ -18,6 +18,8 @@
 
         public string EmailAddress { get; set; }
 
+        public string Email2 { get; set; }
+
         public string State { get; set; }
 
         public string City { get; set; }

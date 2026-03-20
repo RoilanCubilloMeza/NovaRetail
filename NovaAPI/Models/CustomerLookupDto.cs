@@ -8,6 +8,7 @@ namespace NovaAPI.Models
         public string PhoneNumber1 { get; set; }
         public string PhoneNumber2 { get; set; }
         public string EmailAddress { get; set; }
+        public string Email2 { get; set; }
         public string State { get; set; }
         public string City { get; set; }
         public string City2 { get; set; }

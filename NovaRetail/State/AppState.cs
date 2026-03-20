@@ -14,6 +14,7 @@ namespace NovaRetail.State
         // ── Cliente ──
         string CurrentClientId = "",
         string CurrentClientName = "",
+        bool IsCurrentClientReceiver = false,
 
         // ── Carrito: ordenamiento ──
         string CartSortField = "",
