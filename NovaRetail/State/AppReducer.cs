@@ -21,7 +21,8 @@ namespace NovaRetail.State
             {
                 CurrentClientId = a.ClientId ?? string.Empty,
                 CurrentClientName = a.ClientName ?? string.Empty,
-                IsCurrentClientReceiver = a.IsReceiver
+                IsCurrentClientReceiver = a.IsReceiver,
+                CurrentClientCustomerType = a.CustomerType ?? string.Empty
             },
 
             // ── Carrito: ordenamiento ──

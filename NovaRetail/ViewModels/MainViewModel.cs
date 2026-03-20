@@ -185,6 +185,10 @@ namespace NovaRetail.ViewModels
             : "Seleccione un cliente";
 
         public bool IsCurrentClientReceiver => _appStore.State.IsCurrentClientReceiver;
+        public string CurrentClientCustomerType => _appStore.State.CurrentClientCustomerType;
+        public bool CurrentClientHasCredit => string.Equals(CurrentClientCustomerType, "Crédito", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(CurrentClientCustomerType, "Gobierno", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(CurrentClientCustomerType, "Exportación", StringComparison.OrdinalIgnoreCase);
 
         public void SetCliente(string clientId, string name, bool isReceiver = false)
         {
@@ -684,6 +688,8 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(HasClient));
             OnPropertyChanged(nameof(ClientDisplayId));
             OnPropertyChanged(nameof(ClientDisplayName));
+            OnPropertyChanged(nameof(CurrentClientCustomerType));
+            OnPropertyChanged(nameof(CurrentClientHasCredit));
 
             // ── Carrito: ordenamiento ──
             OnPropertyChanged(nameof(SelectedCartSortField));
@@ -1223,8 +1229,6 @@ namespace NovaRetail.ViewModels
                 };
                 CartItems.Insert(0, newItem);
                 product.CartQuantity = quantityToApply;
-                // Los ítems agregados después de una exoneración activa no son elegibles;
-                // la exoneración debe aplicarse explícitamente.
                 UpdateExonerationEligibility(newItem, null);
             }
 
@@ -1300,8 +1304,6 @@ namespace NovaRetail.ViewModels
             };
 
             CartItems.Insert(0, item);
-            // Los ítems agregados después de una exoneración activa no son elegibles;
-            // la exoneración debe aplicarse explícitamente.
             UpdateExonerationEligibility(item, null);
             RecalculateTotal();
             RefreshCartItemsView();
@@ -1423,6 +1425,17 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            var usesCredit = tender.IsCredit
+                || (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender?.IsCredit == true);
+            if (usesCredit && !CurrentClientHasCredit)
+            {
+                var creditMsg = !HasClient
+                    ? "Para pagar con crédito debe seleccionar un cliente con cuenta de crédito."
+                    : $"{CurrentClientName} no tiene cuenta de crédito habilitada. Cambie la forma de pago.";
+                await _dialogService.AlertAsync("Pago con Crédito no permitido", creditMsg, "OK");
+                return;
+            }
+
             var currentUser = _userSession.CurrentUser;
             if (currentUser is null)
             {
@@ -1490,6 +1503,8 @@ namespace NovaRetail.ViewModels
 
                 ClearCart();
                 _ = LoadProductsAsync();
+                _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
+                CheckoutVm.ExonerationAuthorization = string.Empty;
             }
             catch (Exception ex)
             {

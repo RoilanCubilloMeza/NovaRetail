@@ -665,7 +665,7 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(ClientId))
                 return;
 
-            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim(), IsReceiver));
+            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim(), IsReceiver, SelectedCustomerType ?? string.Empty));
         }
 
         private void LoadFromModel(ClienteModel model)

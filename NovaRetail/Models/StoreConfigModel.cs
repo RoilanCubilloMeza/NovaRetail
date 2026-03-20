@@ -39,6 +39,10 @@ namespace NovaRetail.Models
 
         public string DisplayText => $"{Description}  ({CurrencySymbol})";
 
+        /// <summary>True si este medio de pago es de tipo crédito (cuenta corriente del cliente).</summary>
+        public bool IsCredit => (Description ?? string.Empty).Contains("crédito", StringComparison.OrdinalIgnoreCase)
+            || (Description ?? string.Empty).Contains("credito", StringComparison.OrdinalIgnoreCase);
+
         public bool IsSelected
         {
             get => _isSelected;
