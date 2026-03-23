@@ -455,7 +455,7 @@ namespace NovaAPI.Controllers
             return value != DBNull.Value && Convert.ToBoolean(value);
         }
 
-        private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId)
+        private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId, SqlTransaction tx = null)
         {
             var candidates = new List<Tuple<string, SqlParameter[]>>();
 
@@ -500,6 +500,8 @@ namespace NovaAPI.Controllers
             {
                 using (var cmd = new SqlCommand(candidate.Item1, cn))
                 {
+                    if (tx != null)
+                        cmd.Transaction = tx;
                     if (candidate.Item2.Length > 0)
                         cmd.Parameters.AddRange(candidate.Item2);
 
@@ -1224,7 +1226,7 @@ namespace NovaAPI.Controllers
                             var now = DateTime.Now;
                             var expiration = request.ExpirationOrDueDate ?? now.AddDays(1);
                             var syncGuid = Guid.NewGuid();
-                            var activeBatch = ResolveActiveBatch(cn, request.StoreID, 0);
+                            var activeBatch = ResolveActiveBatch(cn, request.StoreID, 0, tx);
                             var batchNumber = activeBatch?.BatchNumber ?? 0;
 
                             int holdId;
@@ -1772,6 +1774,99 @@ namespace NovaAPI.Controllers
                     Ok = false,
                     Message = ex.Message
                 });
+            }
+        }
+
+        [HttpDelete]
+        [Route("delete-quote/{orderId}")]
+        public HttpResponseMessage DeleteQuote(int orderId)
+        {
+            if (orderId <= 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "Se requiere un OrderID válido."
+                });
+            }
+
+            var response = new NovaRetailCreateQuoteResponse();
+            var connectionString = GetConnectionString();
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    using (var cmd = new SqlCommand(
+                        "DELETE FROM dbo.OrderEntry WHERE OrderID = @OrderID; " +
+                        "DELETE FROM dbo.[Order] WHERE ID = @OrderID;", cn))
+                    {
+                        cmd.CommandTimeout = 30;
+                        cmd.Parameters.AddWithValue("@OrderID", orderId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                response.Ok = true;
+                response.OrderID = orderId;
+                response.Message = "Cotización eliminada.";
+                return Request.CreateResponse(HttpStatusCode.OK, response);
+            }
+            catch (SqlException ex)
+            {
+                response.Ok = false;
+                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+            }
+            catch (Exception ex)
+            {
+                response.Ok = false;
+                response.Message = ex.Message;
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
+            }
+        }
+
+        [HttpDelete]
+        [Route("delete-hold/{holdId}")]
+        public HttpResponseMessage DeleteHold(int holdId)
+        {
+            if (holdId <= 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "Se requiere un HoldID válido."
+                });
+            }
+
+            var response = new NovaRetailCreateQuoteResponse();
+            var connectionString = GetConnectionString();
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    DeleteTransactionHold(cn, holdId);
+                }
+
+                response.Ok = true;
+                response.OrderID = holdId;
+                response.Message = "Factura en espera eliminada.";
+                return Request.CreateResponse(HttpStatusCode.OK, response);
+            }
+            catch (SqlException ex)
+            {
+                response.Ok = false;
+                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+            }
+            catch (Exception ex)
+            {
+                response.Ok = false;
+                response.Message = ex.Message;
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
         }

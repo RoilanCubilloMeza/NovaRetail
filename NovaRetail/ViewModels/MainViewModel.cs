@@ -1466,6 +1466,13 @@ namespace NovaRetail.ViewModels
                     return;
                 }
 
+                // Si venía de una factura en espera, eliminar la original
+                if (_editingHoldId > 0)
+                {
+                    try { await _quoteService.DeleteHoldAsync(_editingHoldId); }
+                    catch { /* no bloquear si falla la limpieza */ }
+                }
+
                 var expiration = _quoteDays > 0 ? (DateTime?)DateTime.Now.AddDays(_quoteDays) : null;
                 QuoteReceiptVm.Load(
                     orderID: result.OrderID,
@@ -1609,6 +1616,13 @@ namespace NovaRetail.ViewModels
                         : result.Message;
                     await _dialogService.AlertAsync("Fac. Espera", message, "OK");
                     return;
+                }
+
+                // Si venía de una cotización, eliminar la original
+                if (_editingOrderId > 0)
+                {
+                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId); }
+                    catch { /* no bloquear si falla la limpieza */ }
                 }
 
                 await _dialogService.AlertAsync("Fac. Espera", $"Factura en espera #{result.OrderID} guardada exitosamente.", "OK");

@@ -329,4 +329,70 @@ public class ApiQuoteService : IQuoteService
             Message = string.IsNullOrWhiteSpace(lastErrorMessage) ? "No fue posible comunicarse con el servicio." : lastErrorMessage
         };
     }
+
+    public async Task<NovaRetailCreateQuoteResponse> DeleteQuoteAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in BaseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(QuoteClientName);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-quote/{orderId}", cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailCreateQuoteResponse>(content);
+                    if (payload is not null)
+                        return payload;
+                    lastErrorMessage = content;
+                }
+                if (!response.IsSuccessStatusCode)
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { lastErrorMessage = ex.Message; }
+        }
+
+        return new NovaRetailCreateQuoteResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage) ? "No fue posible comunicarse con el servicio." : lastErrorMessage
+        };
+    }
+
+    public async Task<NovaRetailCreateQuoteResponse> DeleteHoldAsync(int holdId, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in BaseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(QuoteClientName);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-hold/{holdId}", cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailCreateQuoteResponse>(content);
+                    if (payload is not null)
+                        return payload;
+                    lastErrorMessage = content;
+                }
+                if (!response.IsSuccessStatusCode)
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { lastErrorMessage = ex.Message; }
+        }
+
+        return new NovaRetailCreateQuoteResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage) ? "No fue posible comunicarse con el servicio." : lastErrorMessage
+        };
+    }
 }
