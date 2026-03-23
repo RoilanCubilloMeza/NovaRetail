@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System.Xml.Linq;
 using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
@@ -812,5 +813,535 @@ namespace NovaAPI.Controllers
                 var s = value ?? string.Empty;
                 return s.Length <= maxLength ? s : s.Substring(0, maxLength);
             }
+
+        [HttpPost]
+        [Route("create-quote")]
+        public HttpResponseMessage CreateQuote([FromBody] NovaRetailCreateQuoteRequest request)
+        {
+            if (request == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "Solicitud inválida."
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value != null && x.Value.Errors.Count > 0)
+                    .SelectMany(x => x.Value.Errors.Select(e => string.IsNullOrWhiteSpace(x.Key)
+                        ? e.ErrorMessage
+                        : $"{x.Key}: {e.ErrorMessage}"))
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = errors.Count == 0
+                        ? "Solicitud inválida."
+                        : string.Join(" | ", errors)
+                });
+            }
+
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "La cotización no contiene ítems."
+                });
+            }
+
+            var response = new NovaRetailCreateQuoteResponse();
+            var connectionString = GetConnectionString();
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+
+                    using (var tx = cn.BeginTransaction())
+                    {
+                        try
+                        {
+                            var now = DateTime.Now;
+                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(30);
+                            var syncGuid = Guid.NewGuid();
+
+                            // INSERT [Order] con Type=3 (Cotización)
+                            int orderID;
+                            using (var cmd = new SqlCommand(@"
+                                INSERT INTO [Order]
+                                    ([StoreID],[Closed],[Time],[Type],[Comment],[CustomerID],[ShipToID],
+                                     [DepositOverride],[Deposit],[Tax],[Total],[LastUpdated],
+                                     [ExpirationOrDueDate],[Taxable],[SalesRepID],[ReferenceNumber],
+                                     [ShippingChargeOnOrder],[ShippingChargeOverride],[ShippingServiceID],
+                                     [ShippingTrackingNumber],[ShippingNotes],[ReasonCodeID],[ExchangeID],
+                                     [ChannelType],[DefaultDiscountReasonCodeID],[DefaultReturnReasonCodeID],
+                                     [DefaultTaxChangeReasonCodeID],[SyncGuid])
+                                VALUES
+                                    (@StoreID,@Closed,@Time,@Type,@Comment,@CustomerID,@ShipToID,
+                                     @DepositOverride,@Deposit,@Tax,@Total,@LastUpdated,
+                                     @ExpirationOrDueDate,@Taxable,@SalesRepID,@ReferenceNumber,
+                                     @ShippingChargeOnOrder,@ShippingChargeOverride,@ShippingServiceID,
+                                     @ShippingTrackingNumber,@ShippingNotes,@ReasonCodeID,@ExchangeID,
+                                     @ChannelType,@DefaultDiscountReasonCodeID,@DefaultReturnReasonCodeID,
+                                     @DefaultTaxChangeReasonCodeID,@SyncGuid);
+                                SELECT SCOPE_IDENTITY();", cn, tx))
+                            {
+                                cmd.CommandTimeout = 60;
+                                cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                                cmd.Parameters.AddWithValue("@Closed", false);
+                                cmd.Parameters.AddWithValue("@Time", now);
+                                cmd.Parameters.AddWithValue("@Type", request.Type == 2 ? 2 : 3);
+                                cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+                                cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
+                                cmd.Parameters.AddWithValue("@DepositOverride", false);
+                                cmd.Parameters.AddWithValue("@Deposit", 0m);
+                                cmd.Parameters.AddWithValue("@Tax", request.Tax);
+                                cmd.Parameters.AddWithValue("@Total", request.Total);
+                                cmd.Parameters.AddWithValue("@LastUpdated", now);
+                                cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
+                                cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
+                                cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ShippingChargeOnOrder", 0m);
+                                cmd.Parameters.AddWithValue("@ShippingChargeOverride", false);
+                                cmd.Parameters.AddWithValue("@ShippingServiceID", 0);
+                                cmd.Parameters.AddWithValue("@ShippingTrackingNumber", string.Empty);
+                                cmd.Parameters.AddWithValue("@ShippingNotes", string.Empty);
+                                cmd.Parameters.AddWithValue("@ReasonCodeID", 0);
+                                cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
+                                cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
+                                cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
+                                cmd.Parameters.AddWithValue("@DefaultReturnReasonCodeID", request.DefaultReturnReasonCodeID);
+                                cmd.Parameters.AddWithValue("@DefaultTaxChangeReasonCodeID", request.DefaultTaxChangeReasonCodeID);
+                                cmd.Parameters.AddWithValue("@SyncGuid", syncGuid);
+
+                                var result = cmd.ExecuteScalar();
+                                orderID = Convert.ToInt32(result);
+                            }
+
+                            // INSERT [OrderEntry] por cada ítem
+                            foreach (var item in request.Items)
+                            {
+                                var entrySyncGuid = Guid.NewGuid();
+                                var entryTime = DateTime.Now;
+
+                                using (var cmd = new SqlCommand(@"
+                                    INSERT INTO [OrderEntry]
+                                        ([Cost],[StoreID],[OrderID],[ItemID],[FullPrice],[PriceSource],
+                                         [Price],[QuantityOnOrder],[SalesRepID],[Taxable],[DetailID],
+                                         [Description],[QuantityRTD],[LastUpdated],[Comment],
+                                         [DiscountReasonCodeID],[ReturnReasonCodeID],[TaxChangeReasonCodeID],
+                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
+                                    VALUES
+                                        (@Cost,@StoreID,@OrderID,@ItemID,@FullPrice,@PriceSource,
+                                         @Price,@QuantityOnOrder,@SalesRepID,@Taxable,@DetailID,
+                                         @Description,@QuantityRTD,@LastUpdated,@Comment,
+                                         @DiscountReasonCodeID,@ReturnReasonCodeID,@TaxChangeReasonCodeID,
+                                         @TransactionTime,@IsAddMoney,@VoucherID,@SyncGuid);", cn, tx))
+                                {
+                                    cmd.CommandTimeout = 60;
+                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
+                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                                    cmd.Parameters.AddWithValue("@OrderID", orderID);
+                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
+                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
+                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
+                                    cmd.Parameters.AddWithValue("@Price", item.Price);
+                                    cmd.Parameters.AddWithValue("@QuantityOnOrder", Convert.ToDouble(item.QuantityOnOrder));
+                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
+                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
+                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
+                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 30));
+                                    cmd.Parameters.AddWithValue("@QuantityRTD", 0d);
+                                    cmd.Parameters.AddWithValue("@LastUpdated", entryTime);
+                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
+                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
+                                    cmd.Parameters.AddWithValue("@IsAddMoney", false);
+                                    cmd.Parameters.AddWithValue("@VoucherID", 0);
+                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+
+                            tx.Commit();
+
+                            response.Ok = true;
+                            response.OrderID = orderID;
+                            response.Tax = request.Tax;
+                            response.Total = request.Total;
+                            response.Message = request.Type == 2
+                                ? "Factura en espera creada exitosamente."
+                                : "Cotización creada exitosamente.";
+                        }
+                        catch
+                        {
+                            tx.Rollback();
+                            throw;
+                        }
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, response);
+            }
+            catch (SqlException ex)
+            {
+                response.Ok = false;
+                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+            }
+            catch (Exception ex)
+            {
+                response.Ok = false;
+                response.Message = ex.Message;
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
+            }
+        }
+
+        [HttpPost]
+        [Route("update-quote")]
+        public HttpResponseMessage UpdateQuote([FromBody] NovaRetailCreateQuoteRequest request)
+        {
+            if (request == null || request.OrderID <= 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "Se requiere un OrderID válido para actualizar."
+                });
+            }
+
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
+                {
+                    Ok = false,
+                    Message = "La cotización no contiene ítems."
+                });
+            }
+
+            var response = new NovaRetailCreateQuoteResponse();
+            var connectionString = GetConnectionString();
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+
+                    using (var tx = cn.BeginTransaction())
+                    {
+                        try
+                        {
+                            var now = DateTime.Now;
+                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(30);
+
+                            using (var cmd = new SqlCommand(@"
+                                UPDATE [Order] SET
+                                    [Comment] = @Comment,
+                                    [CustomerID] = @CustomerID,
+                                    [ShipToID] = @ShipToID,
+                                    [Tax] = @Tax,
+                                    [Total] = @Total,
+                                    [LastUpdated] = @LastUpdated,
+                                    [ExpirationOrDueDate] = @ExpirationOrDueDate,
+                                    [Taxable] = @Taxable,
+                                    [SalesRepID] = @SalesRepID,
+                                    [ReferenceNumber] = @ReferenceNumber,
+                                    [ExchangeID] = @ExchangeID,
+                                    [ChannelType] = @ChannelType,
+                                    [DefaultDiscountReasonCodeID] = @DefaultDiscountReasonCodeID,
+                                    [DefaultReturnReasonCodeID] = @DefaultReturnReasonCodeID,
+                                    [DefaultTaxChangeReasonCodeID] = @DefaultTaxChangeReasonCodeID
+                                WHERE ID = @OrderID AND Closed = 0", cn, tx))
+                            {
+                                cmd.CommandTimeout = 60;
+                                cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
+                                cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+                                cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
+                                cmd.Parameters.AddWithValue("@Tax", request.Tax);
+                                cmd.Parameters.AddWithValue("@Total", request.Total);
+                                cmd.Parameters.AddWithValue("@LastUpdated", now);
+                                cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
+                                cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
+                                cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
+                                cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
+                                cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
+                                cmd.Parameters.AddWithValue("@DefaultReturnReasonCodeID", request.DefaultReturnReasonCodeID);
+                                cmd.Parameters.AddWithValue("@DefaultTaxChangeReasonCodeID", request.DefaultTaxChangeReasonCodeID);
+
+                                var rowsAffected = cmd.ExecuteNonQuery();
+                                if (rowsAffected == 0)
+                                {
+                                    tx.Rollback();
+                                    response.Ok = false;
+                                    response.Message = $"No se encontró la orden #{request.OrderID} o ya está cerrada.";
+                                    return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                                }
+                            }
+
+                            using (var cmd = new SqlCommand("DELETE FROM [OrderEntry] WHERE OrderID = @OrderID", cn, tx))
+                            {
+                                cmd.CommandTimeout = 60;
+                                cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            foreach (var item in request.Items)
+                            {
+                                var entrySyncGuid = Guid.NewGuid();
+                                var entryTime = DateTime.Now;
+
+                                using (var cmd = new SqlCommand(@"
+                                    INSERT INTO [OrderEntry]
+                                        ([Cost],[StoreID],[OrderID],[ItemID],[FullPrice],[PriceSource],
+                                         [Price],[QuantityOnOrder],[SalesRepID],[Taxable],[DetailID],
+                                         [Description],[QuantityRTD],[LastUpdated],[Comment],
+                                         [DiscountReasonCodeID],[ReturnReasonCodeID],[TaxChangeReasonCodeID],
+                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
+                                    VALUES
+                                        (@Cost,@StoreID,@OrderID,@ItemID,@FullPrice,@PriceSource,
+                                         @Price,@QuantityOnOrder,@SalesRepID,@Taxable,@DetailID,
+                                         @Description,@QuantityRTD,@LastUpdated,@Comment,
+                                         @DiscountReasonCodeID,@ReturnReasonCodeID,@TaxChangeReasonCodeID,
+                                         @TransactionTime,@IsAddMoney,@VoucherID,@SyncGuid);", cn, tx))
+                                {
+                                    cmd.CommandTimeout = 60;
+                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
+                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                                    cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
+                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
+                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
+                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
+                                    cmd.Parameters.AddWithValue("@Price", item.Price);
+                                    cmd.Parameters.AddWithValue("@QuantityOnOrder", Convert.ToDouble(item.QuantityOnOrder));
+                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
+                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
+                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
+                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 30));
+                                    cmd.Parameters.AddWithValue("@QuantityRTD", 0d);
+                                    cmd.Parameters.AddWithValue("@LastUpdated", entryTime);
+                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
+                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
+                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
+                                    cmd.Parameters.AddWithValue("@IsAddMoney", false);
+                                    cmd.Parameters.AddWithValue("@VoucherID", 0);
+                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+
+                            tx.Commit();
+
+                            response.Ok = true;
+                            response.OrderID = request.OrderID;
+                            response.Tax = request.Tax;
+                            response.Total = request.Total;
+                            response.Message = request.Type == 2
+                                ? "Factura en espera actualizada exitosamente."
+                                : "Cotización actualizada exitosamente.";
+                        }
+                        catch
+                        {
+                            tx.Rollback();
+                            throw;
+                        }
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, response);
+            }
+            catch (SqlException ex)
+            {
+                response.Ok = false;
+                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+            }
+            catch (Exception ex)
+            {
+                response.Ok = false;
+                response.Message = ex.Message;
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
+            }
+        }
+
+        [HttpGet]
+        [Route("list-orders")]
+        public HttpResponseMessage ListOrders(int storeId = 0, int type = 3, string search = "")
+        {
+            var connectionString = GetConnectionString();
+            try
+            {
+                var orders = new List<NovaRetailOrderSummaryDto>();
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    var sql = @"
+                        SELECT TOP 50
+                            o.ID AS OrderID, o.[Type], o.Comment, o.Total, o.Tax,
+                            o.[Time], o.ExpirationOrDueDate, o.CustomerID, o.ReferenceNumber,
+                            ISNULL(c.Name, '') AS CashierName,
+                            (SELECT COUNT(1) FROM dbo.OrderEntry oe WHERE oe.OrderID = o.ID) AS ItemCount
+                        FROM dbo.[Order] o
+                        LEFT JOIN dbo.Cashier c ON c.ID = o.SalesRepID
+                        WHERE o.[Type] = @Type
+                          AND o.Closed = 0
+                          AND (@StoreID = 0 OR o.StoreID = @StoreID)
+                          AND (@Search = '' OR o.Comment LIKE '%' + @Search + '%'
+                               OR CAST(o.ID AS NVARCHAR(20)) LIKE '%' + @Search + '%'
+                               OR o.ReferenceNumber LIKE '%' + @Search + '%'
+                               OR c.Name LIKE '%' + @Search + '%')
+                        ORDER BY o.[Time] DESC";
+
+                    using (var cmd = new SqlCommand(sql, cn))
+                    {
+                        cmd.CommandTimeout = 30;
+                        cmd.Parameters.AddWithValue("@Type", type);
+                        cmd.Parameters.AddWithValue("@StoreID", storeId);
+                        cmd.Parameters.AddWithValue("@Search", search ?? string.Empty);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                orders.Add(new NovaRetailOrderSummaryDto
+                                {
+                                    OrderID = Convert.ToInt32(reader["OrderID"]),
+                                    Type = Convert.ToInt32(reader["Type"]),
+                                    Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
+                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
+                                    Tax = reader["Tax"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Tax"]),
+                                    Time = Convert.ToDateTime(reader["Time"]),
+                                    ExpirationOrDueDate = reader["ExpirationOrDueDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["ExpirationOrDueDate"]),
+                                    CustomerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]),
+                                    ItemCount = Convert.ToInt32(reader["ItemCount"]),
+                                    ReferenceNumber = reader["ReferenceNumber"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ReferenceNumber"]),
+                                    CashierName = reader["CashierName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["CashierName"])
+                                });
+                            }
+                        }
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailListOrdersResponse
+                {
+                    Ok = true,
+                    Orders = orders
+                });
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailListOrdersResponse
+                {
+                    Ok = false,
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        [Route("order-detail/{orderId}")]
+        public HttpResponseMessage OrderDetail(int orderId)
+        {
+            var connectionString = GetConnectionString();
+            try
+            {
+                NovaRetailOrderDetailDto order = null;
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+
+                    using (var cmd = new SqlCommand(@"
+                        SELECT ID, [Type], Comment, Total, Tax, [Time]
+                        FROM dbo.[Order]
+                        WHERE ID = @OrderID", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@OrderID", orderId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                order = new NovaRetailOrderDetailDto
+                                {
+                                    OrderID = Convert.ToInt32(reader["ID"]),
+                                    Type = Convert.ToInt32(reader["Type"]),
+                                    Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
+                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
+                                    Tax = reader["Tax"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Tax"]),
+                                    Time = Convert.ToDateTime(reader["Time"])
+                                };
+                            }
+                        }
+                    }
+
+                    if (order == null)
+                    {
+                        return Request.CreateResponse(HttpStatusCode.NotFound, new NovaRetailOrderDetailResponse
+                        {
+                            Ok = false,
+                            Message = "Orden no encontrada."
+                        });
+                    }
+
+                    using (var cmd = new SqlCommand(@"
+                        SELECT oe.ID AS EntryID, oe.ItemID, oe.Description, oe.Price, oe.FullPrice,
+                               oe.Cost, oe.QuantityOnOrder, oe.Taxable,
+                               ISNULL(i.TaxID, 0) AS TaxID
+                        FROM dbo.OrderEntry oe
+                        LEFT JOIN dbo.Item i ON i.ID = oe.ItemID
+                        WHERE oe.OrderID = @OrderID
+                        ORDER BY oe.ID", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@OrderID", orderId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                order.Entries.Add(new NovaRetailOrderEntryDto
+                                {
+                                    EntryID = Convert.ToInt32(reader["EntryID"]),
+                                    ItemID = Convert.ToInt32(reader["ItemID"]),
+                                    Description = reader["Description"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Description"]),
+                                    Price = reader["Price"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Price"]),
+                                    FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
+                                    Cost = reader["Cost"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Cost"]),
+                                    QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["QuantityOnOrder"]),
+                                    Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
+                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"])
+                                });
+                            }
+                        }
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailOrderDetailResponse
+                {
+                    Ok = true,
+                    Order = order
+                });
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse
+                {
+                    Ok = false,
+                    Message = ex.Message
+                });
+            }
+        }
         }
     }

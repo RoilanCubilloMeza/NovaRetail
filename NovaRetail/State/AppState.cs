@@ -10,6 +10,8 @@ namespace NovaRetail.State
         bool IsReceiptVisible = false,
         bool IsProductsPanelVisible = true,
         bool IsManualExonerationVisible = false,
+        bool IsOrderSearchVisible = false,
+        bool IsQuoteReceiptVisible = false,
 
         // ── Cliente ──
         string CurrentClientId = "",

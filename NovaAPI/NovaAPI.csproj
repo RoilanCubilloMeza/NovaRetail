@@ -200,6 +200,7 @@
     <Compile Include="Models\Customer.cs" />
     <Compile Include="Models\CustomerLookupDto.cs" />
     <Compile Include="Models\LoginRequest.cs" />
+    <Compile Include="Models\NovaRetailCreateQuoteModels.cs" />
     <Compile Include="Models\NovaRetailCreateSaleModels.cs" />
     <Compile Include="Models\Payment.cs" />
     <Compile Include="Models\PickingOrderEntry.cs" />

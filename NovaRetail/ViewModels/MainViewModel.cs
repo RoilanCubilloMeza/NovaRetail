@@ -17,6 +17,7 @@ namespace NovaRetail.ViewModels
         private readonly IExonerationService _exonerationService;
         private readonly IDialogService _dialogService;
         private readonly ISaleService _saleService;
+        private readonly IQuoteService _quoteService;
         private readonly IStoreConfigService _storeConfigService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
@@ -50,6 +51,7 @@ namespace NovaRetail.ViewModels
         private string _appliedExonerationScopeText = string.Empty;
         private int _appliedExonerationItemCount;
         private bool _isProcessingCheckout;
+        private int _editingOrderId;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -144,6 +146,7 @@ namespace NovaRetail.ViewModels
         public CheckoutViewModel CheckoutVm { get; } = new();
         public ReceiptViewModel ReceiptVm { get; } = new();
         public ManualExonerationViewModel ManualExonerationVm { get; } = new();
+        public OrderSearchViewModel OrderSearchVm { get; } = new();
 
         public bool IsManualExonerationVisible
         {
@@ -174,6 +177,28 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetReceiptVisibleAction(value));
             }
         }
+
+        public bool IsOrderSearchVisible
+        {
+            get => _appStore.State.IsOrderSearchVisible;
+            private set
+            {
+                if (IsOrderSearchVisible != value)
+                    _appStore.Dispatch(new SetOrderSearchVisibleAction(value));
+            }
+        }
+
+        public bool IsQuoteReceiptVisible
+        {
+            get => _appStore.State.IsQuoteReceiptVisible;
+            private set
+            {
+                if (IsQuoteReceiptVisible != value)
+                    _appStore.Dispatch(new SetQuoteReceiptVisibleAction(value));
+            }
+        }
+
+        public QuoteReceiptViewModel QuoteReceiptVm { get; } = new();
 
         public string CurrentClientId => _appStore.State.CurrentClientId;
         public string CurrentClientName => _appStore.State.CurrentClientName;
@@ -264,6 +289,10 @@ namespace NovaRetail.ViewModels
         public ICommand ClearItemExonerationCommand { get; }
         public ICommand ApplyManualExonerationCommand { get; }
         public ICommand AddManualItemCommand { get; }
+        public ICommand SaveQuoteCommand { get; }
+        public ICommand SaveHoldCommand { get; }
+        public ICommand RecallQuoteCommand { get; }
+        public ICommand RecallHoldCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -602,12 +631,13 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IStoreConfigService storeConfigService, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
             _dialogService = dialogService;
             _saleService = saleService;
+            _quoteService = quoteService;
             _storeConfigService = storeConfigService;
             _appStore = appStore;
             _userSession = userSession;
@@ -640,6 +670,10 @@ namespace NovaRetail.ViewModels
             ClearItemExonerationCommand = new Command<CartItemModel>(ClearItemExoneration);
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
+            SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
+            SaveHoldCommand = new Command(async () => await SaveHoldAsync());
+            RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
+            RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(2, "Recuperar Factura en Espera"));
             ItemActionVm.RequestOk += CloseItemAction;
             ItemActionVm.RequestCancel += CloseItemAction;
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
@@ -658,6 +692,10 @@ namespace NovaRetail.ViewModels
             ManualExonerationVm.RequestApply += OnManualExonerationApply;
             ManualExonerationVm.RequestCancel += () => IsManualExonerationVisible = false;
             ReceiptVm.RequestClose += () => IsReceiptVisible = false;
+            OrderSearchVm.RequestClose += () => IsOrderSearchVisible = false;
+            OrderSearchVm.RequestSearch += async search => await SearchOrdersAsync(search);
+            OrderSearchVm.RequestSelect += order => OnOrderSelectedAsync(order);
+            QuoteReceiptVm.RequestClose += () => IsQuoteReceiptVisible = false;
             RefreshCartItemsView();
             _ = InitializeAsync();
         }
@@ -681,6 +719,8 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsProductsPanelVisible));
             OnPropertyChanged(nameof(ProductsPanelVisibilityText));
             OnPropertyChanged(nameof(IsManualExonerationVisible));
+            OnPropertyChanged(nameof(IsOrderSearchVisible));
+            OnPropertyChanged(nameof(IsQuoteReceiptVisible));
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
@@ -1360,8 +1400,331 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
         }
 
+        private async Task SaveQuoteAsync()
+        {
+            if (CartItems.Count == 0)
+            {
+                await _dialogService.AlertAsync("Cotización", "El carrito está vacío.", "OK");
+                return;
+            }
+
+            if (CartItems.Any(item => item.ItemID <= 0))
+            {
+                await _dialogService.AlertAsync("Cotización", "Hay artículos manuales o sin identificador válido en el carrito.", "OK");
+                return;
+            }
+
+            var currentUser = _userSession.CurrentUser;
+            if (currentUser is null)
+            {
+                await _dialogService.AlertAsync("Cotización", "No hay un usuario autenticado.", "OK");
+                return;
+            }
+
+            var confirm = await _dialogService.ConfirmAsync("Cotización", "¿Desea guardar el carrito actual como cotización?", "Guardar", "Cancelar");
+            if (!confirm)
+                return;
+
+            try
+            {
+                var storeId = currentUser.StoreId > 0 ? currentUser.StoreId
+                    : _storeIdFromConfig > 0 ? _storeIdFromConfig
+                    : 1;
+
+                var cashierId = ParseCashierId(currentUser);
+                var clientRef = HasClient ? $"{CurrentClientId}|{CurrentClientName.Trim()}" : string.Empty;
+
+                var request = new NovaRetailCreateQuoteRequest
+                {
+                    OrderID = _editingOrderId,
+                    StoreID = storeId,
+                    CustomerID = 0,
+                    ShipToID = 0,
+                    Comment = string.Empty,
+                    ReferenceNumber = clientRef,
+                    SalesRepID = cashierId,
+                    Taxable = true,
+                    ExpirationOrDueDate = _quoteDays > 0 ? DateTime.Now.AddDays(_quoteDays) : DateTime.Now.AddDays(30),
+                    Tax = Math.Round(_taxColones, 4),
+                    Total = Math.Round(_totalColones, 4),
+                    Items = BuildQuoteItems()
+                };
+
+                NovaRetailCreateQuoteResponse result;
+                if (_editingOrderId > 0)
+                    result = await _quoteService.UpdateQuoteAsync(request);
+                else
+                    result = await _quoteService.CreateQuoteAsync(request);
+
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "No fue posible guardar la cotización."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Cotización", message, "OK");
+                    return;
+                }
+
+                var expiration = _quoteDays > 0 ? (DateTime?)DateTime.Now.AddDays(_quoteDays) : null;
+                QuoteReceiptVm.Load(
+                    orderID: result.OrderID,
+                    expirationDate: expiration,
+                    clientId: HasClient ? CurrentClientId : string.Empty,
+                    clientName: HasClient ? CurrentClientName : string.Empty,
+                    cashierName: currentUser.DisplayName ?? string.Empty,
+                    registerNumber: _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
+                    storeName: _storeName,
+                    storeAddress: _storeAddress,
+                    storePhone: _storePhone,
+                    cartItems: CartItems.ToList(),
+                    subtotalText: SubtotalColonesText,
+                    taxText: TaxColonesText,
+                    hasDiscount: DiscountAmount > 0,
+                    discountText: DiscountColonesText,
+                    hasExoneration: ExonerationAmount > 0,
+                    exonerationText: ExonerationColonesText,
+                    totalText: TotalText,
+                    totalColonesText: TotalColonesText);
+
+                ClearCart();
+                IsQuoteReceiptVisible = true;
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Cotización", ex.Message, "OK");
+            }
+        }
+
+        private List<NovaRetailQuoteItemRequest> BuildQuoteItems()
+        {
+            var result = new List<NovaRetailQuoteItemRequest>(CartItems.Count);
+
+            foreach (var item in CartItems)
+            {
+                var lineTotals = CalculateLineTotals(item);
+                var quantity = item.Quantity <= 0 ? 1m : item.Quantity;
+
+                // Price = precio con impuesto incluido (lo que se muestra al cliente)
+                var price = Math.Round(item.EffectivePriceColones * (1m - item.DiscountPercent / 100m), 4);
+
+                // FullPrice = precio de catálogo sin descuento
+                var fullPrice = Math.Round(item.EffectivePriceColones, 4);
+
+                // Cost = costo del artículo (0 si no se conoce desde el catálogo)
+                var cost = 0m;
+
+                var discountReasonCodeID = ResolveDiscountReasonCodeID(item);
+                var taxChangeReasonCodeID = ResolveExonerationReasonCodeID(item);
+
+                result.Add(new NovaRetailQuoteItemRequest
+                {
+                    ItemID = item.ItemID,
+                    Cost = cost,
+                    FullPrice = fullPrice,
+                    PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
+                    Price = price,
+                    QuantityOnOrder = quantity,
+                    SalesRepID = 0,
+                    Taxable = item.TaxPercentage > 0,
+                    DetailID = 0,
+                    Description = item.DisplayName.Length > 30 ? item.DisplayName[..30] : item.DisplayName,
+                    Comment = (item.HasDiscount || (item.HasOverridePrice && !item.IsUpwardPriceOverride)) ? item.DiscountReasonCode : string.Empty,
+                    DiscountReasonCodeID = discountReasonCodeID,
+                    ReturnReasonCodeID = 0,
+                    TaxChangeReasonCodeID = taxChangeReasonCodeID
+                });
+            }
+
+            return result;
+        }
+
+        private async Task SaveHoldAsync()
+        {
+            if (CartItems.Count == 0)
+            {
+                await _dialogService.AlertAsync("Fac. Espera", "El carrito está vacío.", "OK");
+                return;
+            }
+
+            if (CartItems.Any(item => item.ItemID <= 0))
+            {
+                await _dialogService.AlertAsync("Fac. Espera", "Hay artículos manuales o sin identificador válido en el carrito.", "OK");
+                return;
+            }
+
+            var currentUser = _userSession.CurrentUser;
+            if (currentUser is null)
+            {
+                await _dialogService.AlertAsync("Fac. Espera", "No hay un usuario autenticado.", "OK");
+                return;
+            }
+
+            var comment = await _dialogService.PromptAsync(
+                "Factura en Espera",
+                "Ingrese un comentario o descripción para identificar esta factura:",
+                accept: "Guardar",
+                cancel: "Cancelar",
+                placeholder: "Ej. Cliente Juan - mesa 3");
+
+            if (comment is null)
+                return;
+
+            try
+            {
+                var storeId = currentUser.StoreId > 0 ? currentUser.StoreId
+                    : _storeIdFromConfig > 0 ? _storeIdFromConfig
+                    : 1;
+
+                var cashierId = ParseCashierId(currentUser);
+                var clientRef = HasClient ? $"{CurrentClientId}|{CurrentClientName.Trim()}" : string.Empty;
+
+                var request = new NovaRetailCreateQuoteRequest
+                {
+                    StoreID = storeId,
+                    Type = 2,
+                    CustomerID = 0,
+                    ShipToID = 0,
+                    Comment = comment.Trim(),
+                    ReferenceNumber = clientRef,
+                    SalesRepID = cashierId,
+                    Taxable = true,
+                    ExpirationOrDueDate = DateTime.Now.AddDays(1),
+                    Tax = Math.Round(_taxColones, 4),
+                    Total = Math.Round(_totalColones, 4),
+                    Items = BuildQuoteItems()
+                };
+
+                var result = await _quoteService.CreateQuoteAsync(request);
+
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "No fue posible guardar la factura en espera."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Fac. Espera", message, "OK");
+                    return;
+                }
+
+                await _dialogService.AlertAsync("Fac. Espera", $"Factura en espera #{result.OrderID} guardada exitosamente.", "OK");
+                ClearCart();
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Fac. Espera", ex.Message, "OK");
+            }
+        }
+
+        private async Task OpenOrderSearchAsync(int orderType, string title)
+        {
+            OrderSearchVm.Load(orderType, title);
+            IsOrderSearchVisible = true;
+
+            await SearchOrdersAsync(string.Empty);
+        }
+
+        private async Task SearchOrdersAsync(string search)
+        {
+            OrderSearchVm.SetBusy(true);
+            try
+            {
+                var storeId = _storeIdFromConfig > 0 ? _storeIdFromConfig : 0;
+                var result = await _quoteService.ListOrdersAsync(storeId, OrderSearchVm.OrderType, search);
+
+                if (!result.Ok)
+                {
+                    OrderSearchVm.SetError(result.Message);
+                    return;
+                }
+
+                OrderSearchVm.SetOrders(result.Orders);
+            }
+            catch (Exception ex)
+            {
+                OrderSearchVm.SetError(ex.Message);
+            }
+            finally
+            {
+                OrderSearchVm.SetBusy(false);
+            }
+        }
+
+        private async void OnOrderSelectedAsync(NovaRetailOrderSummary order)
+        {
+            if (order is null)
+                return;
+
+            OrderSearchVm.SetBusy(true);
+            try
+            {
+                var detail = await _quoteService.GetOrderDetailAsync(order.OrderID);
+
+                if (!detail.Ok || detail.Order is null)
+                {
+                    OrderSearchVm.SetError(detail.Message);
+                    return;
+                }
+
+                IsOrderSearchVisible = false;
+
+                if (CartItems.Count > 0)
+                {
+                    var replace = await _dialogService.ConfirmAsync(
+                        "Recuperar Orden",
+                        "El carrito tiene artículos. ¿Desea reemplazarlos con los de esta orden?",
+                        "Reemplazar", "Cancelar");
+                    if (!replace)
+                        return;
+
+                    ClearCart();
+                }
+
+                foreach (var entry in detail.Order.Entries)
+                {
+                    var cartItem = new CartItemModel
+                    {
+                        ItemID = entry.ItemID,
+                        Emoji = "📋",
+                        Name = entry.Description,
+                        Code = entry.ItemID.ToString(),
+                        UnitPriceColones = entry.Price,
+                        UnitPrice = ConvertFromColones(entry.Price),
+                        TaxPercentage = entry.Taxable ? 13m : 0m,
+                        TaxID = entry.TaxID,
+                        Cabys = string.Empty,
+                        Stock = 9999m,
+                        Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m
+                    };
+                    CartItems.Add(cartItem);
+                }
+
+                RecalculateTotal();
+                RefreshCartItemsView();
+
+                _editingOrderId = order.OrderID;
+
+                // Restaurar datos del cliente desde la cotización
+                var savedClientId = order.ParseClientId();
+                var savedClientName = order.ParseClientName();
+                if (!string.IsNullOrWhiteSpace(savedClientId))
+                    SetCliente(savedClientId, savedClientName);
+
+                var typeName = order.Type == 2 ? "Factura en espera" : "Cotización";
+                await _dialogService.AlertAsync("Orden recuperada",
+                    $"{typeName} #{order.OrderID} cargada al carrito con {detail.Order.Entries.Count} artículo(s).", "OK");
+            }
+            catch (Exception ex)
+            {
+                OrderSearchVm.SetError(ex.Message);
+            }
+            finally
+            {
+                OrderSearchVm.SetBusy(false);
+            }
+        }
+
         private void ClearCart()
         {
+            _editingOrderId = 0;
             ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;

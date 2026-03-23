@@ -46,6 +46,18 @@
               IsVisible="{Binding IsManualExonerationVisible}">
             <views:ManualExonerationPopup BindingContext="{Binding ManualExonerationVm}"/>
         </Grid>
+
+        <!-- Order search overlay (Rec. Cotización / Rec. Espera) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsOrderSearchVisible}">
+            <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
+        </Grid>
+
+        <!-- Quote receipt overlay (Proforma) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsQuoteReceiptVisible}">
+            <views:QuoteReceiptPopup BindingContext="{Binding QuoteReceiptVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

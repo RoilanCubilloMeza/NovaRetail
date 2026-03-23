@@ -131,12 +131,21 @@
 	  <MauiXaml Update="Views\ManualExonerationPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\OrderSearchPopup.xaml">
+		<Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\QuoteReceiptPopup.xaml">
+		<Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\PriceJustificationPopup.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		  </MauiXaml>
 	  <MauiXaml Update="Views\ProductsPanel.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	    <Inflator>Default</Inflator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\QuoteReceiptPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\ReceiptPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
