@@ -52,6 +52,7 @@ namespace NovaRetail.ViewModels
         private int _appliedExonerationItemCount;
         private bool _isProcessingCheckout;
         private int _editingOrderId;
+        private int _editingHoldId;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -1580,6 +1581,7 @@ namespace NovaRetail.ViewModels
 
                 var request = new NovaRetailCreateQuoteRequest
                 {
+                    OrderID = _editingHoldId,
                     StoreID = storeId,
                     Type = 2,
                     CustomerID = 0,
@@ -1594,7 +1596,11 @@ namespace NovaRetail.ViewModels
                     Items = BuildQuoteItems()
                 };
 
-                var result = await _quoteService.CreateQuoteAsync(request);
+                NovaRetailCreateQuoteResponse result;
+                if (_editingHoldId > 0)
+                    result = await _quoteService.UpdateHoldAsync(request);
+                else
+                    result = await _quoteService.SaveHoldAsync(request);
 
                 if (!result.Ok)
                 {
@@ -1628,7 +1634,12 @@ namespace NovaRetail.ViewModels
             try
             {
                 var storeId = _storeIdFromConfig > 0 ? _storeIdFromConfig : 0;
-                var result = await _quoteService.ListOrdersAsync(storeId, OrderSearchVm.OrderType, search);
+                NovaRetailListOrdersResponse result;
+
+                if (OrderSearchVm.OrderType == 2)
+                    result = await _quoteService.ListHoldsAsync(storeId, search);
+                else
+                    result = await _quoteService.ListOrdersAsync(storeId, OrderSearchVm.OrderType, search);
 
                 if (!result.Ok)
                 {
@@ -1656,7 +1667,11 @@ namespace NovaRetail.ViewModels
             OrderSearchVm.SetBusy(true);
             try
             {
-                var detail = await _quoteService.GetOrderDetailAsync(order.OrderID);
+                NovaRetailOrderDetailResponse detail;
+                if (order.Type == 2)
+                    detail = await _quoteService.GetHoldDetailAsync(order.OrderID);
+                else
+                    detail = await _quoteService.GetOrderDetailAsync(order.OrderID);
 
                 if (!detail.Ok || detail.Order is null)
                 {
@@ -1700,7 +1715,10 @@ namespace NovaRetail.ViewModels
                 RecalculateTotal();
                 RefreshCartItemsView();
 
-                _editingOrderId = order.OrderID;
+                if (order.Type == 2)
+                    _editingHoldId = order.OrderID;
+                else
+                    _editingOrderId = order.OrderID;
 
                 // Restaurar datos del cliente desde la cotización
                 var savedClientId = order.ParseClientId();
@@ -1725,6 +1743,7 @@ namespace NovaRetail.ViewModels
         private void ClearCart()
         {
             _editingOrderId = 0;
+            _editingHoldId = 0;
             ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;
@@ -1945,6 +1964,8 @@ namespace NovaRetail.ViewModels
                 ShipToID = 0,
                 Comment = string.Empty,
                 ReferenceNumber = string.Empty,
+                RecallID = _editingHoldId > 0 ? _editingHoldId : 0,
+                RecallType = _editingHoldId > 0 ? 1 : 0,
                 TransactionTime = null,
                 TotalChange = change,
                 AllowNegativeInventory = false,
