@@ -1,4 +1,5 @@
 using NovaRetail.Models;
+using NovaRetail.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Net;
@@ -42,6 +43,23 @@ namespace NovaRetail.ViewModels
         public ICommand PrintCommand { get; }
         public ICommand EmailCommand { get; }
         public ICommand SaveCommand { get; }
+
+        public string CompanyName { get; private set; } = string.Empty;
+        public string CedulaJuridica { get; private set; } = string.Empty;
+        public string Clave50 { get; private set; } = string.Empty;
+        public string Consecutivo { get; private set; } = string.Empty;
+        public string ComprobanteTipo { get; private set; } = "04";
+        public string ClientEmail { get; private set; } = string.Empty;
+
+        public bool HasFiscalData => !string.IsNullOrWhiteSpace(Clave50);
+        public string DocumentTypeName => ComprobanteTipo switch
+        {
+            "01" => "Factura Electrónica",
+            "03" => "Nota de Crédito Electrónica",
+            "04" => "Tiquete Electrónico",
+            "10" => "Reposición",
+            _ => "Tiquete Electrónico"
+        };
 
         private bool _isBusy;
         public bool IsBusy
@@ -95,10 +113,10 @@ namespace NovaRetail.ViewModels
 
         public ReceiptViewModel()
         {
-            CloseCommand  = new Command(() => RequestClose?.Invoke());
-            PrintCommand  = new Command(async () => await PrintAsync());
-            EmailCommand  = new Command(async () => await EmailAsync());
-            SaveCommand   = new Command(async () => await SaveAsync());
+            CloseCommand       = new Command(() => RequestClose?.Invoke());
+            PrintCommand       = new Command(async () => await PrintAsync());
+            EmailCommand       = new Command(async () => await EmailAsync());
+            SaveCommand        = new Command(async () => await SaveAsync());
         }
 
         public void Load(
@@ -123,8 +141,26 @@ namespace NovaRetail.ViewModels
             decimal tenderTotalColones = 0m,
             decimal changeColones = 0m,
             string secondTenderDescription = "",
-            decimal secondTenderAmountColones = 0m)
+            decimal secondTenderAmountColones = 0m,
+            // Ticket-specific data
+            string companyName = "",
+            string cedulaJuridica = "",
+            string clave50 = "",
+            string consecutivo = "",
+            string comprobanteTipo = "04",
+            string clientEmail = "",
+            decimal subtotalColones = 0m,
+            decimal discountColones = 0m,
+            decimal totalColones = 0m,
+            int taxSystem = 1)
         {
+            CompanyName = companyName ?? string.Empty;
+            CedulaJuridica = cedulaJuridica ?? string.Empty;
+            Clave50 = clave50 ?? string.Empty;
+            Consecutivo = consecutivo ?? string.Empty;
+            ComprobanteTipo = comprobanteTipo ?? "04";
+            ClientEmail = clientEmail ?? string.Empty;
+
             TransactionNumber = transactionNumber;
             TransactionDate = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
             ClientId = string.IsNullOrWhiteSpace(clientId) ? "S-00001" : clientId;
@@ -304,6 +340,15 @@ namespace NovaRetail.ViewModels
             sb.AppendLine($"Cajero:         {CashierName,-16}{RegisterText}");
             sb.AppendLine(sep);
 
+            if (HasFiscalData)
+            {
+                sb.AppendLine(Center(DocumentTypeName, W));
+                sb.AppendLine($"Clave: {Clave50}");
+                sb.AppendLine($"No.    {Consecutivo}");
+                sb.AppendLine($"Fecha: {TransactionDate}");
+                sb.AppendLine(sep);
+            }
+
             sb.AppendLine($"{"DESC/COD",-22}{"CANT",4}  {"PRECIO",8}  {"TOTAL",8}");
             sb.AppendLine(dash);
             foreach (var item in Items)
@@ -351,9 +396,12 @@ namespace NovaRetail.ViewModels
         private string BuildReceiptHtml(bool autoPrint = true)
         {
             var rows = new StringBuilder();
+            var rowNum = 0;
             foreach (var item in Items)
             {
+                rowNum++;
                 rows.Append("<tr class='item-row'>")
+                    .Append($"<td class='num'>{rowNum}</td>")
                     .Append("<td class='desc-cell'><div class='item-name'>").Append(Esc(item.DisplayName)).Append("</div>");
 
                 if (!string.IsNullOrWhiteSpace(item.Code) || item.HasTax)
@@ -380,14 +428,11 @@ namespace NovaRetail.ViewModels
                     .Append("</tr>");
             }
 
-            var storeBlock = HasStoreInfo
-                ? $"<div class='store'><div class='store-name'>{Esc(StoreName)}</div><div>{Esc(StoreAddress)}</div><div>{Esc(StorePhone)}</div></div>"
-                : string.Empty;
             var discountRow = HasDiscount
-                ? $"<tr class='sum-disc'><td>Descuentos</td><td>{Esc(DiscountText)}</td></tr>"
+                ? $"<tr class='sum-disc'><td>Descuento</td><td>- CRC</td><td>{Esc(DiscountText)}</td></tr>"
                 : string.Empty;
             var exonRow = HasExoneration
-                ? $"<tr class='sum-exon'><td>Exoneración</td><td>{Esc(ExonerationText)}</td></tr>"
+                ? $"<tr class='sum-exon'><td>Exoneración</td><td></td><td>{Esc(ExonerationText)}</td></tr>"
                 : string.Empty;
             var printScript = autoPrint
                 ? "<script>window.onload=function(){window.print();}</script>"
@@ -398,46 +443,81 @@ namespace NovaRetail.ViewModels
                 .AppendLine("<meta name='viewport' content='width=device-width, initial-scale=1'>")
                 .AppendLine("<title></title>")
                 .AppendLine("<style>")
-                .AppendLine("*{box-sizing:border-box}html,body{margin:0;padding:0}body{background:#eef3f8;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}")
-                .AppendLine(".wrap{padding:28px 20px}.paper{width:min(760px,100%);margin:0 auto;background:#fff;border:1px solid #dbe3ee;border-radius:22px;box-shadow:0 14px 36px rgba(15,23,42,.10);overflow:hidden}")
-                .AppendLine(".hero{background:#0f172a;padding:18px 22px}.hero-table,.meta-table,.items-table,.summary-table,.payment-table{width:100%;border-collapse:collapse}.hero-title{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.3px}.hero-sub{font-size:13px;color:#bfdbfe;padding-top:4px}.doc-badge{display:inline-block;background:#2563eb;color:#fff;border-radius:14px;padding:10px 14px;text-align:center;min-width:92px}.doc-badge small{display:block;font-size:10px;color:#dbeafe;margin-bottom:2px}.doc-badge strong{font-size:20px}")
-                .AppendLine(".content{padding:26px}.receipt-title{text-align:center;font-size:30px;font-weight:800;margin:0 0 10px}.store{text-align:center;font-size:16px;color:#334155;line-height:1.45;margin:0 0 8px}.store-name{font-size:26px;font-weight:800;color:#0f172a}.sep{border-top:1px solid #cbd5e1;margin:14px 0}")
-                .AppendLine(".meta-table td{padding:4px 0;font-size:16px;vertical-align:top}.meta-label{width:160px;font-weight:700;color:#334155}.meta-value{color:#0f172a}.meta-split{display:flex;justify-content:space-between;gap:12px}")
-                .AppendLine(".items-table{table-layout:fixed}.items-head th{padding:10px 0 8px;border-bottom:2px solid #cbd5e1;font-size:15px;color:#334155;text-align:left}.items-head th:nth-child(2),.items-head th:nth-child(3),.items-head th:nth-child(4){text-align:right}.items-table th:nth-child(1){width:52%}.items-table th:nth-child(2){width:12%}.items-table th:nth-child(3){width:18%}.items-table th:nth-child(4){width:18%}.items-table td{padding:12px 0 10px;border-bottom:1px solid #eef2f7;vertical-align:top;font-size:16px}.desc-cell{padding-right:12px}.item-name{font-weight:800;line-height:1.35}.item-meta{display:flex;gap:10px;flex-wrap:wrap;color:#64748b;font-size:13px;margin-top:4px}.num{text-align:right}.strong{font-weight:800}")
-                .AppendLine(".summary-table td,.payment-table td{padding:5px 0;font-size:16px}.summary-table td:last-child,.payment-table td:last-child{text-align:right;font-weight:700}.summary-total td{padding-top:10px;border-top:2px solid #cbd5e1;font-size:22px;font-weight:800}.payment-table{margin-top:2px}.policy{text-align:center;font-size:15px;line-height:1.45;color:#0f172a}.policy-sep{text-align:center;color:#94a3b8;font-size:14px;letter-spacing:1px;margin:10px 0 6px}.soon{text-align:center;font-size:20px;font-weight:800;margin-top:4px}.legal{text-align:center;font-size:12px;line-height:1.45;color:#475569;padding-top:16px}.legal strong{color:#0f172a}")
-                .AppendLine(".item-detail{font-size:12px;font-style:italic;margin-top:2px;line-height:1.3}.detail-price{color:#b45309}.detail-disc{color:#dc2626}.detail-exon{color:#0d9488}")
-                .AppendLine(".sum-disc td{color:#dc2626;font-weight:700}.sum-exon td{color:#0d9488;font-weight:700}.sum-tax td{color:#334155}.pay-change td{color:#16a34a;font-weight:800;font-size:17px}")
-                .AppendLine("@media print{@page{size:auto;margin:0}html,body{margin:0;padding:0;background:#fff}.wrap{padding:10mm}.paper{width:100%;max-width:none;border:none;box-shadow:none;border-radius:0}.hero{padding:12px 0 14px;background:#fff;border-bottom:1px solid #cbd5e1}.hero-title{color:#0f172a;font-size:24px}.hero-sub,.doc-badge small{color:#475569}.doc-badge{background:#f8fafc;color:#0f172a;border:1px solid #cbd5e1}.content{padding:14px 0 0}.store-name{font-size:20px}.store{font-size:13px}.meta-table td,.summary-table td,.payment-table td,.items-table td{font-size:13px}.items-head th{font-size:12px}.item-name{font-size:13px}.item-meta{font-size:11px}.summary-total td{font-size:17px}.policy{font-size:12px}.soon{font-size:16px}.legal{font-size:10px;padding-top:10px}}")
+                .AppendLine("*{box-sizing:border-box}html,body{margin:0;padding:0}body{background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}")
+                .AppendLine(".wrap{padding:24px 16px}.paper{width:min(720px,100%);margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 8px 24px rgba(15,23,42,.08);overflow:hidden;padding:32px 36px}")
+                .AppendLine(".store-header{text-align:center;margin-bottom:6px}.store-name{font-size:22px;font-weight:800;margin:0 0 2px}.store-info{font-size:13px;color:#475569;line-height:1.5}")
+                .AppendLine(".sep{border:none;border-top:1px solid #cbd5e1;margin:14px 0}.sep-double{border:none;border-top:1px dashed #94a3b8;margin:14px 0}")
+                .AppendLine(".doc-title{text-align:center;font-size:22px;font-weight:800;margin:18px 0 10px}")
+                .AppendLine(".fiscal{font-size:13px;color:#334155;line-height:1.65;margin-bottom:4px}.fiscal-label{font-weight:700}")
+                .AppendLine(".client-block{font-size:14px;line-height:1.5;margin:0 0 4px}.client-block strong{font-weight:800}")
+                .AppendLine(".items-table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:4px}.items-table thead th{padding:8px 4px;border-top:2px solid #334155;border-bottom:2px solid #334155;font-size:13px;font-weight:800;text-align:left;color:#334155}.items-table thead th.num{text-align:right}.items-table thead th:nth-child(1){width:6%}.items-table thead th:nth-child(2){width:46%}.items-table thead th:nth-child(3){width:10%}.items-table thead th:nth-child(4){width:19%}.items-table thead th:nth-child(5){width:19%}")
+                .AppendLine(".items-table td{padding:8px 4px;border-bottom:1px solid #f1f5f9;vertical-align:top;font-size:14px}.desc-cell{padding-right:8px}.item-name{font-weight:700;line-height:1.3}.item-meta{display:flex;gap:8px;flex-wrap:wrap;color:#64748b;font-size:12px;margin-top:2px}.num{text-align:right}.strong{font-weight:800}")
+                .AppendLine(".totals-table{width:100%;border-collapse:collapse;margin-top:4px}.totals-table td{padding:4px 0;font-size:14px}.totals-table td:nth-child(2){text-align:center;width:60px}.totals-table td:last-child{text-align:right;font-weight:700;width:120px}.totals-table .total-row td{padding-top:10px;border-top:2px solid #334155;font-size:18px;font-weight:800}")
+                .AppendLine(".payment-table{width:100%;border-collapse:collapse}.payment-table td{padding:4px 0;font-size:14px}.payment-table td:last-child{text-align:right;font-weight:700}.pay-change td{color:#16a34a;font-weight:800;font-size:15px}")
+                .AppendLine(".item-detail{font-size:11px;font-style:italic;margin-top:2px;line-height:1.2}.detail-price{color:#b45309}.detail-disc{color:#dc2626}.detail-exon{color:#0d9488}")
+                .AppendLine(".sum-disc td{color:#dc2626;font-weight:700}.sum-exon td{color:#0d9488;font-weight:700}")
+                .AppendLine(".policy{text-align:center;font-size:13px;line-height:1.5;color:#334155;margin:4px 0}.policy-sep{text-align:center;color:#94a3b8;font-size:12px;letter-spacing:1px;margin:8px 0 4px}.soon{text-align:center;font-size:18px;font-weight:800;margin:6px 0 0}.legal{text-align:center;font-size:11px;line-height:1.5;color:#475569;margin-top:14px}.legal strong{color:#0f172a}.footer-gen{text-align:center;font-size:12px;color:#64748b;margin-top:18px;padding-top:10px;border-top:1px solid #e2e8f0}")
+                .AppendLine("@media print{@page{size:auto;margin:12mm}html,body{margin:0;padding:0;background:#fff}.wrap{padding:0}.paper{width:100%;max-width:none;border:none;box-shadow:none;border-radius:0;padding:0}.store-name{font-size:18px}.items-table td,.totals-table td,.payment-table td{font-size:12px}.items-table thead th{font-size:11px}.doc-title{font-size:18px}.totals-table .total-row td{font-size:15px}.policy{font-size:11px}.soon{font-size:15px}.legal{font-size:9px}.footer-gen{font-size:10px}}")
                 .AppendLine("</style>")
                 .AppendLine(printScript)
-                .AppendLine("</head><body><div class='wrap'><div class='paper'>")
-                .AppendLine("<div class='hero'><table class='hero-table'><tr><td><div class='hero-title'>Recibo Duplicado</div><div class='hero-sub'>Resumen de la venta listo para imprimir, enviar o guardar.</div></td><td style='text-align:right;vertical-align:middle'><div class='doc-badge'><small>DOC</small><strong>")
-                .Append(TransactionNumber)
-                .AppendLine("</strong></div></td></tr></table></div>")
-                .AppendLine("<div class='content'>")
-                .AppendLine("<div class='receipt-title'>Recibo Duplicado</div>")
-                .AppendLine(storeBlock)
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table class='meta-table'>")
-                .AppendLine($"<tr><td class='meta-label'>Doc. Interno #:</td><td class='meta-value strong'>{TransactionNumber}</td></tr>")
-                .AppendLine($"<tr><td class='meta-label'>Cód. Cliente:</td><td class='meta-value'>{Esc(ClientId)}</td></tr>")
-                .AppendLine($"<tr><td class='meta-label'>Nombre:</td><td class='meta-value'>{Esc(ClientName)}</td></tr>")
-                .AppendLine($"<tr><td class='meta-label'>Fecha/Hora:</td><td class='meta-value'>{Esc(TransactionDate)}</td></tr>")
-                .AppendLine($"<tr><td class='meta-label'>Cajero:</td><td class='meta-value'><div class='meta-split'><span>{Esc(CashierName)}</span><span class='strong'>{Esc(RegisterText)}</span></div></td></tr>")
-                .AppendLine("</table>")
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table class='items-table'><thead><tr class='items-head'><th>DESC/COD</th><th>CANT.</th><th>PRECIO</th><th>TOTAL</th></tr></thead><tbody>")
+                .AppendLine("</head><body><div class='wrap'><div class='paper'>");
+
+            // ── 1. Encabezado empresa ──
+            if (HasStoreInfo)
+            {
+                html.AppendLine("<div class='store-header'>")
+                    .AppendLine($"<div class='store-name'>{Esc(StoreName)}</div>")
+                    .AppendLine("<div class='store-info'>");
+                if (!string.IsNullOrWhiteSpace(CedulaJuridica))
+                    html.AppendLine($"Cédula Jurídica: {Esc(CedulaJuridica)}<br>");
+                html.AppendLine($"Terminal: {RegisterNumber} Caja: {RegisterNumber:000}<br>");
+                if (!string.IsNullOrWhiteSpace(StorePhone))
+                    html.AppendLine($"Teléfono: {Esc(StorePhone)}<br>");
+                if (!string.IsNullOrWhiteSpace(StoreAddress))
+                    html.AppendLine($"Dirección: {Esc(StoreAddress)}");
+                html.AppendLine("</div></div>");
+            }
+
+            // ── 2. Título del documento ──
+            html.AppendLine("<hr class='sep'>")
+                .AppendLine($"<div class='doc-title'>{Esc(DocumentTypeName)}</div>");
+
+            // ── 3. Datos fiscales ──
+            if (HasFiscalData)
+            {
+                html.AppendLine("<div class='fiscal'>")
+                    .AppendLine($"<span class='fiscal-label'>Clave:</span> {Esc(Clave50)}<br>")
+                    .AppendLine($"<span class='fiscal-label'>No.</span> {Esc(Consecutivo)}<br>")
+                    .AppendLine($"<span class='fiscal-label'>Fecha Emisión:</span> {Esc(TransactionDate)}")
+                    .AppendLine("</div>");
+            }
+
+            // ── 4. Datos del cliente ──
+            html.AppendLine("<div class='client-block'>")
+                .AppendLine($"<strong>Cliente:</strong> {Esc(ClientName)}<br>")
+                .AppendLine($"Identificación: {Esc(ClientId)}")
+                .AppendLine("</div>")
+                .AppendLine("<hr class='sep'>");
+
+            // ── 5. Tabla de artículos ──
+            html.AppendLine("<table class='items-table'><thead><tr>")
+                .AppendLine("<th class='num'>No.</th><th>Concepto</th><th class='num'>Cant.</th><th class='num'>Precio/U</th><th class='num'>Total</th>")
+                .AppendLine("</tr></thead><tbody>")
                 .Append(rows)
-                .AppendLine("</tbody></table>")
-                .AppendLine("<div class='sep'></div>")
-                .AppendLine("<table class='summary-table'>")
-                .AppendLine($"<tr><td>Sub Total</td><td>{Esc(SubtotalText)}</td></tr>")
+                .AppendLine("</tbody></table>");
+
+            // ── 6. Totales ──
+            html.AppendLine("<table class='totals-table'>")
+                .AppendLine($"<tr><td>Servicios Gravados</td><td>+ CRC</td><td>{Esc(SubtotalText)}</td></tr>")
                 .AppendLine(discountRow)
                 .AppendLine(exonRow)
-                .AppendLine($"<tr class='sum-tax'><td>Imp.Ventas</td><td>{Esc(TaxText)}</td></tr>")
-                .AppendLine($"<tr class='summary-total'><td>Total</td><td>{Esc(TotalColonesText)}</td></tr>")
-                .AppendLine("</table>")
-                .AppendLine("<div class='sep'></div>")
+                .AppendLine("<tr><td colspan='3'><hr class='sep-double'></td></tr>")
+                .AppendLine($"<tr><td>IVA (13.00%)</td><td>+ CRC</td><td>{Esc(TaxText)}</td></tr>")
+                .AppendLine($"<tr class='total-row'><td>Total</td><td>+ CRC</td><td>{Esc(TotalColonesText)}</td></tr>")
+                .AppendLine("</table>");
+
+            // ── 7. Forma de pago ──
+            html.AppendLine("<hr class='sep'>")
                 .AppendLine("<table class='payment-table'>")
                 .AppendLine($"<tr><td>{Esc(TenderEntregadoText)}</td><td>{Esc(TenderTotalText)}</td></tr>");
 
@@ -447,13 +527,21 @@ namespace NovaRetail.ViewModels
             if (HasChange)
                 html.AppendLine($"<tr class='pay-change'><td>CAMBIO</td><td>{Esc(ChangeAmountText)}</td></tr>");
 
-            html.AppendLine("</table>")
-                .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
+            html.AppendLine("</table>");
+
+            // ── 8. Políticas ──
+            html.AppendLine("<div class='policy-sep'>- - - - - - - - - - - - - - - - - - - - - - - -</div>")
                 .AppendLine("<div class='policy'>No se cambia ropa<br>No se aceptan devoluciones sin factura<br>No se aceptan devoluciones después de 45 días</div>")
-                .AppendLine("<div class='policy-sep'>----------------------------------------</div>")
-                .AppendLine("<div class='soon'>¡Le Esperamos Pronto!</div>")
-                .AppendLine("<div class='legal'>Documento emitido conforme lo establecido<br>en la resolución de Factura Electrónica<br>DGT-R-053-2019 del 20/06/2019<br>de la Dirección General de Tributación<br>Versión: 4.3 (Cabys)<br><strong>*** Generado por AVS Solutions ***</strong></div>")
-                .AppendLine("</div></div></div></body></html>");
+                .AppendLine("<div class='policy-sep'>- - - - - - - - - - - - - - - - - - - - - - - -</div>")
+                .AppendLine("<div class='soon'>¡Le Esperamos Pronto!</div>");
+
+            // ── 9. Legal ──
+            html.AppendLine("<div class='legal'>Documento emitido conforme lo establecido en la resolución de<br>Factura Electrónica. N° DGT-R-053-2019 del veinte de junio de<br>dosmil diecinueve de la Dirección General de Tributación.</div>");
+
+            // ── 10. Footer ──
+            html.AppendLine("<div class='footer-gen'>Comprobante v4.4 generado por NovaRetail POS</div>");
+
+            html.AppendLine("</div></div></body></html>");
 
             return html.ToString();
         }

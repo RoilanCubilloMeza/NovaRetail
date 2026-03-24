@@ -4,54 +4,47 @@
              x:Class="NovaRetail.Views.ReceiptPopup">
 
     <Grid>
-        <BoxView Color="#020617" Opacity="0.62"/>
+        <BoxView Color="#020617" Opacity="0.72"/>
 
-        <Border BackgroundColor="#F8FAFC"
-                Stroke="#D9E2EC"
+        <Border BackgroundColor="#FFFFFF"
+                Stroke="#CBD5E1"
                 StrokeThickness="1"
-                StrokeShape="RoundRectangle 22"
-                MaximumWidthRequest="620"
-                MaximumHeightRequest="900"
-                Margin="22"
+                StrokeShape="RoundRectangle 24"
+                MaximumWidthRequest="540"
+                MaximumHeightRequest="920"
+                Margin="16"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
             <Border.Shadow>
-                <Shadow Brush="#000000"
-                        Offset="0,12"
-                        Radius="28"
-                        Opacity="0.16" />
+                <Shadow Brush="#000000" Offset="0,24" Radius="56" Opacity="0.32"/>
             </Border.Shadow>
 
             <Grid RowDefinitions="Auto, *, Auto" RowSpacing="0">
 
+                <!-- ══════════════ HEADER ══════════════ -->
                 <Border Grid.Row="0"
                         BackgroundColor="#0F172A"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 22,22,0,0"
-                        Padding="18,16">
-                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+                        StrokeShape="RoundRectangle 24,24,0,0"
+                        Padding="20,18,20,16">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+
                         <Border Grid.Column="0"
-                                BackgroundColor="#1E293B"
-                                Stroke="#334155"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 12"
-                                WidthRequest="44"
-                                HeightRequest="44">
-                            <Label Text="🧾"
-                                   FontSize="20"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
+                                BackgroundColor="#1E3A5F"
+                                Stroke="#3B82F6"
+                                StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 14"
+                                WidthRequest="48" HeightRequest="48"
+                                VerticalOptions="Center">
+                            <Label Text="✅" FontSize="20"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Border>
 
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Recibo duplicado"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   TextColor="White"/>
-                            <Label Text="Resumen de la venta listo para imprimir, enviar o guardar."
-                                   FontSize="11"
-                                   TextColor="#BFDBFE"
-                                   LineBreakMode="WordWrap"/>
+                            <Label Text="Venta Completada"
+                                   FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                            <Label Text="{Binding DocumentTypeName}"
+                                   FontSize="11" TextColor="#93C5FD"/>
                         </VerticalStackLayout>
 
                         <Border Grid.Column="2"
@@ -60,438 +53,370 @@
                                 StrokeShape="RoundRectangle 12"
                                 Padding="12,8"
                                 VerticalOptions="Center">
-                            <VerticalStackLayout Spacing="1">
-                                <Label Text="DOC"
-                                       FontSize="9"
-                                       TextColor="#DBEAFE"
-                                       HorizontalTextAlignment="Center"/>
+                            <Border.Shadow>
+                                <Shadow Brush="#2563EB" Offset="0,4" Radius="10" Opacity="0.4"/>
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                <Label Text="N°" FontSize="8" TextColor="#BFDBFE"
+                                       HorizontalTextAlignment="Center" CharacterSpacing="1"/>
                                 <Label Text="{Binding TransactionNumberText}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       TextColor="White"
-                                       HorizontalTextAlignment="Center"/>
+                                       FontSize="17" FontAttributes="Bold"
+                                       TextColor="White" HorizontalTextAlignment="Center"/>
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
                 </Border>
 
-                <ScrollView Grid.Row="1" MaximumHeightRequest="620">
-                    <Grid Padding="20,18,20,20">
-                        <Border BackgroundColor="White"
+                <!-- ══════════════ BODY ══════════════ -->
+                <ScrollView Grid.Row="1">
+                    <VerticalStackLayout Padding="20,18,20,20" Spacing="12">
+
+                        <!-- ── Tarjeta fiscal + datos (UNA sola, sin duplicados) ── -->
+                        <Border BackgroundColor="#F8FAFC"
                                 Stroke="#E2E8F0"
                                 StrokeThickness="1"
-                                StrokeShape="RoundRectangle 18"
-                                Padding="26,22"
-                                HorizontalOptions="Center"
-                                WidthRequest="430">
-                            <Border.Shadow>
-                                <Shadow Brush="#000000"
-                                        Offset="0,6"
-                                        Radius="18"
-                                        Opacity="0.08" />
-                            </Border.Shadow>
+                                StrokeShape="RoundRectangle 16"
+                                Padding="0">
+                            <VerticalStackLayout Spacing="0">
 
-                            <VerticalStackLayout Spacing="10">
-                                <Label Text="Recibo Duplicado"
-                                       FontSize="22"
-                                       FontAttributes="Bold"
-                                       TextColor="#0F172A"
-                                       HorizontalTextAlignment="Center"/>
-
-                                <VerticalStackLayout Spacing="2"
-                                                     HorizontalOptions="Center"
-                                                     IsVisible="{Binding HasStoreInfo}">
-                                    <Label Text="{Binding StoreName}"
-                                           FontSize="17"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="{Binding StoreAddress}"
-                                           FontSize="12"
-                                           TextColor="#334155"
-                                           HorizontalTextAlignment="Center"
-                                           LineBreakMode="WordWrap"/>
-                                    <Label Text="{Binding StorePhone}"
-                                           FontSize="12"
-                                           TextColor="#334155"
-                                           HorizontalTextAlignment="Center"/>
-                                </VerticalStackLayout>
-
-                                <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,8,0,2"/>
-
-                                <Grid ColumnDefinitions="Auto, *" ColumnSpacing="8" RowSpacing="3">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <Label Grid.Row="0" Grid.Column="0" Text="Doc. Interno #:"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding TransactionNumberText}"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"/>
-
-                                    <Label Grid.Row="1" Grid.Column="0" Text="Cód. Cliente:"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding ClientId}"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-
-                                    <Label Grid.Row="2" Grid.Column="0" Text="Nombre:"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-                                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding ClientName}"
-                                           FontSize="11"
-                                           TextColor="#0F172A"
-                                           LineBreakMode="WordWrap"/>
-
-                                    <Label Grid.Row="3" Grid.Column="0" Text="Fecha/Hora:"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-                                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding TransactionDate}"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-
-                                    <Label Grid.Row="4" Grid.Column="0" Text="Cajero:"
-                                           FontSize="11"
-                                           TextColor="#0F172A"/>
-                                    <Grid Grid.Row="4" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0" Text="{Binding CashierName}"
-                                               FontSize="11"
-                                               TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="{Binding RegisterText}"
-                                               FontSize="11"
-                                               FontAttributes="Bold"
-                                               TextColor="#0F172A"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-                                </Grid>
-
-                                <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,8,0,0"/>
-
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto"
-                                      ColumnSpacing="6"
-                                      Padding="0,2,0,0">
-                                    <Label Grid.Column="0" Text="DESC/COD"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"/>
-                                    <Label Grid.Column="1" Text="CANT."
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="End"
-                                           MinimumWidthRequest="42"/>
-                                    <Label Grid.Column="2" Text="PRECIO"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="End"
-                                           MinimumWidthRequest="84"/>
-                                    <Label Grid.Column="3" Text="TOTAL"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="End"
-                                           MinimumWidthRequest="84"/>
-                                </Grid>
-
-                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}"
-                                                     Spacing="0"
-                                                     Padding="0,4,0,0">
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate>
-                                            <VerticalStackLayout Spacing="2" Padding="0,5,0,5">
-                                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                                                    <VerticalStackLayout Grid.Column="0" Spacing="1">
-                                                        <Label Text="{Binding DisplayName}"
-                                                               FontSize="11" FontAttributes="Bold"
-                                                               TextColor="#0F172A" LineBreakMode="WordWrap"/>
-                                                        <HorizontalStackLayout Spacing="6">
-                                                            <Label Text="{Binding Code}"
-                                                                   FontSize="10" TextColor="#64748B"/>
-                                                            <Label Text="{Binding TaxRateText}"
-                                                                   FontSize="10" TextColor="#64748B"
-                                                                   IsVisible="{Binding HasTax}"/>
-                                                        </HorizontalStackLayout>
-                                                        <Label Text="{Binding PriceChangeDetailText}"
-                                                               FontSize="9" TextColor="#B45309"
-                                                               FontAttributes="Italic"
-                                                               IsVisible="{Binding HasOverridePrice}"/>
-                                                        <Label Text="{Binding DiscountDetailText}"
-                                                               FontSize="9" TextColor="#DC2626"
-                                                               FontAttributes="Italic"
-                                                               IsVisible="{Binding HasDiscount}"/>
-                                                        <Label Text="{Binding ExonerationDetailText}"
-                                                               FontSize="9" TextColor="#0D9488"
-                                                               FontAttributes="Italic"
-                                                               IsVisible="{Binding HasExoneration}"/>
-                                                    </VerticalStackLayout>
-                                                    <Label Grid.Column="1"
-                                                           Text="{Binding QuantityText}"
-                                                           FontSize="11" TextColor="#0F172A"
-                                                           HorizontalTextAlignment="End"
-                                                           VerticalOptions="Start"
-                                                           MinimumWidthRequest="42"/>
-                                                    <Label Grid.Column="2"
-                                                           Text="{Binding UnitPriceColonesText}"
-                                                           FontSize="11" TextColor="#0F172A"
-                                                           HorizontalTextAlignment="End"
-                                                           VerticalOptions="Start"
-                                                           MinimumWidthRequest="84"/>
-                                                    <Label Grid.Column="3"
-                                                           Text="{Binding LineTotalText}"
-                                                           FontSize="11" FontAttributes="Bold"
-                                                           TextColor="#0F172A"
-                                                           HorizontalTextAlignment="End"
-                                                           VerticalOptions="Start"
-                                                           MinimumWidthRequest="84"/>
-                                                </Grid>
-                                            </VerticalStackLayout>
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
-
-                                <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,8,0,0"/>
-
-                                <VerticalStackLayout Spacing="3">
+                                <!-- Cabecera de la tarjeta: Tipo doc + Fecha -->
+                                <Border BackgroundColor="#0F172A"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16,16,0,0"
+                                        Padding="16,10">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <Label Grid.Column="0" Text="Sub Total"
+                                        <Label Grid.Column="0"
+                                               Text="{Binding DocumentTypeName}"
+                                               FontSize="13" FontAttributes="Bold"
+                                               TextColor="White" VerticalOptions="Center"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding TransactionDate}"
+                                               FontSize="11" TextColor="#94A3B8"
+                                               HorizontalTextAlignment="End"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Datos fiscales: Clave y No. (solo si existen) -->
+                                <VerticalStackLayout Spacing="3"
+                                                     Padding="16,10,16,10"
+                                                     IsVisible="{Binding HasFiscalData}">
+                                    <Grid ColumnDefinitions="50,*" ColumnSpacing="6">
+                                        <Label Grid.Column="0" Text="Clave:"
+                                               FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                                        <Label Grid.Column="1" Text="{Binding Clave50}"
+                                               FontSize="11" TextColor="#334155"
+                                               LineBreakMode="CharacterWrap"/>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="50,*" ColumnSpacing="6">
+                                        <Label Grid.Column="0" Text="No."
+                                               FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                                        <Label Grid.Column="1" Text="{Binding Consecutivo}"
                                                FontSize="11" TextColor="#334155"/>
-                                        <Label Grid.Column="1" Text="{Binding SubtotalText}"
+                                    </Grid>
+                                </VerticalStackLayout>
+
+                                <BoxView HeightRequest="1" BackgroundColor="#E2E8F0" Margin="16,0"/>
+
+                                <!-- Datos del cliente y cajero -->
+                                <Grid ColumnDefinitions="*,Auto" Padding="16,10,16,10" RowSpacing="4"
+                                      RowDefinitions="Auto,Auto,Auto">
+                                    <!-- Cliente -->
+                                    <Label Grid.Row="0" Grid.Column="0"
+                                           Text="{Binding ClientName}"
+                                           FontSize="14" FontAttributes="Bold" TextColor="#0F172A"/>
+                                    <Label Grid.Row="1" Grid.Column="0"
+                                           Text="{Binding ClientId}"
+                                           FontSize="11" TextColor="#64748B"/>
+                                    <!-- Cajero + registro -->
+                                    <VerticalStackLayout Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                                                         Spacing="3" HorizontalOptions="End"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding CashierName}"
                                                FontSize="11" TextColor="#334155"
                                                HorizontalTextAlignment="End"/>
-                                    </Grid>
+                                        <Border BackgroundColor="#EFF6FF"
+                                                Stroke="#BFDBFE"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="8,3"
+                                                HorizontalOptions="End">
+                                            <Label Text="{Binding RegisterText}"
+                                                   FontSize="9" FontAttributes="Bold"
+                                                   TextColor="#2563EB"/>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Grid>
 
-                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
-                                        <Label Grid.Column="0" Text="Descuentos"
-                                               FontSize="11" TextColor="#EF4444"
-                                               FontAttributes="Bold"/>
-                                        <Label Grid.Column="1" Text="{Binding DiscountText}"
-                                               FontSize="11" TextColor="#EF4444"
-                                               FontAttributes="Bold"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-
-                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasExoneration}">
-                                        <Label Grid.Column="0" Text="Exoneración"
-                                               FontSize="11" TextColor="#0D9488"
-                                               FontAttributes="Bold"/>
-                                        <Label Grid.Column="1" Text="{Binding ExonerationText}"
-                                               FontSize="11" TextColor="#0D9488"
-                                               FontAttributes="Bold"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <Label Grid.Column="0" Text="Imp.Ventas"
-                                               FontSize="11" TextColor="#334155"/>
-                                        <Label Grid.Column="1" Text="{Binding TaxText}"
-                                               FontSize="11" TextColor="#334155"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-
-                                    <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,4,0,2"/>
-
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <Label Grid.Column="0" Text="Total"
-                                               FontSize="15"
-                                               FontAttributes="Bold"
-                                               TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="{Binding TotalColonesText}"
-                                               FontSize="15"
-                                               FontAttributes="Bold"
-                                               TextColor="#0F172A"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-                                </VerticalStackLayout>
-
-                                <BoxView HeightRequest="1" BackgroundColor="#CBD5E1" Margin="0,8,0,0"/>
-
-                                <VerticalStackLayout Spacing="4">
-                                    <!-- Primera forma de pago (o único pago) -->
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <Label Grid.Column="0" Text="{Binding TenderEntregadoText}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="{Binding TenderTotalText}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="#0F172A"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-
-                                    <!-- Segunda forma de pago (si aplica) -->
-                                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasSecondTender}">
-                                        <Label Grid.Column="0" Text="{Binding SecondTenderEntregadoText}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="#0F172A"/>
-                                        <Label Grid.Column="1" Text="{Binding SecondTenderAmountText}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="#0F172A"
-                                               HorizontalTextAlignment="End"/>
-                                    </Grid>
-
-                                    <!-- Cambio: solo visible cuando hay cambio, destacado en verde -->
-                                    <Border BackgroundColor="#F0FDF4"
-                                            Stroke="#86EFAC"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 7"
-                                            Padding="10,7"
-                                            Margin="0,4,0,0"
-                                            IsVisible="{Binding HasChange}">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <Label Grid.Column="0" Text="CAMBIO"
-                                                   FontSize="13"
-                                                   TextColor="#16A34A"
-                                                   FontAttributes="Bold"
-                                                   VerticalOptions="Center"/>
-                                            <Label Grid.Column="1" Text="{Binding ChangeAmountText}"
-                                                   FontSize="16"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#16A34A"
-                                                   HorizontalTextAlignment="End"
-                                                   VerticalOptions="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </VerticalStackLayout>
-
-                                <Label Text="----------------------------------------"
-                                       FontSize="11"
-                                       TextColor="#64748B"
-                                       HorizontalTextAlignment="Center"
-                                       Margin="0,10,0,0"/>
-
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="No se cambia ropa"
-                                           FontSize="11"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="No se aceptan devoluciones sin factura"
-                                           FontSize="11"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="No se aceptan devoluciones después de 45 días"
-                                           FontSize="11"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="Center"/>
-                                </VerticalStackLayout>
-
-                                <Label Text="----------------------------------------"
-                                       FontSize="11"
-                                       TextColor="#64748B"
-                                       HorizontalTextAlignment="Center"/>
-
-                                <Label Text="¡Le Esperamos Pronto!"
-                                       FontSize="12"
-                                       FontAttributes="Bold"
-                                       TextColor="#0F172A"
-                                       HorizontalTextAlignment="Center"
-                                       Margin="0,2,0,0"/>
-
-                                <VerticalStackLayout Padding="14,14,14,0" Spacing="2">
-                                    <Label Text="Documento emitido conforme lo establecido"
-                                           FontSize="9"
-                                           TextColor="#475569"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="en la resolución de Factura Electrónica"
-                                           FontSize="9"
-                                           TextColor="#475569"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="DGT-R-053-2019 del 20/06/2019"
-                                           FontSize="9"
-                                           TextColor="#475569"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="de la Dirección General de Tributación"
-                                           FontSize="9"
-                                           TextColor="#475569"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="Versión: 4.3 (Cabys)"
-                                           FontSize="9"
-                                           TextColor="#475569"
-                                           HorizontalTextAlignment="Center"/>
-                                    <Label Text="*** Generado por AVS Solutions ***"
-                                           FontSize="9"
-                                           TextColor="#0F172A"
-                                           HorizontalTextAlignment="Center"
-                                           Margin="0,4,0,0"/>
-                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
-                    </Grid>
+
+                        <!-- ── Encabezado de artículos ── -->
+                        <Grid ColumnDefinitions="*,46,88,88"
+                              ColumnSpacing="4"
+                              Padding="4,4,4,0">
+                            <Label Grid.Column="0" Text="ARTÍCULO"
+                                   FontSize="10" FontAttributes="Bold"
+                                   TextColor="#94A3B8" CharacterSpacing="0.5"/>
+                            <Label Grid.Column="1" Text="CANT."
+                                   FontSize="10" FontAttributes="Bold"
+                                   TextColor="#94A3B8" HorizontalTextAlignment="End"
+                                   CharacterSpacing="0.5"/>
+                            <Label Grid.Column="2" Text="PRECIO"
+                                   FontSize="10" FontAttributes="Bold"
+                                   TextColor="#94A3B8" HorizontalTextAlignment="End"
+                                   CharacterSpacing="0.5"/>
+                            <Label Grid.Column="3" Text="TOTAL"
+                                   FontSize="10" FontAttributes="Bold"
+                                   TextColor="#94A3B8" HorizontalTextAlignment="End"
+                                   CharacterSpacing="0.5"/>
+                        </Grid>
+
+                        <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"/>
+
+                        <!-- ── Líneas de artículos ── -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <VerticalStackLayout Spacing="0">
+                                        <Grid ColumnDefinitions="*,46,88,88"
+                                              ColumnSpacing="4"
+                                              Padding="4,10,4,10">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                <Label Text="{Binding DisplayName}"
+                                                       FontSize="12" FontAttributes="Bold"
+                                                       TextColor="#0F172A" LineBreakMode="WordWrap"/>
+                                                <HorizontalStackLayout Spacing="6">
+                                                    <Label Text="{Binding Code}"
+                                                           FontSize="10" TextColor="#94A3B8"/>
+                                                    <Border BackgroundColor="#F0FDF4"
+                                                            StrokeThickness="0"
+                                                            StrokeShape="RoundRectangle 4"
+                                                            Padding="5,1"
+                                                            IsVisible="{Binding HasTax}">
+                                                        <Label Text="{Binding TaxRateText}"
+                                                               FontSize="9" FontAttributes="Bold"
+                                                               TextColor="#16A34A"/>
+                                                    </Border>
+                                                </HorizontalStackLayout>
+                                                <!-- Detail tags -->
+                                                <Border BackgroundColor="#FFFBEB"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 4"
+                                                        Padding="5,2"
+                                                        IsVisible="{Binding HasOverridePrice}">
+                                                    <Label Text="{Binding PriceChangeDetailText}"
+                                                           FontSize="9" TextColor="#B45309"/>
+                                                </Border>
+                                                <Border BackgroundColor="#FEF2F2"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 4"
+                                                        Padding="5,2"
+                                                        IsVisible="{Binding HasDiscount}">
+                                                    <Label Text="{Binding DiscountDetailText}"
+                                                           FontSize="9" TextColor="#DC2626"/>
+                                                </Border>
+                                                <Border BackgroundColor="#F0FDFA"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 4"
+                                                        Padding="5,2"
+                                                        IsVisible="{Binding HasExoneration}">
+                                                    <Label Text="{Binding ExonerationDetailText}"
+                                                           FontSize="9" TextColor="#0D9488"/>
+                                                </Border>
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding QuantityText}"
+                                                   FontSize="12" TextColor="#334155"
+                                                   HorizontalTextAlignment="End"
+                                                   VerticalOptions="Start"/>
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding UnitPriceColonesText}"
+                                                   FontSize="12" TextColor="#334155"
+                                                   HorizontalTextAlignment="End"
+                                                   VerticalOptions="Start"/>
+                                            <Label Grid.Column="3"
+                                                   Text="{Binding LineTotalText}"
+                                                   FontSize="12" FontAttributes="Bold"
+                                                   TextColor="#0F172A"
+                                                   HorizontalTextAlignment="End"
+                                                   VerticalOptions="Start"/>
+                                        </Grid>
+                                        <BoxView HeightRequest="1" BackgroundColor="#F1F5F9"
+                                                 Margin="4,0"/>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <!-- ── Totales ── -->
+                        <Border BackgroundColor="#F8FAFC"
+                                Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14"
+                                Padding="16,12">
+                            <VerticalStackLayout Spacing="7">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="Sub Total"
+                                           FontSize="13" TextColor="#64748B"/>
+                                    <Label Grid.Column="1" Text="{Binding SubtotalText}"
+                                           FontSize="13" TextColor="#334155"
+                                           HorizontalTextAlignment="End"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
+                                    <Label Grid.Column="0" Text="Descuentos"
+                                           FontSize="13" FontAttributes="Bold" TextColor="#EF4444"/>
+                                    <Label Grid.Column="1" Text="{Binding DiscountText}"
+                                           FontSize="13" FontAttributes="Bold" TextColor="#EF4444"
+                                           HorizontalTextAlignment="End"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasExoneration}">
+                                    <Label Grid.Column="0" Text="Exoneración"
+                                           FontSize="13" FontAttributes="Bold" TextColor="#0D9488"/>
+                                    <Label Grid.Column="1" Text="{Binding ExonerationText}"
+                                           FontSize="13" FontAttributes="Bold" TextColor="#0D9488"
+                                           HorizontalTextAlignment="End"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="Imp. Ventas"
+                                           FontSize="13" TextColor="#64748B"/>
+                                    <Label Grid.Column="1" Text="{Binding TaxText}"
+                                           FontSize="13" TextColor="#334155"
+                                           HorizontalTextAlignment="End"/>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- ── TOTAL ── -->
+                        <Border BackgroundColor="#0F172A"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 14"
+                                Padding="18,14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="TOTAL"
+                                       FontSize="16" FontAttributes="Bold"
+                                       TextColor="#64748B" CharacterSpacing="2"
+                                       VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="{Binding TotalColonesText}"
+                                       FontSize="22" FontAttributes="Bold"
+                                       TextColor="White" HorizontalTextAlignment="End"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ── Forma de pago ── -->
+                        <Border BackgroundColor="#F8FAFC"
+                                Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14"
+                                Padding="16,12">
+                            <VerticalStackLayout Spacing="7">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="{Binding TenderEntregadoText}"
+                                           FontSize="13" TextColor="#334155"/>
+                                    <Label Grid.Column="1" Text="{Binding TenderTotalText}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="#0F172A" HorizontalTextAlignment="End"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasSecondTender}">
+                                    <Label Grid.Column="0" Text="{Binding SecondTenderEntregadoText}"
+                                           FontSize="13" TextColor="#334155"/>
+                                    <Label Grid.Column="1" Text="{Binding SecondTenderAmountText}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="#0F172A" HorizontalTextAlignment="End"/>
+                                </Grid>
+                                <Border BackgroundColor="#DCFCE7"
+                                        Stroke="#86EFAC"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10"
+                                        Padding="14,10"
+                                        IsVisible="{Binding HasChange}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Text="CAMBIO"
+                                               FontSize="14" FontAttributes="Bold"
+                                               TextColor="#16A34A" VerticalOptions="Center"/>
+                                        <Label Grid.Column="1" Text="{Binding ChangeAmountText}"
+                                               FontSize="18" FontAttributes="Bold"
+                                               TextColor="#16A34A" HorizontalTextAlignment="End"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- ── Políticas + Legal ── -->
+                        <VerticalStackLayout Spacing="2" Margin="0,8,0,0" HorizontalOptions="Center">
+                            <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"
+                                     WidthRequest="180" Margin="0,0,0,8"/>
+                            <Label Text="No se cambia ropa"
+                                   FontSize="10" TextColor="#94A3B8" HorizontalTextAlignment="Center"/>
+                            <Label Text="No se aceptan devoluciones sin factura"
+                                   FontSize="10" TextColor="#94A3B8" HorizontalTextAlignment="Center"/>
+                            <Label Text="No se aceptan devoluciones después de 45 días"
+                                   FontSize="10" TextColor="#94A3B8" HorizontalTextAlignment="Center"/>
+                            <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"
+                                     WidthRequest="180" Margin="0,8,0,4"/>
+                            <Label Text="¡Le Esperamos Pronto!"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="#0F172A" HorizontalTextAlignment="Center"
+                                   Margin="0,2,0,0"/>
+                            <Label Text="Comprobante v4.4 · DGT-R-053-2019 · NovaRetail POS"
+                                   FontSize="9" TextColor="#94A3B8"
+                                   HorizontalTextAlignment="Center"
+                                   Margin="0,6,0,0"/>
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
                 </ScrollView>
 
+                <!-- ══════════════ FOOTER / ACTIONS ══════════════ -->
+                <BoxView Grid.Row="2" HeightRequest="1" BackgroundColor="#E2E8F0" VerticalOptions="Start"/>
                 <Border Grid.Row="2"
                         BackgroundColor="#F8FAFC"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 0,0,22,22"
-                        Padding="18,16">
+                        StrokeShape="RoundRectangle 0,0,24,24"
+                        Padding="20,14,20,18">
                     <VerticalStackLayout Spacing="10">
+
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                             <Button Grid.Column="0"
-                                    Text="🖨️ Imprimir"
+                                    Text="🖨  Imprimir"
                                     Command="{Binding PrintCommand}"
-                                    BackgroundColor="#2563EB"
-                                    TextColor="White"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    CornerRadius="10"
-                                    HeightRequest="44"
-                                    Padding="8,0"
+                                    BackgroundColor="#2563EB" TextColor="White"
+                                    FontSize="13" FontAttributes="Bold"
+                                    CornerRadius="12" HeightRequest="46"
                                     IsEnabled="{Binding IsNotBusy}"/>
-
                             <Button Grid.Column="1"
-                                    Text="✉️ Enviar"
+                                    Text="✉  Enviar"
                                     Command="{Binding EmailCommand}"
-                                    BackgroundColor="#059669"
-                                    TextColor="White"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    CornerRadius="10"
-                                    HeightRequest="44"
-                                    Padding="8,0"
+                                    BackgroundColor="#059669" TextColor="White"
+                                    FontSize="13" FontAttributes="Bold"
+                                    CornerRadius="12" HeightRequest="46"
                                     IsEnabled="{Binding IsNotBusy}"/>
-
                             <Button Grid.Column="2"
-                                    Text="💾 Guardar"
+                                    Text="💾  Guardar"
                                     Command="{Binding SaveCommand}"
-                                    BackgroundColor="#7C3AED"
-                                    TextColor="White"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    CornerRadius="10"
-                                    HeightRequest="44"
-                                    Padding="8,0"
+                                    BackgroundColor="#7C3AED" TextColor="White"
+                                    FontSize="13" FontAttributes="Bold"
+                                    CornerRadius="12" HeightRequest="46"
                                     IsEnabled="{Binding IsNotBusy}"/>
                         </Grid>
 
-                        <VerticalStackLayout Spacing="4"
-                                             HorizontalOptions="Center"
-                                             IsVisible="{Binding IsBusy}">
+                        <HorizontalStackLayout Spacing="8"
+                                               HorizontalOptions="Center"
+                                               IsVisible="{Binding IsBusy}">
                             <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                               IsVisible="{Binding IsBusy}"
-                                               HeightRequest="22"
-                                               Color="#2563EB"
-                                               HorizontalOptions="Center"/>
-                            <Label Text="Procesando acción..."
-                                   FontSize="10"
-                                   TextColor="#64748B"
-                                   HorizontalTextAlignment="Center"/>
-                        </VerticalStackLayout>
+                                               HeightRequest="16" WidthRequest="16"
+                                               Color="#2563EB"/>
+                            <Label Text="Procesando..." FontSize="11"
+                                   TextColor="#64748B" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
 
                         <Button Text="Cerrar"
                                 Command="{Binding CloseCommand}"
-                                BackgroundColor="#0F172A"
-                                TextColor="White"
-                                FontAttributes="Bold"
-                                FontSize="13"
-                                CornerRadius="10"
-                                HeightRequest="46"/>
+                                BackgroundColor="#0F172A" TextColor="White"
+                                FontAttributes="Bold" FontSize="14"
+                                CornerRadius="12" HeightRequest="48"/>
                     </VerticalStackLayout>
                 </Border>
 
@@ -499,6 +424,3 @@
         </Border>
     </Grid>
 </ContentView>
-
-
-

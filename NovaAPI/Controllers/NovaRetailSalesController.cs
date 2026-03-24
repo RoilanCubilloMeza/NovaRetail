@@ -205,6 +205,8 @@ namespace NovaAPI.Controllers
                             try
                             {
                                 EnsureClaves(request, response.TransactionNumber, cn);
+                                response.Clave50 = request.CLAVE50 ?? string.Empty;
+                                response.Clave20 = request.CLAVE20 ?? string.Empty;
                                 EnsureTiqueteEspera(cn, request, response.TransactionNumber);
                                 response.TiqueteEsperaOk = true;
                             }
@@ -212,6 +214,15 @@ namespace NovaAPI.Controllers
                             {
                                 response.TiqueteEsperaOk = false;
                                 response.Warnings.Add($"TiqueteEspera: {exTiquete.Message}");
+                            }
+
+                            try
+                            {
+                                EnsureIntegraFast05(cn, request, response.TransactionNumber);
+                            }
+                            catch (Exception exIf05)
+                            {
+                                response.Warnings.Add($"IntegraFast05: {exIf05.Message}");
                             }
 
                             if (request.Exonera == 1)
@@ -603,7 +614,7 @@ namespace NovaAPI.Controllers
             var cedulaPad = cedulaEmisor.PadLeft(12, '0');
             var sucursal  = (request.COD_SUCURSAL ?? "001").PadLeft(3, '0');
             var terminal  = (request.TERMINAL_POS ?? "00001").PadLeft(5, '0');
-            var tipoCvta  = "01";  // Factura Electrónica
+            var tipoCvta  = string.IsNullOrWhiteSpace(request.COMPROBANTE_TIPO) ? "04" : request.COMPROBANTE_TIPO.PadLeft(2, '0');
             var consec    = transactionNumber.ToString().PadLeft(10, '0');
             var situacion = "1";   // Normal
             var seguridad = new Random().Next(10000000, 99999999).ToString("D8");
@@ -731,13 +742,72 @@ namespace NovaAPI.Controllers
             while (medioPagos.Count < 4)
                 medioPagos.Add(string.Empty);
 
-            using (var cmd = new SqlCommand("dbo.spAVS_InsertTiqueteEspera", cn))
+            // Intentar primero via SP, si falla usar INSERT directo
+            try
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandTimeout = 120;
+                using (var cmd = new SqlCommand("dbo.spAVS_InsertTiqueteEspera", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 120;
+                    cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TRANSACTIONNUMBER", transactionNumber.ToString());
+                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
+                    cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
+                    cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", request.NombreCliente ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@MEDIO_PAGO1", medioPagos[0]);
+                    cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
+                    cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
+                    cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
+                    cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
+                    cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
+                    cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // SP no existe — INSERT directo
+                InsertIntegraFast01Direct(cn, request, transactionNumber, medioPagos);
+            }
+        }
+
+        private static void InsertIntegraFast01Direct(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, List<string> medioPagos)
+        {
+            using (var cmd = new SqlCommand(@"
+                INSERT INTO dbo.AVS_INTEGRAFAST_01
+                    (CLAVE50, CLAVE20, TRANSACTIONNUMBER, COD_SUCURSAL, TERMINAL_POS,
+                     COMPROBANTE_INTERNO, COMPROBANTE_SITUACION, COMPROBANTE_TIPO,
+                     COD_MONEDA, CONDICION_VENTA, COD_CLIENTE, NOMBRE_CLIENTE,
+                     MEDIO_PAGO1, MEDIO_PAGO2, MEDIO_PAGO3, MEDIO_PAGO4,
+                     TIPOCAMBIO, CEDULA_TRIBUTARIA, EXONERA,
+                     NC_TIPO_DOC, NC_REFERENCIA, NC_REFERENCIA_FECHA, NC_CODIGO, NC_RAZON,
+                     FECHA_TRANSAC, ESTADO_HACIENDA)
+                VALUES
+                    (@CLAVE50, @CLAVE20, @TN, @COD_SUCURSAL, @TERMINAL_POS,
+                     @COMPROBANTE_INTERNO, @COMPROBANTE_SITUACION, @COMPROBANTE_TIPO,
+                     @CURRENCYCODE, @CONDICIONVENTA, @COD_CLIENTE, @NOMBRE_CLIENTE,
+                     @MEDIO_PAGO1, @MEDIO_PAGO2, @MEDIO_PAGO3, @MEDIO_PAGO4,
+                     @TIPOCAMBIO, @CEDULA_TRIBUTARIA, @EXONERA,
+                     @NC_TIPO_DOC, @NC_REFERENCIA, @NC_REFERENCIA_FECHA, @NC_CODIGO, @NC_RAZON,
+                     GETDATE(), '00')", cn))
+            {
+                cmd.CommandTimeout = 60;
                 cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
                 cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TRANSACTIONNUMBER", transactionNumber.ToString());
+                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
                 cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
                 cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
                 cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
@@ -759,9 +829,191 @@ namespace NovaAPI.Controllers
                 cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
                 cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
                 cmd.ExecuteNonQuery();
             }
+        }
+
+        /// <summary>
+        /// Inserta las líneas de detalle en AVS_INTEGRAFAST_05 para que fxAVS_GetLineaDetalle
+        /// pueda leer los datos fiscales (Cabys, IVA, etc.) al procesar con IntegraFast.
+        /// </summary>
+        private static void EnsureIntegraFast05(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            if (request.Items == null || request.Items.Count == 0)
+                return;
+
+            // Leer CLAVE50 ya generada en AVS_INTEGRAFAST_01
+            string clave50;
+            using (var cmd = new SqlCommand("SELECT TOP 1 CLAVE50 FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TN", cn))
+            {
+                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
+                var val = cmd.ExecuteScalar();
+                clave50 = val != null && val != DBNull.Value ? Convert.ToString(val) : string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(clave50))
+                return;
+
+            // Verificar si ya existen registros
+            using (var chk = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            {
+                chk.Parameters.AddWithValue("@CLAVE50", clave50);
+                try
+                {
+                    if (Convert.ToInt32(chk.ExecuteScalar()) > 0)
+                        return;
+                }
+                catch
+                {
+                    CreateIntegraFast05Table(cn);
+                }
+            }
+
+            var taxSystem = GetTaxSystem(cn);
+            int numLinea = 0;
+
+            // Cargar info de artículos (Cabys, Code) desde Item table
+            var itemInfoMap = new Dictionary<int, (string Cabys, string Code, string Description)>();
+            var itemIds = request.Items.Select(i => i.ItemID).Distinct().ToList();
+            if (itemIds.Count > 0)
+            {
+                var idList = string.Join(",", itemIds);
+                try
+                {
+                    using (var cmd = new SqlCommand(
+                        $"SELECT ID, ISNULL(CAST(ExtendedDescription AS NVARCHAR(20)),'') AS Cabys, ISNULL(ItemLookupCode,'') AS Code, ISNULL(Description,'') AS Desc1 FROM dbo.Item WHERE ID IN ({idList})", cn))
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            var id = Convert.ToInt32(r["ID"]);
+                            var cabys = r["Cabys"]?.ToString() ?? string.Empty;
+                            var code = r["Code"]?.ToString() ?? string.Empty;
+                            var desc = r["Desc1"]?.ToString() ?? string.Empty;
+                            itemInfoMap[id] = (cabys, code, desc);
+                        }
+                    }
+                }
+                catch { /* tabla Item podría tener diferente esquema */ }
+            }
+
+            foreach (var item in request.Items.OrderBy(i => i.RowNo))
+            {
+                numLinea++;
+                var qty = item.Quantity <= 0 ? 1m : item.Quantity;
+                var unitPrice = item.UnitPrice;
+                var fullPrice = item.FullPrice ?? unitPrice;
+                var montoTotal = Math.Round(fullPrice * qty, 2);
+                var montoDescuento = Math.Round(item.LineDiscountAmount, 2);
+                if (montoDescuento == 0m && fullPrice > unitPrice)
+                    montoDescuento = Math.Round((fullPrice - unitPrice) * qty, 2);
+                var subTotal = montoTotal - montoDescuento;
+                var taxRate = item.SalesTax > 0 && subTotal > 0
+                    ? Math.Round(item.SalesTax / subTotal * 100m, 2)
+                    : 0m;
+                var montoImpuesto = Math.Round(item.SalesTax, 2);
+                var montoLinea = subTotal + montoImpuesto;
+
+                itemInfoMap.TryGetValue(item.ItemID, out var info);
+                var cabys = info.Cabys ?? string.Empty;
+                var codProducto = info.Code ?? item.ItemID.ToString();
+                var detalle = !string.IsNullOrWhiteSpace(item.ExtendedDescription)
+                    ? item.ExtendedDescription
+                    : !string.IsNullOrWhiteSpace(info.Description) ? info.Description
+                    : item.ItemID.ToString();
+
+                // Código de tarifa IVA según normativa CR
+                var codTarifaIVA = taxRate >= 13m ? "08" : taxRate >= 4m ? "04" : taxRate >= 2m ? "07" : taxRate >= 1m ? "06" : "01";
+                var codImpuesto = taxRate > 0 ? "01" : string.Empty;
+
+                var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
+
+                // Calcular porcentaje exoneración para EXONERA_PORCENTAJE_COMPRA
+                var exoneraPorcentaje = item.ExPorcentaje;
+
+                try
+                {
+                    using (var cmd = new SqlCommand(@"
+                        INSERT INTO dbo.AVS_INTEGRAFAST_05
+                            (CLAVE50, TRANSACTIONNUMBER, NUMLINEA, TIPOCOD, CABYS, CODARTICULO, DETALLE, UNIDAD,
+                             CANTIDAD, PRECIO_UNITARIO, MONTOTOTAL, MONTODESCUENTO, NATDESCUENTO, SUBTOTAL,
+                             CODIMPUESTO, TARIFAIVA, MONTOIMPUESTO, MONTOLINEA, TARIFA_IMPUESTO, CODTARIFAIMPUESTO,
+                             ID_PRODUCTO, SALESREPID, EXONERA_PORCENTAJE_COMPRA)
+                        VALUES
+                            (@CLAVE50, @TN, @NUMLINEA, @TIPOCOD, @CABYS, @CODART, @DETALLE, @UNIDAD,
+                             @CANTIDAD, @PRECIOUNIT, @MONTOTOTAL, @MONTODESC, @NATDESC, @SUBTOTAL,
+                             @CODIMP, @TARIFAIVA, @MONTOIMP, @MONTOLINEA, @TARIFAIMP, @CODTARIFAIMP,
+                             @IDPROD, @SALESREPID, @EXONERAPORC)", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                        cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
+                        cmd.Parameters.AddWithValue("@NUMLINEA", numLinea);
+                        cmd.Parameters.AddWithValue("@TIPOCOD", "01");
+                        cmd.Parameters.AddWithValue("@CABYS", Truncate(cabys, 20));
+                        cmd.Parameters.AddWithValue("@CODART", Truncate(codProducto, 20));
+                        cmd.Parameters.AddWithValue("@DETALLE", Truncate(detalle, 200));
+                        cmd.Parameters.AddWithValue("@UNIDAD", "Und");
+                        cmd.Parameters.AddWithValue("@CANTIDAD", qty);
+                        cmd.Parameters.AddWithValue("@PRECIOUNIT", Math.Round(fullPrice, 5));
+                        cmd.Parameters.AddWithValue("@MONTOTOTAL", montoTotal);
+                        cmd.Parameters.AddWithValue("@MONTODESC", montoDescuento);
+                        cmd.Parameters.AddWithValue("@NATDESC", Truncate(naturalezaDescuento, 100));
+                        cmd.Parameters.AddWithValue("@SUBTOTAL", subTotal);
+                        cmd.Parameters.AddWithValue("@CODIMP", codImpuesto);
+                        cmd.Parameters.AddWithValue("@TARIFAIVA", taxRate);
+                        cmd.Parameters.AddWithValue("@MONTOIMP", montoImpuesto);
+                        cmd.Parameters.AddWithValue("@MONTOLINEA", montoLinea);
+                        cmd.Parameters.AddWithValue("@TARIFAIMP", taxRate > 0 ? taxRate : 0m);
+                        cmd.Parameters.AddWithValue("@CODTARIFAIMP", codTarifaIVA);
+                        cmd.Parameters.AddWithValue("@IDPROD", item.ItemID);
+                        cmd.Parameters.AddWithValue("@SALESREPID", item.SalesRepID);
+                        cmd.Parameters.AddWithValue("@EXONERAPORC", exoneraPorcentaje);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                catch { /* columna faltante o tipo incompatible - no bloquear venta */ }
+            }
+        }
+
+        /// <summary>Crea la tabla AVS_INTEGRAFAST_05 si no existe.</summary>
+        private static void CreateIntegraFast05Table(SqlConnection cn)
+        {
+            try
+            {
+                using (var cmd = new SqlCommand(@"
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'AVS_INTEGRAFAST_05')
+                    CREATE TABLE dbo.AVS_INTEGRAFAST_05 (
+                        ID                        INT IDENTITY(1,1) PRIMARY KEY,
+                        CLAVE50                   NVARCHAR(50)  NOT NULL DEFAULT '',
+                        TRANSACTIONNUMBER         NVARCHAR(20)  NOT NULL DEFAULT '',
+                        NUMLINEA                  INT           NOT NULL DEFAULT 0,
+                        TIPOCOD                   NVARCHAR(2)   NOT NULL DEFAULT '01',
+                        CABYS                     NVARCHAR(20)  NOT NULL DEFAULT '',
+                        CODARTICULO               NVARCHAR(20)  NOT NULL DEFAULT '',
+                        DETALLE                   NVARCHAR(200) NOT NULL DEFAULT '',
+                        UNIDAD                    NVARCHAR(5)   NOT NULL DEFAULT 'Und',
+                        CANTIDAD                  DECIMAL(18,4) NOT NULL DEFAULT 0,
+                        PRECIO_UNITARIO           DECIMAL(18,5) NOT NULL DEFAULT 0,
+                        MONTOTOTAL                DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MONTODESCUENTO            DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        NATDESCUENTO              NVARCHAR(100) NOT NULL DEFAULT '',
+                        SUBTOTAL                  DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        CODIMPUESTO               NVARCHAR(2)   NOT NULL DEFAULT '',
+                        TARIFAIVA                 DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MONTOIMPUESTO             DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MONTOLINEA                DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TARIFA_IMPUESTO           DECIMAL(18,5) NOT NULL DEFAULT 0,
+                        CODTARIFAIMPUESTO         NVARCHAR(2)   NOT NULL DEFAULT '',
+                        ID_PRODUCTO               INT           NOT NULL DEFAULT 0,
+                        SALESREPID                INT           NOT NULL DEFAULT 0,
+                        EXONERA_PORCENTAJE_COMPRA DECIMAL(18,5) NOT NULL DEFAULT 0,
+                        SyncGuid                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID()
+                    )", cn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { /* entorno sin permisos DDL */ }
         }
 
         private static int GetTaxSystem(SqlConnection cn)

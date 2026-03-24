@@ -233,6 +233,12 @@ namespace NovaAPI.Models
         [JsonProperty("tiqueteEsperaOk")]
         public bool TiqueteEsperaOk { get; set; }
 
+        [JsonProperty("clave50")]
+        public string Clave50 { get; set; } = string.Empty;
+
+        [JsonProperty("clave20")]
+        public string Clave20 { get; set; } = string.Empty;
+
         [JsonProperty("warnings")]
         public List<string> Warnings { get; set; } = new List<string>();
     }

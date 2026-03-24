@@ -118,4 +118,9 @@ public sealed class NovaRetailCreateSaleResponse
     public int? ErrorNumber { get; set; }
     public string ErrorProcedure { get; set; } = string.Empty;
     public int? ErrorLine { get; set; }
+    public int TaxEntriesInserted { get; set; }
+    public bool TiqueteEsperaOk { get; set; }
+    public string Clave50 { get; set; } = string.Empty;
+    public string Clave20 { get; set; } = string.Empty;
+    public List<string> Warnings { get; set; } = new();
 }

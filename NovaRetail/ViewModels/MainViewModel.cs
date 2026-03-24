@@ -1993,6 +1993,13 @@ namespace NovaRetail.ViewModels
 
         private async Task ShowSalesRepPickerBeforeCheckoutAsync()
         {
+            // Si ya hay un vendedor activo y todos los artículos tienen vendedor, ir directo al checkout
+            if (_activeSalesRep is not null && CartItems.All(c => c.SalesRepID > 0))
+            {
+                OpenCheckoutPopup();
+                return;
+            }
+
             try
             {
                 if (_cachedSalesReps.Count == 0)
@@ -2012,9 +2019,15 @@ namespace NovaRetail.ViewModels
             }
 
             var unassigned = CartItems.Count(c => c.SalesRepID == 0);
-            var subtitle = unassigned > 0
-                ? $"{unassigned} artículo(s) sin vendedor. Seleccione uno o cancele para continuar."
-                : "Todos los artículos ya tienen vendedor. Puede cambiar o continuar.";
+
+            // Si no hay artículos sin vendedor, ir directo al checkout
+            if (unassigned == 0)
+            {
+                OpenCheckoutPopup();
+                return;
+            }
+
+            var subtitle = $"{unassigned} artículo(s) sin vendedor. Seleccione uno o cancele para continuar.";
 
             _salesRepPickerContext = SalesRepPickerContext.BeforeCheckout;
             _pendingRepItem = null;
@@ -2130,8 +2143,8 @@ namespace NovaRetail.ViewModels
                     tenderTotalColones: CheckoutVm.HasSecondTender
                         ? Math.Round(
                             CheckoutVm.ChangeColones > 0m
-                                ? CheckoutVm.TenderedColones          // muestra lo entregado cuando hay cambio
-                                : CheckoutVm.FirstTenderAmount,        // monto exacto cuando no hay cambio
+                                ? CheckoutVm.TenderedColones
+                                : CheckoutVm.FirstTenderAmount,
                             2)
                         : CheckoutVm.ChangeColones > 0
                             ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
@@ -2142,7 +2155,18 @@ namespace NovaRetail.ViewModels
                         : string.Empty,
                     secondTenderAmountColones: CheckoutVm.HasSecondTender
                         ? Math.Round(CheckoutVm.SecondAmount, 2)
-                        : 0m
+                        : 0m,
+                    // Ticket-specific data
+                    companyName: _storeName,
+                    cedulaJuridica: string.Empty,
+                    clave50: !string.IsNullOrWhiteSpace(result.Clave50) ? result.Clave50 : request.CLAVE50,
+                    consecutivo: !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : request.COMPROBANTE_INTERNO,
+                    comprobanteTipo: request.COMPROBANTE_TIPO,
+                    clientEmail: string.Empty,
+                    subtotalColones: _subtotalColones,
+                    discountColones: _discountColones,
+                    totalColones: _totalColones,
+                    taxSystem: _storeTaxSystem
                 );
                 IsReceiptVisible = true;
 
@@ -2241,6 +2265,7 @@ namespace NovaRetail.ViewModels
                 Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
                 InsertarTiqueteEspera = true,
                 COMPROBANTE_TIPO = HasClient && IsCurrentClientReceiver ? "01" : "04",
+                COMPROBANTE_SITUACION = "1",
                 COD_SUCURSAL = (_storeIdFromConfig > 0 ? _storeIdFromConfig : currentUser.StoreId > 0 ? currentUser.StoreId : 1).ToString("000", CultureInfo.InvariantCulture),
                 TERMINAL_POS = (_registerIdFromConfig > 0 ? _registerIdFromConfig : 1).ToString("00000", CultureInfo.InvariantCulture),
                 Items = BuildSaleItems(),
