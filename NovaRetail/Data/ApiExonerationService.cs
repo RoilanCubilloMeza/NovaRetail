@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 
@@ -9,10 +10,12 @@ namespace NovaRetail.Data
         private const string BaseUrl = "https://api.hacienda.go.cr";
 
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ApiExonerationService> _logger;
 
-        public ApiExonerationService(IHttpClientFactory httpClientFactory)
+        public ApiExonerationService(IHttpClientFactory httpClientFactory, ILogger<ApiExonerationService> logger)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         public async Task<ExonerationValidationResult> ValidateAsync(string authorization, CancellationToken cancellationToken = default)
@@ -87,8 +90,9 @@ namespace NovaRetail.Data
             {
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al validar exoneración con Hacienda");
                 return new ExonerationValidationResult
                 {
                     IsValid = false,

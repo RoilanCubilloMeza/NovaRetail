@@ -34,7 +34,7 @@ namespace NovaRetail.Data
             var actividades = (datos?.Actividades ?? new List<ActividadDto>())
                 .Select(a => new
                 {
-                    Codigo = NormalizeActivityCode(a.Codigo ?? a.CIIU4),
+                    Codigo = ActivityCodeHelper.Normalize(a.Codigo ?? a.CIIU4),
                     Descripcion = string.IsNullOrWhiteSpace(a.Descripcion) ? a.CIIU4desc : a.Descripcion
                 })
                 .Where(a => !string.IsNullOrWhiteSpace(a.Codigo))
@@ -51,21 +51,6 @@ namespace NovaRetail.Data
                 ActivityCode = string.Join(", ", actividades.Select(a => a.Codigo)),
                 ActivityDescription = string.Join("; ", actividades.Select(a => a.Descripcion).Where(x => !string.IsNullOrWhiteSpace(x)))
             };
-        }
-
-        private static string? NormalizeActivityCode(string? code)
-        {
-            if (string.IsNullOrWhiteSpace(code))
-                return null;
-
-            var digits = new string(code.Where(char.IsDigit).ToArray());
-            if (digits.Length == 0)
-                return null;
-
-            if (digits.Length > 6)
-                return digits[..6];
-
-            return digits.PadLeft(6, '0');
         }
 
         public async Task<bool> GuardarAsync(ClienteModel cliente)

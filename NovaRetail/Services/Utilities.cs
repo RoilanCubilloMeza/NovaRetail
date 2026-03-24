@@ -1,6 +1,7 @@
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Globalization;
-using System.Net.NetworkInformation;
+using System.Net.Mail;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -8,10 +9,16 @@ namespace NovaRetail.Services
 {
     public class Utilities
     {
-        private static readonly HttpClient _http = new()
+        private const string ExternalClientName = "NovaExternal";
+
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<Utilities> _logger;
+
+        public Utilities(IHttpClientFactory httpClientFactory, ILogger<Utilities> logger)
         {
-            Timeout = TimeSpan.FromSeconds(20)
-        };
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
+        }
 
         public string obtenerFechaActualConFormato()
         {
@@ -28,65 +35,12 @@ namespace NovaRetail.Services
             return DateTime.Now.ToString("yyyyMMdd");
         }
 
-        public bool validarEmail(string email)
+        public static bool ValidarEmail(string email)
         {
-            const string expresion = "\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*";
-            if (!Regex.IsMatch(email, expresion)) return false;
-            return Regex.Replace(email, expresion, string.Empty).Length == 0;
-        }
-
-        public string GetDatosCedula(string cedula)
-        {
-            var url = $"https://apis.gometa.org/cedulas/{cedula}";
-
-            try
-            {
-                using var response = _http.GetAsync(url).GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
-                    return "Error";
-
-                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            }
-            catch
-            {
-                return "Error";
-            }
-        }
-
-        public string ValidaExoneracion(string numero)
-        {
-            var url = $"https://api.hacienda.go.cr/fe/ex?autorizacion={numero}";
-
-            try
-            {
-                using var response = _http.GetAsync(url).GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
-                    return "Error";
-
-                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            }
-            catch
-            {
-                return "Error";
-            }
-        }
-
-        public bool ValidarConexionInternet()
-        {
-            if (NetworkInterface.GetIsNetworkAvailable() is false)
+            if (string.IsNullOrWhiteSpace(email))
                 return false;
 
-            try
-            {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                using var request = new HttpRequestMessage(HttpMethod.Head, "https://www.google.com/");
-                using var response = _http.Send(request, cts.Token);
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            return MailAddress.TryCreate(email.Trim(), out _);
         }
 
         public string Base64Decode(string base64EncodedData)
@@ -146,19 +100,21 @@ namespace NovaRetail.Services
 
                 return goMeta;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al obtener datos de cédula {Cedula}", cedula);
                 return null;
             }
         }
 
-        private static async Task<CedulaDatosDto?> GetDatosHaciendaAsync(string cedula, CancellationToken cancellationToken)
+        private async Task<CedulaDatosDto?> GetDatosHaciendaAsync(string cedula, CancellationToken cancellationToken)
         {
             var url = $"https://api.hacienda.go.cr/fe/ae?identificacion={cedula}";
 
             try
             {
-                using var response = await _http.GetAsync(url, cancellationToken);
+                var http = _httpClientFactory.CreateClient(ExternalClientName);
+                using var response = await http.GetAsync(url, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
@@ -182,19 +138,21 @@ namespace NovaRetail.Services
                     }).ToList() ?? new List<ActividadDto>()
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al consultar Hacienda para cédula {Cedula}", cedula);
                 return null;
             }
         }
 
-        private static async Task<CedulaDatosDto?> GetDatosGoMetaAsync(string cedula, CancellationToken cancellationToken)
+        private async Task<CedulaDatosDto?> GetDatosGoMetaAsync(string cedula, CancellationToken cancellationToken)
         {
             var url = $"https://apis.gometa.org/cedulas/{cedula}";
 
             try
             {
-                using var response = await _http.GetAsync(url, cancellationToken);
+                var http = _httpClientFactory.CreateClient(ExternalClientName);
+                using var response = await http.GetAsync(url, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
@@ -222,8 +180,9 @@ namespace NovaRetail.Services
                     }).ToList() ?? new List<ActividadDto>()
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al consultar GoMeta para cédula {Cedula}", cedula);
                 return null;
             }
         }

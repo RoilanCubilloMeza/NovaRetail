@@ -2,14 +2,29 @@ using System.Text.RegularExpressions;
 
 namespace NovaRetail.Services
 {
-    public static class IdValidatorCR
+    public static partial class IdValidatorCR
     {
+        [GeneratedRegex("^[0-9]$")]
+        private static partial Regex NumericCharRegex();
+
+        [GeneratedRegex("^[A-Za-z0-9]$")]
+        private static partial Regex AlphanumericCharRegex();
+
+        [GeneratedRegex(@"^\d+$")]
+        private static partial Regex DigitsOnlyRegex();
+
+        [GeneratedRegex(@"^[A-Za-z0-9]+$")]
+        private static partial Regex AlphanumericOnlyRegex();
+
+        [GeneratedRegex(@"^[A-Za-z0-9]{1,20}$")]
+        private static partial Regex ForeignIdRegex();
+
         public static bool IsInputCharAllowed(string tipoCodigo, string inputChar)
         {
             if (string.IsNullOrEmpty(inputChar)) return false;
 
-            var isNumeric = Regex.IsMatch(inputChar, "^[0-9]$");
-            var isAlnum = Regex.IsMatch(inputChar, "^[A-Za-z0-9]$");
+            var isNumeric = NumericCharRegex().IsMatch(inputChar);
+            var isAlnum = AlphanumericCharRegex().IsMatch(inputChar);
 
             return tipoCodigo switch
             {
@@ -25,8 +40,8 @@ namespace NovaRetail.Services
 
             return tipoCodigo switch
             {
-                "01" or "02" or "03" or "04" or "06" => Regex.IsMatch(pastedText, @"^\d+$"),
-                "05" => Regex.IsMatch(pastedText, @"^[A-Za-z0-9]+$"),
+                "01" or "02" or "03" or "04" or "06" => DigitsOnlyRegex().IsMatch(pastedText),
+                "05" => AlphanumericOnlyRegex().IsMatch(pastedText),
                 _ => false
             };
         }
@@ -45,7 +60,7 @@ namespace NovaRetail.Services
 
             if (tipoCodigo is "01" or "02" or "03" or "04" or "06")
             {
-                if (!Regex.IsMatch(id, @"^\d+$"))
+                if (!DigitsOnlyRegex().IsMatch(id))
                 {
                     error = "El número debe contener solo dígitos.";
                     return false;
@@ -53,7 +68,7 @@ namespace NovaRetail.Services
             }
             else if (tipoCodigo == "05")
             {
-                if (!Regex.IsMatch(id, @"^[A-Za-z0-9]{1,20}$"))
+                if (!ForeignIdRegex().IsMatch(id))
                 {
                     error = "Extranjero no domiciliado: hasta 20 caracteres alfanuméricos (sin espacios ni símbolos).";
                     return false;

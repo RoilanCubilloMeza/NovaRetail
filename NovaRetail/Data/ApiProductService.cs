@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 
@@ -10,17 +11,15 @@ namespace NovaRetail.Data
         private const string ItemsClientName = "NovaItems";
         private const string ReasonCodeClientName = "NovaReasonCodes";
 
-        private static readonly string[] ItemsBaseUrls =
-        {
-            "http://localhost:52500",
-            "http://127.0.0.1:52500"
-        };
-
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ApiProductService> _logger;
+        private readonly string[] _baseUrls;
 
-        public ApiProductService(IHttpClientFactory httpClientFactory)
+        public ApiProductService(IHttpClientFactory httpClientFactory, ILogger<ApiProductService> logger, ApiSettings settings)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
+            _baseUrls = settings.BaseUrls;
         }
 
         public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate, int storeId = 1)
@@ -29,7 +28,7 @@ namespace NovaRetail.Data
             var safePageSize = Math.Clamp(pageSize, 1, 500);
             var safeStoreId = storeId > 0 ? storeId : 1;
 
-            foreach (var baseUrl in ItemsBaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -42,8 +41,9 @@ namespace NovaRetail.Data
 
                     return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al obtener productos desde {BaseUrl}", baseUrl);
                 }
             }
 
@@ -54,7 +54,7 @@ namespace NovaRetail.Data
         {
             var safeTop = Math.Clamp(top, 1, 1000);
 
-            foreach (var baseUrl in ItemsBaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -67,8 +67,9 @@ namespace NovaRetail.Data
 
                     return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al buscar productos desde {BaseUrl}", baseUrl);
                 }
             }
 
@@ -77,7 +78,7 @@ namespace NovaRetail.Data
 
         public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)
         {
-            foreach (var baseUrl in ItemsBaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -89,8 +90,9 @@ namespace NovaRetail.Data
                     if (codes is not null && codes.Count > 0)
                         return codes;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al obtener reason codes desde {BaseUrl}", baseUrl);
                 }
             }
 
@@ -100,7 +102,7 @@ namespace NovaRetail.Data
         public async Task<int> GetProductCountAsync(int storeId = 1)
         {
             var safeStoreId = storeId > 0 ? storeId : 1;
-            foreach (var baseUrl in ItemsBaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -110,8 +112,9 @@ namespace NovaRetail.Data
                     if (result is not null && result.Total > 0)
                         return result.Total;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al obtener conteo de productos desde {BaseUrl}", baseUrl);
                 }
             }
 

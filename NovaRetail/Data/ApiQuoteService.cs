@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 
@@ -7,24 +8,23 @@ namespace NovaRetail.Data;
 public class ApiQuoteService : IQuoteService
 {
     private const string QuoteClientName = "NovaQuotes";
-    private static readonly string[] BaseUrls =
-    {
-        "http://localhost:52500",
-        "http://127.0.0.1:52500"
-    };
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<ApiQuoteService> _logger;
+    private readonly string[] _baseUrls;
 
-    public ApiQuoteService(IHttpClientFactory httpClientFactory)
+    public ApiQuoteService(IHttpClientFactory httpClientFactory, ILogger<ApiQuoteService> logger, ApiSettings settings)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
+        _baseUrls = settings.BaseUrls;
     }
 
     public async Task<NovaRetailCreateQuoteResponse> CreateQuoteAsync(NovaRetailCreateQuoteRequest request, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -55,6 +55,7 @@ public class ApiQuoteService : IQuoteService
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al crear cotización en {BaseUrl}", baseUrl);
                 lastErrorMessage = ex.Message;
             }
         }
@@ -72,7 +73,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -103,6 +104,7 @@ public class ApiQuoteService : IQuoteService
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al actualizar cotización en {BaseUrl}", baseUrl);
                 lastErrorMessage = ex.Message;
             }
         }
@@ -120,7 +122,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -143,6 +145,7 @@ public class ApiQuoteService : IQuoteService
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al listar órdenes desde {BaseUrl}", baseUrl);
                 lastErrorMessage = ex.Message;
             }
         }
@@ -160,7 +163,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -182,6 +185,7 @@ public class ApiQuoteService : IQuoteService
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al obtener detalle de orden desde {BaseUrl}", baseUrl);
                 lastErrorMessage = ex.Message;
             }
         }
@@ -199,7 +203,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -222,7 +226,7 @@ public class ApiQuoteService : IQuoteService
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al guardar hold en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailCreateQuoteResponse
@@ -236,7 +240,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -259,7 +263,7 @@ public class ApiQuoteService : IQuoteService
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al actualizar hold en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailCreateQuoteResponse
@@ -273,7 +277,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -290,7 +294,7 @@ public class ApiQuoteService : IQuoteService
                 }
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al listar holds desde {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailListOrdersResponse
@@ -304,7 +308,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -320,7 +324,7 @@ public class ApiQuoteService : IQuoteService
                 }
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al obtener detalle de hold desde {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailOrderDetailResponse
@@ -334,7 +338,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -353,7 +357,7 @@ public class ApiQuoteService : IQuoteService
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al eliminar cotización en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailCreateQuoteResponse
@@ -367,7 +371,7 @@ public class ApiQuoteService : IQuoteService
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -386,7 +390,7 @@ public class ApiQuoteService : IQuoteService
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { lastErrorMessage = ex.Message; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al eliminar hold en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailCreateQuoteResponse

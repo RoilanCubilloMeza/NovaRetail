@@ -4,5 +4,12 @@ namespace NovaRetail.State;
 
 public sealed class UserSession
 {
-    public LoginUserModel? CurrentUser { get; set; }
+    private readonly object _sync = new();
+    private LoginUserModel? _currentUser;
+
+    public LoginUserModel? CurrentUser
+    {
+        get { lock (_sync) return _currentUser; }
+        set { lock (_sync) _currentUser = value; }
+    }
 }

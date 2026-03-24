@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 
@@ -7,24 +8,23 @@ namespace NovaRetail.Data;
 public class ApiSaleService : ISaleService
 {
     private const string SalesClientName = "NovaSales";
-    private static readonly string[] BaseUrls =
-    {
-        "http://localhost:52500",
-        "http://127.0.0.1:52500"
-    };
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<ApiSaleService> _logger;
+    private readonly string[] _baseUrls;
 
-    public ApiSaleService(IHttpClientFactory httpClientFactory)
+    public ApiSaleService(IHttpClientFactory httpClientFactory, ILogger<ApiSaleService> logger, ApiSettings settings)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
+        _baseUrls = settings.BaseUrls;
     }
 
     public async Task<NovaRetailCreateSaleResponse> CreateSaleAsync(NovaRetailCreateSaleRequest request, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -55,6 +55,7 @@ public class ApiSaleService : ISaleService
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al crear venta en {BaseUrl}", baseUrl);
                 lastErrorMessage = ex.Message;
             }
         }

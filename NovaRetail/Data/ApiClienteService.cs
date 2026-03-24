@@ -1,30 +1,31 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
 using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
-  
+
     public class ApiClienteService : IClienteService
     {
         private const string ClientName = "NovaCustomers";
-        private static readonly string[] BaseUrls =
-        {
-            "http://localhost:52500"
-        };
 
         private readonly Utilities _utilities;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ApiClienteService> _logger;
+        private readonly string[] _baseUrls;
         private List<ActividadDto> _cachedActividades = new();
         private string _cachedActividadesCedula = string.Empty;
 
-        public ApiClienteService(Utilities utilities, IHttpClientFactory httpClientFactory)
+        public ApiClienteService(Utilities utilities, IHttpClientFactory httpClientFactory, ILogger<ApiClienteService> logger, ApiSettings settings)
         {
             _utilities = utilities;
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
+            _baseUrls = settings.BaseUrls;
         }
 
         // ──────── Buscar cliente existente en la BD via API ────────
@@ -34,7 +35,7 @@ namespace NovaRetail.Data
             if (string.IsNullOrWhiteSpace(clienteId))
                 return null;
 
-            foreach (var baseUrl in BaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -52,8 +53,9 @@ namespace NovaRetail.Data
 
                     return MapToClienteModel(match);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al buscar cliente desde {BaseUrl}", baseUrl);
                 }
             }
 
@@ -75,7 +77,7 @@ namespace NovaRetail.Data
             var actividades = (datos.Actividades ?? [])
                 .Select(a => new
                 {
-                    Codigo = NormalizeActivityCode(a.Codigo ?? a.CIIU4),
+                    Codigo = ActivityCodeHelper.Normalize(a.Codigo ?? a.CIIU4),
                     Descripcion = string.IsNullOrWhiteSpace(a.Descripcion) ? a.CIIU4desc : a.Descripcion
                 })
                 .Where(a => !string.IsNullOrWhiteSpace(a.Codigo))
@@ -102,7 +104,7 @@ namespace NovaRetail.Data
         {
             var apiCustomer = MapToApiCustomer(cliente);
 
-            foreach (var baseUrl in BaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -114,8 +116,9 @@ namespace NovaRetail.Data
                     var response = await http.PostAsync(url, content);
                     return response.IsSuccessStatusCode;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al guardar cliente en {BaseUrl}", baseUrl);
                 }
             }
 
@@ -144,9 +147,9 @@ namespace NovaRetail.Data
                 var descriptions = new List<string>();
                 foreach (var code in codes)
                 {
-                    var normalized = NormalizeActivityCode(code);
+                    var normalized = ActivityCodeHelper.Normalize(code);
                     var match = _cachedActividades.FirstOrDefault(a =>
-                        NormalizeActivityCode(a.Codigo ?? a.CIIU4) == normalized);
+                        ActivityCodeHelper.Normalize(a.Codigo ?? a.CIIU4) == normalized);
 
                     if (match is not null)
                     {
@@ -170,9 +173,9 @@ namespace NovaRetail.Data
                     var descriptions = new List<string>();
                     foreach (var code in codes)
                     {
-                        var normalized = NormalizeActivityCode(code);
+                        var normalized = ActivityCodeHelper.Normalize(code);
                         var match = datos.Actividades.FirstOrDefault(a =>
-                            NormalizeActivityCode(a.Codigo ?? a.CIIU4) == normalized);
+                            ActivityCodeHelper.Normalize(a.Codigo ?? a.CIIU4) == normalized);
 
                         if (match is not null)
                         {
@@ -300,21 +303,6 @@ namespace NovaRetail.Data
         };
 
         // ──────── Normalizar código de actividad ────────
-
-        private static string? NormalizeActivityCode(string? code)
-        {
-            if (string.IsNullOrWhiteSpace(code))
-                return null;
-
-            var digits = new string(code.Where(char.IsDigit).ToArray());
-            if (digits.Length == 0)
-                return null;
-
-            if (digits.Length > 6)
-                return digits[..6];
-
-            return digits.PadLeft(6, '0');
-        }
 
         private static string ResolveIdType(string? identificationCode, string? clientId)
         {

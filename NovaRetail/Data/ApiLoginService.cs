@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NovaRetail.Models;
 
 namespace NovaRetail.Data;
@@ -8,16 +9,16 @@ namespace NovaRetail.Data;
 public class ApiLoginService : ILoginService
 {
     private const string AuthClientName = "NovaAuth";
-    private static readonly string[] BaseUrls =
-    {
-        "http://localhost:52500"
-    };
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<ApiLoginService> _logger;
+    private readonly string[] _baseUrls;
 
-    public ApiLoginService(IHttpClientFactory httpClientFactory)
+    public ApiLoginService(IHttpClientFactory httpClientFactory, ILogger<ApiLoginService> logger, ApiSettings settings)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
+        _baseUrls = settings.BaseUrls;
     }
 
     public async Task<LoginUserModel?> LoginAsync(string userName, string password)
@@ -32,55 +33,34 @@ public class ApiLoginService : ILoginService
         if (string.IsNullOrWhiteSpace(login))
             return null;
 
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
                 var http = _httpClientFactory.CreateClient(AuthClientName);
 
-                // Intentar POST primero (más seguro: credenciales en body)
-                try
+                var postUrl = $"{baseUrl}/api/Login";
+                var payload = new { ID_CLIENTE = 1, LOGIN = login, CLAVE = clave, TOKEN = "" };
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                var postResponse = await http.PostAsync(postUrl, content);
+                if (postResponse.IsSuccessStatusCode)
                 {
-                    var postUrl = $"{baseUrl}/api/Login";
-                    var payload = new { ID_CLIENTE = 1, LOGIN = login, CLAVE = clave, TOKEN = "" };
-                    var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                    var postResponse = await http.PostAsync(postUrl, content);
-                    if (postResponse.IsSuccessStatusCode)
+                    var result = await postResponse.Content.ReadFromJsonAsync<ApiLoginResponse>();
+                    if (result is not null && !string.IsNullOrWhiteSpace(result.US_LOGIN))
                     {
-                        var result = await postResponse.Content.ReadFromJsonAsync<ApiLoginResponse>();
-                        if (result is not null && !string.IsNullOrWhiteSpace(result.US_LOGIN))
+                        return new LoginUserModel
                         {
-                            return new LoginUserModel
-                            {
-                                ClientId = result.ID_CLIENTE,
-                                UserName = result.US_LOGIN ?? login,
-                                DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
-                                StoreId = result.US_ID_STORE ?? 0
-                            };
-                        }
+                            ClientId = result.ID_CLIENTE,
+                            UserName = result.US_LOGIN ?? login,
+                            DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
+                            StoreId = result.US_ID_STORE ?? 0
+                        };
                     }
                 }
-                catch
-                {
-                    // POST no soportado, caer al GET como fallback
-                }
-
-                // Fallback: GET (compatibilidad con API existente)
-                var getUrl = $"{baseUrl}/api/Login?ID_CLIENTE=1&LOGIN={Uri.EscapeDataString(login)}&CLAVE={Uri.EscapeDataString(clave)}&TOKEN=";
-                var getResult = await http.GetFromJsonAsync<ApiLoginResponse>(getUrl);
-                if (getResult is not null && !string.IsNullOrWhiteSpace(getResult.US_LOGIN))
-                {
-                    return new LoginUserModel
-                    {
-                        ClientId = getResult.ID_CLIENTE,
-                        UserName = getResult.US_LOGIN ?? login,
-                        DisplayName = string.IsNullOrWhiteSpace(getResult.US_NOMBRE) ? login : getResult.US_NOMBRE,
-                        StoreId = getResult.US_ID_STORE ?? 0
-                    };
-                }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al autenticar usuario desde {BaseUrl}", baseUrl);
             }
         }
 
@@ -89,7 +69,7 @@ public class ApiLoginService : ILoginService
 
     public async Task<bool> IsDatabaseConnectedAsync()
     {
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -99,8 +79,9 @@ public class ApiLoginService : ILoginService
                 if (response.IsSuccessStatusCode)
                     return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al verificar conexión a BD desde {BaseUrl}", baseUrl);
             }
         }
 
@@ -109,7 +90,7 @@ public class ApiLoginService : ILoginService
 
     public async Task<LoginConnectionInfoModel?> GetConnectionInfoAsync()
     {
-        foreach (var baseUrl in BaseUrls)
+        foreach (var baseUrl in _baseUrls)
         {
             try
             {
@@ -127,14 +108,15 @@ public class ApiLoginService : ILoginService
                     IsConnected = true
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error al obtener info de conexión desde {BaseUrl}", baseUrl);
             }
         }
 
         return new LoginConnectionInfoModel
         {
-            ApiBaseUrl = BaseUrls[0],
+            ApiBaseUrl = _baseUrls[0],
             DatabaseServer = string.Empty,
             DatabaseName = "BM",
             IsConnected = false

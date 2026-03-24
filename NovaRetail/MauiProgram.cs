@@ -21,6 +21,12 @@ namespace NovaRetail
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
+            // Configuración centralizada de URLs
+            builder.Services.AddSingleton(new ApiSettings
+            {
+                BaseUrls = ["http://localhost:52500", "http://127.0.0.1:52500"]
+            });
+
             // Services
             builder.Services.AddSingleton<IDialogService, MauiDialogService>();
             builder.Services.AddSingleton<IClienteService, ApiClienteService>();
@@ -51,6 +57,8 @@ namespace NovaRetail
                 c => c.Timeout = TimeSpan.FromSeconds(30));
             builder.Services.AddHttpClient("NovaQuotes",
                 c => c.Timeout = TimeSpan.FromSeconds(30));
+            builder.Services.AddHttpClient("NovaExternal",
+                c => c.Timeout = TimeSpan.FromSeconds(20));
 
             // ViewModels
             builder.Services.AddSingleton<LoginViewModel>();

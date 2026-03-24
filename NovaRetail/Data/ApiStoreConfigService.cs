@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using NovaRetail.Models;
 
 namespace NovaRetail.Data
@@ -7,22 +8,21 @@ namespace NovaRetail.Data
     public class ApiStoreConfigService : IStoreConfigService
     {
         private const string ClientName = "NovaStoreConfig";
-        private static readonly string[] BaseUrls =
-        {
-            "http://localhost:52500",
-            "http://127.0.0.1:52500"
-        };
 
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ApiStoreConfigService> _logger;
+        private readonly string[] _baseUrls;
 
-        public ApiStoreConfigService(IHttpClientFactory httpClientFactory)
+        public ApiStoreConfigService(IHttpClientFactory httpClientFactory, ILogger<ApiStoreConfigService> logger, ApiSettings settings)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
+            _baseUrls = settings.BaseUrls;
         }
 
         public async Task<StoreConfigModel> GetConfigAsync()
         {
-            foreach (var baseUrl in BaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -31,8 +31,9 @@ namespace NovaRetail.Data
                     if (result is not null)
                         return result;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al obtener configuración de tienda desde {BaseUrl}", baseUrl);
                 }
             }
 
@@ -41,7 +42,7 @@ namespace NovaRetail.Data
 
         public async Task<List<TenderModel>> GetTendersAsync()
         {
-            foreach (var baseUrl in BaseUrls)
+            foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
@@ -50,8 +51,9 @@ namespace NovaRetail.Data
                     if (result is not null && result.Count > 0)
                         return result;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Error al obtener tenders desde {BaseUrl}", baseUrl);
                 }
             }
 

@@ -11,11 +11,11 @@ public class LoginViewModel : INotifyPropertyChanged
 {
     private readonly ILoginService _loginService;
     private IDispatcherTimer? _clockTimer;
-    private string _userName = "100";
+    private string _userName = string.Empty;
     private string _password = string.Empty;
     private string _errorMessage = string.Empty;
     private string _databaseStatusText = "Base de datos: verificando...";
-    private string _hostText = "API http://localhost:52500";
+    private string _hostText = string.Empty;
     private string _dateText = string.Empty;
     private string _timeText = string.Empty;
     private string _currentPassword = string.Empty;
@@ -29,7 +29,6 @@ public class LoginViewModel : INotifyPropertyChanged
     {
         _loginService = loginService;
         AppVersionText = $"Versión {AppInfo.Current.VersionString}";
-        HostText = "API http://localhost:52500";
         UpdateClock();
 
         LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
