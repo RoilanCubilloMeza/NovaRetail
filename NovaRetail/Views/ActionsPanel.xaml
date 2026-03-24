@@ -86,6 +86,12 @@
                                             SurfaceColor="#F5F3FF" StrokeColor="#DDD6FE"
                                             IconColor="#8B5CF6" LabelColor="#5B21B6" ArrowColor="#8B5CF6"/>
 
+                    <controls:ActionLinkRow Icon="&#x1F9D1;" Text="Vendedor"
+                                            Command="{Binding AssignSalesRepCommand}"
+                                            IsVisible="{Binding ShowSalesRepFeature}"
+                                            SurfaceColor="#FEF3C7" StrokeColor="#FDE68A"
+                                            IconColor="#D97706" LabelColor="#92400E" ArrowColor="#D97706"/>
+
                     <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Orden Pedido"
                                             SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
                                             IconColor="#6366F1" LabelColor="#3730A3" ArrowColor="#6366F1"/>

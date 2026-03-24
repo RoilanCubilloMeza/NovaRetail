@@ -17,6 +17,12 @@ namespace NovaRetail.Models
 
         /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (valor de PR-01 en AVS_Parametros).</summary>
         public int PriceOverridePriceSource { get; set; } = 1;
+
+        /// <summary>VE-01: Si se debe pedir vendedor al iniciar sesión.</summary>
+        public bool AskForSalesRep { get; set; }
+
+        /// <summary>VE-02: Si el vendedor es obligatorio para facturar.</summary>
+        public bool RequireSalesRep { get; set; }
     }
 
     public class TenderModel : System.ComponentModel.INotifyPropertyChanged

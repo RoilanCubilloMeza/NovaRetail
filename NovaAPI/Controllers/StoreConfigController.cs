@@ -112,6 +112,32 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
+            // VE-01: PedirVendedor / VE-02: RequiereVendedor
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT CODIGO, CAST(VALOR AS INT) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02')", cn))
+                    {
+                        cn.Open();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var codigo = reader["CODIGO"].ToString();
+                                var valor = Convert.ToInt32(reader["VALOR"]);
+                                if (codigo == "VE-01") dto.AskForSalesRep = valor == 1;
+                                if (codigo == "VE-02") dto.RequireSalesRep = valor == 1;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
             return dto;
         }
 
@@ -165,6 +191,10 @@ namespace NovaAPI.Controllers
         public string StorePhone { get; set; } = string.Empty;
         /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (CODIGO = 'PR-01' en AVS_Parametros).</summary>
         public int PriceOverridePriceSource { get; set; } = 1;
+        /// <summary>VE-01: Si se debe pedir vendedor al iniciar sesión.</summary>
+        public bool AskForSalesRep { get; set; }
+        /// <summary>VE-02: Si el vendedor es obligatorio para facturar.</summary>
+        public bool RequireSalesRep { get; set; }
     }
 
     public class TenderDto

@@ -31,6 +31,12 @@ namespace NovaRetail.ViewModels
         private ReasonCodeModel? _selectedDiscountCode;
         private string _discountPercentText = "0";
 
+        private int _salesRepId;
+        private string _salesRepName = string.Empty;
+
+        public string SalesRepText => _salesRepId > 0 ? _salesRepName : "Sin vendedor";
+        public bool HasSalesRep => _salesRepId > 0;
+
         // ── Product info (read-only) ──
 
         public string ItemName
@@ -137,6 +143,7 @@ namespace NovaRetail.ViewModels
         public event Action? RequestCancel;
         public event Action? RequestPriceJustification;
         public event Action? RequestItemDiscount;
+        public event Action? RequestAssignSalesRep;
 
         public decimal? PendingPriceColones =>
             decimal.TryParse(_tempPrice, System.Globalization.NumberStyles.Any,
@@ -153,6 +160,7 @@ namespace NovaRetail.ViewModels
         public ICommand ConfirmDiscountCommand { get; }
         public ICommand IncrQtyCommand { get; }
         public ICommand DecrQtyCommand { get; }
+        public ICommand AssignSalesRepCommand { get; }
 
         public ItemActionViewModel()
         {
@@ -191,6 +199,7 @@ namespace NovaRetail.ViewModels
             ConfirmDiscountCommand = new Command(ConfirmDiscount);
             IncrQtyCommand = new Command(() => AdjustQty(1));
             DecrQtyCommand = new Command(() => AdjustQty(-1));
+            AssignSalesRepCommand = new Command(() => RequestAssignSalesRep?.Invoke());
         }
 
         public void LoadItem(CartItemModel item, IEnumerable<ReasonCodeModel> discountCodes)
@@ -213,6 +222,9 @@ namespace NovaRetail.ViewModels
             _discountPercentText = item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F0", CultureInfo.InvariantCulture) : "0";
             _selectedDiscountCode = null;
 
+            _salesRepId   = item.SalesRepID;
+            _salesRepName = item.SalesRepName;
+
             _activeField = "Precio";
             _inputBuffer = _tempPrice;
 
@@ -224,6 +236,19 @@ namespace NovaRetail.ViewModels
                 DiscountCodes.Add(dc);
 
             OnPropertyChanged(string.Empty);
+        }
+
+        public void RefreshSalesRep(SalesRepModel rep)
+        {
+            _salesRepId   = rep.ID;
+            _salesRepName = rep.Nombre;
+            if (_item is not null)
+            {
+                _item.SalesRepID   = rep.ID;
+                _item.SalesRepName = rep.Nombre;
+            }
+            OnPropertyChanged(nameof(SalesRepText));
+            OnPropertyChanged(nameof(HasSalesRep));
         }
 
         // ── Discount panel ──

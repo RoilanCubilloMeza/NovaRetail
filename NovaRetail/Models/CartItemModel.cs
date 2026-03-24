@@ -15,6 +15,8 @@ namespace NovaRetail.Models
         private string _discountReasonCode = string.Empty;
         private int _discountReasonCodeID;
         private int _exonerationReasonCodeID;
+        private int _salesRepID;
+        private string _salesRepName = string.Empty;
 
         public int ItemID { get; set; }
         public string Emoji { get; set; } = string.Empty;
@@ -147,6 +149,21 @@ namespace NovaRetail.Models
                 }
             }
         }
+
+        public int SalesRepID
+        {
+            get => _salesRepID;
+            set { if (_salesRepID != value) { _salesRepID = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasSalesRep)); OnPropertyChanged(nameof(SalesRepIndicator)); } }
+        }
+
+        public string SalesRepName
+        {
+            get => _salesRepName;
+            set { if (_salesRepName != value) { _salesRepName = value ?? string.Empty; OnPropertyChanged(); OnPropertyChanged(nameof(HasSalesRep)); OnPropertyChanged(nameof(SalesRepIndicator)); } }
+        }
+
+        public bool HasSalesRep => _salesRepID > 0;
+        public string SalesRepIndicator => HasSalesRep ? $"🧑‍💼 {_salesRepName}" : string.Empty;
 
         private bool _isSelected;
         public bool IsSelected

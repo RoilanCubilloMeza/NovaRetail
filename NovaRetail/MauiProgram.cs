@@ -36,6 +36,7 @@ namespace NovaRetail
             builder.Services.AddSingleton<ISaleService, ApiSaleService>();
             builder.Services.AddSingleton<IQuoteService, ApiQuoteService>();
             builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
+            builder.Services.AddSingleton<ISalesRepService, ApiSalesRepService>();
             builder.Services.AddSingleton<AppStore>();
             builder.Services.AddSingleton<UserSession>();
             builder.Services.AddSingleton<Utilities>();
@@ -59,6 +60,8 @@ namespace NovaRetail
                 c => c.Timeout = TimeSpan.FromSeconds(30));
             builder.Services.AddHttpClient("NovaExternal",
                 c => c.Timeout = TimeSpan.FromSeconds(20));
+            builder.Services.AddHttpClient("NovaSalesRep",
+                c => c.Timeout = TimeSpan.FromSeconds(10));
 
             // ViewModels
             builder.Services.AddSingleton<LoginViewModel>();

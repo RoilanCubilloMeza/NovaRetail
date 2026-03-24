@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.SalesRepPickerPopup">
+
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <Border BackgroundColor="White"
+                StrokeShape="RoundRectangle 14"
+                StrokeThickness="0"
+                MaximumWidthRequest="460"
+                MaximumHeightRequest="560"
+                Margin="20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Shadow="{x:Null}">
+
+            <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="0">
+
+                <!-- Title bar -->
+                <Border Grid.Row="0"
+                        BackgroundColor="#1E293B"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 14,14,0,0"
+                        Padding="18,12">
+                    <Grid ColumnDefinitions="Auto, *">
+                        <Label Grid.Column="0" Text="&#x1F464;" FontSize="16"
+                               VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding Title}"
+                                   FontSize="16" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center"/>
+                            <Label Text="{Binding Subtitle}"
+                                   FontSize="11"
+                                   TextColor="#CBD5E1"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- Search bar -->
+                <Border Grid.Row="1"
+                        BackgroundColor="White"
+                        Stroke="#CBD5E1"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12,0"
+                        Margin="16,12,16,4"
+                        HeightRequest="42">
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="Buscar vendedor..."
+                           ClearButtonVisibility="WhileEditing"
+                           FontSize="13"
+                           TextColor="#0F172A"
+                           VerticalOptions="Center"/>
+                </Border>
+
+                <!-- Sales rep list -->
+                <CollectionView Grid.Row="2"
+                                ItemsSource="{Binding FilteredReps}"
+                                SelectionMode="None"
+                                Margin="8,4,8,0">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="8,3"
+                                    Padding="14,10"
+                                    StrokeShape="RoundRectangle 8"
+                                    StrokeThickness="1"
+                                    Stroke="#E2E8F0"
+                                    BackgroundColor="#F8FAFC">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectRepCommand}"
+                                        CommandParameter="{Binding}"/>
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto, *" ColumnSpacing="12">
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="#EEF2FF"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 20"
+                                            WidthRequest="36" HeightRequest="36"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center">
+                                        <Label Text="&#x1F464;"
+                                               FontSize="15"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="2"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding Nombre}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E293B"/>
+                                        <Label Text="{Binding Number}"
+                                               FontSize="11"
+                                               TextColor="#64748B"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout HorizontalOptions="Center"
+                                             VerticalOptions="Center"
+                                             Padding="20">
+                            <Label Text="No se encontraron vendedores."
+                                   FontSize="13"
+                                   TextColor="#94A3B8"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+                <!-- Footer -->
+                <VerticalStackLayout Grid.Row="3" Spacing="6" Padding="16,10,16,14">
+
+                    <!-- Selection indicator -->
+                    <Border BackgroundColor="#EEF2FF"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,8"
+                            IsVisible="{Binding HasSelection}">
+                        <Label Text="{Binding SelectionText}"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="#4338CA"
+                               HorizontalTextAlignment="Center"/>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*, *" ColumnSpacing="10">
+
+                        <!-- Skip button -->
+                        <Border Grid.Column="0"
+                                BackgroundColor="#F1F5F9"
+                                StrokeShape="RoundRectangle 9"
+                                StrokeThickness="0"
+                                Padding="0,14"
+                                IsVisible="{Binding CanSkip}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SkipCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancelar"
+                                   FontSize="14" FontAttributes="Bold"
+                                   TextColor="#475569" HorizontalOptions="Center"/>
+                        </Border>
+
+                        <!-- Confirm button -->
+                        <Border Grid.Column="1" Grid.ColumnSpan="1"
+                                BackgroundColor="#4F46E5"
+                                StrokeShape="RoundRectangle 9"
+                                StrokeThickness="0"
+                                Padding="0,14">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding CanSkip}" Value="False">
+                                    <Setter Property="Grid.Column" Value="0"/>
+                                    <Setter Property="Grid.ColumnSpan" Value="2"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ConfirmCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Seleccionar"
+                                   FontSize="14" FontAttributes="Bold"
+                                   TextColor="White" HorizontalOptions="Center"/>
+                        </Border>
+
+                    </Grid>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

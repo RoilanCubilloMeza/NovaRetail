@@ -119,6 +119,56 @@
                             </Border>
                         </Grid>
 
+                        <!-- Vendedor -->
+                        <Border Padding="14,10"
+                                Margin="0,0,0,14"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="1">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#FEF3C7"/>
+                                    <Setter Property="Stroke" Value="#F59E0B"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#F8FAFC"/>
+                                    <Setter Property="Stroke" Value="#E2E8F0"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="8">
+                                <Label Grid.Column="0" Text="&#x1F9D1;" FontSize="14"
+                                       VerticalOptions="Center"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="Vendedor"
+                                           FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6B7280"/>
+                                    <Label Text="{Binding SalesRepText}"
+                                           FontSize="13" FontAttributes="Bold">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="True">
+                                                <Setter Property="TextColor" Value="#92400E"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="False">
+                                                <Setter Property="TextColor" Value="#94A3B8"/>
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </VerticalStackLayout>
+                                <Border Grid.Column="2"
+                                        BackgroundColor="#D97706"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        Padding="12,6"
+                                        VerticalOptions="Center">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding ChangeSalesRepCommand}"/>
+                                    </Border.GestureRecognizers>
+                                    <Label Text="{Binding SalesRepButtonText}"
+                                           FontSize="12" FontAttributes="Bold"
+                                           TextColor="White"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
                         <Border BackgroundColor="#EEF2FF"
                                 Stroke="#C7D2FE"
                                 StrokeThickness="1"

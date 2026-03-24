@@ -250,7 +250,7 @@
                         </Grid>
 
                         <!-- Aplicar desc. button -->
-                        <Border Margin="12,0,12,20"
+                        <Border Margin="12,0,12,4"
                                 StrokeShape="RoundRectangle 8" StrokeThickness="0"
                                 Padding="12,9" HeightRequest="42">
                             <Border.Triggers>
@@ -266,6 +266,42 @@
                             </Border.GestureRecognizers>
                             <Label Text="🏷️  Aplicar descuento" FontSize="14" FontAttributes="Bold"
                                    TextColor="White" VerticalOptions="Center" HorizontalOptions="Center"/>
+                        </Border>
+
+                        <!-- Vendedor button -->
+                        <Border Margin="12,0,12,20"
+                                StrokeShape="RoundRectangle 8" StrokeThickness="1"
+                                Padding="12,9" HeightRequest="42">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#FEF3C7"/>
+                                    <Setter Property="Stroke" Value="#F59E0B"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#F8FAFC"/>
+                                    <Setter Property="Stroke" Value="#CBD5E1"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding AssignSalesRepCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="8">
+                                <Label Grid.Column="0" Text="&#x1F9D1;" FontSize="14"
+                                       VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding SalesRepText}"
+                                       FontSize="13" FontAttributes="Bold"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="True">
+                                            <Setter Property="TextColor" Value="#92400E"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="False">
+                                            <Setter Property="TextColor" Value="#64748B"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Grid>
                         </Border>
 
                     </VerticalStackLayout>

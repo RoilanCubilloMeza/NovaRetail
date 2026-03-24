@@ -175,6 +175,7 @@
     <Compile Include="Controllers\AR_TransactionController.cs" />
     <Compile Include="Controllers\EmailController.cs" />
     <Compile Include="Controllers\Integrafast01Controller.cs" />
+    <Compile Include="Controllers\IntegraFastController.cs" />
     <Compile Include="Controllers\ItemsController.cs" />
     <Compile Include="Controllers\PickingOrderController.cs" />
     <Compile Include="Controllers\LocationController.cs" />

@@ -58,6 +58,12 @@
               IsVisible="{Binding IsQuoteReceiptVisible}">
             <views:QuoteReceiptPopup BindingContext="{Binding QuoteReceiptVm}"/>
         </Grid>
+
+        <!-- Sales rep picker overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsSalesRepPickerVisible}">
+            <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

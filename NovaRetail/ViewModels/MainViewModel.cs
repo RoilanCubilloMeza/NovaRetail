@@ -19,11 +19,13 @@ namespace NovaRetail.ViewModels
         private readonly ISaleService _saleService;
         private readonly IQuoteService _quoteService;
         private readonly IStoreConfigService _storeConfigService;
+        private readonly ISalesRepService _salesRepService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly List<ReasonCodeModel> _cachedExonerationCodes = new();
+        private readonly List<SalesRepModel> _cachedSalesReps = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private const int ProductsPageSize = 500;
         private int _loadedItemsPage;
@@ -53,6 +55,13 @@ namespace NovaRetail.ViewModels
         private bool _isProcessingCheckout;
         private int _editingOrderId;
         private int _editingHoldId;
+        private bool _askForSalesRep;
+        private bool _requireSalesRep;
+        private SalesRepModel? _activeSalesRep;
+
+        private enum SalesRepPickerContext { Session, BulkCart, SingleItem, Checkout, BeforeCheckout }
+        private SalesRepPickerContext _salesRepPickerContext = SalesRepPickerContext.Session;
+        private CartItemModel? _pendingRepItem;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -149,6 +158,8 @@ namespace NovaRetail.ViewModels
         public ManualExonerationViewModel ManualExonerationVm { get; } = new();
         public OrderSearchViewModel OrderSearchVm { get; } = new();
 
+        public SalesRepPickerViewModel SalesRepPickerVm { get; } = new();
+
         public bool IsManualExonerationVisible
         {
             get => _appStore.State.IsManualExonerationVisible;
@@ -198,6 +209,20 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetQuoteReceiptVisibleAction(value));
             }
         }
+
+        public bool IsSalesRepPickerVisible
+        {
+            get => _appStore.State.IsSalesRepPickerVisible;
+            private set
+            {
+                if (IsSalesRepPickerVisible != value)
+                    _appStore.Dispatch(new SetSalesRepPickerVisibleAction(value));
+            }
+        }
+
+        public string ActiveSalesRepName => _activeSalesRep?.Nombre ?? string.Empty;
+        public bool HasActiveSalesRep => _activeSalesRep is not null;
+        public bool ShowSalesRepFeature => _askForSalesRep;
 
         public QuoteReceiptViewModel QuoteReceiptVm { get; } = new();
 
@@ -294,6 +319,7 @@ namespace NovaRetail.ViewModels
         public ICommand SaveHoldCommand { get; }
         public ICommand RecallQuoteCommand { get; }
         public ICommand RecallHoldCommand { get; }
+        public ICommand AssignSalesRepCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -632,7 +658,7 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
@@ -640,6 +666,7 @@ namespace NovaRetail.ViewModels
             _saleService = saleService;
             _quoteService = quoteService;
             _storeConfigService = storeConfigService;
+            _salesRepService = salesRepService;
             _appStore = appStore;
             _userSession = userSession;
             _appStore.StateChanged += OnAppStateChanged;
@@ -675,10 +702,12 @@ namespace NovaRetail.ViewModels
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
             RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(2, "Recuperar Factura en Espera"));
+            AssignSalesRepCommand = new Command(async () => await ShowSalesRepPickerForItemsAsync());
             ItemActionVm.RequestOk += CloseItemAction;
             ItemActionVm.RequestCancel += CloseItemAction;
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
             ItemActionVm.RequestItemDiscount += async () => await StartItemDiscountAsync();
+            ItemActionVm.RequestAssignSalesRep += () => OpenSalesRepPickerForItem(ItemActionVm.CurrentItem);
             DiscountVm.RequestOk += OnDiscountEntryOk;
             DiscountVm.RequestCancel += OnDiscountEntryCancel;
             PriceJustVm.RequestOk += OnPriceJustOk;
@@ -689,6 +718,7 @@ namespace NovaRetail.ViewModels
             CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
             CheckoutVm.RequestClearExoneration += ClearExoneration;
             CheckoutVm.RequestApplyManualExoneration += ApplyManualExonerationAsync;
+            CheckoutVm.RequestAssignSalesRep += OpenSalesRepPickerForCheckout;
             ManualExonerationVm.RequestBuscar += async auth => await OnManualExonerationBuscarAsync(auth);
             ManualExonerationVm.RequestApply += OnManualExonerationApply;
             ManualExonerationVm.RequestCancel += () => IsManualExonerationVisible = false;
@@ -697,6 +727,8 @@ namespace NovaRetail.ViewModels
             OrderSearchVm.RequestSearch += async search => await SearchOrdersAsync(search);
             OrderSearchVm.RequestSelect += order => OnOrderSelectedAsync(order);
             QuoteReceiptVm.RequestClose += () => IsQuoteReceiptVisible = false;
+            SalesRepPickerVm.RequestConfirm += OnSalesRepSelected;
+            SalesRepPickerVm.RequestSkip += OnSalesRepSkipped;
             RefreshCartItemsView();
             _ = InitializeAsync();
         }
@@ -722,6 +754,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsManualExonerationVisible));
             OnPropertyChanged(nameof(IsOrderSearchVisible));
             OnPropertyChanged(nameof(IsQuoteReceiptVisible));
+            OnPropertyChanged(nameof(IsSalesRepPickerVisible));
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
@@ -785,6 +818,9 @@ namespace NovaRetail.ViewModels
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
                 _priceOverridePriceSource = config.PriceOverridePriceSource > 0 ? config.PriceOverridePriceSource : 1;
+                _askForSalesRep = config.AskForSalesRep;
+                _requireSalesRep = config.RequireSalesRep;
+                OnPropertyChanged(nameof(ShowSalesRepFeature));
 
                 var tenders = await _storeConfigService.GetTendersAsync();
                 Tenders.Clear();
@@ -792,10 +828,166 @@ namespace NovaRetail.ViewModels
                     Tenders.Add(t);
 
                 RecalculateTotal();
+
+                if (_askForSalesRep)
+                    await ShowSalesRepPickerAsync();
             }
             catch
             {
             }
+        }
+
+        private async Task ShowSalesRepPickerAsync()
+        {
+            try
+            {
+                if (_cachedSalesReps.Count == 0)
+                {
+                    var reps = await _salesRepService.GetAllAsync();
+                    _cachedSalesReps.Clear();
+                    _cachedSalesReps.AddRange(reps);
+                }
+
+                if (_cachedSalesReps.Count == 0)
+                    return;
+
+                SalesRepPickerVm.Load(
+                    _cachedSalesReps,
+                    canSkip: true,
+                    title: "Seleccionar Vendedor",
+                    subtitle: "Busque y seleccione el vendedor para esta sesión.");
+                IsSalesRepPickerVisible = true;
+            }
+            catch
+            {
+            }
+        }
+
+        public async Task ShowSalesRepPickerForItemsAsync()
+        {
+            var selectedItems = CartItems.Where(c => c.IsSelected).ToList();
+            var subtitle = selectedItems.Count > 0
+                ? $"Se asignará a {selectedItems.Count} artículo(s) seleccionado(s)."
+                : "Se asignará a todos los artículos del carrito sin vendedor.";
+
+            _salesRepPickerContext = SalesRepPickerContext.BulkCart;
+            _pendingRepItem = null;
+            await OpenSalesRepPickerAsync("Asignar Vendedor", subtitle, canSkip: true);
+        }
+
+        private void OnSalesRepSelected(SalesRepModel rep)
+        {
+            switch (_salesRepPickerContext)
+            {
+                case SalesRepPickerContext.SingleItem:
+                    if (_pendingRepItem is not null)
+                    {
+                        _pendingRepItem.SalesRepID   = rep.ID;
+                        _pendingRepItem.SalesRepName = rep.Nombre;
+                    }
+                    ItemActionVm.RefreshSalesRep(rep);
+                    break;
+
+                case SalesRepPickerContext.Checkout:
+                    _activeSalesRep = rep;
+                    OnPropertyChanged(nameof(ActiveSalesRepName));
+                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    CheckoutVm.SetSalesRep(rep);
+                    foreach (var item in CartItems)
+                    {
+                        item.SalesRepID   = rep.ID;
+                        item.SalesRepName = rep.Nombre;
+                    }
+                    break;
+
+                case SalesRepPickerContext.BeforeCheckout:
+                    _activeSalesRep = rep;
+                    OnPropertyChanged(nameof(ActiveSalesRepName));
+                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    // Asignar solo a los artículos que no tienen vendedor aún
+                    foreach (var item in CartItems.Where(c => c.SalesRepID == 0))
+                    {
+                        item.SalesRepID   = rep.ID;
+                        item.SalesRepName = rep.Nombre;
+                    }
+                    _pendingRepItem = null;
+                    IsSalesRepPickerVisible = false;
+                    RefreshCartItemsView();
+                    OpenCheckoutPopup();
+                    return;
+
+                default: // Session / BulkCart
+                    _activeSalesRep = rep;
+                    OnPropertyChanged(nameof(ActiveSalesRepName));
+                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    var targets = CartItems.Where(c => c.IsSelected).ToList();
+                    if (targets.Count == 0)
+                        targets = CartItems.Where(c => c.SalesRepID == 0).ToList();
+                    foreach (var item in targets)
+                    {
+                        item.SalesRepID   = rep.ID;
+                        item.SalesRepName = rep.Nombre;
+                    }
+                    break;
+            }
+
+            _pendingRepItem = null;
+            IsSalesRepPickerVisible = false;
+            RefreshCartItemsView();
+        }
+
+        private void OpenSalesRepPickerForItem(CartItemModel? item)
+        {
+            if (item is null) return;
+            _salesRepPickerContext = SalesRepPickerContext.SingleItem;
+            _pendingRepItem = item;
+            _ = OpenSalesRepPickerAsync(
+                title: "Vendedor del Artículo",
+                subtitle: $"Asignar vendedor a: {item.DisplayName}",
+                canSkip: true);
+        }
+
+        private void OpenSalesRepPickerForCheckout()
+        {
+            _salesRepPickerContext = SalesRepPickerContext.Checkout;
+            _pendingRepItem = null;
+            _ = OpenSalesRepPickerAsync(
+                title: "Vendedor de la Venta",
+                subtitle: "Se asignará a todos los artículos del carrito.",
+                canSkip: true);
+        }
+
+        private async Task OpenSalesRepPickerAsync(string title, string subtitle, bool canSkip)
+        {
+            try
+            {
+                if (_cachedSalesReps.Count == 0)
+                {
+                    var reps = await _salesRepService.GetAllAsync();
+                    _cachedSalesReps.Clear();
+                    _cachedSalesReps.AddRange(reps);
+                }
+
+                if (_cachedSalesReps.Count == 0)
+                {
+                    await _dialogService.AlertAsync("Vendedor", "No se encontraron vendedores configurados.", "OK");
+                    return;
+                }
+
+                SalesRepPickerVm.Load(_cachedSalesReps, canSkip: canSkip, title: title, subtitle: subtitle);
+                IsSalesRepPickerVisible = true;
+            }
+            catch { }
+        }
+
+        private void OnSalesRepSkipped()
+        {
+            var ctx = _salesRepPickerContext;
+            IsSalesRepPickerVisible = false;
+
+            // Si el picker se mostró justo antes del checkout, continuar con él
+            if (ctx == SalesRepPickerContext.BeforeCheckout)
+                OpenCheckoutPopup();
         }
 
         private async Task SearchOrAddProductByCodeAsync()
@@ -1266,7 +1458,9 @@ namespace NovaRetail.ViewModels
                     TaxID = product.TaxId,
                     Cabys = product.Cabys,
                     Stock = product.Stock,
-                    Quantity = quantityToApply
+                    Quantity = quantityToApply,
+                    SalesRepID = _activeSalesRep?.ID ?? 0,
+                    SalesRepName = _activeSalesRep?.Nombre ?? string.Empty
                 };
                 CartItems.Insert(0, newItem);
                 product.CartQuantity = quantityToApply;
@@ -1341,7 +1535,9 @@ namespace NovaRetail.ViewModels
                 TaxID = 0,
                 Cabys = string.Empty,
                 Stock = quantity,
-                Quantity = quantity
+                Quantity = quantity,
+                SalesRepID = _activeSalesRep?.ID ?? 0,
+                SalesRepName = _activeSalesRep?.Nombre ?? string.Empty
             };
 
             CartItems.Insert(0, item);
@@ -1775,11 +1971,63 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (_requireSalesRep && CartItems.Any(c => c.SalesRepID == 0))
+            {
+                var assign = await _dialogService.ConfirmAsync(
+                    "Vendedor requerido",
+                    "Hay artículos sin vendedor asignado. ¿Desea asignar uno ahora?",
+                    "Asignar", "Cancelar");
+                if (assign)
+                    await ShowSalesRepPickerForItemsAsync();
+                return;
+            }
+
             if (_cachedDiscountCodes.Count == 0)
                 await LoadDiscountCodesAsync();
             if (_cachedExonerationCodes.Count == 0)
                 await LoadExonerationCodesAsync();
 
+            // Mostrar picker de vendedor antes de abrir el checkout
+            await ShowSalesRepPickerBeforeCheckoutAsync();
+        }
+
+        private async Task ShowSalesRepPickerBeforeCheckoutAsync()
+        {
+            try
+            {
+                if (_cachedSalesReps.Count == 0)
+                {
+                    var reps = await _salesRepService.GetAllAsync();
+                    _cachedSalesReps.Clear();
+                    _cachedSalesReps.AddRange(reps);
+                }
+            }
+            catch { }
+
+            if (_cachedSalesReps.Count == 0)
+            {
+                // Sin vendedores configurados, ir directo al checkout
+                OpenCheckoutPopup();
+                return;
+            }
+
+            var unassigned = CartItems.Count(c => c.SalesRepID == 0);
+            var subtitle = unassigned > 0
+                ? $"{unassigned} artículo(s) sin vendedor. Seleccione uno o cancele para continuar."
+                : "Todos los artículos ya tienen vendedor. Puede cambiar o continuar.";
+
+            _salesRepPickerContext = SalesRepPickerContext.BeforeCheckout;
+            _pendingRepItem = null;
+            SalesRepPickerVm.Load(
+                _cachedSalesReps,
+                canSkip: true,
+                title: "Vendedor de la Venta",
+                subtitle: subtitle);
+            IsSalesRepPickerVisible = true;
+        }
+
+        private void OpenCheckoutPopup()
+        {
             CheckoutVm.Load(
                 subtotalText: SubtotalText,
                 discountAmountText: DiscountAmountText,
@@ -1792,7 +2040,8 @@ namespace NovaRetail.ViewModels
                 hasDiscount: DiscountAmount > 0,
                 defaultTenderID: _defaultTenderID,
                 tenders: Tenders,
-                exonerationState: BuildCheckoutExonerationState()
+                exonerationState: BuildCheckoutExonerationState(),
+                salesRep: _activeSalesRep
             );
             IsCheckoutVisible = true;
         }
@@ -2062,7 +2311,7 @@ namespace NovaRetail.ViewModels
                     Cost = 0m,
                     Commission = 0m,
                     PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
-                    SalesRepID = 0,
+                    SalesRepID = item.SalesRepID,
                     Taxable = item.TaxPercentage > 0,
                     TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
                     SalesTax = Math.Round(lineTotals.TaxColones, 2),

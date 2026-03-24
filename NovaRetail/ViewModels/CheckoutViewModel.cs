@@ -304,11 +304,18 @@ namespace NovaRetail.ViewModels
         public bool CanClearExoneration => !IsBusy && HasExoneration;
         public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar";
 
+        private SalesRepModel? _salesRep;
+        public string SalesRepText => _salesRep is not null ? _salesRep.Nombre : "Sin vendedor asignado";
+        public bool HasSalesRep => _salesRep is not null;
+        public string SalesRepButtonText => _salesRep is not null ? "Cambiar" : "Asignar";
+        public SalesRepModel? SalesRep => _salesRep;
+
         public event Action? RequestConfirm;
         public event Action? RequestCancel;
         public event Func<Task>? RequestValidateExoneration;
         public event Action? RequestClearExoneration;
         public event Func<Task>? RequestApplyManualExoneration;
+        public event Action? RequestAssignSalesRep;
 
         public ICommand SelectTenderCommand { get; }
         public ICommand ConfirmCommand { get; }
@@ -318,6 +325,7 @@ namespace NovaRetail.ViewModels
         public ICommand ApplyManualExonerationCommand { get; }
         public ICommand ToggleSecondTenderCommand { get; }
         public ICommand SelectSecondTenderCommand { get; }
+        public ICommand ChangeSalesRepCommand { get; }
 
         public CheckoutViewModel()
         {
@@ -329,6 +337,7 @@ namespace NovaRetail.ViewModels
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             ToggleSecondTenderCommand = new Command(() => HasSecondTender = !HasSecondTender, () => !IsSubmitting);
             SelectSecondTenderCommand = new Command<TenderModel>(t => SecondTender = t, t => !IsSubmitting && t is not null);
+            ChangeSalesRepCommand = new Command(() => RequestAssignSalesRep?.Invoke());
         }
 
         private async Task ApplyManualExonerationAsync()
@@ -343,7 +352,8 @@ namespace NovaRetail.ViewModels
             string taxSystemText, string quoteDaysText,
             bool hasDiscount, int defaultTenderID,
             IEnumerable<TenderModel> tenders,
-            CheckoutExonerationState? exonerationState)
+            CheckoutExonerationState? exonerationState,
+            SalesRepModel? salesRep = null)
         {
             _totalColonesValue = totalColonesValue;
             _tenderedText = string.Empty;
@@ -366,6 +376,12 @@ namespace NovaRetail.ViewModels
             StatusMessage = string.Empty;
             IsSubmitting = false;
 
+            _salesRep = salesRep;
+            OnPropertyChanged(nameof(SalesRep));
+            OnPropertyChanged(nameof(SalesRepText));
+            OnPropertyChanged(nameof(HasSalesRep));
+            OnPropertyChanged(nameof(SalesRepButtonText));
+
             Tenders.Clear();
             TenderModel? defaultTender = null;
             foreach (var t in tenders)
@@ -378,6 +394,15 @@ namespace NovaRetail.ViewModels
             SelectedTender = defaultTender ?? Tenders.FirstOrDefault();
             SetExonerationState(exonerationState);
             RefreshDerivedAmounts();
+        }
+
+        public void SetSalesRep(SalesRepModel? rep)
+        {
+            _salesRep = rep;
+            OnPropertyChanged(nameof(SalesRep));
+            OnPropertyChanged(nameof(SalesRepText));
+            OnPropertyChanged(nameof(HasSalesRep));
+            OnPropertyChanged(nameof(SalesRepButtonText));
         }
 
         public void SetBusy(bool isBusy)
