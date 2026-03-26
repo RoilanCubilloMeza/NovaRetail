@@ -100,6 +100,11 @@
                                             SurfaceColor="#F8FAFC" StrokeColor="#CBD5E1"
                                             IconColor="#64748B" LabelColor="#334155" ArrowColor="#64748B"/>
 
+                    <controls:ActionLinkRow Icon="&#x1F9FE;" Text="Historial"
+                                            Command="{Binding ShowInvoiceHistoryCommand}"
+                                            SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
+                                            IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
+
                 </VerticalStackLayout>
 
             </VerticalStackLayout>

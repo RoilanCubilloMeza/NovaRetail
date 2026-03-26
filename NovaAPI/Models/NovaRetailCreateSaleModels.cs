@@ -242,4 +242,130 @@ namespace NovaAPI.Models
         [JsonProperty("warnings")]
         public List<string> Warnings { get; set; } = new List<string>();
     }
+
+    public class NovaRetailInvoiceHistorySearchResponse
+    {
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; } = string.Empty;
+
+        [JsonProperty("entries")]
+        public List<NovaRetailInvoiceHistoryEntryDto> Entries { get; set; } = new List<NovaRetailInvoiceHistoryEntryDto>();
+    }
+
+    public class NovaRetailInvoiceHistoryDetailResponse
+    {
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; } = string.Empty;
+
+        [JsonProperty("entry")]
+        public NovaRetailInvoiceHistoryEntryDto Entry { get; set; }
+    }
+
+    public class NovaRetailInvoiceHistoryEntryDto
+    {
+        [JsonProperty("transactionNumber")]
+        public int TransactionNumber { get; set; }
+
+        [JsonProperty("date")]
+        public DateTime Date { get; set; }
+
+        [JsonProperty("comprobanteTipo")]
+        public string ComprobanteTipo { get; set; } = string.Empty;
+
+        [JsonProperty("clave50")]
+        public string Clave50 { get; set; } = string.Empty;
+
+        [JsonProperty("consecutivo")]
+        public string Consecutivo { get; set; } = string.Empty;
+
+        [JsonProperty("clientId")]
+        public string ClientId { get; set; } = string.Empty;
+
+        [JsonProperty("clientName")]
+        public string ClientName { get; set; } = string.Empty;
+
+        [JsonProperty("cashierName")]
+        public string CashierName { get; set; } = string.Empty;
+
+        [JsonProperty("registerNumber")]
+        public int RegisterNumber { get; set; }
+
+        [JsonProperty("storeName")]
+        public string StoreName { get; set; } = string.Empty;
+
+        [JsonProperty("subtotalColones")]
+        public decimal SubtotalColones { get; set; }
+
+        [JsonProperty("discountColones")]
+        public decimal DiscountColones { get; set; }
+
+        [JsonProperty("exonerationColones")]
+        public decimal ExonerationColones { get; set; }
+
+        [JsonProperty("taxColones")]
+        public decimal TaxColones { get; set; }
+
+        [JsonProperty("totalColones")]
+        public decimal TotalColones { get; set; }
+
+        [JsonProperty("changeColones")]
+        public decimal ChangeColones { get; set; }
+
+        [JsonProperty("tenderDescription")]
+        public string TenderDescription { get; set; } = string.Empty;
+
+        [JsonProperty("tenderTotalColones")]
+        public decimal TenderTotalColones { get; set; }
+
+        [JsonProperty("secondTenderDescription")]
+        public string SecondTenderDescription { get; set; } = string.Empty;
+
+        [JsonProperty("secondTenderAmountColones")]
+        public decimal SecondTenderAmountColones { get; set; }
+
+        [JsonProperty("lines")]
+        public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new List<NovaRetailInvoiceHistoryLineDto>();
+    }
+
+    public class NovaRetailInvoiceHistoryLineDto
+    {
+        [JsonProperty("displayName")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [JsonProperty("code")]
+        public string Code { get; set; } = string.Empty;
+
+        [JsonProperty("quantity")]
+        public decimal Quantity { get; set; }
+
+        [JsonProperty("taxPercentage")]
+        public decimal TaxPercentage { get; set; }
+
+        [JsonProperty("unitPriceColones")]
+        public decimal UnitPriceColones { get; set; }
+
+        [JsonProperty("lineTotalColones")]
+        public decimal LineTotalColones { get; set; }
+
+        [JsonProperty("hasDiscount")]
+        public bool HasDiscount { get; set; }
+
+        [JsonProperty("discountPercent")]
+        public decimal DiscountPercent { get; set; }
+
+        [JsonProperty("hasExoneration")]
+        public bool HasExoneration { get; set; }
+
+        [JsonProperty("exonerationPercent")]
+        public decimal ExonerationPercent { get; set; }
+
+        [JsonProperty("hasOverridePrice")]
+        public bool HasOverridePrice { get; set; }
+    }
 }

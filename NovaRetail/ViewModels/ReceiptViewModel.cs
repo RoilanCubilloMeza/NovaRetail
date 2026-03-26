@@ -232,7 +232,75 @@ namespace NovaRetail.ViewModels
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        // ── Print / Email / Save ──────────────────────────────────────────────
+        public void LoadFromHistory(InvoiceHistoryEntry entry)
+        {
+            CompanyName    = entry.StoreName;
+            CedulaJuridica = string.Empty;
+            Clave50        = entry.Clave50;
+            Consecutivo    = entry.Consecutivo;
+            ComprobanteTipo = entry.ComprobanteTipo;
+            ClientEmail    = string.Empty;
+
+            TransactionNumber = entry.TransactionNumber;
+            TransactionDate   = entry.Date.ToString("dd/MM/yyyy HH:mm");
+            ClientId          = entry.ClientId;
+            ClientName        = entry.ClientName;
+            CashierName       = entry.CashierName;
+            RegisterNumber    = entry.RegisterNumber;
+            StoreName         = entry.StoreName;
+            StoreAddress      = string.Empty;
+            StorePhone        = string.Empty;
+
+            Items.Clear();
+            foreach (var line in entry.Lines)
+            {
+                Items.Add(new ReceiptLineItem
+                {
+                    DisplayName           = line.DisplayName,
+                    Code                  = line.Code,
+                    Quantity              = line.Quantity,
+                    TaxPercentage         = line.TaxPercentage,
+                    UnitPriceColonesText  = $"₡{line.UnitPriceColones:N2}",
+                    LineTotalText         = $"₡{line.LineTotalColones:N2}",
+                    HasOverridePrice      = line.HasOverridePrice,
+                    PriceChangeDetailText = line.HasOverridePrice ? "Precio modificado" : string.Empty,
+                    HasDiscount           = line.HasDiscount,
+                    DiscountDetailText    = line.HasDiscount
+                        ? $"Desc. {line.DiscountPercent:0.##}%"
+                        : string.Empty,
+                    HasExoneration        = line.HasExoneration,
+                    ExonerationDetailText = line.HasExoneration
+                        ? $"Exoneración {line.ExonerationPercent:0.##}%"
+                        : string.Empty
+                });
+            }
+
+            TenderTotalText  = entry.TenderTotalColones > 0
+                ? $"₡{entry.TenderTotalColones:N2}"
+                : $"₡{entry.TotalColones:N2}";
+            ChangeAmountText = entry.ChangeColones > 0 ? $"₡{entry.ChangeColones:N2}" : "₡0.00";
+            HasChange        = entry.ChangeColones > 0;
+
+            SubtotalText    = $"₡{entry.SubtotalColones:N2}";
+            TaxText         = $"₡{entry.TaxColones:N2}";
+            DiscountText    = entry.DiscountColones > 0 ? $"-₡{entry.DiscountColones:N2}" : "₡0.00";
+            HasDiscount     = entry.DiscountColones > 0;
+            ExonerationText = entry.ExonerationColones > 0 ? $"-₡{entry.ExonerationColones:N2}" : "₡0.00";
+            HasExoneration  = entry.ExonerationColones > 0;
+            TotalText       = $"₡{entry.TotalColones:N2}";
+            TotalColonesText = $"₡{entry.TotalColones:N2}";
+
+            TenderDescription    = entry.TenderDescription;
+            HasSecondTender      = entry.HasSecondTender;
+            SecondTenderDescription   = entry.SecondTenderDescription;
+            SecondTenderAmountText    = entry.SecondTenderAmountColones > 0
+                ? $"₡{entry.SecondTenderAmountColones:N2}"
+                : string.Empty;
+
+            OnPropertyChanged(string.Empty);
+        }
+
+
 
         private string BuildCacheFile(string extension, string content)
         {

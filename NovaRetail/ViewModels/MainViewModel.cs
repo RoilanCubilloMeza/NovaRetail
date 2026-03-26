@@ -20,6 +20,7 @@ namespace NovaRetail.ViewModels
         private readonly IQuoteService _quoteService;
         private readonly IStoreConfigService _storeConfigService;
         private readonly ISalesRepService _salesRepService;
+        private readonly IInvoiceHistoryService _invoiceHistoryService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
@@ -320,6 +321,7 @@ namespace NovaRetail.ViewModels
         public ICommand RecallQuoteCommand { get; }
         public ICommand RecallHoldCommand { get; }
         public ICommand AssignSalesRepCommand { get; }
+        public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -658,7 +660,7 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
@@ -667,6 +669,7 @@ namespace NovaRetail.ViewModels
             _quoteService = quoteService;
             _storeConfigService = storeConfigService;
             _salesRepService = salesRepService;
+            _invoiceHistoryService = invoiceHistoryService;
             _appStore = appStore;
             _userSession = userSession;
             _appStore.StateChanged += OnAppStateChanged;
@@ -698,6 +701,7 @@ namespace NovaRetail.ViewModels
             ClearItemExonerationCommand = new Command<CartItemModel>(ClearItemExoneration);
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
+            ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
@@ -2170,6 +2174,9 @@ namespace NovaRetail.ViewModels
                 );
                 IsReceiptVisible = true;
 
+                var cartSnapshot = CartItems.ToList();
+                _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
+
                 ClearCart();
                 _ = LoadProductsAsync();
                 _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
@@ -2186,6 +2193,81 @@ namespace NovaRetail.ViewModels
                     CheckoutVm.SetCheckoutState(false);
 
                 _isProcessingCheckout = false;
+            }
+        }
+
+        private async Task SaveInvoiceHistoryAsync(
+            NovaRetailCreateSaleResponse result,
+            NovaRetailCreateSaleRequest request,
+            TenderModel tender,
+            List<CartItemModel> cartSnapshot)
+        {
+            try
+            {
+                var currentUser = _userSession.CurrentUser;
+
+                var secondDescription = CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null
+                    ? CheckoutVm.SecondTender.Description ?? string.Empty
+                    : string.Empty;
+                var secondAmount = CheckoutVm.HasSecondTender
+                    ? Math.Round(CheckoutVm.SecondAmount, 2)
+                    : 0m;
+                var tenderTotalColones = CheckoutVm.HasSecondTender
+                    ? Math.Round(CheckoutVm.ChangeColones > 0m ? CheckoutVm.TenderedColones : CheckoutVm.FirstTenderAmount, 2)
+                    : CheckoutVm.ChangeColones > 0
+                        ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
+                        : 0m;
+
+                var entry = new InvoiceHistoryEntry
+                {
+                    TransactionNumber         = result.TransactionNumber,
+                    ComprobanteTipo           = request.COMPROBANTE_TIPO,
+                    Clave50                   = !string.IsNullOrWhiteSpace(result.Clave50) ? result.Clave50 : request.CLAVE50,
+                    Consecutivo               = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : request.COMPROBANTE_INTERNO,
+                    ClientId                  = HasClient ? CurrentClientId : "S-00001",
+                    ClientName                = HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                    CashierName               = currentUser?.DisplayName ?? string.Empty,
+                    RegisterNumber            = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
+                    StoreName                 = _storeName,
+                    SubtotalColones           = _subtotalColones,
+                    DiscountColones           = _discountColones,
+                    ExonerationColones        = _exonerationColones,
+                    TaxColones                = _taxColones,
+                    TotalColones              = _totalColones,
+                    ChangeColones             = Math.Round(CheckoutVm.ChangeColones, 2),
+                    TenderDescription         = tender.Description ?? string.Empty,
+                    TenderTotalColones        = tenderTotalColones,
+                    SecondTenderDescription   = secondDescription,
+                    SecondTenderAmountColones = secondAmount,
+                    Lines = cartSnapshot.Select(item =>
+                    {
+                        var grossUnit = item.EffectivePriceColones;
+                        var discountFactor = 1m - item.DiscountPercent / 100m;
+                        var netUnit = Math.Round(grossUnit * discountFactor, 2);
+                        var netLine = Math.Round(grossUnit * item.Quantity * discountFactor, 2);
+                        return new InvoiceHistoryLine
+                        {
+                            DisplayName        = item.DisplayName,
+                            Code               = item.Code ?? string.Empty,
+                            Quantity           = item.Quantity,
+                            TaxPercentage      = item.TaxPercentage,
+                            UnitPriceColones   = item.HasDiscount ? netUnit : grossUnit,
+                            LineTotalColones   = item.HasDiscount ? netLine : Math.Round(grossUnit * item.Quantity, 2),
+                            HasDiscount        = item.HasDiscount,
+                            DiscountPercent    = item.DiscountPercent,
+                            HasExoneration     = item.HasExoneration,
+                            ExonerationPercent = item.ExonerationPercent,
+                            HasOverridePrice   = item.HasDownwardPriceOverride
+                        };
+                    }).ToList()
+                };
+
+                await _invoiceHistoryService.AddAsync(entry);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[InvoiceHistory] Error al guardar historial: {ex.GetType().Name}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[InvoiceHistory] Path: {System.IO.Path.Combine(FileSystem.AppDataDirectory, "invoice_history.json")}");
             }
         }
 

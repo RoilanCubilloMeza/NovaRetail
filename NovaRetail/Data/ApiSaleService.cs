@@ -68,4 +68,116 @@ public class ApiSaleService : ISaleService
                 : lastErrorMessage
         };
     }
+
+    public async Task<NovaRetailInvoiceHistorySearchResponse> SearchInvoiceHistoryAsync(string search, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(SalesClientName);
+                var top = string.IsNullOrWhiteSpace(search) ? 60 : 120;
+                var url = $"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(search ?? string.Empty)}&top={top}";
+                using var response = await http.GetAsync(url, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var trimmedContent = content?.TrimStart();
+
+                if (!string.IsNullOrWhiteSpace(content) && (trimmedContent!.StartsWith("{") || trimmedContent.StartsWith("[")))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailInvoiceHistorySearchResponse>(content);
+                    if (payload is not null)
+                    {
+                        if (payload.Ok)
+                            return payload;
+
+                        lastErrorMessage = payload.Message;
+                        continue;
+                    }
+
+                    lastErrorMessage = content;
+                }
+                else if (!string.IsNullOrWhiteSpace(content))
+                {
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+                }
+
+                if (!response.IsSuccessStatusCode && string.IsNullOrWhiteSpace(lastErrorMessage))
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al consultar historial de facturas en {BaseUrl}", baseUrl);
+                lastErrorMessage = ex.Message;
+            }
+        }
+
+        return new NovaRetailInvoiceHistorySearchResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage)
+                ? "No fue posible comunicarse con el servicio de historial."
+                : lastErrorMessage
+        };
+    }
+
+    public async Task<NovaRetailInvoiceHistoryDetailResponse> GetInvoiceHistoryDetailAsync(int transactionNumber, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(SalesClientName);
+                using var response = await http.GetAsync($"{baseUrl}/api/NovaRetailSales/invoice-history-detail/{transactionNumber}", cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var trimmedContent = content?.TrimStart();
+
+                if (!string.IsNullOrWhiteSpace(content) && (trimmedContent!.StartsWith("{") || trimmedContent.StartsWith("[")))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailInvoiceHistoryDetailResponse>(content);
+                    if (payload is not null)
+                    {
+                        if (payload.Ok)
+                            return payload;
+
+                        lastErrorMessage = payload.Message;
+                        continue;
+                    }
+
+                    lastErrorMessage = content;
+                }
+                else if (!string.IsNullOrWhiteSpace(content))
+                {
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+                }
+
+                if (!response.IsSuccessStatusCode && string.IsNullOrWhiteSpace(lastErrorMessage))
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al consultar detalle de factura {TransactionNumber} en {BaseUrl}", transactionNumber, baseUrl);
+                lastErrorMessage = ex.Message;
+            }
+        }
+
+        return new NovaRetailInvoiceHistoryDetailResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage)
+                ? "No fue posible comunicarse con el servicio de historial."
+                : lastErrorMessage
+        };
+    }
 }

@@ -124,3 +124,57 @@ public sealed class NovaRetailCreateSaleResponse
     public string Clave20 { get; set; } = string.Empty;
     public List<string> Warnings { get; set; } = new();
 }
+
+public sealed class NovaRetailInvoiceHistorySearchResponse
+{
+    public bool Ok { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public List<NovaRetailInvoiceHistoryEntryDto> Entries { get; set; } = new();
+}
+
+public sealed class NovaRetailInvoiceHistoryDetailResponse
+{
+    public bool Ok { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public NovaRetailInvoiceHistoryEntryDto? Entry { get; set; }
+}
+
+public sealed class NovaRetailInvoiceHistoryEntryDto
+{
+    public int TransactionNumber { get; set; }
+    public DateTime Date { get; set; }
+    public string ComprobanteTipo { get; set; } = string.Empty;
+    public string Clave50 { get; set; } = string.Empty;
+    public string Consecutivo { get; set; } = string.Empty;
+    public string ClientId { get; set; } = string.Empty;
+    public string ClientName { get; set; } = string.Empty;
+    public string CashierName { get; set; } = string.Empty;
+    public int RegisterNumber { get; set; }
+    public string StoreName { get; set; } = string.Empty;
+    public decimal SubtotalColones { get; set; }
+    public decimal DiscountColones { get; set; }
+    public decimal ExonerationColones { get; set; }
+    public decimal TaxColones { get; set; }
+    public decimal TotalColones { get; set; }
+    public decimal ChangeColones { get; set; }
+    public string TenderDescription { get; set; } = string.Empty;
+    public decimal TenderTotalColones { get; set; }
+    public string SecondTenderDescription { get; set; } = string.Empty;
+    public decimal SecondTenderAmountColones { get; set; }
+    public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new();
+}
+
+public sealed class NovaRetailInvoiceHistoryLineDto
+{
+    public string DisplayName { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal TaxPercentage { get; set; }
+    public decimal UnitPriceColones { get; set; }
+    public decimal LineTotalColones { get; set; }
+    public bool HasDiscount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public bool HasExoneration { get; set; }
+    public decimal ExonerationPercent { get; set; }
+    public bool HasOverridePrice { get; set; }
+}

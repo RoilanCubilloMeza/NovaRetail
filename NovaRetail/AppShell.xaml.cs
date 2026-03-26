@@ -10,6 +10,7 @@ namespace NovaRetail
             InitializeComponent();
             MainContent.ContentTemplate = new DataTemplate(() => services.GetRequiredService<MainPage>());
             Routing.RegisterRoute(nameof(ClientePage), typeof(ClientePage));
+            Routing.RegisterRoute(nameof(InvoiceHistoryPage), typeof(InvoiceHistoryPage));
         }
     }
 }

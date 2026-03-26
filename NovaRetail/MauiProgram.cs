@@ -37,6 +37,7 @@ namespace NovaRetail
             builder.Services.AddSingleton<IQuoteService, ApiQuoteService>();
             builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
             builder.Services.AddSingleton<ISalesRepService, ApiSalesRepService>();
+            builder.Services.AddSingleton<IInvoiceHistoryService, InvoiceHistoryService>();
             builder.Services.AddSingleton<AppStore>();
             builder.Services.AddSingleton<UserSession>();
             builder.Services.AddSingleton<Utilities>();
@@ -67,11 +68,13 @@ namespace NovaRetail
             builder.Services.AddSingleton<LoginViewModel>();
             builder.Services.AddSingleton<MainViewModel>();
             builder.Services.AddTransient<ClienteViewModel>();
+            builder.Services.AddTransient<InvoiceHistoryViewModel>();
 
             // Pages
             builder.Services.AddSingleton<LoginPage>();
             builder.Services.AddSingleton<MainPage>();
             builder.Services.AddTransient<ClientePage>();
+            builder.Services.AddTransient<InvoiceHistoryPage>();
 
             // Shell
             builder.Services.AddSingleton<AppShell>();
