@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de líneas de detalle de órdenes/cotizaciones.
+    /// Sincroniza las líneas de una orden hacia la BD.
+    /// </summary>
     public class OrderEntrysController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);

@@ -6,6 +6,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de envío de correos electrónicos.
+    /// Utiliza el servicio WCF <c>wsEmails.IntegraFastServiceSoapClient</c>.
+    /// </summary>
     public class EmailController : ApiController
     {
         wsEmails.IntegraFastServiceSoapClient wsEmail = new wsEmails.IntegraFastServiceSoapClient();

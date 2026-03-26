@@ -1,5 +1,9 @@
 namespace NovaRetail.State;
 
+/// <summary>
+/// Record inmutable que representa el estado global de la UI.
+/// Se modifica únicamente a través de <see cref="AppReducer.Reduce"/> al despachar acciones.
+/// </summary>
 public sealed record AppState(
     // ── UI overlays ──
     bool IsItemActionVisible = false,

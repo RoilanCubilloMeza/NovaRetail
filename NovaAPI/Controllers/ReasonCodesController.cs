@@ -6,6 +6,10 @@ using System.Web.Http;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de códigos de motivo (ReasonCode).
+    /// Tipos: 3 = Override de Precio, 4 = Descuento, 5 = Nota de Crédito, 6 = Exoneración.
+    /// </summary>
     public class ReasonCodesController : ApiController
     {
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);

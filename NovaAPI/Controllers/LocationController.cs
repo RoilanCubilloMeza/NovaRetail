@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de ubicaciones/sucursales.
+    /// Consulta ubicaciones asignadas a un cajero desde la BD AppCentral.
+    /// </summary>
     public class LocationController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);

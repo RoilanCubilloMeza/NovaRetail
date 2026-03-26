@@ -9,6 +9,11 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de órdenes/cotizaciones.
+    /// Gestiona la creación y sincronización de órdenes y sus líneas de detalle
+    /// en la BD AppCentral.
+    /// </summary>
     public class OrdersController : ApiController
     {
         //readonly LINQDataContext db = new LINQDataContext();

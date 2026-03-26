@@ -3,6 +3,11 @@ using System.Web.Http;
 
 namespace NovaAPI
 {
+    /// <summary>
+    /// Configura las rutas de Web API y la serialización JSON.
+    /// Los caracteres no-ASCII se escapan como <c>\uXXXX</c> para evitar
+    /// problemas de codificación entre el API (.NET Framework 4.8) y el cliente MAUI (.NET 10).
+    /// </summary>
     public static class WebApiConfig
     {
         public static void Register(HttpConfiguration config)

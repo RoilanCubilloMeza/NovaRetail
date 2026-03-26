@@ -1,5 +1,10 @@
 namespace NovaRetail.Models;
 
+/// <summary>
+/// Datos del cliente para facturación electrónica costarricense.
+/// Incluye cédula, tipo de identificación, dirección (provincia/cantón/distrito/barrio),
+/// tipo de cliente (nivel de precio), y código de actividad económica.
+/// </summary>
 public class ClienteModel
 {
     public string ClientId { get; set; } = string.Empty;

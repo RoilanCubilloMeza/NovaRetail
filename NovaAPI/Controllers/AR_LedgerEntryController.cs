@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de entradas del libro mayor de cuentas por cobrar.
+    /// Sincroniza entradas y sus detalles hacia la BD AppCentral.
+    /// </summary>
     public class AR_LedgerEntryController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);

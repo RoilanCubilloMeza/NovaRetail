@@ -3,6 +3,11 @@ using System.Runtime.CompilerServices;
 
 namespace NovaRetail.Models
 {
+    /// <summary>
+    /// Línea del carrito de compras. Contiene el artículo, cantidad, precio override,
+    /// descuento por línea, exoneración fiscal y vendedor asignado.
+    /// Expone propiedades calculadas para totales, textos de presentación e indicadores de estado.
+    /// </summary>
     public class CartItemModel : INotifyPropertyChanged
     {
         private decimal _quantity = 1m;

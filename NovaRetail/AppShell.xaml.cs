@@ -3,6 +3,9 @@ using NovaRetail.Pages;
 
 namespace NovaRetail;
 
+/// <summary>
+/// Define el shell principal y registra las rutas navegables de la aplicación.
+/// </summary>
 public partial class AppShell : Shell
 {
     public AppShell(IServiceProvider services)

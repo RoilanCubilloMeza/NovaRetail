@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de órdenes de picking (preparación de pedidos).
+    /// Consulta encabezados y detalles de órdenes de picking desde la BD RMH POS.
+    /// </summary>
     public class PickingOrderController : ApiController
     {
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);

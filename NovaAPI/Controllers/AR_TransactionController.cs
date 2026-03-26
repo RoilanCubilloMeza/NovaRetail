@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de transacciones de cuentas por cobrar (Accounts Receivable).
+    /// Sincroniza transacciones AR hacia la BD AppCentral.
+    /// </summary>
     public class AR_TransactionController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);

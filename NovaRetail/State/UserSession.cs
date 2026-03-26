@@ -2,6 +2,9 @@ using NovaRetail.Models;
 
 namespace NovaRetail.State;
 
+/// <summary>
+/// Mantiene en memoria el usuario autenticado durante la sesión actual.
+/// </summary>
 public sealed class UserSession
 {
     private readonly object _sync = new();

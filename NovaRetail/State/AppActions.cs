@@ -1,5 +1,6 @@
 namespace NovaRetail.State;
 
+/// <summary>Marcador para todas las acciones despachables al <see cref="AppStore"/>.</summary>
 public interface IAppAction;
 
 // ── UI overlays ──

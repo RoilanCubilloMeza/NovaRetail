@@ -6,6 +6,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="ILoginService"/> que consume el backend local.
+/// Autentica cajeros vía <c>POST api/Login</c>, verifica conexión a BD vía <c>GET api/StoreConfig</c>
+/// e itera las URLs configuradas en <see cref="ApiSettings"/> para failover.
+/// </summary>
 public sealed class ApiLoginService : ILoginService
 {
     private const string AuthClientName = "NovaAuth";

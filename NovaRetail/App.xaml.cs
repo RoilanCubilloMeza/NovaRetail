@@ -3,6 +3,9 @@ using NovaRetail.Pages;
 
 namespace NovaRetail;
 
+/// <summary>
+/// Orquesta la ventana principal de la app y el cambio entre login y shell principal.
+/// </summary>
 public partial class App : Application
 {
     private readonly IServiceProvider _services;
@@ -20,6 +23,9 @@ public partial class App : Application
         return window;
     }
 
+    /// <summary>
+    /// Reemplaza la página inicial por el shell principal después de un login exitoso.
+    /// </summary>
     public void ShowMainShell()
     {
         var window = Windows.FirstOrDefault();

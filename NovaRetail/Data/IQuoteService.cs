@@ -2,6 +2,10 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Contrato para gestión de cotizaciones (Type=3) y facturas en espera (Type=2).
+/// Soporta CRUD completo, listado y recuperación de órdenes.
+/// </summary>
 public interface IQuoteService
 {
     Task<NovaRetailCreateQuoteResponse> CreateQuoteAsync(NovaRetailCreateQuoteRequest request, CancellationToken cancellationToken = default);

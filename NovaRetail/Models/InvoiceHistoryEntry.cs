@@ -1,5 +1,10 @@
 namespace NovaRetail.Models;
 
+/// <summary>
+/// Registro de una factura/tiquete emitido durante la sesión actual.
+/// Se almacena localmente en memoria y se muestra en <see cref="Pages.InvoiceHistoryPage"/>.
+/// Contiene datos de transacción, cliente, cajero, totales, formas de pago y líneas de detalle.
+/// </summary>
 public sealed class InvoiceHistoryEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();

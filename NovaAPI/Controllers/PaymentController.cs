@@ -10,6 +10,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de pagos. Registra pagos de clientes en la BD AppCentral
+    /// mediante <c>spAVSCrea_Payment</c>.
+    /// </summary>
     public class PaymentController : ApiController
     {
         //dbAppCentral = ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString;

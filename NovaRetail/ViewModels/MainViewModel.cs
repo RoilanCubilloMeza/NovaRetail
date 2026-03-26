@@ -11,6 +11,10 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// ViewModel principal del POS.
+    /// Coordina catálogo, carrito, cliente, checkout, historial y popups de trabajo.
+    /// </summary>
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly IProductService _productService;

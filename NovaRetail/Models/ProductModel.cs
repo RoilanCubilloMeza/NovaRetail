@@ -3,6 +3,11 @@ using System.Runtime.CompilerServices;
 
 namespace NovaRetail.Models;
 
+/// <summary>
+/// Representa un producto del catálogo del POS.
+/// Contiene información de precio en USD y colones, impuesto, CABYS, stock y categoría.
+/// Implementa <see cref="INotifyPropertyChanged"/> para la propiedad <see cref="CartQuantity"/>.
+/// </summary>
 public class ProductModel : INotifyPropertyChanged
 {
     private decimal _cartQuantity;

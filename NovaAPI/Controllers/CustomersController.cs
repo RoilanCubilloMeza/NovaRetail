@@ -9,8 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-
-
+    /// <summary>
+    /// Controlador de clientes. Soporta consulta, búsqueda y upsert (insert/update)
+    /// de clientes en la tabla <c>Customer</c> de RMH POS.
+    /// </summary>
     public class CustomersController : ApiController
     {
         //string cs = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;

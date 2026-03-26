@@ -1,5 +1,10 @@
 namespace NovaRetail.Models;
 
+/// <summary>
+/// Request para crear una venta en el backend (<c>api/NovaRetailSales</c>).
+/// Incluye datos de tienda, cajero, cliente, líneas de artículo, formas de pago
+/// y campos de facturación electrónica costarricense (clave 50, consecutivo, tipo de comprobante).
+/// </summary>
 public sealed class NovaRetailCreateSaleRequest
 {
     public int StoreID { get; set; }

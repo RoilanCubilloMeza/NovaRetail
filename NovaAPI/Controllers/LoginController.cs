@@ -10,6 +10,11 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de autenticación de cajeros.
+    /// Consulta la tabla <c>Cashier</c> de la BD RMH POS con detección automática de columnas
+    /// para soportar distintas versiones del esquema.
+    /// </summary>
     public class LoginController : ApiController
     {
         readonly string rmhConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;

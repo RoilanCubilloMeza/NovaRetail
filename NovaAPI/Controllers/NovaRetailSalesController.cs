@@ -13,6 +13,9 @@ using NovaAPI.Models;
 namespace NovaAPI.Controllers
 {
     [RoutePrefix("api/NovaRetailSales")]
+    /// <summary>
+    /// Expone operaciones de venta consumidas por el cliente MAUI de NovaRetail.
+    /// </summary>
     public class NovaRetailSalesController : ApiController
     {
         private static string GetConnectionString()
@@ -39,6 +42,9 @@ namespace NovaAPI.Controllers
 
         [HttpPost]
         [Route("create-sale")]
+        /// <summary>
+        /// Registra una venta en RMHPOS ejecutando el procedimiento almacenado principal.
+        /// </summary>
         public HttpResponseMessage CreateSale([FromBody] NovaRetailCreateSaleRequest request)
         {
             if (request == null)

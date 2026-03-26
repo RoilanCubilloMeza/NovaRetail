@@ -8,6 +8,10 @@ using System.Web.Services;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de medios/imágenes.
+    /// Gestiona el listado de imágenes de productos almacenadas en el servidor local.
+    /// </summary>
     public class MediaController : ApiController
     {
 

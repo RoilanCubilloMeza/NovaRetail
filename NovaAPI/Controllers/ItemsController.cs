@@ -6,6 +6,10 @@ using System.Web.Http;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de productos. Expone listado paginado (<c>spWS_GetProducts</c>),
+    /// búsqueda por criterio (<c>spWS_GetProductsbyCriteria</c>) y conteo total.
+    /// </summary>
     public class ItemsController : ApiController
     {
         //readonly LINQDataContext db = new LINQDataContext();

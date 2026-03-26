@@ -6,6 +6,11 @@ using NovaAPI.wsSecurityMain;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de utilidades generales.
+    /// Expone consultas de provincias, cantones, distritos y barrios
+    /// a través del servicio WCF de facturación electrónica.
+    /// </summary>
     public class UtilidadesController : ApiController
     {
         wsSecurityMain.FacturaMeCrContractClient wsCliente = new wsSecurityMain.FacturaMeCrContractClient();

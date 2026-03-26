@@ -6,6 +6,11 @@ using System.Linq;
 using System.Net;
 using System.Web.Http;
 
+/// <summary>
+/// Controlador de representantes de ventas.
+/// Consulta la tabla <c>SalesRep</c> con detección automática de columnas
+/// para soportar distintas versiones del esquema RMH.
+/// </summary>
 public class SalesRepController : ApiController
 {
     [HttpGet]

@@ -5,6 +5,10 @@ using System.Web.Routing;
 
 namespace NovaAPI
 {
+    /// <summary>
+    /// Punto de entrada de la aplicación Web API.
+    /// Configura rutas, filtros, bundles y la serialización JSON al iniciar.
+    /// </summary>
     public class WebApiApplication : System.Web.HttpApplication
     {
         protected void Application_Start()

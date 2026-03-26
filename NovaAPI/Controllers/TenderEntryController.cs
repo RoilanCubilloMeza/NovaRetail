@@ -9,6 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de entradas de formas de pago (TenderEntry).
+    /// Registra los detalles de pago de cada transacción en la BD AppCentral.
+    /// </summary>
     public class TenderEntryController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);

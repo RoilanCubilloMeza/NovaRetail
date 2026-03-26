@@ -9,6 +9,11 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador de transacciones de venta.
+    /// Sincroniza transacciones y sus líneas de detalle hacia la BD AppCentral
+    /// mediante stored procedures (<c>spAVSCreaTransaction</c>, <c>spAVSCreaTransactionEntry</c>).
+    /// </summary>
     public class TransactionController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);

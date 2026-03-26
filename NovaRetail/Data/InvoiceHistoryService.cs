@@ -3,6 +3,9 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Persiste un historial local de comprobantes para consulta rápida dentro de la app.
+/// </summary>
 public sealed class InvoiceHistoryService : IInvoiceHistoryService
 {
     private const string FileName = "invoice_history.json";
@@ -95,6 +98,9 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Carga el historial desde disco solo una vez y luego reutiliza el caché en memoria.
+    /// </summary>
     private async Task<List<InvoiceHistoryEntry>> LoadAsync()
     {
         if (_cache is not null)
@@ -120,6 +126,9 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         return _cache;
     }
 
+    /// <summary>
+    /// Serializa el historial local en JSON dentro del directorio de datos de la app.
+    /// </summary>
     private static Task SaveAsync(List<InvoiceHistoryEntry> list)
     {
         var dir = Path.GetDirectoryName(FilePath);

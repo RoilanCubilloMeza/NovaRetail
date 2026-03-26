@@ -1,5 +1,9 @@
 namespace NovaRetail.State;
 
+/// <summary>
+/// Función pura que transforma el estado actual + una acción en un nuevo estado.
+/// Cada tipo de <see cref="IAppAction"/> se mapea a una transformación específica del record <see cref="AppState"/>.
+/// </summary>
 public static class AppReducer
 {
     public static AppState Reduce(AppState state, IAppAction action) => action switch

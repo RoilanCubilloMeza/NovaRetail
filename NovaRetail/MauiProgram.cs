@@ -8,8 +8,15 @@ using NovaRetail.ViewModels;
 
 namespace NovaRetail;
 
+/// <summary>
+/// Punto central de arranque de la aplicación MAUI.
+/// Registra dependencias, clientes HTTP, páginas y view models.
+/// </summary>
 public static class MauiProgram
 {
+    /// <summary>
+    /// Construye el contenedor de servicios y devuelve la app lista para ejecutarse.
+    /// </summary>
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();

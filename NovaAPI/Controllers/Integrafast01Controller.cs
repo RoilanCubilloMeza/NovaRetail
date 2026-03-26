@@ -6,6 +6,10 @@ using System.Web.Http;
 
 namespace NovaAPI.Controllers
 {
+    /// <summary>
+    /// Controlador auxiliar de integración con IntegraFast.
+    /// Consulta pagos RMH por tienda y representante de ventas.
+    /// </summary>
     public class Integrafast01Controller : ApiController
     {
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);

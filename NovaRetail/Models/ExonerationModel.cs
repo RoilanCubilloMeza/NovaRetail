@@ -1,5 +1,10 @@
 namespace NovaRetail.Models;
 
+/// <summary>
+/// Documento de exoneración fiscal emitido por Hacienda de Costa Rica.
+/// Contiene el número de autorización, porcentaje de exoneración, fechas de vigencia,
+/// códigos CABYS aplicables e institución beneficiaria.
+/// </summary>
 public class ExonerationModel
 {
     public string NumeroDocumento { get; set; } = string.Empty;
