@@ -1,10 +1,9 @@
 using NovaRetail.Models;
 
-namespace NovaRetail.Data
+namespace NovaRetail.Data;
+
+public interface IStoreConfigService
 {
-    public interface IStoreConfigService
-    {
-        Task<StoreConfigModel> GetConfigAsync();
-        Task<List<TenderModel>> GetTendersAsync();
-    }
+    Task<StoreConfigModel> GetConfigAsync();
+    Task<List<TenderModel>> GetTendersAsync();
 }

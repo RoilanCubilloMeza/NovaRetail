@@ -4,12 +4,13 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models;
+using NovaRetail.Models.Dtos;
 using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
 
-    public class ApiClienteService : IClienteService
+    public sealed class ApiClienteService : IClienteService
     {
         private const string ClientName = "NovaCustomers";
 

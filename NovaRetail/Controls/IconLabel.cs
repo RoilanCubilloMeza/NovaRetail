@@ -1,15 +1,14 @@
-namespace NovaRetail.Controls
+namespace NovaRetail.Controls;
+
+/// <summary>
+/// Label preconfigurado para iconos Unicode en formularios.
+/// </summary>
+public class IconLabel : Label
 {
-    /// <summary>
-    /// Label preconfigurado para iconos Unicode en formularios.
-    /// </summary>
-    public class IconLabel : Label
+    public IconLabel()
     {
-        public IconLabel()
-        {
-            FontSize        = 14;
-            TextColor       = UiConfig.TextGray500;
-            VerticalOptions = LayoutOptions.Center;
-        }
+        FontSize        = 14;
+        TextColor       = UiConfig.TextGray500;
+        VerticalOptions = LayoutOptions.Center;
     }
 }

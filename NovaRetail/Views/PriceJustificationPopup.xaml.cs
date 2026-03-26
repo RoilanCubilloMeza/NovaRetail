@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class PriceJustificationPopup : ContentView
 {
-    public partial class PriceJustificationPopup : ContentView
+    public PriceJustificationPopup()
     {
-        public PriceJustificationPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

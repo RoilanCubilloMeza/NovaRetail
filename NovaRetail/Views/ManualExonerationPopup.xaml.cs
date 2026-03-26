@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class ManualExonerationPopup : ContentView
 {
-    public partial class ManualExonerationPopup : ContentView
+    public ManualExonerationPopup()
     {
-        public ManualExonerationPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

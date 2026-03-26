@@ -1,9 +1,8 @@
 using NovaRetail.Models;
 
-namespace NovaRetail.Data
+namespace NovaRetail.Data;
+
+public interface ISalesRepService
 {
-    public interface ISalesRepService
-    {
-        Task<List<SalesRepModel>> GetAllAsync();
-    }
+    Task<List<SalesRepModel>> GetAllAsync();
 }

@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class ClienteDataPanel : ContentView
 {
-    public partial class ClienteDataPanel : ContentView
+    public ClienteDataPanel()
     {
-        public ClienteDataPanel()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

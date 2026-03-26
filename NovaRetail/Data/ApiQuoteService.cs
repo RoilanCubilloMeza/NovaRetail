@@ -5,7 +5,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-public class ApiQuoteService : IQuoteService
+public sealed class ApiQuoteService : IQuoteService
 {
     private const string QuoteClientName = "NovaQuotes";
 

@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class ItemActionPopup : ContentView
 {
-    public partial class ItemActionPopup : ContentView
+    public ItemActionPopup()
     {
-        public ItemActionPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

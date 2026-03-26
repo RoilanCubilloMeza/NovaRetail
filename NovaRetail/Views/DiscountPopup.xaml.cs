@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class DiscountPopup : ContentView
 {
-    public partial class DiscountPopup : ContentView
+    public DiscountPopup()
     {
-        public DiscountPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

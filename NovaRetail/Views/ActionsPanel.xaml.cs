@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class ActionsPanel : ContentView
 {
-    public partial class ActionsPanel : ContentView
+    public ActionsPanel()
     {
-        public ActionsPanel()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

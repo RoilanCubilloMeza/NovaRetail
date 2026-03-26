@@ -1,34 +1,33 @@
-namespace NovaRetail.State
-{
-    public sealed record AppState(
-        // ── UI overlays ──
-        bool IsItemActionVisible = false,
-        bool IsPriceJustVisible = false,
-        bool IsDiscountPopupVisible = false,
-        bool IsSelectionMode = false,
-        bool IsCheckoutVisible = false,
-        bool IsReceiptVisible = false,
-        bool IsProductsPanelVisible = true,
-        bool IsManualExonerationVisible = false,
-        bool IsOrderSearchVisible = false,
-        bool IsQuoteReceiptVisible = false,
-        bool IsSalesRepPickerVisible = false,
+namespace NovaRetail.State;
 
-        // ── Cliente ──
-        string CurrentClientId = "",
-        string CurrentClientName = "",
-        bool IsCurrentClientReceiver = false,
-        string CurrentClientCustomerType = "",
+public sealed record AppState(
+    // ── UI overlays ──
+    bool IsItemActionVisible = false,
+    bool IsPriceJustVisible = false,
+    bool IsDiscountPopupVisible = false,
+    bool IsSelectionMode = false,
+    bool IsCheckoutVisible = false,
+    bool IsReceiptVisible = false,
+    bool IsProductsPanelVisible = true,
+    bool IsManualExonerationVisible = false,
+    bool IsOrderSearchVisible = false,
+    bool IsQuoteReceiptVisible = false,
+    bool IsSalesRepPickerVisible = false,
 
-        // ── Carrito: ordenamiento ──
-        string CartSortField = "",
-        bool IsCartSortDescending = true,
+    // ── Cliente ──
+    string CurrentClientId = "",
+    string CurrentClientName = "",
+    bool IsCurrentClientReceiver = false,
+    string CurrentClientCustomerType = "",
 
-        // ── Búsqueda de productos ──
-        string ProductSearchText = "",
-        string SelectedTab = "Rápido",
-        string SelectedCategory = "Todos",
+    // ── Carrito: ordenamiento ──
+    string CartSortField = "",
+    bool IsCartSortDescending = true,
 
-        // ── Descuento del ticket ──
-        int DiscountPercent = 0);
-}
+    // ── Búsqueda de productos ──
+    string ProductSearchText = "",
+    string SelectedTab = "Rápido",
+    string SelectedCategory = "Todos",
+
+    // ── Descuento del ticket ──
+    int DiscountPercent = 0);

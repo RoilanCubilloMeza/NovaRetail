@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class SalesRepPickerPopup : ContentView
 {
-    public partial class SalesRepPickerPopup : ContentView
+    public SalesRepPickerPopup()
     {
-        public SalesRepPickerPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

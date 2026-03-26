@@ -1,9 +1,10 @@
 using NovaRetail.Models;
+using NovaRetail.Models.Dtos;
 using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
-    public class MockClienteService : IClienteService
+    public sealed class MockClienteService : IClienteService
     {
         private readonly Dictionary<string, ClienteModel> _store = new();
         private readonly Utilities _utilities;

@@ -1,10 +1,9 @@
-namespace NovaRetail.Views
+namespace NovaRetail.Views;
+
+public partial class CheckoutPopup : ContentView
 {
-    public partial class CheckoutPopup : ContentView
+    public CheckoutPopup()
     {
-        public CheckoutPopup()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

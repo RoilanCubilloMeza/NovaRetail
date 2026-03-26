@@ -6,7 +6,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-public class ApiLoginService : ILoginService
+public sealed class ApiLoginService : ILoginService
 {
     private const string AuthClientName = "NovaAuth";
 

@@ -5,7 +5,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-public class ApiSaleService : ISaleService
+public sealed class ApiSaleService : ISaleService
 {
     private const string SalesClientName = "NovaSales";
 

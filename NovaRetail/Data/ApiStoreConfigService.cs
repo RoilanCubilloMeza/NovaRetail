@@ -5,7 +5,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data
 {
-    public class ApiStoreConfigService : IStoreConfigService
+    public sealed class ApiStoreConfigService : IStoreConfigService
     {
         private const string ClientName = "NovaStoreConfig";
 

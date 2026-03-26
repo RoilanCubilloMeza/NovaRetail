@@ -6,7 +6,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data
 {
-    public class ApiProductService : IProductService
+    public sealed class ApiProductService : IProductService
     {
         private const string ItemsClientName = "NovaItems";
         private const string ReasonCodeClientName = "NovaReasonCodes";

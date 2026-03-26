@@ -4,7 +4,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data
 {
-    public class ApiExonerationService : IExonerationService
+    public sealed class ApiExonerationService : IExonerationService
     {
         private const string ClientName = "NovaExoneration";
         private const string BaseUrl = "https://api.hacienda.go.cr";
