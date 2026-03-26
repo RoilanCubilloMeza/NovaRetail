@@ -85,7 +85,7 @@ namespace NovaRetail.Data
                 .Take(5)
                 .ToList();
 
-            _cachedActividades = datos.Actividades ?? new List<ActividadDto>();
+            _cachedActividades = datos.Actividades ?? [];
             _cachedActividadesCedula = clienteId;
 
             return new ClienteModel
@@ -274,7 +274,7 @@ namespace NovaRetail.Data
         private static List<string> ParseActivityCodes(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
-                return new List<string>();
+                return [];
 
             return value
                 .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)

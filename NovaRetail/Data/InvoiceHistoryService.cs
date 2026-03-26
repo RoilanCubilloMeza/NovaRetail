@@ -84,7 +84,7 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
-            _cache = new List<InvoiceHistoryEntry>();
+            _cache = [];
             await SaveAsync(_cache);
         }
         finally
@@ -102,7 +102,7 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
 
         if (!File.Exists(FilePath))
         {
-            _cache = new List<InvoiceHistoryEntry>();
+            _cache = [];
             return _cache;
         }
 
@@ -110,11 +110,11 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         {
             var json = await File.ReadAllTextAsync(FilePath).ConfigureAwait(false);
             _cache = JsonConvert.DeserializeObject<List<InvoiceHistoryEntry>>(json)
-                     ?? new List<InvoiceHistoryEntry>();
+                     ?? [];
         }
         catch
         {
-            _cache = new List<InvoiceHistoryEntry>();
+            _cache = [];
         }
 
         return _cache;

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NovaRetail.Models.Dtos;
-using System.Globalization;
 using System.Net.Mail;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -142,7 +141,7 @@ public sealed class Utilities
                     Descripcion = a.Descripcion,
                     CIIU4 = a.Codigo,
                     CIIU4desc = a.Descripcion
-                }).ToList() ?? new List<ActividadDto>()
+                }).ToList() ?? []
             };
         }
         catch (Exception ex)
@@ -184,7 +183,7 @@ public sealed class Utilities
                     Descripcion = a.Descripcion,
                     CIIU4 = a.CIIU4,
                     CIIU4desc = a.CIIU4desc
-                }).ToList() ?? new List<ActividadDto>()
+                }).ToList() ?? []
             };
         }
         catch (Exception ex)

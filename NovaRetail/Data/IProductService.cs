@@ -2,6 +2,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>Contrato para consulta de productos y códigos de motivo.</summary>
 public interface IProductService
 {
     Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate, int storeId = 1);

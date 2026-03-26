@@ -1,5 +1,6 @@
 namespace NovaRetail.Services;
 
+/// <summary>Contrato de abstracción para diálogos de interfaz de usuario.</summary>
 public interface IDialogService
 {
     Task AlertAsync(string title, string message, string cancel);
