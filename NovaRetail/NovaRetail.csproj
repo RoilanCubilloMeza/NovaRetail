@@ -22,7 +22,7 @@
 		<ApplicationTitle>NovaRetail</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.NovaRetail</ApplicationId>
+       <ApplicationId>com.novaretail.pos</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>

@@ -55,24 +55,6 @@ public partial class ProductsPanel : ContentView
     {
         if (e.FirstVisibleItemIndex >= 0)
             _lastKnownFirstVisible = e.FirstVisibleItemIndex;
-
-        if (BindingContext is not MainViewModel viewModel)
-            return;
-
-        if (viewModel.Products.Count == 0)
-            return;
-
-        if (e.LastVisibleItemIndex < 0)
-            return;
-
-        const int threshold = 8;
-        var remainingItems = viewModel.Products.Count - e.LastVisibleItemIndex - 1;
-
-        if (remainingItems > threshold)
-            return;
-
-        if (viewModel.LoadMoreProductsCommand.CanExecute(null))
-            viewModel.LoadMoreProductsCommand.Execute(null);
     }
 
     partial void SaveNativeScrollPosition();
