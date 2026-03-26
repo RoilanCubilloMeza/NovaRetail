@@ -78,7 +78,7 @@ public class ApiSaleService : ISaleService
             try
             {
                 var http = _httpClientFactory.CreateClient(SalesClientName);
-                var top = string.IsNullOrWhiteSpace(search) ? 60 : 120;
+                var top = 200;
                 var url = $"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(search ?? string.Empty)}&top={top}";
                 using var response = await http.GetAsync(url, cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);

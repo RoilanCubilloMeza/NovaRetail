@@ -35,6 +35,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             if (_searchText == value) return;
             _searchText = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(LoadingMessageText));
+            OnPropertyChanged(nameof(ResultSummaryText));
             _ = RefreshSearchAsync();
         }
     }
@@ -42,7 +44,19 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public bool IsLoading
     {
         get => _isLoading;
-        private set { if (_isLoading == value) return; _isLoading = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNotLoading)); }
+        private set
+        {
+            if (_isLoading == value) return;
+            _isLoading = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsNotLoading));
+            OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(nameof(HasEntries));
+            OnPropertyChanged(nameof(IsCompletelyEmpty));
+            OnPropertyChanged(nameof(IsSearchEmpty));
+            OnPropertyChanged(nameof(LoadingMessageText));
+            OnPropertyChanged(nameof(ResultSummaryText));
+        }
     }
 
     public bool IsNotLoading => !_isLoading;
@@ -53,8 +67,11 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public bool IsCompletelyEmpty => !IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool IsSearchEmpty => IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool HasLocalEntries => _localEntries.Count > 0;
+    public string LoadingMessageText => IsSearchActive
+        ? "Buscando facturas..."
+        : "Cargando facturas pasadas...";
     public string ResultSummaryText => IsLoading
-        ? "Actualizando historial..."
+        ? LoadingMessageText
         : HasEntries
             ? $"{Entries.Count} factura(s) encontradas"
             : IsSearchActive
@@ -123,6 +140,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsCompletelyEmpty));
             OnPropertyChanged(nameof(IsSearchEmpty));
             OnPropertyChanged(nameof(HasLocalEntries));
+            OnPropertyChanged(nameof(LoadingMessageText));
             OnPropertyChanged(nameof(ResultSummaryText));
         }
     }
@@ -138,6 +156,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             ApplyFilter();
 
             var normalizedSearch = NormalizeSearch(_searchText);
+            OnPropertyChanged(nameof(LoadingMessageText));
             if (!ShouldQueryRemote(normalizedSearch))
                 return;
 
@@ -158,6 +177,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(HasEntries));
                 OnPropertyChanged(nameof(IsCompletelyEmpty));
                 OnPropertyChanged(nameof(IsSearchEmpty));
+                OnPropertyChanged(nameof(LoadingMessageText));
                 OnPropertyChanged(nameof(ResultSummaryText));
             }
         }
@@ -414,17 +434,17 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         if (!confirmed) return;
 
+        _searchCts?.Cancel();
         await _historyService.ClearAllAsync();
         _localEntries.Clear();
-        ApplyFilter();
-        if (SelectedEntry?.IsLocalEntry == true)
-            SelectedEntry = null;
-        OnPropertyChanged(nameof(IsEmpty));
-        OnPropertyChanged(nameof(HasEntries));
-        OnPropertyChanged(nameof(IsCompletelyEmpty));
-        OnPropertyChanged(nameof(IsSearchEmpty));
-        OnPropertyChanged(nameof(HasLocalEntries));
-        OnPropertyChanged(nameof(ResultSummaryText));
+        _searchText = string.Empty;
+        OnPropertyChanged(nameof(SearchText));
+        SelectedEntry = null;
+        _remoteEntries.Clear();
+        _remoteSearchCache.Clear();
+        _lastRemoteSearch = string.Empty;
+        Entries.Clear();
+        await LoadAsync();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
