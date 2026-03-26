@@ -505,6 +505,43 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        private async Task RefreshVisibleCatalogAsync()
+        {
+            if (!string.IsNullOrWhiteSpace(ProductSearchText))
+            {
+                FilterProducts();
+
+                if (NormalizeText(ProductSearchText).Length >= 3)
+                    await SearchFromApiAsync(ProductSearchText);
+
+                return;
+            }
+
+            if (string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(SelectedCategory, "Super", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(SelectedCategory, "Supermercado", StringComparison.OrdinalIgnoreCase))
+            {
+                await LoadProductsAsync();
+                return;
+            }
+
+            await LoadCategoryProductsAsync(SelectedCategory);
+            FilterProducts();
+        }
+
+        private async Task ResetCatalogAfterCheckoutAsync()
+        {
+            _searchCts.Cancel();
+            _searchCts = new CancellationTokenSource();
+
+            _appStore.Dispatch(new SetProductSearchTextAction(string.Empty));
+            _appStore.Dispatch(new SetSelectedTabAction("Categorías"));
+            _appStore.Dispatch(new SetSelectedCategoryAction("Todos"));
+
+            FilterProducts();
+            await LoadProductsAsync();
+        }
+
         // ── Descuento ──
 
         public int DiscountPercent
@@ -1695,6 +1732,7 @@ namespace NovaRetail.ViewModels
                     totalColonesText: TotalColonesText);
 
                 ClearCart();
+                await ResetCatalogAfterCheckoutAsync();
                 IsQuoteReceiptVisible = true;
             }
             catch (Exception ex)
@@ -1827,6 +1865,7 @@ namespace NovaRetail.ViewModels
 
                 await _dialogService.AlertAsync("Fac. Espera", $"Factura en espera #{result.OrderID} guardada exitosamente.", "OK");
                 ClearCart();
+                await ResetCatalogAfterCheckoutAsync();
             }
             catch (Exception ex)
             {
@@ -2178,7 +2217,7 @@ namespace NovaRetail.ViewModels
                 _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
 
                 ClearCart();
-                _ = LoadProductsAsync();
+                await ResetCatalogAfterCheckoutAsync();
                 _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
                 CheckoutVm.ExonerationAuthorization = string.Empty;
             }
