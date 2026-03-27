@@ -5,6 +5,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="ISaleService"/>.
+/// Envía ventas al endpoint de facturación, y además consulta historial y detalle
+/// de facturas ya registradas en la base de datos de RMH.
+/// </summary>
 public sealed class ApiSaleService : ISaleService
 {
     private const string SalesClientName = "NovaSales";

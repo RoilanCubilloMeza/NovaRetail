@@ -847,6 +847,11 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(TotalText));
         }
 
+        /// <summary>
+        /// Carga la configuración operativa de la tienda.
+        /// Aquí se resuelven impuestos, tienda/caja activa, medios de pago y reglas de vendedor
+        /// que afectan casi todo el comportamiento del POS.
+        /// </summary>
         private async Task LoadStoreConfigAsync()
         {
             try
@@ -2010,6 +2015,11 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
         }
 
+        /// <summary>
+        /// Inicia el flujo de facturación.
+        /// Valida que el carrito sea facturable, asegura que existan reason codes y exoneraciones cargadas
+        /// y, si aplica, solicita vendedor antes de abrir el popup de checkout.
+        /// </summary>
         private async Task InvoiceAsync()
         {
             if (CartItems.Count == 0)
@@ -2106,6 +2116,11 @@ namespace NovaRetail.ViewModels
             IsCheckoutVisible = true;
         }
 
+        /// <summary>
+        /// Confirma el checkout y envía la venta al backend.
+        /// Si el API responde correctamente, prepara el recibo, guarda el historial local
+        /// y reinicia el estado del POS para la siguiente transacción.
+        /// </summary>
         private async void OnCheckoutConfirm()
         {
             if (_isProcessingCheckout)
@@ -2314,6 +2329,11 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        /// <summary>
+        /// Construye el request completo de venta que se envía al API.
+        /// Agrupa tienda, caja, cajero, cliente, ítems, medios de pago y datos fiscales
+        /// usando el estado actual del carrito y del checkout.
+        /// </summary>
         private NovaRetailCreateSaleRequest BuildSaleRequest(LoginUserModel currentUser, TenderModel tender)
         {
             var currencyCode = tender.CurrencyID == 2 ? "USD" : "CRC";
@@ -2374,6 +2394,7 @@ namespace NovaRetail.ViewModels
                 CashierID = ParseCashierId(currentUser),
                 CustomerID = 0,
                 ShipToID = 0,
+                Status = 1,
                 Comment = string.Empty,
                 ReferenceNumber = string.Empty,
                 RecallID = _editingHoldId > 0 ? _editingHoldId : 0,

@@ -7,6 +7,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// ViewModel del popup de cobro.
+    /// Centraliza los totales mostrados al usuario, la selección de formas de pago,
+    /// el cálculo del cambio y el estado de exoneración aplicado antes de confirmar la venta.
+    /// </summary>
     public class CheckoutViewModel : INotifyPropertyChanged
     {
         private TenderModel? _selectedTender;

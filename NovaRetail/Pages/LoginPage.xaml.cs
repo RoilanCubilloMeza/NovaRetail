@@ -3,6 +3,11 @@ using NovaRetail.State;
 
 namespace NovaRetail.Pages;
 
+/// <summary>
+/// Pantalla de entrada de la aplicación.
+/// Conecta el <see cref="LoginViewModel"/> con la sesión del usuario y realiza la transición
+/// hacia el shell principal cuando la autenticación termina correctamente.
+/// </summary>
 public partial class LoginPage : ContentPage
 {
     private readonly LoginViewModel _viewModel;

@@ -1,5 +1,10 @@
 namespace NovaRetail.Services;
 
+/// <summary>
+/// Implementación MAUI de <see cref="IDialogService"/>.
+/// Envuelve los diálogos nativos de la página actual para que los ViewModels
+/// puedan pedir alertas, confirmaciones y prompts sin depender directamente de la UI.
+/// </summary>
 public sealed class MauiDialogService : IDialogService
 {
     private static Page CurrentPage => Application.Current!.Windows[0].Page!;

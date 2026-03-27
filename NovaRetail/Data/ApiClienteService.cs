@@ -9,7 +9,11 @@ using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
-
+    /// <summary>
+    /// Implementación HTTP de <see cref="IClienteService"/>.
+    /// Consulta, sincroniza y guarda clientes usando el API local, y además apoya
+    /// el enriquecimiento del formulario con datos externos de identificación y actividad económica.
+    /// </summary>
     public sealed class ApiClienteService : IClienteService
     {
         private const string ClientName = "NovaCustomers";

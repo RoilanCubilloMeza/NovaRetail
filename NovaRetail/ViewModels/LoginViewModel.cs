@@ -7,6 +7,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.ViewModels;
 
+/// <summary>
+/// ViewModel de la pantalla de login.
+/// Se encarga de autenticar al cajero, mostrar el estado de conexión con el API y la base de datos,
+/// y mantener la información visual de reloj, host y versión de la aplicación.
+/// </summary>
 public class LoginViewModel : INotifyPropertyChanged
 {
     private readonly ILoginService _loginService;

@@ -5,6 +5,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="IProductService"/>.
+/// Recupera catálogo, búsquedas rápidas y reason codes desde el API local,
+/// transformando la respuesta en modelos listos para presentar en el POS.
+/// </summary>
 public sealed class ApiProductService : IProductService
 {
     private const string ItemsClientName = "NovaItems";

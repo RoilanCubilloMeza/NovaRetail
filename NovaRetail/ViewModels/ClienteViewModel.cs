@@ -13,8 +13,18 @@ using NovaRetail.State;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// Estado del proceso de sincronización del cliente contra fuentes externas.
+    /// Se usa para reflejar en la UI si la búsqueda está pendiente, en progreso,
+    /// completada o sin resultados.
+    /// </summary>
     public enum SyncStatus { Idle, Syncing, Synced, NotFound }
 
+    /// <summary>
+    /// ViewModel de mantenimiento de clientes.
+    /// Resuelve validación de cédula, autocompletado desde GoMeta/Hacienda,
+    /// manejo de ubicación y persistencia del cliente que luego se usa al facturar.
+    /// </summary>
     public class ClienteViewModel : INotifyPropertyChanged
     {
         private readonly IClienteService _clienteService;

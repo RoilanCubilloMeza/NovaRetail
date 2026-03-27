@@ -8,6 +8,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
 
+/// <summary>
+/// ViewModel de historial de facturas.
+/// Combina registros locales guardados en el dispositivo con búsquedas remotas en el API,
+/// y además permite reimprimir o volver a tomar una factura como referencia de trabajo.
+/// </summary>
 public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 {
     private readonly IInvoiceHistoryService _historyService;

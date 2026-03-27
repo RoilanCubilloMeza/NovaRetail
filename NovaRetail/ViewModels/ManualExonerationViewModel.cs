@@ -6,6 +6,10 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// Catálogo de tipos de documento admitidos para exoneración manual.
+    /// La UI lo usa para llenar el picker de tipos de autorización de Hacienda.
+    /// </summary>
     public sealed class ExonerationDocumentType
     {
         public string Codigo { get; init; } = string.Empty;
@@ -13,12 +17,22 @@ namespace NovaRetail.ViewModels
         public override string ToString() => Descripcion;
     }
 
+    /// <summary>
+    /// Resultado final del formulario de exoneración manual.
+    /// Transporta la autorización capturada y el documento ya normalizado
+    /// para aplicarlo a las líneas del carrito.
+    /// </summary>
     public sealed class ManualExonerationResult
     {
         public string Authorization { get; set; } = string.Empty;
         public ExonerationModel Document { get; set; } = new();
     }
 
+    /// <summary>
+    /// ViewModel del popup de exoneración manual.
+    /// Se usa cuando la validación automática no es suficiente o el usuario necesita
+    /// completar a mano la información fiscal del documento de exoneración.
+    /// </summary>
     public class ManualExonerationViewModel : INotifyPropertyChanged
     {
         public static readonly IReadOnlyList<ExonerationDocumentType> AllDocumentTypes = new List<ExonerationDocumentType>

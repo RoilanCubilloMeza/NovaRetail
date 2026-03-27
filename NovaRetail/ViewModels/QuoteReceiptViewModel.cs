@@ -8,6 +8,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// ViewModel del comprobante de cotización.
+    /// Prepara la información mostrada al usuario después de guardar una cotización
+    /// o una factura en espera, incluyendo encabezado, líneas y totales.
+    /// </summary>
     public sealed class QuoteReceiptViewModel : INotifyPropertyChanged
     {
         public event Action? RequestClose;

@@ -4,6 +4,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="IStoreConfigService"/>.
+/// Descarga la configuración operativa de la tienda y las formas de pago activas
+/// necesarias para abrir el POS y calcular correctamente impuestos y checkout.
+/// </summary>
 public sealed class ApiStoreConfigService : IStoreConfigService
 {
     private const string ClientName = "NovaStoreConfig";

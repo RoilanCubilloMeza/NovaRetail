@@ -2,6 +2,11 @@ using System.Text.RegularExpressions;
 
 namespace NovaRetail.Services;
 
+/// <summary>
+/// Utilidad estática para validar identificaciones de Costa Rica.
+/// Centraliza reglas de entrada por tipo de documento, validación final y expresiones regulares
+/// usadas por la pantalla de cliente para evitar caracteres o formatos inválidos.
+/// </summary>
 public static partial class IdValidatorCR
 {
     [GeneratedRegex("^[0-9]$")]

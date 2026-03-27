@@ -4,6 +4,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="IExonerationService"/>.
+/// Valida autorizaciones de exoneración consultando el API público de Hacienda
+/// y convierte la respuesta externa al modelo interno usado por el POS.
+/// </summary>
 public sealed class ApiExonerationService : IExonerationService
 {
     private const string ClientName = "NovaExoneration";

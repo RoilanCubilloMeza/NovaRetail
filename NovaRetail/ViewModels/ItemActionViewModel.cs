@@ -7,6 +7,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// ViewModel del popup de acciones sobre una línea del carrito.
+    /// Permite editar cantidad, precio, descripción, descuento y vendedor usando
+    /// un flujo pensado para pantalla táctil con teclado numérico propio.
+    /// </summary>
     public class ItemActionViewModel : INotifyPropertyChanged
     {
         private CartItemModel? _item;

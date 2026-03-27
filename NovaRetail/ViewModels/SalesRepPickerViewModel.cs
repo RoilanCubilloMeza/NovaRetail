@@ -6,6 +6,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
 
+/// <summary>
+/// ViewModel del selector de vendedores.
+/// Permite buscar representantes de venta y reutilizar el mismo popup
+/// en distintos contextos: sesión, línea individual, carrito completo o checkout.
+/// </summary>
 public class SalesRepPickerViewModel : INotifyPropertyChanged
 {
     private readonly List<SalesRepModel> _allReps = [];

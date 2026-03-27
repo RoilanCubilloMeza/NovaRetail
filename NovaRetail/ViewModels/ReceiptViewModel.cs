@@ -9,6 +9,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
+    /// <summary>
+    /// Línea preparada para presentar un artículo dentro del recibo final.
+    /// Agrupa textos calculados de cantidad, impuesto, descuento, exoneración
+    /// y cambio de precio para simplificar la vista del popup.
+    /// </summary>
     public sealed class ReceiptLineItem
     {
         public string DisplayName { get; init; } = string.Empty;
@@ -36,6 +41,11 @@ namespace NovaRetail.ViewModels
         public bool HasAnyDetail => HasOverridePrice || HasDiscount || HasExoneration;
     }
 
+    /// <summary>
+    /// ViewModel del popup de recibo de venta.
+    /// Reúne datos fiscales, líneas de detalle, totales y acciones de salida
+    /// como impresión, guardado o cierre del comprobante mostrado al cajero.
+    /// </summary>
     public sealed class ReceiptViewModel : INotifyPropertyChanged
     {
         public event Action? RequestClose;

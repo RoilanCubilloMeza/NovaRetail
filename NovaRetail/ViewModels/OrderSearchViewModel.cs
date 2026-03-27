@@ -6,6 +6,11 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
 
+/// <summary>
+/// ViewModel del buscador de órdenes.
+/// Sirve tanto para recuperar cotizaciones como facturas en espera,
+/// exponiendo texto de estado, lista filtrada y eventos de selección/cierre.
+/// </summary>
 public class OrderSearchViewModel : INotifyPropertyChanged
 {
     private string _searchText = string.Empty;

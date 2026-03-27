@@ -5,6 +5,11 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
+/// <summary>
+/// Implementación de <see cref="IQuoteService"/>.
+/// Encapsula todas las operaciones remotas de cotizaciones y facturas en espera:
+/// crear, actualizar, listar, recuperar detalle y eliminar.
+/// </summary>
 public sealed class ApiQuoteService : IQuoteService
 {
     private const string QuoteClientName = "NovaQuotes";

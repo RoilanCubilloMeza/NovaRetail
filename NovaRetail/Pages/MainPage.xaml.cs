@@ -3,6 +3,11 @@ using NovaRetail.ViewModels;
 
 namespace NovaRetail.Pages;
 
+/// <summary>
+/// Página principal del POS.
+/// Hospeda el catálogo, el carrito y los popups de trabajo, y además ajusta el layout
+/// según el ancho disponible para mantener una experiencia usable en distintas resoluciones.
+/// </summary>
 public partial class MainPage : ContentPage
 {
     private readonly MainViewModel _vm;
