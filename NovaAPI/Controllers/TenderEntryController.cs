@@ -17,6 +17,10 @@ namespace NovaAPI.Controllers
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Inserta una colección de líneas de tender entry.
+        /// Cada registro describe cómo se pagó una transacción específica.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<TenderEntry> TenderEntries)
         {
@@ -32,7 +36,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar tender entries: " + ex.Message);
             }
 
             return msg;

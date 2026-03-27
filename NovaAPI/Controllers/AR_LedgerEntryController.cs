@@ -17,6 +17,10 @@ namespace NovaAPI.Controllers
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Recibe una sincronización compuesta por encabezados y detalles de ledger.
+        /// Inserta ambos bloques en AppCentral mediante stored procedures para mantener consistencia contable.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(SyncLedgerEntry SyncLedgerEntry)
         {
@@ -40,7 +44,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar ledger entries: " + registroActual + " / " + ex.Message);
             }
 
             return msg;

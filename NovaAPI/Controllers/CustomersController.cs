@@ -15,16 +15,22 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class CustomersController : ApiController
     {
-        //string cs = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
-        //readonly LINQDataContext db = new LINQDataContext();
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);//test
+        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
 
+        /// <summary>
+        /// Limpia y recorta textos al largo máximo que admite RMH.
+        /// Evita errores de persistencia por cadenas demasiado largas en columnas de cliente.
+        /// </summary>
         private static string Safe(string value, int maxLength)
         {
             var text = (value ?? string.Empty).Trim();
             return text.Length > maxLength ? text.Substring(0, maxLength) : text;
         }
 
+        /// <summary>
+        /// Inserta o actualiza un cliente según su <c>AccountNumber</c>.
+        /// Este método concentra la lógica de normalización previa antes de tocar la tabla <c>Customer</c>.
+        /// </summary>
         private void UpsertCustomer(Customer customer)
         {
             var accountNumber = Safe(customer.AccountNumber, 20);
@@ -77,6 +83,10 @@ VALUES
                 accountNumber, email2, state, city, city2, zip, activityCode, address, priceLevel);
         }
 
+        /// <summary>
+        /// Devuelve un listado amplio de clientes para consulta general.
+        /// Está pensado para pantallas de búsqueda o sincronización inicial del maestro de clientes.
+        /// </summary>
         [HttpGet]
         public IEnumerable<CustomerLookupDto> Get()
         {
@@ -111,6 +121,10 @@ ORDER BY AccountNumber").ToList();
             }
         }
 
+        /// <summary>
+        /// Devuelve clientes filtrados por tienda.
+        /// Se usa cuando otra pantalla o integración necesita restringir el universo de clientes por sucursal.
+        /// </summary>
         [HttpGet]
         [Route("api/Customers/GetByStoreID")]
         public IEnumerable<spWS_GetCustomersByStoreIDResult> Get(int StoreID)
@@ -118,6 +132,10 @@ ORDER BY AccountNumber").ToList();
             return db.spWS_GetCustomersByStoreID(StoreID);
         }
 
+        /// <summary>
+        /// Devuelve el detalle de cuentas por cobrar asociado a clientes.
+        /// Este endpoint sirve como consulta auxiliar para flujos de crédito o AR.
+        /// </summary>
         [HttpGet]
         [Route("api/Customers/ARDetail")]
         public IEnumerable<spWS_AR_DetailResult> ARDetail()
@@ -125,6 +143,10 @@ ORDER BY AccountNumber").ToList();
             return db.spWS_AR_Detail();
         }
 
+        /// <summary>
+        /// Busca clientes por texto libre o coincidencia exacta de cuenta.
+        /// Permite consultar por cédula, nombre, apellidos o nombre completo.
+        /// </summary>
         [HttpGet]
         public IEnumerable<CustomerLookupDto> Get(string criteria)
         {
@@ -165,7 +187,10 @@ ORDER BY AccountNumber", term).ToList();
             }
         }
 
-        //Metodo para insertar
+        /// <summary>
+        /// Inserta o actualiza una colección de clientes en bloque.
+        /// El frontend lo usa como operación de persistencia después de capturar o sincronizar datos del cliente.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post([FromBody] List<Customer> cliente)
         {

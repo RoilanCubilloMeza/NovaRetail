@@ -13,6 +13,10 @@ using System.Web.Http;
 /// </summary>
 public class SalesRepController : ApiController
 {
+    /// <summary>
+    /// Devuelve la lista de vendedores configurados en RMH.
+    /// Hace detección dinámica de columnas para tolerar variaciones entre instalaciones y versiones.
+    /// </summary>
     [HttpGet]
     [Route("api/SalesRep/Get")]
     public IHttpActionResult Get()

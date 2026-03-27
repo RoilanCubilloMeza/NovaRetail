@@ -16,41 +16,40 @@ namespace NovaAPI.Controllers
         wsSecurityMain.FacturaMeCrContractClient wsCliente = new wsSecurityMain.FacturaMeCrContractClient();
         wsEmails.IntegraFastServiceSoapClient wsEmails = new wsEmails.IntegraFastServiceSoapClient();
 
-        //readonly LINQDataContext db = new LINQDataContext();
-
+        /// <summary>
+        /// Devuelve el catálogo de provincias de Costa Rica.
+        /// Se usa en formularios de cliente para capturar dirección fiscal.
+        /// </summary>
         [HttpGet]
         public CommondEntitie[] GetProvincias()
         {
             return wsCliente.GetProvincias();
         }
 
+        /// <summary>
+        /// Devuelve los cantones de una provincia seleccionada.
+        /// Complementa el selector encadenado de dirección del cliente.
+        /// </summary>
         [HttpGet]
         public CommondEntitie[] GetCantones(int provincia)
         {
             return wsCliente.GetCantonByProvinciaId(provincia);
         }
 
+        /// <summary>
+        /// Devuelve los distritos de un cantón dentro de una provincia.
+        /// Completa la cadena de selección geográfica usada en formularios de dirección.
+        /// </summary>
         [HttpGet]
         public CommondEntitie[] GetDistrito(int provincia, int canton)
         {
             return wsCliente.GetDistritoByCantonIdProvinciaId(provincia, canton);
         }
 
-        /*        [HttpGet]
-                public ISingleResult<spAVSAccesoWooCommerceResult> GetCredencialesWC(string tokenUs)
-                {
-                    if (tokenUs == "Q2Qv/UdNK8tM6wvzg0Qfyg==")
-                    {
-                        return db.spAVSAccesoWooCommerce();
-                    }
-                    else
-                    {
-                        return null;
-                    }
-
-                }*/
-
-
+        /// <summary>
+        /// Endpoint simple para enviar correos sin adjuntos desde utilidades.
+        /// Se conserva como atajo histórico para procesos que no consumen `EmailController` directamente.
+        /// </summary>
         [Route("api/Utilidades/Emails_Envia")]
         [HttpGet]
         public string Emails_Envia(string smtpCode, string PARA, string CC, string CCO, string asunto,
@@ -75,6 +74,10 @@ namespace NovaAPI.Controllers
             return msg;
         }
 
+        /// <summary>
+        /// Genera un HTML de pedido y lo envía por correo.
+        /// Este método arma manualmente la plantilla del mensaje con productos y totales antes de despacharlo.
+        /// </summary>
         [Route("api/Utilidades/HTML_Envia")]
         [HttpGet]
         public string HTML_Envia(List<OrderEntry> listaProductos, SendEmail datos, decimal subtotal, decimal descuentos, decimal IVA, decimal total, string nomCliente, string correo, string numReferencia, string comentarios)

@@ -3,6 +3,11 @@ using System.Collections;
 
 namespace NovaRetail.Controls;
 
+/// <summary>
+/// Selector reutilizable con estilo de formulario POS.
+/// Encapsula un <see cref="Picker"/> con los mismos colores, bordes y espaciados
+/// usados en las pantallas de cliente, checkout y exoneración.
+/// </summary>
 public class FormPicker : ContentView
 {
     private readonly Picker _picker;

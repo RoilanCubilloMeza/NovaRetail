@@ -18,6 +18,10 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class NovaRetailSalesController : ApiController
     {
+        /// <summary>
+        /// Obtiene la cadena de conexión operativa de RMH.
+        /// Centraliza la lectura de configuración para que todos los endpoints de venta fallen de forma consistente si falta la conexión.
+        /// </summary>
         private static string GetConnectionString()
         {
             var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
@@ -27,6 +31,10 @@ namespace NovaAPI.Controllers
             return connectionString;
         }
 
+        /// <summary>
+        /// Convierte la cadena de conexión a un texto legible servidor/base de datos.
+        /// Se usa para enriquecer mensajes de error SQL y facilitar diagnóstico en soporte.
+        /// </summary>
         private static string GetConnectionTarget(string connectionString)
         {
             try
@@ -284,6 +292,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Busca facturas registradas en RMH y sus tablas fiscales auxiliares.
+        /// Se usa desde el historial del frontend para consultas rápidas por texto, cliente, clave o número de transacción.
+        /// </summary>
         [HttpGet]
         [Route("invoice-history")]
         public HttpResponseMessage InvoiceHistory(string search = "", int top = 200)
@@ -387,6 +399,10 @@ ORDER BY t.[Time] DESC";
             }
         }
 
+        /// <summary>
+        /// Obtiene el detalle completo de una factura específica.
+        /// Devuelve encabezado y líneas para reimpresión o consulta posterior desde la app MAUI.
+        /// </summary>
         [HttpGet]
         [Route("invoice-history-detail/{transactionNumber:int}")]
         public HttpResponseMessage InvoiceHistoryDetail(int transactionNumber)
@@ -531,6 +547,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Convierte las líneas del request de venta a un <see cref="DataTable"/> compatible con el TVP del stored procedure.
+        /// Es el puente entre el contrato JSON del API y el formato tabular esperado por SQL Server.
+        /// </summary>
         private static DataTable ToItemsTable(IEnumerable<NovaRetailSaleItemDto> items)
         {
             var dt = new DataTable();
@@ -595,6 +615,10 @@ ORDER BY te.ID";
             return dt;
         }
 
+        /// <summary>
+        /// Convierte los medios de pago del request a un <see cref="DataTable"/> para el TVP del stored procedure.
+        /// Aquí se empaquetan montos, moneda, datos de tarjeta y códigos de medio de pago al formato tabular SQL.
+        /// </summary>
         private static DataTable ToTendersTable(IEnumerable<NovaRetailSaleTenderDto> tenders)
         {
             var dt = new DataTable();
@@ -651,6 +675,10 @@ ORDER BY te.ID";
             return dt;
         }
 
+        /// <summary>
+        /// Verifica si un <see cref="IDataRecord"/> expone una columna específica.
+        /// Se usa para tolerar respuestas variables de procedimientos o consultas sin romper el mapeo.
+        /// </summary>
         private static bool HasColumn(IDataRecord reader, string columnName)
         {
             for (var i = 0; i < reader.FieldCount; i++)
@@ -664,6 +692,10 @@ ORDER BY te.ID";
             return false;
         }
 
+        /// <summary>
+        /// Lee un valor string de un reader con fallback por columna ausente o nula.
+        /// Simplifica el mapeo defensivo de respuestas SQL hacia DTOs del API.
+        /// </summary>
         private static string GetString(IDataRecord reader, string columnName, string defaultValue)
         {
             if (!HasColumn(reader, columnName))
@@ -675,6 +707,9 @@ ORDER BY te.ID";
             return value == DBNull.Value ? defaultValue : Convert.ToString(value);
         }
 
+        /// <summary>
+        /// Lee un entero de un reader con tolerancia a columnas ausentes o valores nulos.
+        /// </summary>
         private static int GetInt(IDataRecord reader, string columnName)
         {
             if (!HasColumn(reader, columnName))
@@ -686,6 +721,10 @@ ORDER BY te.ID";
             return value == DBNull.Value ? 0 : Convert.ToInt32(value);
         }
 
+        /// <summary>
+        /// Lee un entero nullable desde un reader.
+        /// Devuelve <c>null</c> cuando la columna no existe o no trae dato.
+        /// </summary>
         private static int? GetNullableInt(IDataRecord reader, string columnName)
         {
             if (!HasColumn(reader, columnName))
@@ -697,6 +736,9 @@ ORDER BY te.ID";
             return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
         }
 
+        /// <summary>
+        /// Lee un decimal nullable desde un reader con fallback seguro.
+        /// </summary>
         private static decimal? GetNullableDecimal(IDataRecord reader, string columnName)
         {
             if (!HasColumn(reader, columnName))
@@ -708,6 +750,9 @@ ORDER BY te.ID";
             return value == DBNull.Value ? (decimal?)null : Convert.ToDecimal(value);
         }
 
+        /// <summary>
+        /// Lee un booleano desde un reader sin asumir que la columna siempre existe.
+        /// </summary>
         private static bool GetBoolean(IDataRecord reader, string columnName)
         {
             if (!HasColumn(reader, columnName))
@@ -719,6 +764,11 @@ ORDER BY te.ID";
             return value != DBNull.Value && Convert.ToBoolean(value);
         }
 
+        /// <summary>
+        /// Localiza el batch abierto que debe usarse para registrar la venta.
+        /// Primero intenta con tienda+caja exactas, luego solo con tienda,
+        /// y por último toma cualquier batch abierto como último recurso.
+        /// </summary>
         private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId, SqlTransaction tx = null)
         {
             var candidates = new List<Tuple<string, SqlParameter[]>>();
@@ -787,6 +837,10 @@ ORDER BY te.ID";
             return null;
         }
 
+        /// <summary>
+        /// Garantiza que la transacción recién creada quede asociada a un batch válido.
+        /// Si el stored procedure principal no lo asignó, este método intenta completarlo a posteriori.
+        /// </summary>
         private static int EnsureTransactionBatchNumber(SqlConnection cn, int transactionNumber, int storeId, int registerId, int fallbackBatchNumber)
         {
             using (var cmd = new SqlCommand("SELECT BatchNumber FROM dbo.[Transaction] WHERE TransactionNumber = @TransactionNumber", cn))
@@ -819,6 +873,10 @@ ORDER BY te.ID";
             return batchNumber;
         }
 
+        /// <summary>
+        /// Genera la clave de 50 dígitos y el consecutivo de 20 cuando el request no los trae.
+        /// Para eso busca la identificación del emisor en varias tablas compatibles con distintas instalaciones.
+        /// </summary>
         private static void EnsureClaves(NovaRetailCreateSaleRequest request, int transactionNumber, SqlConnection cn)
         {
             if (!string.IsNullOrWhiteSpace(request.CLAVE50) && !string.IsNullOrWhiteSpace(request.CLAVE20))
@@ -882,6 +940,10 @@ ORDER BY te.ID";
                 request.COMPROBANTE_SITUACION = situacion;
         }
 
+        /// <summary>
+        /// Inserta filas en <c>TaxEntry</c> para cada línea gravada de la transacción.
+        /// Esto completa la estructura fiscal de RMH cuando el SP principal no deja esos registros listos.
+        /// </summary>
         private static int EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
         {
             if (request.Items == null || request.Items.Count == 0)
@@ -977,6 +1039,10 @@ ORDER BY te.ID";
             return inserted;
         }
 
+        /// <summary>
+        /// Garantiza que exista el encabezado fiscal en <c>AVS_INTEGRAFAST_01</c>.
+        /// Intenta primero con el SP heredado y, si no existe, hace un INSERT directo como fallback.
+        /// </summary>
         private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
             using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
@@ -1037,6 +1103,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Inserta directamente el encabezado de factura electrónica en <c>AVS_INTEGRAFAST_01</c>.
+        /// Se usa como plan B cuando el procedimiento heredado de IntegraFast no está disponible.
+        /// </summary>
         private static void InsertIntegraFast01Direct(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, List<string> medioPagos)
         {
             using (var cmd = new SqlCommand(@"
@@ -1269,6 +1339,10 @@ ORDER BY te.ID";
             catch { /* entorno sin permisos DDL */ }
         }
 
+        /// <summary>
+        /// Lee el sistema de impuestos configurado en RMH.
+        /// Devuelve 0 para IVA excluido y 1 para IVA incluido, según la convención usada por la solución.
+        /// </summary>
         private static int GetTaxSystem(SqlConnection cn)
         {
             using (var cmd = new SqlCommand("SELECT TOP 1 TaxSystem FROM dbo.[Configuration]", cn))
@@ -1278,6 +1352,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Representa el batch abierto seleccionado para registrar la venta.
+        /// Encapsula número de lote, tienda y caja para reutilizar esos datos en varias etapas del flujo.
+        /// </summary>
         private sealed class ActiveBatchInfo
         {
             public int BatchNumber { get; set; }
@@ -1285,6 +1363,10 @@ ORDER BY te.ID";
             public int RegisterID { get; set; }
         }
 
+        /// <summary>
+        /// Inserta el detalle de exoneración por línea en la tabla auxiliar de IntegraFast.
+        /// Esto permite que el motor fiscal posterior conozca número de documento, institución y porcentaje aplicado.
+        /// </summary>
         private static void EnsureExonerationEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
             var exonerationItems = (request.Items ?? new List<NovaRetailSaleItemDto>())
@@ -1327,12 +1409,20 @@ ORDER BY te.ID";
                 }
             }
         }
-            private static string Truncate(string value, int maxLength)
-            {
-                var s = value ?? string.Empty;
-                return s.Length <= maxLength ? s : s.Substring(0, maxLength);
-            }
+        /// <summary>
+        /// Recorta una cadena al tamaño máximo permitido por el esquema de IntegraFast.
+        /// Se usa para evitar errores al insertar textos en tablas fiscales auxiliares.
+        /// </summary>
+        private static string Truncate(string value, int maxLength)
+        {
+            var s = value ?? string.Empty;
+            return s.Length <= maxLength ? s : s.Substring(0, maxLength);
+        }
 
+        /// <summary>
+        /// Crea una cotización o factura en espera en la tabla <c>Order</c> y sus <c>OrderEntry</c>.
+        /// Usa una transacción SQL para asegurar que encabezado y líneas queden persistidos juntos.
+        /// </summary>
         [HttpPost]
         [Route("create-quote")]
         public HttpResponseMessage CreateQuote([FromBody] NovaRetailCreateQuoteRequest request)
@@ -1526,6 +1616,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Actualiza una cotización existente reemplazando sus líneas completas.
+        /// Primero actualiza el encabezado, luego elimina el detalle previo y reinserta las nuevas líneas.
+        /// </summary>
         [HttpPost]
         [Route("update-quote")]
         public HttpResponseMessage UpdateQuote([FromBody] NovaRetailCreateQuoteRequest request)
@@ -1698,6 +1792,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Elimina una factura en espera y todas sus líneas asociadas.
+        /// Se usa tanto al borrar un hold manualmente como al convertirlo en venta final.
+        /// </summary>
         private static void DeleteTransactionHold(SqlConnection cn, int holdId)
         {
             using (var cmd = new SqlCommand(
@@ -1710,6 +1808,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Guarda una factura en espera en <c>TransactionHold</c> y <c>TransactionHoldEntry</c>.
+        /// Este flujo permite pausar un carrito para retomarlo luego sin convertirlo todavía en venta.
+        /// </summary>
         [HttpPost]
         [Route("save-hold")]
         public HttpResponseMessage SaveHold([FromBody] NovaRetailCreateQuoteRequest request)
@@ -1847,6 +1949,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Actualiza una factura en espera existente reemplazando sus líneas reservadas.
+        /// Se usa cuando un hold recuperado se modifica y se vuelve a guardar.
+        /// </summary>
         [HttpPost]
         [Route("update-hold")]
         public HttpResponseMessage UpdateHold([FromBody] NovaRetailCreateQuoteRequest request)
@@ -1973,6 +2079,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Lista facturas en espera activas filtradas por tienda y texto de búsqueda.
+        /// El frontend lo consume para mostrar el popup de recuperación de holds.
+        /// </summary>
         [HttpGet]
         [Route("list-holds")]
         public HttpResponseMessage ListHolds(int storeId = 0, string search = "")
@@ -2042,6 +2152,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Devuelve el detalle de una factura en espera específica.
+        /// Reconstruye encabezado y líneas para recargar el carrito en la aplicación MAUI.
+        /// </summary>
         [HttpGet]
         [Route("hold-detail/{holdId}")]
         public HttpResponseMessage HoldDetail(int holdId)
@@ -2117,6 +2231,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Lista cotizaciones/órdenes abiertas desde la tabla <c>Order</c>.
+        /// Soporta filtro por tienda, tipo de orden y texto libre para la búsqueda en el POS.
+        /// </summary>
         [HttpGet]
         [Route("list-orders")]
         public HttpResponseMessage ListOrders(int storeId = 0, int type = 3, string search = "")
@@ -2191,6 +2309,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Obtiene el detalle completo de una cotización u orden temporal.
+        /// Se usa al recuperar una orden para volver a cargar sus líneas en el carrito.
+        /// </summary>
         [HttpGet]
         [Route("order-detail/{orderId}")]
         public HttpResponseMessage OrderDetail(int orderId)
@@ -2282,6 +2404,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Elimina una cotización y sus líneas asociadas.
+        /// Esta operación se usa cuando una orden temporal ya no debe seguir disponible.
+        /// </summary>
         [HttpDelete]
         [Route("delete-quote/{orderId}")]
         public HttpResponseMessage DeleteQuote(int orderId)
@@ -2332,6 +2458,10 @@ ORDER BY te.ID";
             }
         }
 
+        /// <summary>
+        /// Elimina una factura en espera específica.
+        /// Internamente reutiliza el helper de borrado del flujo de holds.
+        /// </summary>
         [HttpDelete]
         [Route("delete-hold/{holdId}")]
         public HttpResponseMessage DeleteHold(int holdId)

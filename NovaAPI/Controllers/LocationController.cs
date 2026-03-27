@@ -17,6 +17,10 @@ namespace NovaAPI.Controllers
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Lista las ubicaciones visibles para un cajero específico.
+        /// Se usa para limitar operación o consulta a las sucursales asignadas al usuario.
+        /// </summary>
         [HttpGet]
         public IEnumerable<spAVSGetLocationsbyCriteriaResult> Get(int cashierid)
         {
@@ -31,6 +35,10 @@ namespace NovaAPI.Controllers
 
         }
 
+        /// <summary>
+        /// Devuelve las rutas asociadas a una referencia específica.
+        /// Se usa como complemento del módulo de ubicaciones cuando el flujo trabaja por rutas de visita o reparto.
+        /// </summary>
         [HttpGet]
         [Route("api/Location/GetRoutes")]
         public IEnumerable<spAVSGetRoutesbyCriteriaResult> GetRoutes(string referenceNumber)
@@ -46,6 +54,10 @@ namespace NovaAPI.Controllers
 
         }
 
+        /// <summary>
+        /// Sincroniza rutas y ubicaciones relacionadas en AppCentral.
+        /// Primero registra las rutas y luego persiste cada ubicación asociada a la referencia de ruta.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(SyncLocation syncLocations)
         {

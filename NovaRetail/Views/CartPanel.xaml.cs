@@ -3,6 +3,11 @@ using NovaRetail.ViewModels;
 
 namespace NovaRetail.Views;
 
+/// <summary>
+/// Panel visual del carrito.
+/// Además de presentar las líneas y totales, resuelve detalles de interacción propios de la UI,
+/// como ocultar/mostrar el código del producto según ancho disponible y abrir edición por long press.
+/// </summary>
 public partial class CartPanel : ContentView
 {
     public static readonly BindableProperty ShowProductCodeProperty = BindableProperty.Create(
@@ -26,11 +31,19 @@ public partial class CartPanel : ContentView
         SizeChanged += OnCartPanelSizeChanged;
     }
 
+    /// <summary>
+    /// Ajusta si el código del producto se muestra o no según el ancho actual del panel.
+    /// Esto ayuda a mantener legible el carrito en resoluciones pequeñas.
+    /// </summary>
     private void OnCartPanelSizeChanged(object? sender, EventArgs e)
     {
         ShowProductCode = Width >= ProductCodeBreakpoint;
     }
 
+    /// <summary>
+    /// Inicia un temporizador de long press sobre una línea del carrito.
+    /// Si el usuario mantiene presionado el ítem, se abre el popup de edición.
+    /// </summary>
     private void OnItemPointerPressed(object? sender, PointerEventArgs e)
     {
         _longPressCts?.Cancel();
@@ -56,6 +69,10 @@ public partial class CartPanel : ContentView
         });
     }
 
+    /// <summary>
+    /// Cancela el long press cuando el usuario suelta el puntero.
+    /// Evita abrir la edición por toques cortos o desplazamientos accidentales.
+    /// </summary>
     private void OnItemPointerReleased(object? sender, PointerEventArgs e)
     {
         _longPressCts?.Cancel();

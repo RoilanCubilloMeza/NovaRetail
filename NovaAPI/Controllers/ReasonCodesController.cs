@@ -15,9 +15,8 @@ namespace NovaAPI.Controllers
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
 
         /// <summary>
-        /// GET api/ReasonCodes?type=4   → Descuentos
-        /// GET api/ReasonCodes?type=5   → Notas de Crédito
-        /// GET api/ReasonCodes?type=6   → Exoneraciones
+        /// Devuelve los códigos de motivo de un tipo específico.
+        /// Ejemplos comunes: 4 = descuentos, 5 = notas de crédito, 6 = exoneraciones.
         /// </summary>
         [HttpGet]
         public IEnumerable<ReasonCodeDto> Get(int type)
@@ -35,6 +34,10 @@ namespace NovaAPI.Controllers
         }
     }
 
+    /// <summary>
+    /// DTO liviano de códigos de motivo.
+    /// Se usa para exponer al frontend el identificador, tipo y descripción de cada razón configurable en RMH.
+    /// </summary>
     public class ReasonCodeDto
     {
         public int ID { get; set; }

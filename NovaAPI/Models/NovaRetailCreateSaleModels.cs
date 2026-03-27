@@ -6,6 +6,11 @@ using Newtonsoft.Json;
 
 namespace NovaAPI.Models
 {
+    /// <summary>
+    /// Request principal para registrar una venta desde el cliente MAUI.
+    /// Agrupa datos de tienda, caja, cajero, cliente, artículos, medios de pago
+    /// y campos de facturación electrónica costarricense.
+    /// </summary>
     public class NovaRetailCreateSaleRequest : IValidatableObject
     {
         [Range(1, int.MaxValue)]
@@ -73,6 +78,11 @@ namespace NovaAPI.Models
         }
     }
 
+    /// <summary>
+    /// Línea de detalle de una venta.
+    /// Representa un artículo del carrito ya transformado al formato que entiende el API,
+    /// incluyendo impuestos, descuento, vendedor y datos de exoneración por línea.
+    /// </summary>
     public class NovaRetailSaleItemDto : IValidatableObject
     {
         [Range(1, int.MaxValue)]
@@ -138,6 +148,11 @@ namespace NovaAPI.Models
         }
     }
 
+    /// <summary>
+    /// Medio de pago usado en la venta.
+    /// Se envía una fila por cada tender aplicado en checkout, incluyendo soporte
+    /// para pagos mixtos, moneda extranjera y metadatos de tarjeta.
+    /// </summary>
     public class NovaRetailSaleTenderDto : IValidatableObject
     {
         [Range(1, int.MaxValue)]
@@ -189,6 +204,11 @@ namespace NovaAPI.Models
         }
     }
 
+    /// <summary>
+    /// Respuesta devuelta al registrar una venta.
+    /// Informa si la operación fue exitosa, cuál fue el número de transacción generado
+    /// y qué advertencias o datos fiscales adicionales produjo el backend.
+    /// </summary>
     public class NovaRetailCreateSaleResponse
     {
         [JsonProperty("ok")]
@@ -243,6 +263,10 @@ namespace NovaAPI.Models
         public List<string> Warnings { get; set; } = new List<string>();
     }
 
+    /// <summary>
+    /// Respuesta del endpoint de búsqueda de historial de facturas.
+    /// Contiene una colección resumida de comprobantes listos para mostrar en la app.
+    /// </summary>
     public class NovaRetailInvoiceHistorySearchResponse
     {
         [JsonProperty("ok")]
@@ -255,6 +279,10 @@ namespace NovaAPI.Models
         public List<NovaRetailInvoiceHistoryEntryDto> Entries { get; set; } = new List<NovaRetailInvoiceHistoryEntryDto>();
     }
 
+    /// <summary>
+    /// Respuesta del detalle de una factura específica.
+    /// Incluye encabezado y líneas para reimpresión o consulta posterior.
+    /// </summary>
     public class NovaRetailInvoiceHistoryDetailResponse
     {
         [JsonProperty("ok")]
@@ -267,6 +295,10 @@ namespace NovaAPI.Models
         public NovaRetailInvoiceHistoryEntryDto Entry { get; set; }
     }
 
+    /// <summary>
+    /// Encabezado enriquecido de una factura del historial.
+    /// Combina datos de transacción, cliente, pagos y totales en colones.
+    /// </summary>
     public class NovaRetailInvoiceHistoryEntryDto
     {
         [JsonProperty("transactionNumber")]
@@ -333,6 +365,10 @@ namespace NovaAPI.Models
         public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new List<NovaRetailInvoiceHistoryLineDto>();
     }
 
+    /// <summary>
+    /// Línea individual del historial de facturas.
+    /// Se usa para mostrar detalle de artículos, impuestos y descuentos al reimprimir.
+    /// </summary>
     public class NovaRetailInvoiceHistoryLineDto
     {
         [JsonProperty("displayName")]

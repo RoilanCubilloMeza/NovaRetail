@@ -14,12 +14,15 @@ namespace NovaAPI.Controllers
     {
         wsEmails.IntegraFastServiceSoapClient wsEmail = new wsEmails.IntegraFastServiceSoapClient();
 
+        /// <summary>
+        /// Envía un correo HTML sin adjuntos.
+        /// Se usa para notificaciones simples o comprobantes cuyo contenido viaja solo en el cuerpo del mensaje.
+        /// </summary>
         [Route("api/Email/EnviaEmailSinAdjuntos")]
         [HttpPost]
         public HttpResponseMessage EnviaEmailSinAdjuntos(SendEmail Email)
         {
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 wsEmail.EnviaEmailSinAdjuntos(Email.smtpCode, Email.PARA, Email.CC
@@ -29,18 +32,21 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al enviar correo sin adjuntos: " + ex.Message);
             }
 
             return msg;
         }
 
+        /// <summary>
+        /// Envía un correo con adjuntos cargados en memoria.
+        /// Está pensado para documentos generados por la aplicación sin necesidad de archivos temporales en disco.
+        /// </summary>
         [Route("api/Email/EnviaEmailAdjuntosMemoryStream")]
         [HttpPost]
         public HttpResponseMessage EnviaEmailAdjuntosMemoryStream(SendEmail Email)
         {
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 wsEmail.EnviaEmailAdjuntosMemoryStream(Email.smtpCode, Email.PARA, Email.CC
@@ -50,7 +56,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al enviar correo con adjuntos: " + ex.Message);
             }
 
             return msg;

@@ -5,6 +5,10 @@ using Newtonsoft.Json;
 
 namespace NovaAPI.Models
 {
+    /// <summary>
+    /// Request para crear o actualizar una cotización/factura en espera.
+    /// Se usa desde el POS cuando el carrito no se convierte todavía en venta final.
+    /// </summary>
     public class NovaRetailCreateQuoteRequest : IValidatableObject
     {
         public int OrderID { get; set; }
@@ -43,6 +47,11 @@ namespace NovaAPI.Models
         }
     }
 
+    /// <summary>
+    /// Línea de una cotización o hold.
+    /// Contiene el artículo, precio, cantidad, impuestos y reason codes necesarios
+    /// para persistir la orden temporal en backend.
+    /// </summary>
     public class NovaRetailQuoteItemDto
     {
         [Range(1, int.MaxValue)]
@@ -66,6 +75,10 @@ namespace NovaAPI.Models
         public int TaxChangeReasonCodeID { get; set; }
     }
 
+    /// <summary>
+    /// Respuesta al guardar una cotización o factura en espera.
+    /// Devuelve el identificador de la orden y posibles advertencias funcionales.
+    /// </summary>
     public class NovaRetailCreateQuoteResponse
     {
         [JsonProperty("ok")]
@@ -87,6 +100,10 @@ namespace NovaAPI.Models
         public List<string> Warnings { get; set; } = new List<string>();
     }
 
+    /// <summary>
+    /// Resumen de una orden para listados de búsqueda.
+    /// Se usa en el popup de recuperación para no cargar el detalle completo hasta que sea necesario.
+    /// </summary>
     public class NovaRetailOrderSummaryDto
     {
         [JsonProperty("orderID")]
@@ -123,6 +140,10 @@ namespace NovaAPI.Models
         public string CashierName { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Encabezado detallado de una cotización o hold recuperado desde backend.
+    /// Incluye sus líneas completas para volver a cargar el carrito en la app.
+    /// </summary>
     public class NovaRetailOrderDetailDto
     {
         [JsonProperty("orderID")]
@@ -147,6 +168,10 @@ namespace NovaAPI.Models
         public List<NovaRetailOrderEntryDto> Entries { get; set; } = new List<NovaRetailOrderEntryDto>();
     }
 
+    /// <summary>
+    /// Línea individual de una orden recuperada.
+    /// Transporta precios, cantidad e impuesto al frontend para reconstruir el carrito.
+    /// </summary>
     public class NovaRetailOrderEntryDto
     {
         [JsonProperty("entryID")]
@@ -177,6 +202,10 @@ namespace NovaAPI.Models
         public int TaxID { get; set; }
     }
 
+    /// <summary>
+    /// Respuesta de listado de órdenes.
+    /// Entrega una colección resumida de cotizaciones o holds filtrados por tienda y texto de búsqueda.
+    /// </summary>
     public class NovaRetailListOrdersResponse
     {
         [JsonProperty("ok")]
@@ -189,6 +218,10 @@ namespace NovaAPI.Models
         public List<NovaRetailOrderSummaryDto> Orders { get; set; } = new List<NovaRetailOrderSummaryDto>();
     }
 
+    /// <summary>
+    /// Respuesta del detalle completo de una orden.
+    /// Se usa cuando el usuario selecciona una cotización o hold para recuperarlo en el carrito.
+    /// </summary>
     public class NovaRetailOrderDetailResponse
     {
         [JsonProperty("ok")]
@@ -201,6 +234,10 @@ namespace NovaAPI.Models
         public NovaRetailOrderDetailDto Order { get; set; }
     }
 
+    /// <summary>
+    /// Request simplificado para actualizar una orden existente.
+    /// Se usa cuando una cotización o hold ya guardado debe reemplazar sus líneas y totales.
+    /// </summary>
     public class NovaRetailUpdateOrderRequest
     {
         [Range(1, int.MaxValue)]
@@ -214,6 +251,10 @@ namespace NovaAPI.Models
         public List<NovaRetailQuoteItemDto> Items { get; set; } = new List<NovaRetailQuoteItemDto>();
     }
 
+    /// <summary>
+    /// Respuesta al actualizar una orden existente.
+    /// Mantiene un contrato ligero para confirmar éxito y mensajes de validación.
+    /// </summary>
     public class NovaRetailUpdateOrderResponse
     {
         [JsonProperty("ok")]

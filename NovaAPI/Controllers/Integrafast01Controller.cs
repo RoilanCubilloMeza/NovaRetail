@@ -14,6 +14,10 @@ namespace NovaAPI.Controllers
     {
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
 
+        /// <summary>
+        /// Devuelve pagos de RMH filtrados por tienda y vendedor.
+        /// Este resultado alimenta procesos o reportes externos ligados a IntegraFast.
+        /// </summary>
         [HttpGet]
         public IEnumerable<spAVS_GETPAYMENTS_RMHResult> Get(int storeid, int salesrep_id)
         {

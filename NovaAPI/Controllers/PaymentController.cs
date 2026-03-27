@@ -16,9 +16,12 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class PaymentController : ApiController
     {
-        //dbAppCentral = ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString;
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Inserta una colección de pagos en AppCentral.
+        /// Se usa para mantener sincronizados los movimientos de cobro asociados a clientes.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<Payment> Payments)
         {

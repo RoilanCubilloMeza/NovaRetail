@@ -17,6 +17,10 @@ namespace NovaAPI.Controllers
     public class TransactionController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        /// <summary>
+        /// Sincroniza encabezados y detalles de transacciones de venta hacia AppCentral.
+        /// Es el endpoint de replicación cuando otra app necesita exportar ventas completas.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(SyncTransaction syncTransactions)
         {
@@ -46,7 +50,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar transacciones: " + registroActual + " / " + ex.Message);
             }
 
             return msg;

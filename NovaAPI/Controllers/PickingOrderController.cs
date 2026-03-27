@@ -18,6 +18,10 @@ namespace NovaAPI.Controllers
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
         readonly AppCentralDataContext dbApp = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Obtiene encabezados de órdenes de picking.
+        /// Normalmente lo consume una interfaz de preparación de pedidos o despacho.
+        /// </summary>
         [HttpGet]
         [Route("api/PickingOrder/GetOrders")]
         public IEnumerable<spWS_GetPOD_HeaderResult> GetOrders()
@@ -32,6 +36,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtiene el detalle de líneas de picking desde RMH.
+        /// Complementa el encabezado para construir una vista completa de preparación de pedidos.
+        /// </summary>
         [HttpGet]
         [Route("api/PickingOrder/GetDetails")]
         public IEnumerable<spWS_GetPOD_DetailResult> GetDetail()
@@ -46,6 +54,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Sincroniza encabezados de órdenes de picking hacia AppCentral.
+        /// Se usa cuando otra aplicación o dispositivo genera o actualiza pedidos de preparación.
+        /// </summary>
         [HttpPost]
         [Route("api/PickingOrder/PostOrders")]
         public HttpResponseMessage PostOrder(List<PickingOrder> pickingOrder)
@@ -72,6 +84,10 @@ namespace NovaAPI.Controllers
             return msg;
         }
 
+        /// <summary>
+        /// Sincroniza las líneas de una orden de picking hacia AppCentral.
+        /// Debe ejecutarse junto con el encabezado para completar la orden preparada.
+        /// </summary>
         [HttpPost]
         [Route("api/PickingOrder/PostOrderEntries")]
         public HttpResponseMessage PostOneOrder(List<PickingOrderEntry> pickingOrderEntries)

@@ -17,6 +17,10 @@ namespace NovaAPI.Controllers
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
+        /// <summary>
+        /// Inserta una colección de transacciones de cuentas por cobrar.
+        /// Se usa cuando otra aplicación necesita replicar movimientos AR en AppCentral.
+        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<AR_Transaction> ARTransactions)
         {
@@ -34,7 +38,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar transacciones AR: " + ex.Message);
             }
 
             return msg;

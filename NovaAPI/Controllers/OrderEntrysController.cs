@@ -16,15 +16,11 @@ namespace NovaAPI.Controllers
     public class OrderEntrysController : ApiController
     {
         readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
-        /*
-        [HttpGet]
-        public IEnumerable<spWS_GetCustomersResult> Get()
-        {
-            return db.spWS_GetCustomers();
-        }
-        */
 
-        //Metodo para insertar de forma masiva todos los clientes creados en la BD de SQLLite y pasarlos al API Rest
+        /// <summary>
+        /// Inserta masivamente las líneas de detalle de una orden.
+        /// Este endpoint forma parte de la sincronización de órdenes temporales hacia backend.
+        /// </summary>
         public HttpResponseMessage Post(List<OrderEntry> orderEntry)
         {
             HttpResponseMessage msg = null;
@@ -32,9 +28,7 @@ namespace NovaAPI.Controllers
             try
             {
                 for (int i = 0; i <= orderEntry.Count() - 1; i++)
-                {//La cantidad debería poder ser decimal porque existen cantidades decimales
-                    //db.spAVSCreaOrdenEntry(orderEntry[i].OrderID.ToString(), orderEntry[i].ItemID.ToString(),orderEntry[i].Price,int.Parse(orderEntry[i].QuantityOnOrder.ToString()),orderEntry[i].Description);
-                    //registroActual = "Registro " + i.ToString() + " - " + orderEntry[i].ID;
+                {
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
             }

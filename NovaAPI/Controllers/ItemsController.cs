@@ -15,6 +15,10 @@ namespace NovaAPI.Controllers
         //readonly LINQDataContext db = new LINQDataContext();
         readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
 
+        /// <summary>
+        /// Devuelve productos paginados desde RMH.
+        /// El frontend lo usa para cargar el catálogo principal sin traer todo el inventario de una sola vez.
+        /// </summary>
         [HttpGet]
         public IEnumerable<spWS_GetProductsResult> Get(int storeid, int tipo, int page = 1, int pageSize = 200)
         {
@@ -36,6 +40,10 @@ namespace NovaAPI.Controllers
         }
 
 
+        /// <summary>
+        /// Devuelve el total de productos disponibles para una tienda.
+        /// Sirve para mostrar progreso de carga y saber si aún quedan páginas por consultar.
+        /// </summary>
         [HttpGet]
         [Route("api/Items/Count")]
         public IHttpActionResult Count(int storeid = 1, int tipo = 1)
@@ -52,6 +60,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Versión heredada de consulta por criterio.
+        /// Se mantiene por compatibilidad con clientes antiguos que consumen la ruta GET clásica sin `Search`.
+        /// </summary>
         [HttpGet]
         public IEnumerable<spWS_GetProductsbyCriteriaResult> Get(string criteria)
         {
@@ -65,6 +77,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Busca productos por texto libre.
+        /// Se usa tanto para búsqueda por descripción como por código digitado o escaneado.
+        /// </summary>
         [HttpGet]
         [Route("api/Items/Search")]
         public IEnumerable<ProductSearchDto> Search(string criteria, int top = 300)

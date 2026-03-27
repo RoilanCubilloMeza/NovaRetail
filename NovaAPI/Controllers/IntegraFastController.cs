@@ -18,12 +18,20 @@ namespace NovaAPI.Controllers
     [RoutePrefix("api/IntegraFast")]
     public class IntegraFastController : ApiController
     {
+        /// <summary>
+        /// Cadena de conexión principal hacia RMH.
+        /// Todos los procesos fiscales de este controlador leen la información base desde esta BD.
+        /// </summary>
         private static string ConnString =>
             ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString
             ?? throw new ConfigurationErrorsException("Connection string RMHPOS not configured.");
 
         // ── WS client ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Crea el cliente WCF hacia IntegraFast.
+        /// Permite sobrescribir la URL desde configuración para apuntar a otro entorno sin recompilar.
+        /// </summary>
         private static IntegraFastServiceSoapClient CreateWsClient()
         {
             var overrideUrl = ConfigurationManager.AppSettings["IntegraFastUrl"];
@@ -43,6 +51,10 @@ namespace NovaAPI.Controllers
 
         // ── Store info ────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Devuelve la información básica del emisor/tienda tomada desde RMH.
+        /// Se usa como insumo para construir facturas electrónicas antes de enviarlas al web service.
+        /// </summary>
         [HttpGet]
         [Route("storeinfo")]
         public IHttpActionResult GetStoreInfo()
@@ -51,6 +63,10 @@ namespace NovaAPI.Controllers
             catch (Exception ex) { return Content(HttpStatusCode.InternalServerError, ex.Message); }
         }
 
+        /// <summary>
+        /// Lee nombre de tienda, teléfono, identificación y datos operativos del emisor.
+        /// Además normaliza sucursal y terminal al formato requerido por facturación electrónica.
+        /// </summary>
         private static StoreInfoDto ReadStoreInfo()
         {
             var dto = new StoreInfoDto { CodSucursal = "001" };
@@ -86,6 +102,10 @@ namespace NovaAPI.Controllers
 
         // ── Pending invoices ──────────────────────────────────────────────────
 
+        /// <summary>
+        /// Lista las facturas pendientes de envío a Hacienda.
+        /// El resultado incluye encabezado, líneas y totales listos para procesar.
+        /// </summary>
         [HttpGet]
         [Route("pending")]
         public IHttpActionResult GetPending()
@@ -100,6 +120,10 @@ namespace NovaAPI.Controllers
 
         // ── Process pending ───────────────────────────────────────────────────
 
+        /// <summary>
+        /// Procesa y envía todas las facturas pendientes a IntegraFast/Hacienda.
+        /// Por cada transacción arma el receptor, invoca el web service y actualiza el estado local.
+        /// </summary>
         [HttpPost]
         [Route("process")]
         public IHttpActionResult ProcessPending()
@@ -191,6 +215,10 @@ namespace NovaAPI.Controllers
 
         // ── Private: load data ────────────────────────────────────────────────
 
+        /// <summary>
+        /// Carga desde SQL las facturas pendientes de enviar.
+        /// Primero obtiene encabezados vía stored procedure y luego completa detalle y totales por cada documento.
+        /// </summary>
         private static List<EncFactura> LoadPendingFacturas()
         {
             var list = new List<EncFactura>();
@@ -272,6 +300,10 @@ namespace NovaAPI.Controllers
             return list;
         }
 
+        /// <summary>
+        /// Carga las líneas de detalle de una factura usando funciones SQL auxiliares.
+        /// Selecciona una fuente distinta cuando el documento corresponde a apartado o hold.
+        /// </summary>
         private static void LoadDetalle(SqlConnection cn, EncFactura f)
         {
             var sql = f.CondicionVenta == "04"
@@ -328,6 +360,10 @@ namespace NovaAPI.Controllers
             f.Detalle = detalles.ToArray();
         }
 
+        /// <summary>
+        /// Carga los totales fiscales agregados del documento.
+        /// Estos valores son los que finalmente se envían al XML de facturación electrónica.
+        /// </summary>
         private static void LoadTotales(SqlConnection cn, EncFactura f)
         {
             var sql = f.CondicionVenta == "04"
@@ -359,6 +395,10 @@ namespace NovaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Construye el objeto receptor esperado por IntegraFast.
+        /// Mapea nombre, identificación y correo del cliente al contrato del web service.
+        /// </summary>
         private static ReceptorFE BuildReceptor(EncFactura f)
         {
             return new ReceptorFE
@@ -371,6 +411,10 @@ namespace NovaAPI.Controllers
             };
         }
 
+        /// <summary>
+        /// Marca en la tabla fiscal local si la factura fue enviada correctamente o quedó con error.
+        /// No interrumpe el flujo principal si la actualización del estado local falla.
+        /// </summary>
         private static void MarkInvoiceSent(int transactionNumber, bool ok, string message)
         {
             try
@@ -405,6 +449,10 @@ namespace NovaAPI.Controllers
         private static DateTime SafeDateTime(IDataReader r, string col){ try { var v = r[col]; return v == DBNull.Value ? DateTime.Now : Convert.ToDateTime(v); } catch { return DateTime.Now; } }
     }
 
+    /// <summary>
+    /// Datos básicos del emisor/tienda usados por el flujo de IntegraFast.
+    /// Resume la información mínima necesaria para identificar sucursal, terminal y cédula del negocio.
+    /// </summary>
     public class StoreInfoDto
     {
         public string StoreName   { get; set; } = string.Empty;
@@ -416,6 +464,10 @@ namespace NovaAPI.Controllers
         public string TaxID       { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Resultado individual del procesamiento de una factura pendiente.
+    /// Permite saber por transacción si Hacienda/IntegraFast aceptó o rechazó el documento.
+    /// </summary>
     public class ProcessResultDto
     {
         public int    TransactionNumber { get; set; }
