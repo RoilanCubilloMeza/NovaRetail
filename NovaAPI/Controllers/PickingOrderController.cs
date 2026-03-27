@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
@@ -15,8 +14,8 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class PickingOrderController : ApiController
     {
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
-        readonly AppCentralDataContext dbApp = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        private readonly RMHCDataContext _db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+        private readonly AppCentralDataContext _dbApp = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
         /// <summary>
         /// Obtiene encabezados de órdenes de picking.
@@ -26,14 +25,7 @@ namespace NovaAPI.Controllers
         [Route("api/PickingOrder/GetOrders")]
         public IEnumerable<spWS_GetPOD_HeaderResult> GetOrders()
         {
-            try
-            {
-                return db.spWS_GetPOD_Header();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            return _db.spWS_GetPOD_Header();
         }
 
         /// <summary>
@@ -44,14 +36,7 @@ namespace NovaAPI.Controllers
         [Route("api/PickingOrder/GetDetails")]
         public IEnumerable<spWS_GetPOD_DetailResult> GetDetail()
         {
-            try
-            {
-                return db.spWS_GetPOD_Detail();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            return _db.spWS_GetPOD_Detail();
         }
 
         /// <summary>
@@ -62,26 +47,26 @@ namespace NovaAPI.Controllers
         [Route("api/PickingOrder/PostOrders")]
         public HttpResponseMessage PostOrder(List<PickingOrder> pickingOrder)
         {
-            HttpResponseMessage msg = null;
+            if (pickingOrder == null || pickingOrder.Count == 0)
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "No se recibieron órdenes de picking para sincronizar.");
+
             try
             {
-                for (int i = 0; i <= pickingOrder.Count() - 1; i++)
+                foreach (var order in pickingOrder)
                 {
-                    dbApp.spAVS_CreaPODOrder(pickingOrder[i].ID, pickingOrder[i].StoreID, pickingOrder[i].RmsID, pickingOrder[i].LastUpdated, pickingOrder[i].Number, pickingOrder[i].Status,
-                                            pickingOrder[i].SupplierID, pickingOrder[i].DateCreated, pickingOrder[i].OrderDate, pickingOrder[i].RequiredDate,
-                                            pickingOrder[i].DatePlaced, pickingOrder[i].LocationType, pickingOrder[i].LocationID, pickingOrder[i].Reference, pickingOrder[i].AddrTo,
-                                            pickingOrder[i].ShipTo, pickingOrder[i].PurchaserID, pickingOrder[i].ShipViaID, pickingOrder[i].PayTermID, pickingOrder[i].ExchangeRate,
-                                            pickingOrder[i].Comment, pickingOrder[i].TotalAmount, pickingOrder[i].TotalTax, pickingOrder[i].SupplierName, pickingOrder[i].PhoneNumber.ToString(), pickingOrder[i].User);
-
-                    msg = Request.CreateResponse(HttpStatusCode.OK, "Registro sincronizado");
+                    _dbApp.spAVS_CreaPODOrder(order.ID, order.StoreID, order.RmsID, order.LastUpdated, order.Number, order.Status,
+                        order.SupplierID, order.DateCreated, order.OrderDate, order.RequiredDate,
+                        order.DatePlaced, order.LocationType, order.LocationID, order.Reference, order.AddrTo,
+                        order.ShipTo, order.PurchaserID, order.ShipViaID, order.PayTermID, order.ExchangeRate,
+                        order.Comment, order.TotalAmount, order.TotalTax, order.SupplierName, order.PhoneNumber.ToString(), order.User);
                 }
+
+                return Request.CreateResponse(HttpStatusCode.OK, "Órdenes de picking sincronizadas correctamente.");
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar órdenes de picking: " + ex.Message);
             }
-
-            return msg;
         }
 
         /// <summary>
@@ -92,25 +77,25 @@ namespace NovaAPI.Controllers
         [Route("api/PickingOrder/PostOrderEntries")]
         public HttpResponseMessage PostOneOrder(List<PickingOrderEntry> pickingOrderEntries)
         {
-            HttpResponseMessage msg = null;
+            if (pickingOrderEntries == null || pickingOrderEntries.Count == 0)
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "No se recibieron líneas de picking para sincronizar.");
+
             try
             {
-                for (int i = 0; i <= pickingOrderEntries.Count() - 1; i++)
+                foreach (var entry in pickingOrderEntries)
                 {
-                    dbApp.spAVSCrea_PODOrderEntry(pickingOrderEntries[i].ID, pickingOrderEntries[i].StoreID, pickingOrderEntries[i].LastUpdated, pickingOrderEntries[i].OrderID, pickingOrderEntries[i].LineType,
-                                                  pickingOrderEntries[i].LineNumber, pickingOrderEntries[i].EntryType, pickingOrderEntries[i].EntryID, pickingOrderEntries[i].ItemTaxID, pickingOrderEntries[i].OrderNumber,
-                                                  pickingOrderEntries[i].Description, pickingOrderEntries[i].UOMID, (double?)pickingOrderEntries[i].Quantity, (double?)pickingOrderEntries[i].QtyReceived, pickingOrderEntries[i].UnitCost,
-                                                  pickingOrderEntries[i].Comment);
+                    _dbApp.spAVSCrea_PODOrderEntry(entry.ID, entry.StoreID, entry.LastUpdated, entry.OrderID, entry.LineType,
+                        entry.LineNumber, entry.EntryType, entry.EntryID, entry.ItemTaxID, entry.OrderNumber,
+                        entry.Description, entry.UOMID, (double?)entry.Quantity, (double?)entry.QtyReceived, entry.UnitCost,
+                        entry.Comment);
                 }
-                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
 
+                return Request.CreateResponse(HttpStatusCode.OK, "Líneas de picking sincronizadas correctamente.");
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar líneas de picking: " + ex.Message);
             }
-
-            return msg;
         }
     }
 }

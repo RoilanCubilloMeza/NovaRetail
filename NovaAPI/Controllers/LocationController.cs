@@ -15,7 +15,7 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class LocationController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        private readonly AppCentralDataContext _db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
 
         /// <summary>
         /// Lista las ubicaciones visibles para un cajero específico.
@@ -24,15 +24,7 @@ namespace NovaAPI.Controllers
         [HttpGet]
         public IEnumerable<spAVSGetLocationsbyCriteriaResult> Get(int cashierid)
         {
-            try
-            {
-                return db.spAVSGetLocationsbyCriteria(cashierid);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
+            return _db.spAVSGetLocationsbyCriteria(cashierid);
         }
 
         /// <summary>
@@ -43,15 +35,7 @@ namespace NovaAPI.Controllers
         [Route("api/Location/GetRoutes")]
         public IEnumerable<spAVSGetRoutesbyCriteriaResult> GetRoutes(string referenceNumber)
         {
-            try
-            {
-                return db.spAVSGetRoutesbyCriteria(referenceNumber);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
+            return _db.spAVSGetRoutesbyCriteria(referenceNumber);
         }
 
         /// <summary>
@@ -61,30 +45,30 @@ namespace NovaAPI.Controllers
         [HttpPost]
         public HttpResponseMessage Post(SyncLocation syncLocations)
         {
-            List<Rutas> routes = syncLocations.Routes;
-            List<Ubicaciones> locations = syncLocations.Locations;
-            HttpResponseMessage msg = null;
-            string registroActual = "";
+            if (syncLocations == null)
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "No se recibió información de rutas y ubicaciones.");
+
+            var routes = syncLocations.Routes ?? new List<Rutas>();
+            var locations = syncLocations.Locations ?? new List<Ubicaciones>();
+
             try
             {
-                for (int i = 0; i <= routes.Count() - 1; i++)
+                foreach (var route in routes)
                 {
-                    db.spAVSCreaRoute(routes[i].StoreID, routes[i].ReferenceNumber, routes[i].Nombre, routes[i].CashierID);
-                    List<Ubicaciones> LocationsByRouteID = locations.Where(x => x.RutaID == routes[i].ReferenceNumber).ToList();
+                    _db.spAVSCreaRoute(route.StoreID, route.ReferenceNumber, route.Nombre, route.CashierID);
                 }
-                for (int j = 0; j <= locations.Count() - 1; j++)
-                {
-                    db.spAVSCreaLocation(locations[j].RutaID, locations[j].CustomerID, locations[j].Nombre, locations[j].Descripcion, locations[j].Latitud, locations[j].Longitud, locations[j].Tipo);
-                }
-                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
 
+                foreach (var location in locations)
+                {
+                    _db.spAVSCreaLocation(location.RutaID, location.CustomerID, location.Nombre, location.Descripcion, location.Latitud, location.Longitud, location.Tipo);
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, "Rutas y ubicaciones sincronizadas correctamente.");
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar rutas y ubicaciones: " + ex.Message);
             }
-
-            return msg;
         }
     }
 }
