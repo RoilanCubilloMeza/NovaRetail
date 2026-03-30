@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:NovaRetail.Controls"
+             x:Class="NovaRetail.Views.ActionsPanel">
+
+    <Border Style="{DynamicResource PanelCard}"
+            Margin="6,10,12,10">
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="0" Padding="8,10">
+
+                <!-- Tipo de Cambio -->
+                <Border Style="{DynamicResource InfoDisplayBorder}"
+                        Margin="0,0,0,12"
+                        Padding="10,8">
+                    <Grid RowDefinitions="Auto, Auto, Auto" RowSpacing="2">
+
+                        <!-- Fila 1: etiqueta + icono refresh -->
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*, Auto" ColumnSpacing="4">
+                            <Label Grid.Column="0"
+                                   Text="Tipo de Cambio"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Gray500}"
+                                   VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="&#x1F504;"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   TextColor="#94A3B8"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Fila 2: valor principal -->
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="*">
+                            <Label Grid.Column="0"
+                                   Text="{Binding ExchangeRateText}"
+                                   FontSize="{DynamicResource UIFontLG}"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="NoWrap"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Fila 3: leyenda de moneda -->
+                        <Grid Grid.Row="2"
+                              ColumnDefinitions="*">
+                            <Label Grid.Column="0"
+                                   Text="USD &#x2192; CRC"
+                                   FontSize="{DynamicResource UIFontXS}"
+                                   TextColor="#9CA3AF"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="NoWrap"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                    </Grid>
+                </Border>
+
+                <BoxView Style="{DynamicResource FormDivider}" Margin="0,0,0,14"/>
+
+                <!-- Action Buttons -->
+                <VerticalStackLayout Spacing="6">
+
+                    <controls:ActionLinkRow Icon="&#x1F4CB;" Text="Cotización"
+                                            Command="{Binding SaveQuoteCommand}"
+                                            SurfaceColor="#EFF6FF" StrokeColor="#BFDBFE"
+                                            IconColor="#3B82F6" LabelColor="#1D4ED8" ArrowColor="#3B82F6"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Cotización"
+                                            Command="{Binding RecallQuoteCommand}"
+                                            SurfaceColor="#F0FDF4" StrokeColor="#BBF7D0"
+                                            IconColor="#10B981" LabelColor="#065F46" ArrowColor="#10B981"/>
+
+                    <controls:ActionLinkRow Icon="&#x23F8;&#xFE0E;" Text="Fac. Espera"
+                                            Command="{Binding SaveHoldCommand}"
+                                            SurfaceColor="#FFFBEB" StrokeColor="#FDE68A"
+                                            IconColor="#F59E0B" LabelColor="#92400E" ArrowColor="#F59E0B"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F504;" Text="Rec. Espera"
+                                            Command="{Binding RecallHoldCommand}"
+                                            SurfaceColor="#F5F3FF" StrokeColor="#DDD6FE"
+                                            IconColor="#8B5CF6" LabelColor="#5B21B6" ArrowColor="#8B5CF6"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F9D1;" Text="Vendedor"
+                                            Command="{Binding AssignSalesRepCommand}"
+                                            IsVisible="{Binding ShowSalesRepFeature}"
+                                            SurfaceColor="#FEF3C7" StrokeColor="#FDE68A"
+                                            IconColor="#D97706" LabelColor="#92400E" ArrowColor="#D97706"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Orden Pedido"
+                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
+                                            IconColor="#6366F1" LabelColor="#3730A3" ArrowColor="#6366F1"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Pedido"
+                                            SurfaceColor="#F8FAFC" StrokeColor="#CBD5E1"
+                                            IconColor="#64748B" LabelColor="#334155" ArrowColor="#64748B"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F9FE;" Text="Historial"
+                                            Command="{Binding ShowInvoiceHistoryCommand}"
+                                            SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
+                                            IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
+
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Border>
+
+</ContentView>

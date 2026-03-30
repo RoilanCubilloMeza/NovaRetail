@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="NovaAPI/NovaAPI.csproj" Id="54306140-7687-4565-9217-eda454abc28f" />
+  <Project Path="NovaRetail/NovaRetail.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>

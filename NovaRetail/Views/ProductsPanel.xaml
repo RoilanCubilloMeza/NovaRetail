@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:NovaRetail.Controls"
+             x:Class="NovaRetail.Views.ProductsPanel"
+             x:Name="ThisPanel">
+
+    <Grid>
+
+        <!-- Collapsed state: slim expand bar -->
+        <Border Style="{DynamicResource PanelCollapseSliver}"
+                Margin="6,10,6,10"
+                IsVisible="False">
+            <Border.Triggers>
+                <DataTrigger TargetType="Border" Binding="{Binding IsProductsPanelVisible}" Value="False">
+                    <Setter Property="IsVisible" Value="True"/>
+                </DataTrigger>
+            </Border.Triggers>
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleProductsPanelCommand}"/>
+            </Border.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="8">
+                <Label Text="&#x1F4E6;" FontSize="18" TextColor="White"
+                       HorizontalTextAlignment="Center"/>
+                <Label Text="&#x25B6;" FontSize="16" TextColor="White"
+                       HorizontalTextAlignment="Center" Opacity="0.7"/>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Expanded state: full products panel -->
+        <Border Style="{DynamicResource PanelCard}"
+                Margin="6,10,6,10"
+                IsVisible="{Binding IsProductsPanelVisible}">
+
+            <Grid RowDefinitions="Auto, *" RowSpacing="0">
+
+                <!-- Panel header -->
+                <Border Grid.Row="0"
+                        Style="{DynamicResource PanelHeaderBar}">
+                    <Grid ColumnDefinitions="Auto, Auto, *, Auto"
+                          ColumnSpacing="6">
+                        <Label Grid.Column="0" Text="&#x1F4E6;"
+                               FontSize="14" TextColor="White"
+                               VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="Productos"
+                               TextColor="White" FontSize="13"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+
+                        <!-- Product count badge -->
+                        <Border Grid.Column="2"
+                                BackgroundColor="#475569"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="0"
+                                Padding="8,2"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding HasProductCount}">
+                            <Label Text="{Binding ProductCountText}"
+                                   FontSize="10" TextColor="#94A3B8"
+                                   VerticalOptions="Center"/>
+                        </Border>
+
+                        <!-- Collapse button -->
+                        <Border Grid.Column="3"
+                                BackgroundColor="#475569"
+                                StrokeShape="RoundRectangle 5"
+                                StrokeThickness="0"
+                                WidthRequest="28" HeightRequest="28"
+                                Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleProductsPanelCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="&#x25C0;" FontSize="11" TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Panel content -->
+                <Grid x:Name="ProductsPanelGrid" Grid.Row="1"
+                      RowDefinitions="Auto, Auto, *, Auto, Auto"
+                      RowSpacing="0" Padding="10,8,10,10">
+
+                    <!-- Row 0: Search bar -->
+                    <Border Grid.Row="0" Style="{DynamicResource InputBox}" Margin="0,2,0,8">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <Label Grid.Column="0" Text="&#x1F50D;&#xFE0E;" FontSize="15"
+                                   TextColor="{DynamicResource Gray400}"
+                                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                            <Entry Grid.Column="1"
+                                   Placeholder="Buscar o escanear producto..."
+                                   Text="{Binding ProductSearchText, Mode=TwoWay}"
+                                   ReturnCommand="{Binding SearchProductCommand}"
+                                   FontSize="13" BackgroundColor="Transparent"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 1: Category tabs -->
+                    <ScrollView Grid.Row="1" Orientation="Horizontal"
+                                HorizontalScrollBarVisibility="Never"
+                                Margin="0,0,0,8">
+                        <HorizontalStackLayout Spacing="6">
+                            <controls:CategoryTab Text="&#x1F3F7;&#xFE0F; Todos"
+                                                  IsActive="{Binding IsCatTodos}"
+                                                  Command="{Binding SelectCategoryCommand}"
+                                                  CommandParameter="Todos"/>
+                            <controls:CategoryTab Text="&#x1F6D2; Supermercado"
+                                                  IsActive="{Binding IsCatSuper}"
+                                                  Command="{Binding SelectCategoryCommand}"
+                                                  CommandParameter="Supermercado"/>
+                            <controls:CategoryTab Text="&#x1F527; Ferretería"
+                                                  IsActive="{Binding IsCatFerreteria}"
+                                                  Command="{Binding SelectCategoryCommand}"
+                                                  CommandParameter="Ferreteria"/>
+                            <controls:CategoryTab Text="&#x1F45F; Calzado"
+                                                  IsActive="{Binding IsCatCalzado}"
+                                                  Command="{Binding SelectCategoryCommand}"
+                                                  CommandParameter="Calzado"/>
+                            <controls:CategoryTab Text="&#x1F3E0; Hogar"
+                                                  IsActive="{Binding IsCatHogar}"
+                                                  Command="{Binding SelectCategoryCommand}"
+                                                  CommandParameter="Hogar"/>
+                        </HorizontalStackLayout>
+                    </ScrollView>
+
+                    <!-- Row 2: Product Grid (no footer to avoid WinUI scroll reset) -->
+                    <CollectionView Grid.Row="2"
+                                    x:Name="ProductsCollectionView"
+                                    ItemsSource="{Binding Products}"
+                                    ItemSizingStrategy="MeasureAllItems"
+                                    SelectionMode="None"
+                                    RemainingItemsThreshold="8"
+                                    Scrolled="ProductsCollectionView_Scrolled"
+                                    RemainingItemsThresholdReachedCommand="{Binding LoadMoreProductsCommand}">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout x:Name="ProductsItemsLayout" Orientation="Vertical" Span="2"
+                                             HorizontalItemSpacing="10" VerticalItemSpacing="10"/>
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <controls:ProductCard Emoji="{Binding Emoji}"
+                                                      ProductName="{Binding Name}"
+                                                      Code="{Binding Code}"
+                                                      Price="{Binding Price}"
+                                                      PriceColones="{Binding PriceColonesText}"
+                                                      OldPrice="{Binding OldPrice}"
+                                                      Stock="{Binding Stock}"
+                                                      Quantity="{Binding CartQuantity}"
+                                                      Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                      CommandParameter="{Binding .}"
+                                                      DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                      DecrementCommandParameter="{Binding .}"/>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <!-- Row 3: Load progress (outside CollectionView to preserve scroll) -->
+                    <VerticalStackLayout Grid.Row="3" Spacing="6"
+                                         Margin="0,8,0,0">
+
+                        <!-- Loading spinner -->
+                        <Border BackgroundColor="#F8FAFC"
+                                Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="12,8"
+                                HorizontalOptions="Center"
+                                IsVisible="{Binding IsLoadingMoreProducts}">
+                            <HorizontalStackLayout Spacing="8"
+                                                   VerticalOptions="Center"
+                                                   HorizontalOptions="Center">
+                                <ActivityIndicator IsRunning="{Binding IsLoadingMoreProducts}"
+                                                   Color="#22C55E"
+                                                   WidthRequest="20"
+                                                   HeightRequest="20"
+                                                   VerticalOptions="Center"/>
+                                <Label Text="{Binding ProductCountText}"
+                                       FontSize="12"
+                                       TextColor="{DynamicResource Gray600}"
+                                       VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <!-- Load more button -->
+                        <Border BackgroundColor="{DynamicResource AccentBlue}"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="0"
+                                Padding="14,10"
+                                HorizontalOptions="Center"
+                                IsVisible="{Binding CanLoadMore}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding LoadMoreProductsCommand}"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="8"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center">
+                                <Label Text="&#x1F4E6;" FontSize="14"
+                                       VerticalOptions="Center"/>
+                                <Label Text="Cargar más productos"
+                                       FontSize="13" FontAttributes="Bold"
+                                       TextColor="White"
+                                       VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <!-- Progress bar + count -->
+                        <VerticalStackLayout Spacing="4"
+                                             IsVisible="{Binding HasProductCount}"
+                                             Padding="10,0">
+                            <ProgressBar Progress="{Binding LoadProgress}"
+                                         ProgressColor="{DynamicResource AccentGreen}"
+                                         HeightRequest="4"/>
+                            <Label Text="{Binding ProductCountText}"
+                                   FontSize="11"
+                                   TextColor="{DynamicResource Gray400}"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+
+                    <!-- Row 4: Exonerar + Cobrar -->
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="Auto, *"
+                          ColumnSpacing="8"
+                          Margin="0,8,0,0">
+
+                        <Border Grid.Column="0"
+                                BackgroundColor="#DBEAFE"
+                                StrokeShape="RoundRectangle 10"
+                                StrokeThickness="0"
+                                Padding="14,0"
+                                MinimumWidthRequest="140">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ApplyManualExonerationCommand}"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   Spacing="6">
+                                <Label Text="%" FontSize="16" TextColor="#1D4ED8"
+                                       VerticalOptions="Center"/>
+                                <Label Text="Exonerar" FontSize="15" FontAttributes="Bold"
+                                       TextColor="#1D4ED8" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{DynamicResource PrimaryActionBorder}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding InvoiceCommand}"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout HorizontalOptions="Center"
+                                                   VerticalOptions="Center" Spacing="8">
+                                <Label Text="&#x2611;" FontSize="18" TextColor="White"
+                                       VerticalOptions="Center"/>
+                                <Label Text="Cobrar" FontSize="17" FontAttributes="Bold"
+                                       TextColor="White" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+
+    </Grid>
+
+</ContentView>

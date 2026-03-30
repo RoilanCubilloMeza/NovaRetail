@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://schemas.datacontract.org/2004/07/ClientesEntities" elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/ClientesEntities" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:complexType name="ArrayOfCommondEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="CommondEntitie" nillable="true" type="tns:CommondEntitie" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfCommondEntitie" nillable="true" type="tns:ArrayOfCommondEntitie" />
+  <xs:complexType name="CommondEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="decTipoCambio" type="xs:decimal" />
+      <xs:element minOccurs="0" name="dobValor" nillable="true" type="xs:double" />
+      <xs:element minOccurs="0" name="intCodigo" type="xs:int" />
+      <xs:element minOccurs="0" name="intId" type="xs:int" />
+      <xs:element minOccurs="0" name="intTipo" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="strCodigo" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strDescripcion" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="CommondEntitie" nillable="true" type="tns:CommondEntitie" />
+  <xs:complexType name="ArrayOfClienteEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="ClienteEntitie" nillable="true" type="tns:ClienteEntitie" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfClienteEntitie" nillable="true" type="tns:ArrayOfClienteEntitie" />
+  <xs:complexType name="ClienteEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Id" type="xs:int" />
+      <xs:element minOccurs="0" name="dtFechaIngreso" type="xs:dateTime" />
+      <xs:element minOccurs="0" name="intCodBarrio" type="xs:int" />
+      <xs:element minOccurs="0" name="intCodCanton" type="xs:int" />
+      <xs:element minOccurs="0" name="intCodDistrito" type="xs:int" />
+      <xs:element minOccurs="0" name="intCodProvincia" type="xs:int" />
+      <xs:element minOccurs="0" name="intCountClientes" type="xs:int" />
+      <xs:element minOccurs="0" name="intDiasCredito" type="xs:int" />
+      <xs:element minOccurs="0" name="intEstado" type="xs:int" />
+      <xs:element minOccurs="0" name="intIdBarrio" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intIdCanton" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intIdDistrito" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="strCedula" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strCodigo" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strDirFisica" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strEmail1" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strEmail2" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strNotas" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strRazonSocial" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strTelefono1" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strTelefono2" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strTipoCliente" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ClienteEntitie" nillable="true" type="tns:ClienteEntitie" />
+  <xs:complexType name="CountFacturasEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="CantDocDisponible" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="CantDocPlan" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="CodPlan" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Costo" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="Frecuencia" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="NombrePlan" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="intFaturaCompra" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intFaturaElectronica" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intFaturaExportacion" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intNotaCredito" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intNotaDebito" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="strFechaFinal" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strFechaInicial" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="CountFacturasEntitie" nillable="true" type="tns:CountFacturasEntitie" />
+  <xs:complexType name="PlanFacturasEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="decCosto" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="dtFechaIngreso" nillable="true" type="xs:dateTime" />
+      <xs:element minOccurs="0" name="intCantidadDoc" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intCantidadDocDisp" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intFaturaCompra" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intFaturaElectronica" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intFaturaExportacion" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intNotaCredito" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="intNotaDebito" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="strCodPlan" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strFechaFinal" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strFechaInicial" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strFrecuencia" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strNombrePlan" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="PlanFacturasEntitie" nillable="true" type="tns:PlanFacturasEntitie" />
+  <xs:complexType name="ArrayOfCABYSEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="CABYSEntitie" nillable="true" type="tns:CABYSEntitie" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfCABYSEntitie" nillable="true" type="tns:ArrayOfCABYSEntitie" />
+  <xs:complexType name="CABYSEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="strCodBienOServicio" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strDescripcion" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strImpuesto" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="CABYSEntitie" nillable="true" type="tns:CABYSEntitie" />
+  <xs:complexType name="ArrayOfVentasReporteEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="VentasReporteEntitie" nillable="true" type="tns:VentasReporteEntitie" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfVentasReporteEntitie" nillable="true" type="tns:ArrayOfVentasReporteEntitie" />
+  <xs:complexType name="VentasReporteEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="decNotasCredito" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decTotalComprobante" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decTotalDescuentos" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decTotalImpuestos" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decTotalNeto" nillable="true" type="xs:decimal" />
+      <xs:element minOccurs="0" name="intIdClienteOrigen" nillable="true" type="xs:int" />
+      <xs:element minOccurs="0" name="strClienteCedula" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strClienteRazon" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="VentasReporteEntitie" nillable="true" type="tns:VentasReporteEntitie" />
+</xs:schema>

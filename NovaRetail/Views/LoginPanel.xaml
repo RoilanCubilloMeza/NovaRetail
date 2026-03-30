@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.LoginPanel">
+    
+    <Border Style="{StaticResource LoginCard}">
+        <VerticalStackLayout Spacing="24">
+
+            <!-- Logo / branding -->
+            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                <Border BackgroundColor="{DynamicResource AccentBlue}"
+                        StrokeShape="RoundRectangle 16"
+                        StrokeThickness="0"
+                        WidthRequest="56" HeightRequest="56"
+                        HorizontalOptions="Center">
+                    <Label Text="🛒" FontSize="28"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Border>
+                <Label Text="Nova Retail"
+                       FontSize="22" FontAttributes="Bold"
+                       TextColor="{DynamicResource Gray900}"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <BoxView Style="{StaticResource FormDivider}" Margin="0,0,0,0"/>
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Inicio Sesión"
+                       Style="{StaticResource LoginTitle}"/>
+                <Label Text="Acceso seguro al sistema Nova Retail"
+                       Style="{StaticResource LoginSubtitle}"/>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="20">
+                <!-- Usuario -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Usuario:"
+                           Style="{StaticResource FieldLabelDark}"/>
+                    <Border Style="{StaticResource InputBox}" Padding="12,0">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0" Text="👤" VerticalOptions="Center" Margin="0,0,10,0"/>
+                            <Entry Grid.Column="1" Text="{Binding UserName}"
+                                   Placeholder="Ingrese su usuario"
+                                   ClearButtonVisibility="WhileEditing"
+                                   ReturnType="Next"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Clave -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Clave:"
+                           Style="{StaticResource FieldLabelDark}"/>
+                    <Border Style="{StaticResource InputBox}" Padding="12,0">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0" Text="🔒" VerticalOptions="Center" Margin="0,0,10,0"/>
+                            <Entry Grid.Column="1" Text="{Binding Password}"
+                                   Placeholder="Ingrese la clave"
+                                   IsPassword="True"
+                                   ReturnType="Go"
+                                   ReturnCommand="{Binding LoginCommand}"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <Label Text="{Binding ErrorMessage}"
+                   Style="{StaticResource ValidationErrorLabel}"
+                   HorizontalTextAlignment="Center"
+                   IsVisible="{Binding HasError}"/>
+
+            <VerticalStackLayout Spacing="10" Margin="0,10,0,0">
+                <Button Text="Iniciar Sesión"
+                        Command="{Binding LoginCommand}"
+                        Style="{StaticResource PrimaryActionButton}"/>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <Button Grid.Column="0" Text="Cancelar"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButton}"/>
+                    <Button Grid.Column="1" Text="Cambiar Clave"
+                            Command="{Binding ChangeCommand}"
+                            Style="{StaticResource SecondaryButton}"/>
+                </Grid>
+            </VerticalStackLayout>
+
+            <Label Text="{Binding AppVersionText}"
+                   FontSize="11"
+                   TextColor="{DynamicResource Gray400}"
+                   HorizontalTextAlignment="Center"/>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

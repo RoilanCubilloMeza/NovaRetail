@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:NovaRetail.Views"
+             x:Class="NovaRetail.Pages.MainPage"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0"
+          SizeChanged="OnMainGridSizeChanged">
+        <views:CartPanel     Grid.Column="0"/>
+        <views:ProductsPanel Grid.Column="1"/>
+        <views:ActionsPanel  Grid.Column="2"/>
+
+        <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsItemActionVisible}">
+            <views:ItemActionPopup BindingContext="{Binding ItemActionVm}"/>
+        </Grid>
+
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsDiscountPopupVisible}">
+            <views:DiscountPopup BindingContext="{Binding DiscountVm}"/>
+        </Grid>
+
+        <!-- Price justification overlay (Grid keeps MainViewModel BC for IsVisible) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsPriceJustVisible}">
+            <views:PriceJustificationPopup BindingContext="{Binding PriceJustVm}"/>
+        </Grid>
+
+        <!-- Checkout overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCheckoutVisible}">
+            <views:CheckoutPopup BindingContext="{Binding CheckoutVm}"/>
+        </Grid>
+
+        <!-- Receipt overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsReceiptVisible}">
+            <views:ReceiptPopup BindingContext="{Binding ReceiptVm}"/>
+        </Grid>
+
+        <!-- Manual exoneration overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsManualExonerationVisible}">
+            <views:ManualExonerationPopup BindingContext="{Binding ManualExonerationVm}"/>
+        </Grid>
+
+        <!-- Order search overlay (Rec. Cotización / Rec. Espera) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsOrderSearchVisible}">
+            <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
+        </Grid>
+
+        <!-- Quote receipt overlay (Proforma) -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsQuoteReceiptVisible}">
+            <views:QuoteReceiptPopup BindingContext="{Binding QuoteReceiptVm}"/>
+        </Grid>
+
+        <!-- Sales rep picker overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsSalesRepPickerVisible}">
+            <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
+        </Grid>
+    </Grid>
+
+</ContentPage>

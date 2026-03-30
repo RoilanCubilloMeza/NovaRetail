@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:NovaRetail.Views"
+             x:Class="NovaRetail.Pages.LoginPage"
+             BackgroundColor="#F3F4F6">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <views:LoginStatusBar />
+
+        <Grid Grid.Row="1" Padding="24">
+            <views:LoginPanel />
+        </Grid>
+
+        <views:ChangePasswordPanel Grid.RowSpan="2"
+                                   IsVisible="{Binding IsChangePasswordVisible}" />
+    </Grid>
+</ContentPage>

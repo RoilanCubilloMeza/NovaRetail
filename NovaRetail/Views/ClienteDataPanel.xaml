@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:NovaRetail.Controls"
+             x:Class="NovaRetail.Views.ClienteDataPanel">
+
+    <Grid>
+        <controls:SectionCard Margin="0,20,0,0" Title="Datos del Cliente">
+            <VerticalStackLayout Spacing="0">
+
+                <!-- Nombre -->
+                <Label Text="Nombre del Cliente" Style="{DynamicResource FieldLabelDark}"/>
+                <Entry Placeholder="Juan Pérez"
+                       Text="{Binding Name}"
+                       IsEnabled="{Binding IsNotSyncing}"/>
+
+                <BoxView Style="{DynamicResource FormDivider}" Margin="0,14,0,12"/>
+
+                <!-- Toggle ¿Es Receptor? -->
+                <controls:ToggleSwitchCard Title="¿Es Receptor?"
+                                           Description="Actívalo solo si requiere factura electrónica / envío por email"
+                                           IsToggled="{Binding IsReceiver}"/>
+
+                <BoxView HeightRequest="12" BackgroundColor="Transparent"/>
+
+                <Label IsVisible="{Binding IsNotReceiver}"
+                       Text="Active &#xAB;Es Receptor&#xBB; para ver los datos fiscales"
+                       Style="{DynamicResource InactiveHintLabel}"/>
+
+                <!-- Datos fiscales (solo si EsReceptor) -->
+                <VerticalStackLayout IsVisible="{Binding ShowTaxData}" Spacing="0">
+
+                    <!-- Teléfono -->
+                    <controls:IconFieldHeader Icon="&#x260E;" Text="Teléfono" Margin="0,0,0,2"/>
+                    <Border Style="{DynamicResource InputBox}">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <Label Grid.Column="0" Style="{DynamicResource IconLabel}"
+                                   Text="&#x1F4F1;&#xFE0E;"
+                                   FontSize="13" Margin="0,0,6,0"/>
+                            <Entry Grid.Column="1" Placeholder="9 1234 5678"
+                                   Text="{Binding Phone}" Keyboard="Telephone"
+                                   BackgroundColor="Transparent" FontSize="14"/>
+                        </Grid>
+                    </Border>
+
+                    <BoxView Style="{DynamicResource FormDivider}" Margin="0,10,0,0"/>
+
+                    <!-- Email -->
+                    <controls:IconFieldHeader Icon="&#x2709;&#xFE0E;" Text="Email" Margin="0,8,0,2"/>
+                    <controls:FormEntry Placeholder="juan@example.com"
+                                        Text="{Binding Email}"
+                                        Keyboard="Email"/>
+
+                    <!-- Email 2 -->
+                    <controls:IconFieldHeader Icon="&#x2709;&#xFE0E;" Text="Email #2" Margin="0,8,0,2"/>
+                    <controls:FormEntry Placeholder="email2@example.com"
+                                        Text="{Binding Email2}"
+                                        Keyboard="Email"/>
+
+                    <BoxView Style="{DynamicResource FormDivider}" Margin="0,12,0,0"/>
+
+                    <controls:FormEntry Placeholder="Buscar ubicación (ej: Quepos)"
+                                        Text="{Binding LocationSearch}"
+                                        Margin="0,8,0,0"/>
+
+                    <!-- Headers Provincia / Cantón / Distrito / Barrio -->
+                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4" Margin="0,8,0,2">
+                        <Grid Grid.Column="0" ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                            <Label Grid.Column="0" Text="Provincia"
+                                   Style="{DynamicResource ColumnHeaderLabel}"/>
+                            <Label Grid.Column="1" Style="{DynamicResource IconLabel}"
+                                   Text="&#x2228;"
+                                   FontSize="10" TextColor="{DynamicResource Gray400}"/>
+                        </Grid>
+                        <Grid Grid.Column="1" ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                            <Label Grid.Column="0" Text="Cantón"
+                                   Style="{DynamicResource ColumnHeaderLabel}"/>
+                            <Label Grid.Column="1" Style="{DynamicResource IconLabel}"
+                                   Text="&#x2228;"
+                                   FontSize="10" TextColor="{DynamicResource Gray400}"/>
+                        </Grid>
+                        <Grid Grid.Column="2" ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                            <Label Grid.Column="0" Text="Distrito"
+                                   Style="{DynamicResource ColumnHeaderLabel}"/>
+                            <Label Grid.Column="1" Style="{DynamicResource IconLabel}"
+                                   Text="&#x2228;"
+                                   FontSize="10" TextColor="{DynamicResource Gray400}"/>
+                        </Grid>
+                        <Grid Grid.Column="3" ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                            <Label Grid.Column="0" Text="Barrio"
+                                   Style="{DynamicResource ColumnHeaderLabel}"/>
+                            <Label Grid.Column="1" Style="{DynamicResource IconLabel}"
+                                   Text="&#x2228;"
+                                   FontSize="10" TextColor="{DynamicResource Gray400}"/>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Pickers compactos 4 columnas -->
+                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="4">
+                        <controls:FormPicker Grid.Column="0"
+                                             ItemsSource="{Binding Provinces}"
+                                             SelectedItem="{Binding SelectedProvince, Mode=TwoWay}"
+                                             FontSize="12"/>
+                        <controls:FormPicker Grid.Column="1"
+                                             ItemsSource="{Binding Cantons}"
+                                             SelectedItem="{Binding SelectedCanton, Mode=TwoWay}"
+                                             FontSize="12"
+                                             Opacity="{Binding CantonOpacity}"/>
+                        <controls:FormPicker Grid.Column="2"
+                                             ItemsSource="{Binding Districts}"
+                                             SelectedItem="{Binding SelectedDistrict, Mode=TwoWay}"
+                                             FontSize="12"
+                                             Opacity="{Binding DistrictOpacity}"/>
+                        <controls:FormPicker Grid.Column="3"
+                                             ItemsSource="{Binding Barrios}"
+                                             SelectedItem="{Binding SelectedBarrio, Mode=TwoWay}"
+                                             FontSize="12"
+                                             Opacity="{Binding BarrioOpacity}"/>
+                    </Grid>
+
+                    <Label Text="Tipo de cliente" Style="{DynamicResource IconFieldLabel}"
+                           Margin="0,8,0,2"/>
+                    <controls:FormPicker ItemsSource="{Binding CustomerTypes}"
+                                         SelectedItem="{Binding SelectedCustomerType, Mode=TwoWay}"
+                                         Title="Seleccione tipo de cliente"
+                                         FontSize="13"/>
+
+                    <!-- Dirección -->
+                    <Label Text="Dirección" Style="{DynamicResource IconFieldLabel}"
+                           Margin="0,8,0,2"/>
+                    <Border Style="{DynamicResource MultilineInputBox}">
+                        <Editor Text="{Binding Address}"
+                                Placeholder="Avenida Central, Edificio Plaza Real..."
+                                BackgroundColor="Transparent" FontSize="13"
+                                MinimumHeightRequest="0" HeightRequest="30"
+                                AutoSize="Disabled"/>
+                    </Border>
+
+                    <!-- Cod. Actividad -->
+                    <Border Style="{DynamicResource InputBox}" Margin="0,6,0,0">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Entry Grid.Column="0" Placeholder="Cod. Actividad"
+                                   Text="{Binding ActivityCode}" Keyboard="Numeric"
+                                   ReturnType="Search" BackgroundColor="Transparent"
+                                   FontSize="14" ReturnCommand="{Binding SearchActivityCommand}"/>
+                            <Button Grid.Column="1" Text="&#x1F50D;&#xFE0E;"
+                                    Command="{Binding SearchActivityCommand}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{DynamicResource Gray500}"
+                                    FontSize="16" WidthRequest="36"
+                                    Padding="0" BorderWidth="0"/>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="{Binding ActivityDescription}"
+                           IsVisible="{Binding HasActivityDescription}"
+                           Style="{DynamicResource FieldDescriptionItalic}"/>
+                    <Label Text="Puede ingresar uno o varios códigos separados por coma (máx. 5)."
+                           Style="{DynamicResource InactiveHintLabel}"/>
+
+                </VerticalStackLayout>
+
+                <BoxView HeightRequest="18" BackgroundColor="Transparent"/>
+
+                <!-- F10 Guardar -->
+                <controls:ActionKeyButton KeyText="F10"
+                                          Text="{Binding SaveButtonText}"
+                                          Command="{Binding SaveCommand}"/>
+
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="0,8,0,0">
+                    <Button Grid.Column="0" Text="{Binding SaveAndReturnButtonText}"
+                            Style="{DynamicResource SecondaryButton}"
+                            Command="{Binding SaveAndReturnCommand}"/>
+                    <Button Grid.Column="1" Text="Cancelar"
+                            Style="{DynamicResource SecondaryButton}"
+                            Command="{Binding CancelCommand}"/>
+                </Grid>
+
+                <Label Text="{Binding ValidationMessage}"
+                       IsVisible="{Binding HasValidationMessage}"
+                       Style="{DynamicResource ValidationErrorLabel}"/>
+
+            </VerticalStackLayout>
+        </controls:SectionCard>
+
+        <!-- Badge RECEPTOR ELECTRÓNICO - floats over top of card -->
+        <controls:BadgeLabel Text="RECEPTOR ELECTRÓNICO"/>
+    </Grid>
+
+</ContentView>

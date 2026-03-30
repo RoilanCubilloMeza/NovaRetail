@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.ItemActionPopup">
+
+    <!-- Full-screen semi-transparent backdrop -->
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <!--
+            Popup card uses Margin="20" so it never overflows the screen.
+            VerticalOptions="Fill" → takes all available height minus margins.
+            3-row inner Grid: title(Auto, fixed) | content(*, scrollable) | keypad(Auto, fixed).
+        -->
+        <Border BackgroundColor="White"
+                StrokeShape="RoundRectangle 12"
+                StrokeThickness="0"
+                MaximumWidthRequest="660"
+                Margin="16"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Shadow="{x:Null}">
+
+            <Grid RowDefinitions="Auto, *, Auto" RowSpacing="0">
+
+                <!-- ── Row 0: Title bar (always visible) ── -->
+                <Border Grid.Row="0"
+                        BackgroundColor="#1E293B"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12,12,0,0"
+                        Padding="16,10">
+                    <Label Text="Acción Sobre Artículo"
+                           FontSize="16" FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <!-- ── Row 1: Content ── -->
+                <ScrollView Grid.Row="1">
+                    <VerticalStackLayout Spacing="0" Padding="0,0,0,6">
+
+                        <!-- Product info box -->
+                        <Border Margin="12,8,12,6"
+                                BackgroundColor="#F8FAFC"
+                                Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="12,8">
+                            <Grid RowDefinitions="Auto, Auto" RowSpacing="3">
+                                <Label Grid.Row="0"
+                                       Text="{Binding ItemName}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="#1E293B"
+                                       LineBreakMode="WordWrap"/>
+                                <HorizontalStackLayout Grid.Row="1" Spacing="14">
+                                    <Label Text="{Binding ItemCode}"
+                                           FontSize="12" TextColor="#64748B"/>
+                                    <Label FontSize="12" TextColor="#64748B">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="Precio: " TextColor="#64748B"/>
+                                                <Span Text="{Binding PrecioText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                                <Span Text="   Disp: " TextColor="#64748B"/>
+                                                <Span Text="{Binding DisponibleText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </Border>
+
+                        <!-- Editable fields -->
+                        <Grid ColumnDefinitions="Auto, *, 32, 32"
+                              ColumnSpacing="6"
+                              Margin="12,0,12,4">
+                            <Label Grid.Column="0" Text="Cantidad:"
+                                   FontSize="13" TextColor="#64748B"
+                                   WidthRequest="95" VerticalOptions="Center"/>
+                            <Border Grid.Column="1"
+                                    StrokeShape="RoundRectangle 5" StrokeThickness="1.5"
+                                    Padding="6,4" HeightRequest="36">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsCantidadActive}" Value="True">
+                                        <Setter Property="Stroke" Value="#3B82F6"/>
+                                        <Setter Property="BackgroundColor" Value="#EFF6FF"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsCantidadActive}" Value="False">
+                                        <Setter Property="Stroke" Value="#CBD5E1"/>
+                                        <Setter Property="BackgroundColor" Value="White"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetActiveFieldCommand}" CommandParameter="Cantidad"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding TempQty}"
+                                       FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
+                                       HorizontalTextAlignment="End" VerticalOptions="Center"/>
+                            </Border>
+                            <Border Grid.Column="2"
+                                    StrokeShape="RoundRectangle 5" StrokeThickness="0"
+                                    HeightRequest="32" Padding="0">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsAtMaxStock}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#CBD5E1"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsAtMaxStock}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#22C55E"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding IncrQtyCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="+" FontSize="15" FontAttributes="Bold" TextColor="White"
+                                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+                            <Border Grid.Column="3"
+                                    BackgroundColor="#EA580C"
+                                    StrokeShape="RoundRectangle 5" StrokeThickness="0"
+                                    HeightRequest="32" Padding="0">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding DecrQtyCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="−" FontSize="15" FontAttributes="Bold" TextColor="White"
+                                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto, *"
+                              ColumnSpacing="6"
+                              Margin="12,0,12,6">
+                            <Label Grid.Column="0" Text="Precio nuevo:"
+                                   FontSize="13" TextColor="#64748B"
+                                   WidthRequest="95" VerticalOptions="Center"/>
+                            <Border Grid.Column="1"
+                                    StrokeShape="RoundRectangle 5" StrokeThickness="1.5"
+                                    Padding="6,4" HeightRequest="36">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsPrecioActive}" Value="True">
+                                        <Setter Property="Stroke" Value="#3B82F6"/>
+                                        <Setter Property="BackgroundColor" Value="#EFF6FF"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsPrecioActive}" Value="False">
+                                        <Setter Property="Stroke" Value="#CBD5E1"/>
+                                        <Setter Property="BackgroundColor" Value="White"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetActiveFieldCommand}" CommandParameter="Precio"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding TempPrice}"
+                                       FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
+                                       HorizontalTextAlignment="End" VerticalOptions="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Discount panel (conditional) -->
+                        <Grid RowDefinitions="Auto, Auto" Margin="12,0,12,4">
+
+                            <Border Grid.Row="0"
+                                    IsVisible="{Binding IsDiscountVisible}"
+                                    Stroke="#FDE68A" StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#FFFBEB"
+                                    Padding="8,6"
+                                    MaximumHeightRequest="110">
+                                <ScrollView>
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Seleccione motivo de descuento:"
+                                               FontSize="11" FontAttributes="Bold"
+                                               TextColor="#92400E" Margin="0,0,0,4"/>
+                                        <CollectionView ItemsSource="{Binding DiscountCodes}"
+                                                        SelectionMode="Single">
+                                            <CollectionView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BackgroundColor="Transparent"
+                                                            StrokeThickness="0" Padding="4,3">
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer
+                                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectDiscountCommand}"
+                                                                CommandParameter="{Binding .}"/>
+                                                        </Border.GestureRecognizers>
+                                                        <Label Text="{Binding DisplayText}"
+                                                               FontSize="12" TextColor="#92400E"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </CollectionView.ItemTemplate>
+                                            <CollectionView.EmptyView>
+                                                <Label Text="Sin códigos disponibles"
+                                                       FontSize="11" TextColor="#B45309"
+                                                       HorizontalTextAlignment="Center"/>
+                                            </CollectionView.EmptyView>
+                                        </CollectionView>
+                                    </VerticalStackLayout>
+                                </ScrollView>
+                            </Border>
+
+                            <Border Grid.Row="1"
+                                    IsVisible="{Binding IsDiscountConfirmVisible}"
+                                    Stroke="#FDE68A" StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#FFFBEB"
+                                    Padding="10,7">
+                                <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="8">
+                                    <Label Grid.Column="0" Text="{Binding SelectedDiscountText}"
+                                           FontSize="11" FontAttributes="Bold"
+                                           TextColor="#92400E" VerticalOptions="Center"/>
+                                    <Border Grid.Column="1"
+                                            StrokeShape="RoundRectangle 5" StrokeThickness="1.5"
+                                            Padding="6,4" HeightRequest="30"
+                                            HorizontalOptions="End" MinimumWidthRequest="80">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsDescuentoPctActive}" Value="True">
+                                                <Setter Property="Stroke" Value="#F59E0B"/>
+                                                <Setter Property="BackgroundColor" Value="#FFFBEB"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsDescuentoPctActive}" Value="False">
+                                                <Setter Property="Stroke" Value="#FDE68A"/>
+                                                <Setter Property="BackgroundColor" Value="White"/>
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetActiveFieldCommand}" CommandParameter="DescuentoPct"/>
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="2" VerticalOptions="Center" HorizontalOptions="Center">
+                                            <Label Text="{Binding DiscountPercentText}"
+                                                   FontSize="12" FontAttributes="Bold" TextColor="#92400E"/>
+                                            <Label Text="%" FontSize="12" TextColor="#92400E"/>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                    <Border Grid.Column="2" BackgroundColor="#F59E0B"
+                                            StrokeShape="RoundRectangle 5" StrokeThickness="0"
+                                            Padding="10,6" HeightRequest="30">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ConfirmDiscountCommand}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="✓ Aplicar" FontSize="11" FontAttributes="Bold"
+                                               TextColor="White" VerticalOptions="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="3" BackgroundColor="#94A3B8"
+                                            StrokeShape="RoundRectangle 5" StrokeThickness="0"
+                                            Padding="10,6" HeightRequest="30">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ShowDiscountCommand}"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="✕" FontSize="11" FontAttributes="Bold"
+                                               TextColor="White" VerticalOptions="Center"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- Aplicar desc. button -->
+                        <Border Margin="12,0,12,4"
+                                StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                Padding="12,9" HeightRequest="42">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsDiscountConfirmVisible}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#D97706"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsDiscountConfirmVisible}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#F59E0B"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ShowDiscountCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="🏷️  Aplicar descuento" FontSize="14" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center" HorizontalOptions="Center"/>
+                        </Border>
+
+                        <!-- Vendedor button -->
+                        <Border Margin="12,0,12,20"
+                                StrokeShape="RoundRectangle 8" StrokeThickness="1"
+                                Padding="12,9" HeightRequest="42">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#FEF3C7"/>
+                                    <Setter Property="Stroke" Value="#F59E0B"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasSalesRep}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#F8FAFC"/>
+                                    <Setter Property="Stroke" Value="#CBD5E1"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding AssignSalesRepCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="8">
+                                <Label Grid.Column="0" Text="&#x1F9D1;" FontSize="14"
+                                       VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding SalesRepText}"
+                                       FontSize="13" FontAttributes="Bold"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="True">
+                                            <Setter Property="TextColor" Value="#92400E"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding HasSalesRep}" Value="False">
+                                            <Setter Property="TextColor" Value="#64748B"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Grid>
+                        </Border>
+
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                    <!-- ── Row 2: Numeric keypad ── -->
+                    <VerticalStackLayout Grid.Row="2" Spacing="0" Padding="0,6,0,0">
+                        <BoxView Color="#E2E8F0" HeightRequest="1"/>
+                        <Border BackgroundColor="#F1F5F9"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 0,0,12,12"
+                        Padding="8,6">
+                    <Grid ColumnDefinitions="*, *, *, *"
+                          RowDefinitions="52, 52, 52, 52"
+                          RowSpacing="5" ColumnSpacing="5">
+
+                        <!-- Row 0: 7  8  9  ⌫ -->
+                        <Border Grid.Row="0" Grid.Column="0" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="7"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="7" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="8"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="8" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="2" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="9"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="9" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="3" Style="{x:Null}"
+                                BackgroundColor="#E2E8F0" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="Regresar"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="⌫" FontSize="17" TextColor="#475569"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+
+                        <!-- Row 1: 4  5  6  C -->
+                        <Border Grid.Row="1" Grid.Column="0" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="4"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="4" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="5"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="5" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="2" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="6"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="6" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="3" Style="{x:Null}"
+                                BackgroundColor="#FEF3C7" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#FDE68A" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="C"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="C" FontSize="17" FontAttributes="Bold" TextColor="#92400E"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+
+                        <!-- Row 2: 1  2  3  Aplicar -->
+                        <Border Grid.Row="2" Grid.Column="0" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="1"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="1" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="1" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="2"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="2" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="2" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="3"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="3" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="3" Style="{x:Null}"
+                                BackgroundColor="#22C55E" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="0" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OkCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Aplicar" FontSize="15" FontAttributes="Bold" TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+
+                        <!-- Row 3: 0(span2)  .  Atrás -->
+                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Style="{x:Null}"
+                                BackgroundColor="White" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1" Stroke="#CBD5E1" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="0"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="0" FontSize="18" FontAttributes="Bold" TextColor="#1E293B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="3" Grid.Column="2" Style="{x:Null}"
+                                BackgroundColor="#1E293B" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="0" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="ENT"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="ENT" FontSize="15" FontAttributes="Bold" TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border Grid.Row="3" Grid.Column="3" Style="{x:Null}"
+                                BackgroundColor="#64748B" StrokeShape="RoundRectangle 6"
+                                StrokeThickness="0" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CancelCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Atrás" FontSize="15" FontAttributes="Bold" TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+
+                    </Grid>
+                </Border>
+                </VerticalStackLayout>
+
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentView>
