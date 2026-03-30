@@ -1,0 +1,5 @@
+NovaAPI:
+& "C:\Program Files\IIS Express\iisexpress.exe" /path:"C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI" /port:52500
+
+NovaRetail:
+dotnet run --project "C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\NovaRetail.csproj" --framework net10.0-windows10.0.19041.0

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\developer01\\Documents\\GitHub\\NovaRetail\\NovaRetail\\NovaRetail.csproj": {}
+    "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj": {}
   },
   "projects": {
-    "C:\\Users\\developer01\\Documents\\GitHub\\NovaRetail\\NovaRetail\\NovaRetail.csproj": {
+    "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\developer01\\Documents\\GitHub\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
+        "projectUniqueName": "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
         "projectName": "NovaRetail",
-        "projectPath": "C:\\Users\\developer01\\Documents\\GitHub\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
+        "projectPath": "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
         "packagesPath": "C:\\Users\\developer01\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\developer01\\Documents\\GitHub\\NovaRetail\\NovaRetail\\obj\\",
+        "outputPath": "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "fallbackFolders": [

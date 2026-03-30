@@ -346,9 +346,9 @@ namespace NovaRetail.ViewModels
                 var json = await reader.ReadToEndAsync();
                 LoadLocationsFromJson(json);
             }
-            catch (Exception ex)
+            catch
             {
-                await _dialogService.AlertAsync("Advertencia", $"No se pudieron cargar las ubicaciones: {ex.Message}", "OK");
+                await _dialogService.AlertAsync("Advertencia", "No se pudieron cargar las ubicaciones geográficas. Las listas de provincia, cantón y distrito estarán vacías.", "OK");
             }
 
             RefreshProvinceCollection(_provinciasData);
