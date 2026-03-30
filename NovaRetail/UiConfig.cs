@@ -48,6 +48,11 @@ public static class UiConfig
     public static readonly Thickness InputPadding   = new(10, 0);
     public static readonly double StrokeThin       = 1;
 
+    // ─── Moneda regional ───
+
+    /// <summary>Símbolo de moneda según la configuración regional de Windows del usuario.</summary>
+    public static string CurrencySymbol => System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol;
+
     // ─── Sombra de tarjeta (nueva instancia por control) ───
 
     public static Shadow CardShadow() => new()

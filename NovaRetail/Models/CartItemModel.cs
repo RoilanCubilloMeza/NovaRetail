@@ -212,9 +212,9 @@ namespace NovaRetail.Models
 
         public string QuantityText => $"{Quantity:0.##} ×";
         public string QuantityPrefix => $"x{Quantity:0.##}";
-        public string UnitPriceColonesText => $"₡{EffectivePriceColones:N2}";
-        public string OriginalPriceColonesText => $"₡{UnitPriceColones:N2}";
-        public string TotalColonesText => $"₡{EffectivePriceColones * Quantity * DiscountFactor:N2}";
+        public string UnitPriceColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones:N2}";
+        public string OriginalPriceColonesText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
+        public string TotalColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones * Quantity * DiscountFactor:N2}";
         public string UnitPriceUsdText => $"${UnitPrice:F2}";
         public string TotalUsdText => $"${EffectiveUnitPriceUsd * Quantity * DiscountFactor:F2}";
 

@@ -77,7 +77,7 @@ public sealed class NovaRetailOrderSummary
         }
     }
     public string DisplayDate => Time.ToString("dd/MM/yyyy HH:mm");
-    public string DisplayTotal => $"₡{Total:N2}";
+    public string DisplayTotal => $"{UiConfig.CurrencySymbol}{Total:N2}";
     public string DisplayItems => $"{ItemCount} art.";
     public string DisplayCashier => string.IsNullOrWhiteSpace(CashierName) ? "—" : CashierName;
     public string DisplayClient => ParseClientName();

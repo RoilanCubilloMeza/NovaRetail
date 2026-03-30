@@ -96,7 +96,7 @@ namespace NovaRetail.ViewModels
         public string TotalColonesText { get; private set; } = string.Empty;
         public string TenderDescription { get; private set; } = string.Empty;
         public string TenderTotalText { get; private set; } = string.Empty;
-        public string ChangeAmountText { get; private set; } = "₡0.00";
+        public string ChangeAmountText { get; private set; } = $"{UiConfig.CurrencySymbol}0.00";
         public bool HasChange { get; private set; }
         public string TenderEntregadoText =>
             HasSecondTender && !HasChange
@@ -189,15 +189,15 @@ namespace NovaRetail.ViewModels
                     Code = item.Code ?? string.Empty,
                     Quantity = item.Quantity,
                     TaxPercentage = item.TaxPercentage,
-                    UnitPriceColonesText = $"₡{(item.HasDiscount ? netUnit : grossUnit):N2}",
-                    LineTotalText = $"₡{(item.HasDiscount ? netLine : grossLine):N2}",
+                    UnitPriceColonesText = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netUnit : grossUnit):N2}",
+                    LineTotalText = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netLine : grossLine):N2}",
                     HasOverridePrice = item.HasDownwardPriceOverride,
                     PriceChangeDetailText = item.HasDownwardPriceOverride
-                        ? $"Cambio precio: de ₡{item.UnitPriceColones:N2} a ₡{grossUnit:N2}"
+                        ? $"Cambio precio: de {UiConfig.CurrencySymbol}{item.UnitPriceColones:N2} a {UiConfig.CurrencySymbol}{grossUnit:N2}"
                         : string.Empty,
                     HasDiscount = item.HasDiscount,
                     DiscountDetailText = item.HasDiscount
-                        ? $"Desc. {item.DiscountPercent:0.##}%: de ₡{grossUnit:N2} a ₡{netUnit:N2}"
+                        ? $"Desc. {item.DiscountPercent:0.##}%: de {UiConfig.CurrencySymbol}{grossUnit:N2} a {UiConfig.CurrencySymbol}{netUnit:N2}"
                         : string.Empty,
                     HasExoneration = item.HasExoneration,
                     ExonerationDetailText = item.HasExoneration
@@ -207,8 +207,8 @@ namespace NovaRetail.ViewModels
             }
 
             var effectiveTenderTotal = tenderTotalColones > 0m ? tenderTotalColones : 0m;
-            TenderTotalText = effectiveTenderTotal > 0m ? $"₡{effectiveTenderTotal:N2}" : totalColonesText;
-            ChangeAmountText = changeColones > 0m ? $"₡{changeColones:N2}" : "₡0.00";
+            TenderTotalText = effectiveTenderTotal > 0m ? $"{UiConfig.CurrencySymbol}{effectiveTenderTotal:N2}" : totalColonesText;
+            ChangeAmountText = changeColones > 0m ? $"{UiConfig.CurrencySymbol}{changeColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasChange = changeColones > 0m;
 
             SubtotalText = subtotalText;
@@ -223,7 +223,7 @@ namespace NovaRetail.ViewModels
 
             HasSecondTender = secondTenderAmountColones > 0m && !string.IsNullOrWhiteSpace(secondTenderDescription);
             SecondTenderDescription = secondTenderDescription;
-            SecondTenderAmountText = secondTenderAmountColones > 0m ? $"₡{secondTenderAmountColones:N2}" : string.Empty;
+            SecondTenderAmountText = secondTenderAmountColones > 0m ? $"{UiConfig.CurrencySymbol}{secondTenderAmountColones:N2}" : string.Empty;
 
             OnPropertyChanged(string.Empty);
         }
@@ -260,8 +260,8 @@ namespace NovaRetail.ViewModels
                     Code                  = line.Code,
                     Quantity              = line.Quantity,
                     TaxPercentage         = line.TaxPercentage,
-                    UnitPriceColonesText  = $"₡{line.UnitPriceColones:N2}",
-                    LineTotalText         = $"₡{line.LineTotalColones:N2}",
+                    UnitPriceColonesText  = $"{UiConfig.CurrencySymbol}{line.UnitPriceColones:N2}",
+                    LineTotalText         = $"{UiConfig.CurrencySymbol}{line.LineTotalColones:N2}",
                     HasOverridePrice      = line.HasOverridePrice,
                     PriceChangeDetailText = line.HasOverridePrice ? "Precio modificado" : string.Empty,
                     HasDiscount           = line.HasDiscount,
@@ -276,25 +276,25 @@ namespace NovaRetail.ViewModels
             }
 
             TenderTotalText  = entry.TenderTotalColones > 0
-                ? $"₡{entry.TenderTotalColones:N2}"
-                : $"₡{entry.TotalColones:N2}";
-            ChangeAmountText = entry.ChangeColones > 0 ? $"₡{entry.ChangeColones:N2}" : "₡0.00";
+                ? $"{UiConfig.CurrencySymbol}{entry.TenderTotalColones:N2}"
+                : $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
+            ChangeAmountText = entry.ChangeColones > 0 ? $"{UiConfig.CurrencySymbol}{entry.ChangeColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasChange        = entry.ChangeColones > 0;
 
-            SubtotalText    = $"₡{entry.SubtotalColones:N2}";
-            TaxText         = $"₡{entry.TaxColones:N2}";
-            DiscountText    = entry.DiscountColones > 0 ? $"-₡{entry.DiscountColones:N2}" : "₡0.00";
+            SubtotalText    = $"{UiConfig.CurrencySymbol}{entry.SubtotalColones:N2}";
+            TaxText         = $"{UiConfig.CurrencySymbol}{entry.TaxColones:N2}";
+            DiscountText    = entry.DiscountColones > 0 ? $"-{UiConfig.CurrencySymbol}{entry.DiscountColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasDiscount     = entry.DiscountColones > 0;
-            ExonerationText = entry.ExonerationColones > 0 ? $"-₡{entry.ExonerationColones:N2}" : "₡0.00";
+            ExonerationText = entry.ExonerationColones > 0 ? $"-{UiConfig.CurrencySymbol}{entry.ExonerationColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasExoneration  = entry.ExonerationColones > 0;
-            TotalText       = $"₡{entry.TotalColones:N2}";
-            TotalColonesText = $"₡{entry.TotalColones:N2}";
+            TotalText       = $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
+            TotalColonesText = $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
 
             TenderDescription    = entry.TenderDescription;
             HasSecondTender      = entry.HasSecondTender;
             SecondTenderDescription   = entry.SecondTenderDescription;
             SecondTenderAmountText    = entry.SecondTenderAmountColones > 0
-                ? $"₡{entry.SecondTenderAmountColones:N2}"
+                ? $"{UiConfig.CurrencySymbol}{entry.SecondTenderAmountColones:N2}"
                 : string.Empty;
 
             OnPropertyChanged(string.Empty);

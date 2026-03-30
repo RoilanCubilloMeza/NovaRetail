@@ -567,12 +567,12 @@ namespace NovaRetail.ViewModels
             : (HasItemDiscounts ? "Artículos" : "0 %");
         public string DiscountAmountText => $"-{DiscountAmount:F2}";
         public string DiscountColonesText => DiscountAmount > 0
-            ? $"-₡{Math.Round(_discountColones, 2):N2}"
-            : "₡0.00";
+            ? $"-{UiConfig.CurrencySymbol}{Math.Round(_discountColones, 2):N2}"
+            : $"{UiConfig.CurrencySymbol}0.00";
         public string ExonerationAmountText => $"-{ExonerationAmount:F2}";
         public string ExonerationColonesText => ExonerationAmount > 0
-            ? $"-₡{Math.Round(_exonerationColones, 2):N2}"
-            : "₡0.00";
+            ? $"-{UiConfig.CurrencySymbol}{Math.Round(_exonerationColones, 2):N2}"
+            : $"{UiConfig.CurrencySymbol}0.00";
         public bool HasExonerationAmount => ExonerationAmount > 0;
         public string TaxText => $"${Tax:F2}";
         public string TotalText => $"${Total:F2}";
@@ -688,14 +688,14 @@ namespace NovaRetail.ViewModels
                 }
             }
         }
-        public string ExchangeRateText => $"₡{ExchangeRate:F2}";
+        public string ExchangeRateText => $"{UiConfig.CurrencySymbol}{ExchangeRate:F2}";
 
         // ── Totales en colones ──
 
         public string SubtotalText => $"${Subtotal:F2}";
-        public string SubtotalColonesText => $"₡{Math.Round(_subtotalColones, 2):N2}";
-        public string TaxColonesText => $"₡{Math.Round(_taxColones, 2):N2}";
-        public string TotalColonesText => $"₡{Math.Round(_totalColones, 2):N2}";
+        public string SubtotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_subtotalColones, 2):N2}";
+        public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
+        public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
 
         public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, AppStore appStore, UserSession userSession)
         {

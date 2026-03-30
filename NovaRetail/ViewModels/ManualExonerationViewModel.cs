@@ -191,7 +191,7 @@ namespace NovaRetail.ViewModels
         {
             if (decimal.TryParse(PorcentajeText, NumberStyles.Number, CultureInfo.InvariantCulture, out var pct)
                 && pct > 0 && _cartSubtotalColones > 0)
-                MontoExoneradoText = $"₡{_cartSubtotalColones * pct / 100m:N2}";
+                MontoExoneradoText = $"{UiConfig.CurrencySymbol}{_cartSubtotalColones * pct / 100m:N2}";
             else
                 MontoExoneradoText = "...";
         }

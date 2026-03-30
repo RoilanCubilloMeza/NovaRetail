@@ -211,7 +211,7 @@ namespace NovaRetail.ViewModels
             ItemCode = item.Code;
 
             var ep = item.EffectivePriceColones;
-            PrecioText = $"₡{ep:N2}";
+            PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
             DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
             ComprometidoText = "0";
 

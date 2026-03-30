@@ -152,15 +152,15 @@ namespace NovaRetail.ViewModels
                     Code                  = item.Code ?? string.Empty,
                     Quantity              = item.Quantity,
                     TaxPercentage         = item.TaxPercentage,
-                    UnitPriceColonesText  = $"₡{(item.HasDiscount ? netUnit : gross):N2}",
-                    LineTotalText         = $"₡{(item.HasDiscount ? netLine : gross * item.Quantity):N2}",
+                    UnitPriceColonesText  = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netUnit : gross):N2}",
+                    LineTotalText         = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netLine : gross * item.Quantity):N2}",
                     HasOverridePrice      = item.HasDownwardPriceOverride,
                     PriceChangeDetailText = item.HasDownwardPriceOverride
-                        ? $"Cambio precio: de ₡{item.UnitPriceColones:N2} a ₡{gross:N2}"
+                        ? $"Cambio precio: de {UiConfig.CurrencySymbol}{item.UnitPriceColones:N2} a {UiConfig.CurrencySymbol}{gross:N2}"
                         : string.Empty,
                     HasDiscount           = item.HasDiscount,
                     DiscountDetailText    = item.HasDiscount
-                        ? $"Desc. {item.DiscountPercent:0.##}%: de ₡{gross:N2} a ₡{netUnit:N2}"
+                        ? $"Desc. {item.DiscountPercent:0.##}%: de {UiConfig.CurrencySymbol}{gross:N2} a {UiConfig.CurrencySymbol}{netUnit:N2}"
                         : string.Empty,
                     HasExoneration        = item.HasExoneration,
                     ExonerationDetailText = item.HasExoneration
@@ -322,10 +322,10 @@ namespace NovaRetail.ViewModels
 </table>
 <hr class='sep'>
 <table class='totals'>
-  <tr><td>Deposito Pagos</td><td class='r'>₡0.00</td></tr>
-  <tr><td>Total Comprado</td><td class='r'>₡0.00</td></tr>
+  <tr><td>Deposito Pagos</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
+  <tr><td>Total Comprado</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
   <tr><td>Total Pendiente</td><td class='r'>{Esc(TotalColonesText)}</td></tr>
-  <tr><td>CAMBIO</td><td class='r'>₡0.00</td></tr>
+  <tr><td>CAMBIO</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
   <tr><td>Saldo</td><td class='r'>{Esc(TotalColonesText)}</td></tr>
 </table>
 <hr class='sep'>

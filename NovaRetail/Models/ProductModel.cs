@@ -18,7 +18,7 @@ public class ProductModel : INotifyPropertyChanged
     public decimal TaxPercentage   { get; set; }
     public int TaxId              { get; set; }
     public string Cabys           { get; set; } = string.Empty;
-    public string  PriceColonesText => $"₡{PriceColonesValue:N2}";
+    public string  PriceColonesText => $"{UiConfig.CurrencySymbol}{PriceColonesValue:N2}";
     public string  Category        { get; set; } = string.Empty;
     public decimal     Stock           { get; set; }
 

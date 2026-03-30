@@ -85,10 +85,10 @@ namespace NovaRetail.ViewModels
 
         public decimal TenderedColones => TryParseColones(_tenderedText);
         public decimal FirstTenderAmount => Math.Max(0m, _totalColonesValue - (HasSecondTender ? SecondAmount : 0m));
-        public string FirstTenderAmountText => $"₡{FirstTenderAmount:N2}";
+        public string FirstTenderAmountText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount:N2}";
         public decimal ChangeColones => TenderedColones > 0m ? Math.Max(0m, TenderedColones - FirstTenderAmount) : 0m;
         public bool HasChange => ChangeColones > 0m;
-        public string ChangeText => $"₡{ChangeColones:N2}";
+        public string ChangeText => $"{UiConfig.CurrencySymbol}{ChangeColones:N2}";
 
         // ── Segundo medio de pago ────────────────────────────────────────
         public bool HasSecondTender
@@ -152,12 +152,12 @@ namespace NovaRetail.ViewModels
 
         public decimal SecondAmount => TryParseColones(_secondAmountText);
         public string SplitSummaryText => HasSecondTender && SecondAmount > 0m
-            ? $"1er pago: ₡{FirstTenderAmount:N2}   2do pago: ₡{SecondAmount:N2}"
+            ? $"1er pago: {UiConfig.CurrencySymbol}{FirstTenderAmount:N2}   2do pago: {UiConfig.CurrencySymbol}{SecondAmount:N2}"
             : string.Empty;
 
         public string SelectedTenderName => SelectedTender?.Description ?? "1er pago";
-        public string SecondAmountFormattedText => SecondAmount > 0m ? $"₡{SecondAmount:N2}" : "₡0.00";
-        public string SplitTotalText => $"₡{FirstTenderAmount + SecondAmount:N2}";
+        public string SecondAmountFormattedText => SecondAmount > 0m ? $"{UiConfig.CurrencySymbol}{SecondAmount:N2}" : $"{UiConfig.CurrencySymbol}0.00";
+        public string SplitTotalText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount + SecondAmount:N2}";
 
         public string SubtotalText
         {
@@ -484,7 +484,7 @@ namespace NovaRetail.ViewModels
         private static decimal TryParseColones(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return 0m;
-            var cleaned = text.Replace("₡", string.Empty).Replace(",", string.Empty).Trim();
+            var cleaned = text.Replace(UiConfig.CurrencySymbol, string.Empty).Replace(",", string.Empty).Trim();
             return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
         }
 

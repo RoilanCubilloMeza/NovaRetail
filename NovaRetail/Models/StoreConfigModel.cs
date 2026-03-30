@@ -38,7 +38,7 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
     /// <summary>Símbolo de moneda para mostrar en UI</summary>
     public string CurrencySymbol => CurrencyID switch
     {
-        1 => "₡",
+        1 => UiConfig.CurrencySymbol,
         2 => "$",
         _ => "#"
     };

@@ -48,14 +48,14 @@ public sealed class InvoiceHistoryEntry
         _    => "Tiquete Electrónico"
     };
 
-    public string TotalColonesText  => $"₡{TotalColones:N2}";
-    public string SubtotalColonesText => $"₡{SubtotalColones:N2}";
-    public string DiscountColonesNegativeText => $"-₡{DiscountColones:N2}";
-    public string ExonerationColonesNegativeText => $"-₡{ExonerationColones:N2}";
-    public string TaxColonesText => $"₡{TaxColones:N2}";
-    public string ChangeColonesText => $"₡{ChangeColones:N2}";
-    public string TenderTotalColonesText => $"₡{TenderTotalColones:N2}";
-    public string SecondTenderAmountText => $"₡{SecondTenderAmountColones:N2}";
+    public string TotalColonesText  => $"{UiConfig.CurrencySymbol}{TotalColones:N2}";
+    public string SubtotalColonesText => $"{UiConfig.CurrencySymbol}{SubtotalColones:N2}";
+    public string DiscountColonesNegativeText => $"-{UiConfig.CurrencySymbol}{DiscountColones:N2}";
+    public string ExonerationColonesNegativeText => $"-{UiConfig.CurrencySymbol}{ExonerationColones:N2}";
+    public string TaxColonesText => $"{UiConfig.CurrencySymbol}{TaxColones:N2}";
+    public string ChangeColonesText => $"{UiConfig.CurrencySymbol}{ChangeColones:N2}";
+    public string TenderTotalColonesText => $"{UiConfig.CurrencySymbol}{TenderTotalColones:N2}";
+    public string SecondTenderAmountText => $"{UiConfig.CurrencySymbol}{SecondTenderAmountColones:N2}";
     public string DateText          => Date.ToString("dd/MM/yyyy HH:mm");
     public string TransactionText   => $"#{TransactionNumber}";
     public string ClientMetaText    => string.IsNullOrWhiteSpace(ClientId) ? DateText : $"{ClientId} · {DateText}";
@@ -96,8 +96,8 @@ public sealed class InvoiceHistoryLine
     public bool HasTax => TaxPercentage > 0;
     public string QuantityText => Quantity.ToString("0.##");
     public string TaxPercentageText => $"{TaxPercentage:0.##} %";
-    public string UnitPriceText => $"₡{UnitPriceColones:N2}";
-    public string LineTotalText => $"₡{LineTotalColones:N2}";
+    public string UnitPriceText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
+    public string LineTotalText => $"{UiConfig.CurrencySymbol}{LineTotalColones:N2}";
     public string DiscountText => $"Desc. {DiscountPercent:0.##}%";
     public string ExonerationText => $"Exoneración {ExonerationPercent:0.##}%";
 }
