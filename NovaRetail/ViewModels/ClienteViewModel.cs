@@ -346,9 +346,9 @@ namespace NovaRetail.ViewModels
                 var json = await reader.ReadToEndAsync();
                 LoadLocationsFromJson(json);
             }
-            catch
+            catch (Exception ex)
             {
-                LoadFallbackLocations();
+                await _dialogService.AlertAsync("Advertencia", $"No se pudieron cargar las ubicaciones: {ex.Message}", "OK");
             }
 
             RefreshProvinceCollection(_provinciasData);
@@ -467,13 +467,6 @@ namespace NovaRetail.ViewModels
 
                 _provinciasData.Add(provincia);
             }
-        }
-
-        private void LoadFallbackLocations()
-        {
-            _provinciasData.Clear();
-            _provinciasData.Add(new ProvinciaNode { Codigo = "6", Nombre = "PUNTARENAS", Cantones = { new CantonNode { Codigo = "06", Nombre = "QUEPOS", Distritos = { new DistritoNode { Codigo = "01", Nombre = "QUEPOS", Barrios = { "QUEPOS centro", "Manuel Antonio", "Paquita" } }, new DistritoNode { Codigo = "02", Nombre = "SAVEGRE", Barrios = { "MATAPALO", "Hatillo", "Portalón" } } } } } });
-            _provinciasData.Add(new ProvinciaNode { Codigo = "1", Nombre = "SAN JOSÉ", Cantones = { new CantonNode { Codigo = "01", Nombre = "SAN JOSÉ", Distritos = { new DistritoNode { Codigo = "01", Nombre = "CARMEN", Barrios = { "Amón", "Aranjuez", "Escalante" } } } } } });
         }
 
         private void ApplyLocationSearch(string? search)
