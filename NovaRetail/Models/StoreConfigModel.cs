@@ -5,7 +5,7 @@ public class StoreConfigModel
     public int StoreID { get; set; }
     public int RegisterID { get; set; }
     public int BatchNumber { get; set; }
-    /// <summary>0 = IVA Excluido, 1 = IVA Incluido</summary>
+    /// <summary>0 = IVA Excluido, valores mayores a 0 = IVA Incluido (compatibilidad RMH).</summary>
     public int TaxSystem { get; set; }
     public int QuoteExpirationDays { get; set; }
     public int DefaultTenderID { get; set; }
@@ -13,7 +13,9 @@ public class StoreConfigModel
     public string StoreAddress { get; set; } = string.Empty;
     public string StorePhone { get; set; } = string.Empty;
 
-    public string TaxSystemText => TaxSystem == 1 ? "IVA Incluido" : "IVA Excluido";
+    public bool IsTaxIncluded => TaxSystem > 0;
+
+    public string TaxSystemText => IsTaxIncluded ? "IVA Incluido" : "IVA Excluido";
 
     /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (valor de PR-01 en AVS_Parametros).</summary>
     public int PriceOverridePriceSource { get; set; } = 1;

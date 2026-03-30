@@ -2650,7 +2650,7 @@ namespace NovaRetail.ViewModels
         private decimal ConvertFromColones(decimal amount)
             => _exchangeRate > 0 ? Math.Round(amount / _exchangeRate, 4) : amount;
 
-        private bool IsTaxIncluded => _storeTaxSystem == 1;
+        private bool IsTaxIncluded => _storeTaxSystem > 0;
 
         private CheckoutExonerationState BuildCheckoutExonerationState()
         {

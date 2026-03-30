@@ -23,14 +23,24 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var result = db.ExecuteQuery<StoreConfigDto>(
-                    "SELECT TOP 1 TaxSystem, QuoteExpirationDays, DefaultTenderID FROM [Configuration]")
-                    .FirstOrDefault();
-                if (result != null)
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
-                    dto.TaxSystem = result.TaxSystem;
-                    dto.QuoteExpirationDays = result.QuoteExpirationDays;
-                    dto.DefaultTenderID = result.DefaultTenderID;
+                    using (var cn = new SqlConnection(posConnectionString))
+                    using (var cmd = new SqlCommand(
+                        "SELECT TOP 1 TaxSystem, QuoteExpirationDays, DefaultTenderID FROM dbo.[Configuration]", cn))
+                    {
+                        cn.Open();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                dto.TaxSystem = reader["TaxSystem"] != DBNull.Value ? Convert.ToInt32(reader["TaxSystem"]) : 0;
+                                dto.QuoteExpirationDays = reader["QuoteExpirationDays"] != DBNull.Value ? Convert.ToInt32(reader["QuoteExpirationDays"]) : 0;
+                                dto.DefaultTenderID = reader["DefaultTenderID"] != DBNull.Value ? Convert.ToInt32(reader["DefaultTenderID"]) : 0;
+                            }
+                        }
+                    }
                 }
             }
             catch { }

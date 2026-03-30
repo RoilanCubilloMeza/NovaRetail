@@ -949,7 +949,7 @@ ORDER BY te.ID";
 
                 var lineAmount    = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
                 var taxAmount     = Math.Round(item.SalesTax,  4, MidpointRounding.AwayFromZero);
-                var taxableAmount = taxSystem == 1
+                var taxableAmount = taxSystem > 0
                     ? Math.Max(0m, Math.Round(lineAmount - taxAmount, 4, MidpointRounding.AwayFromZero))
                     : Math.Max(0m, lineAmount);
 
