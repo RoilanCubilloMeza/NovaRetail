@@ -162,20 +162,20 @@ public sealed class ApiProductService : IProductService
         if (text.Contains("sandalia") || text.Contains("zapato") || text.Contains("tenis") ||
             text.Contains("zapat") || text.Contains("bota") || text.Contains("calcetin") ||
             text.Contains("plantilla"))
-            return "Calzado";
+            return CategoryKeys.Calzado;
 
         if (text.Contains("martillo") || text.Contains("tornillo") || text.Contains("clavo") ||
             text.Contains("llave") || text.Contains("pintura") || text.Contains("broca") ||
             text.Contains("cinta") || text.Contains("pvc") || text.Contains("taco") ||
             text.Contains("ferreter"))
-            return "Ferreteria";
+            return CategoryKeys.Ferreteria;
 
         if (text.Contains("escoba") || text.Contains("cojin") || text.Contains("cubeta") ||
             text.Contains("almohada") || text.Contains("hogar") || text.Contains("vela") ||
             text.Contains("limpiador"))
-            return "Hogar";
+            return CategoryKeys.Hogar;
 
-        return "Supermercado";
+        return CategoryKeys.Supermercado;
     }
 
     private sealed class ApiItem

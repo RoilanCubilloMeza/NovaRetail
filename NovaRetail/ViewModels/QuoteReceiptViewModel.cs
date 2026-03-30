@@ -1,4 +1,5 @@
 using NovaRetail.Models;
+using NovaRetail.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Net;
@@ -191,8 +192,7 @@ namespace NovaRetail.ViewModels
             }
             catch (Exception ex)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                    Application.Current?.MainPage?.DisplayAlert("Error al imprimir", ex.Message, "OK") ?? Task.CompletedTask);
+                await UiPage.AlertAsync("Error al imprimir", ex.Message);
             }
             finally { IsBusy = false; }
         }
@@ -213,8 +213,7 @@ namespace NovaRetail.ViewModels
             }
             catch (Exception ex)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                    Application.Current?.MainPage?.DisplayAlert("Error al guardar", ex.Message, "OK") ?? Task.CompletedTask);
+                await UiPage.AlertAsync("Error al guardar", ex.Message);
             }
             finally { IsBusy = false; }
         }

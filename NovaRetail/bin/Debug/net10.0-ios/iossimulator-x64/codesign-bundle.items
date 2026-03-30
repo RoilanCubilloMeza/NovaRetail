@@ -12,7 +12,7 @@
       <CodesignDisableTimestamp>true</CodesignDisableTimestamp>
       <CodesignKeychain></CodesignKeychain>
       <CodesignUseHardenedRuntime></CodesignUseHardenedRuntime>
-      <SourceProjectPath>C:\Users\developer01\Documents\GitHub\NovaRetail\NovaRetail</SourceProjectPath>
+      <SourceProjectPath>C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail</SourceProjectPath>
     </_CodesignBundle>
   </ItemGroup>
 </Project>

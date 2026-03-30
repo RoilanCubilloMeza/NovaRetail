@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:NovaRetail.Controls"
+             xmlns:viewModels="clr-namespace:NovaRetail.ViewModels"
              x:Class="NovaRetail.Views.ProductsPanel"
              x:Name="ThisPanel">
 
@@ -100,27 +101,16 @@
                     <ScrollView Grid.Row="1" Orientation="Horizontal"
                                 HorizontalScrollBarVisibility="Never"
                                 Margin="0,0,0,8">
-                        <HorizontalStackLayout Spacing="6">
-                            <controls:CategoryTab Text="&#x1F3F7;&#xFE0F; Todos"
-                                                  IsActive="{Binding IsCatTodos}"
-                                                  Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Todos"/>
-                            <controls:CategoryTab Text="&#x1F6D2; Supermercado"
-                                                  IsActive="{Binding IsCatSuper}"
-                                                  Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Supermercado"/>
-                            <controls:CategoryTab Text="&#x1F527; Ferretería"
-                                                  IsActive="{Binding IsCatFerreteria}"
-                                                  Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Ferreteria"/>
-                            <controls:CategoryTab Text="&#x1F45F; Calzado"
-                                                  IsActive="{Binding IsCatCalzado}"
-                                                  Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Calzado"/>
-                            <controls:CategoryTab Text="&#x1F3E0; Hogar"
-                                                  IsActive="{Binding IsCatHogar}"
-                                                  Command="{Binding SelectCategoryCommand}"
-                                                  CommandParameter="Hogar"/>
+                        <HorizontalStackLayout Spacing="6"
+                                               BindableLayout.ItemsSource="{Binding CategoryTabs}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:MainViewModel.CategoryTabItem">
+                                    <controls:CategoryTab Text="{Binding Text}"
+                                                          IsActive="{Binding IsActive}"
+                                                          Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.SelectCategoryCommand}"
+                                                          CommandParameter="{Binding Key}"/>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
                         </HorizontalStackLayout>
                     </ScrollView>
 

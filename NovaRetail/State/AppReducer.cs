@@ -1,3 +1,5 @@
+using NovaRetail;
+
 namespace NovaRetail.State;
 
 public static class AppReducer
@@ -32,8 +34,8 @@ public static class AppReducer
 
         // ── Búsqueda de productos ──
         SetProductSearchTextAction a => state with { ProductSearchText = a.Text ?? string.Empty },
-        SetSelectedTabAction a => state with { SelectedTab = a.Tab ?? "Rápido" },
-        SetSelectedCategoryAction a => state with { SelectedCategory = a.Category ?? "Todos" },
+        SetSelectedTabAction a => state with { SelectedTab = a.Tab ?? TabKeys.Rapido },
+        SetSelectedCategoryAction a => state with { SelectedCategory = a.Category ?? CategoryKeys.Todos },
 
         // ── Descuento del ticket ──
         SetDiscountPercentAction a => state with { DiscountPercent = Math.Clamp(a.Percent, 0, 100) },

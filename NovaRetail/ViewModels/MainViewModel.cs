@@ -423,18 +423,27 @@ namespace NovaRetail.ViewModels
                 {
                     _appStore.Dispatch(new SetSelectedTabAction(value));
 
-                    if (value == "Rápido" || value == "Promos")
-                        SelectedCategory = "Todos";
+                    if (value == TabKeys.Rapido || value == TabKeys.Promos)
+                        SelectedCategory = CategoryKeys.Todos;
 
                     FilterProducts();
                 }
             }
         }
 
-        public bool IsTabRapido => SelectedTab == "Rápido";
-        public bool IsTabCategorias => SelectedTab == "Categorías";
-        public bool IsTabPromos => SelectedTab == "Promos";
-        public bool ShowCategoryTabs => SelectedTab == "Categorías";
+        public bool IsTabRapido => SelectedTab == TabKeys.Rapido;
+        public bool IsTabCategorias => SelectedTab == TabKeys.Categorias;
+        public bool IsTabPromos => SelectedTab == TabKeys.Promos;
+        public bool ShowCategoryTabs => SelectedTab == TabKeys.Categorias;
+        public IReadOnlyList<TabTabItem> CatalogTabs => TabKeys.Options
+            .Select(option => new TabTabItem(option.Key, option.TabText, string.Equals(option.Key, SelectedTab, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+        public IReadOnlyList<CategoryTabItem> CategoryTabs => CategoryKeys.Options
+            .Select(option => new CategoryTabItem(
+                option.Key,
+                option.TabText,
+                MatchesCategory(option.Key, SelectedCategory)))
+            .ToArray();
 
         // ── Categoría del panel central ──
 
@@ -448,7 +457,7 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetSelectedCategoryAction(value));
                     FilterProducts();
 
-                    if (value == "Todos" || value == "Super" || value == "Supermercado")
+                    if (value == CategoryKeys.Todos || value == CategoryKeys.Super || value == CategoryKeys.Supermercado)
                         _ = LoadProductsAsync();
 
                     _ = LoadCategoryProductsAsync(value);
@@ -456,37 +465,28 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        public bool IsCatTodos => SelectedCategory == "Todos";
-        public bool IsCatSuper => SelectedCategory == "Supermercado" || SelectedCategory == "Super";
-        public bool IsCatFerreteria => SelectedCategory == "Ferreteria";
-        public bool IsCatCalzado => SelectedCategory == "Calzado";
-        public bool IsCatHogar => SelectedCategory == "Hogar";
-
         public string BreadcrumbText
         {
             get
             {
-                if (SelectedTab == "Promos")
+                if (SelectedTab == TabKeys.Promos)
                     return "🏷️  Promociones activas";
-                if (SelectedTab == "Categorías" && SelectedCategory != "Todos")
-                    return $"📋  Categorías  /  {SelectedCategory}";
+                if (SelectedTab == TabKeys.Categorias && SelectedCategory != CategoryKeys.Todos)
+                    return $"📋  {TabKeys.Categorias}  /  {SelectedCategory}";
                 return "📋  Todos los productos";
             }
         }
 
         private async Task LoadCategoryProductsAsync(string category)
         {
-            if (string.IsNullOrWhiteSpace(category) || category == "Todos" || category == "Supermercado" || category == "Super")
+            if (string.IsNullOrWhiteSpace(category) || category == CategoryKeys.Todos || category == CategoryKeys.Supermercado || category == CategoryKeys.Super)
                 return;
 
             if (_allProducts.Any(p => MatchesCategory(p.Category, category)))
                 return;
 
-            var seed = category == "Calzado"
-                ? "tenis"
-                : category == "Ferreteria"
-                    ? "tornillo"
-                    : "escoba";
+            if (!CategoryKeys.Seeds.TryGetValue(category, out var seed))
+                return;
 
             try
             {
@@ -517,9 +517,9 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            if (string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(SelectedCategory, "Super", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(SelectedCategory, "Supermercado", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(SelectedCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(SelectedCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase))
             {
                 await LoadProductsAsync();
                 return;
@@ -535,8 +535,8 @@ namespace NovaRetail.ViewModels
             _searchCts = new CancellationTokenSource();
 
             _appStore.Dispatch(new SetProductSearchTextAction(string.Empty));
-            _appStore.Dispatch(new SetSelectedTabAction("Categorías"));
-            _appStore.Dispatch(new SetSelectedCategoryAction("Todos"));
+            _appStore.Dispatch(new SetSelectedTabAction(TabKeys.Categorias));
+            _appStore.Dispatch(new SetSelectedCategoryAction(CategoryKeys.Todos));
 
             FilterProducts();
             await LoadProductsAsync();
@@ -826,12 +826,9 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsTabCategorias));
             OnPropertyChanged(nameof(IsTabPromos));
             OnPropertyChanged(nameof(ShowCategoryTabs));
+            OnPropertyChanged(nameof(CatalogTabs));
+            OnPropertyChanged(nameof(CategoryTabs));
             OnPropertyChanged(nameof(SelectedCategory));
-            OnPropertyChanged(nameof(IsCatTodos));
-            OnPropertyChanged(nameof(IsCatSuper));
-            OnPropertyChanged(nameof(IsCatFerreteria));
-            OnPropertyChanged(nameof(IsCatCalzado));
-            OnPropertyChanged(nameof(IsCatHogar));
             OnPropertyChanged(nameof(BreadcrumbText));
 
             // ── Descuento del ticket ──
@@ -1218,7 +1215,7 @@ namespace NovaRetail.ViewModels
             var query = _allProducts.AsEnumerable();
 
             // Filtrar por categoría seleccionada
-            if (SelectedCategory != "Todos")
+            if (SelectedCategory != CategoryKeys.Todos)
             {
                 query = query.Where(p => MatchesCategory(p.Category, SelectedCategory));
             }
@@ -1250,15 +1247,15 @@ namespace NovaRetail.ViewModels
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
                 return false;
 
-            return string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase)
-                || MatchesCategory("Super", SelectedCategory);
+            return string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase)
+                || MatchesCategory(CategoryKeys.Super, SelectedCategory);
         }
 
         private void AppendPagedProducts(IEnumerable<ProductModel> pageProducts)
         {
             var page = pageProducts;
 
-            if (!string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
                 page = page.Where(p => MatchesCategory(p.Category, SelectedCategory));
 
             var existingCodes = Products
@@ -1345,11 +1342,11 @@ namespace NovaRetail.ViewModels
 
         private static bool MatchesCategory(string productCategory, string selectedCategory)
         {
-            if (string.Equals(selectedCategory, "Supermercado", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(selectedCategory, "Super", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(selectedCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(selectedCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase))
             {
-                return string.Equals(productCategory, "Supermercado", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(productCategory, "Super", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(productCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(productCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase);
             }
 
             return string.Equals(productCategory, selectedCategory, StringComparison.OrdinalIgnoreCase);
@@ -1390,7 +1387,7 @@ namespace NovaRetail.ViewModels
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
                 return;
 
-            if (!MatchesCategory("Super", SelectedCategory) && !string.Equals(SelectedCategory, "Todos", StringComparison.OrdinalIgnoreCase))
+            if (!MatchesCategory(CategoryKeys.Super, SelectedCategory) && !string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
                 return;
 
             IsLoadingMoreProducts = true;
@@ -1453,11 +1450,15 @@ namespace NovaRetail.ViewModels
             SelectedTab = tab;
         }
 
+        public sealed record TabTabItem(string Key, string Text, bool IsActive);
+
         private void SelectCategory(string? category)
         {
             if (category is null) return;
             SelectedCategory = category;
         }
+
+        public sealed record CategoryTabItem(string Key, string Text, bool IsActive);
 
         private void AddProduct(ProductModel? product)
             => AddProduct(product, 1m);

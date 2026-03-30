@@ -1,3 +1,5 @@
+using NovaRetail;
+
 namespace NovaRetail.State;
 
 public sealed record AppState(
@@ -26,8 +28,8 @@ public sealed record AppState(
 
     // ── Búsqueda de productos ──
     string ProductSearchText = "",
-    string SelectedTab = "Rápido",
-    string SelectedCategory = "Todos",
+    string SelectedTab = TabKeys.Rapido,
+    string SelectedCategory = CategoryKeys.Todos,
 
     // ── Descuento del ticket ──
     int DiscountPercent = 0);

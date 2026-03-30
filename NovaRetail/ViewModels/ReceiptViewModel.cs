@@ -345,8 +345,11 @@ namespace NovaRetail.ViewModels
                             + $"Total: {TotalColonesText}\n\n"
                             + "Gracias por su compra.\n"
                             + (string.IsNullOrWhiteSpace(StoreName) ? string.Empty : $"\n{StoreName}"),
+                    Attachments = new List<EmailAttachment>
+                    {
+                        new(htmlFile, "text/html")
+                    }
                 };
-                msg.Attachments.Add(new EmailAttachment(htmlFile, "text/html"));
                 await Email.ComposeAsync(msg);
             }
             catch
@@ -377,8 +380,7 @@ namespace NovaRetail.ViewModels
         }
 
         private static Task ShowAlertAsync(string title, string message)
-            => MainThread.InvokeOnMainThreadAsync(() =>
-                Application.Current?.MainPage?.DisplayAlert(title, message, "OK") ?? Task.CompletedTask);
+            => UiPage.AlertAsync(title, message);
 
         // ── Text / HTML builders ─────────────────────────────────────────────
 
