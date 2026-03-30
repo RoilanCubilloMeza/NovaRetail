@@ -50,8 +50,30 @@ public static class UiConfig
 
     // ─── Moneda regional ───
 
-    /// <summary>Símbolo de moneda según la configuración regional de Windows del usuario.</summary>
-    public static string CurrencySymbol => System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol;
+    /// <summary>
+    /// Símbolo de moneda según la configuración regional de Windows (intl.cpl → Moneda).
+    /// Lee directamente del registro para reflejar cambios sin reiniciar la app.
+    /// </summary>
+    public static string CurrencySymbol
+    {
+        get
+        {
+            try
+            {
+#if WINDOWS
+                return Microsoft.Win32.Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Control Panel\International",
+                    "sCurrency", "₡")?.ToString() ?? "₡";
+#else
+                return System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol;
+#endif
+            }
+            catch
+            {
+                return "₡";
+            }
+        }
+    }
 
     // ─── Sombra de tarjeta (nueva instancia por control) ───
 

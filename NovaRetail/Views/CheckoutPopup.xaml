@@ -410,7 +410,7 @@
                                                      Margin="0,12,0,0">
 
                                     <!-- Monto del 2do pago -->
-                                    <Label Text="MONTO DEL SEGUNDO PAGO (₡)"
+                                    <Label Text="{Binding SecondAmountLabelText}"
                                            FontSize="10" FontAttributes="Bold"
                                            TextColor="#475569" CharacterSpacing="0.5"/>
                                     <Border BackgroundColor="White"

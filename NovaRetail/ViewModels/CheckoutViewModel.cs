@@ -115,6 +115,7 @@ namespace NovaRetail.ViewModels
         }
 
         public string SecondTenderToggleText => HasSecondTender ? "— Quitar segundo medio de pago" : "+ Agregar segundo medio de pago";
+        public string SecondAmountLabelText => $"MONTO DEL SEGUNDO PAGO ({UiConfig.CurrencySymbol})";
 
         public TenderModel? SecondTender
         {

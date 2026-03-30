@@ -78,6 +78,7 @@ namespace NovaRetail.ViewModels
         public string TaxText           { get; private set; } = string.Empty;
         public string TotalText         { get; private set; } = string.Empty;
         public string TotalColonesText  { get; private set; } = string.Empty;
+        public string CurrencyZeroText   => $"{UiConfig.CurrencySymbol}0.00";
         public bool   HasDiscount       { get; private set; }
         public string DiscountText      { get; private set; } = string.Empty;
         public bool   HasExoneration    { get; private set; }
