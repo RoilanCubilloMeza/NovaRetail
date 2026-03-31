@@ -136,7 +136,11 @@ namespace NovaAPI.Controllers
 
         static bool PasswordMatches(string inputPassword, string storedPassword)
         {
-            if (string.IsNullOrEmpty(storedPassword) || string.IsNullOrEmpty(inputPassword))
+            // Sin contraseña: acceso libre
+            if (string.IsNullOrEmpty(storedPassword))
+                return true;
+
+            if (string.IsNullOrEmpty(inputPassword))
                 return false;
 
             // Solo se aceptan contraseñas cifradas con AES por RMH Store Manager
