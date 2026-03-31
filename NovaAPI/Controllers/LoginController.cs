@@ -136,34 +136,13 @@ namespace NovaAPI.Controllers
 
         static bool PasswordMatches(string inputPassword, string storedPassword)
         {
-            // Both empty: match
-            if (string.IsNullOrEmpty(storedPassword) && string.IsNullOrEmpty(inputPassword))
-                return true;
-
-            // Stored is empty but user typed something (or vice versa)
             if (string.IsNullOrEmpty(storedPassword) || string.IsNullOrEmpty(inputPassword))
                 return false;
 
-            // Direct plain-text match
-            if (string.Equals(inputPassword, storedPassword, StringComparison.Ordinal))
-                return true;
-
-            // SHA-256 hash comparison (RMH stores SHA256(password) as Base64)
-            using (var sha256 = SHA256.Create())
-            {
-                var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(inputPassword));
-                var hashBase64 = Convert.ToBase64String(hashBytes);
-                if (string.Equals(hashBase64, storedPassword, StringComparison.Ordinal))
-                    return true;
-            }
-
-            // RMH encrypted password (AES-256-CBC set by RMH Store Manager)
+            // Solo se aceptan contraseñas cifradas con AES por RMH Store Manager
             string decrypted;
             if (TryDecryptRmhPassword(storedPassword, out decrypted))
-            {
-                if (string.Equals(inputPassword, decrypted, StringComparison.Ordinal))
-                    return true;
-            }
+                return string.Equals(inputPassword, decrypted, StringComparison.Ordinal);
 
             return false;
         }
