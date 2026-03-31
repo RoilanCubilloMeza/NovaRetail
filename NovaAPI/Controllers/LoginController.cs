@@ -5,6 +5,8 @@ using System.Data.SqlClient;
 using System.Net;
 using System.Net.Http;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Web.Http;
 using NovaAPI.Models;
 
@@ -40,21 +42,25 @@ namespace NovaAPI.Controllers
                               BuildSelectColumn(idColumn, "ID_CLIENTE", "1") + ", " +
                               BuildSelectColumn(loginColumn, "US_LOGIN", "''") + ", " +
                               BuildSelectColumn(nameColumn, "US_NOMBRE", "''") + ", " +
-                              BuildSelectColumn(storeColumn, "US_ID_STORE", "0") +
+                              BuildSelectColumn(storeColumn, "US_ID_STORE", "0") + ", " +
+                              (string.IsNullOrWhiteSpace(passwordColumn)
+                                  ? "'' AS [US_PWD_STORED]"
+                                  : "ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(500), [" + passwordColumn + "]))), '') AS [US_PWD_STORED]") +
                               " FROM [Cashier] WHERE LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + loginColumn + "]))) = @login";
-
-                    if (!string.IsNullOrWhiteSpace(passwordColumn))
-                        sql += " AND ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + passwordColumn + "]))), '') = @password";
 
                     using (var command = new SqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@login", LOGIN.Trim());
-                        if (!string.IsNullOrWhiteSpace(passwordColumn))
-                            command.Parameters.AddWithValue("@password", (CLAVE ?? string.Empty).Trim());
 
                         using (var reader = command.ExecuteReader())
                         {
                             if (!reader.Read())
+                                return null;
+
+                            var storedPassword = ReadString(reader, "US_PWD_STORED", string.Empty);
+                            var inputPassword = (CLAVE ?? string.Empty).Trim();
+
+                            if (!PasswordMatches(inputPassword, storedPassword))
                                 return null;
 
                             return new Cliente_App
@@ -126,6 +132,87 @@ namespace NovaAPI.Controllers
 
             int parsed;
             return int.TryParse(Convert.ToString(value), out parsed) ? parsed : (int?)null;
+        }
+
+        static bool PasswordMatches(string inputPassword, string storedPassword)
+        {
+            // Both empty: match
+            if (string.IsNullOrEmpty(storedPassword) && string.IsNullOrEmpty(inputPassword))
+                return true;
+
+            // Stored is empty but user typed something (or vice versa)
+            if (string.IsNullOrEmpty(storedPassword) || string.IsNullOrEmpty(inputPassword))
+                return false;
+
+            // Direct plain-text match
+            if (string.Equals(inputPassword, storedPassword, StringComparison.Ordinal))
+                return true;
+
+            // SHA-256 hash comparison (RMH stores SHA256(password) as Base64)
+            using (var sha256 = SHA256.Create())
+            {
+                var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(inputPassword));
+                var hashBase64 = Convert.ToBase64String(hashBytes);
+                if (string.Equals(hashBase64, storedPassword, StringComparison.Ordinal))
+                    return true;
+            }
+
+            // RMH encrypted password (AES-256-CBC set by RMH Store Manager)
+            string decrypted;
+            if (TryDecryptRmhPassword(storedPassword, out decrypted))
+            {
+                if (string.Equals(inputPassword, decrypted, StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
+        }
+
+        // Default encryption key used by RMH.APP.Core.Cryptographer
+        private static readonly byte[] RmhAesKey = BuildRmhKey("eddef4dd187aa3a3660c76ec9");
+
+        static byte[] BuildRmhKey(string secret)
+        {
+            var utf16 = Encoding.Unicode.GetBytes(secret);
+            var key = new byte[32];
+            Array.Copy(utf16, 0, key, 0, 32);
+            return key;
+        }
+
+        static bool TryDecryptRmhPassword(string encryptedBase64, out string decrypted)
+        {
+            decrypted = null;
+            try
+            {
+                var allBytes = Convert.FromBase64String(encryptedBase64);
+                if (allBytes.Length < 32)
+                    return false;
+
+                var iv = new byte[16];
+                var cipher = new byte[allBytes.Length - 16];
+                Array.Copy(allBytes, 0, iv, 0, 16);
+                Array.Copy(allBytes, 16, cipher, 0, cipher.Length);
+
+                using (var aes = new RijndaelManaged())
+                {
+                    aes.KeySize = 256;
+                    aes.Key = RmhAesKey;
+                    aes.IV = iv;
+                    aes.Mode = CipherMode.CBC;
+                    aes.Padding = PaddingMode.PKCS7;
+
+                    using (var decryptor = aes.CreateDecryptor())
+                    {
+                        var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
+                        decrypted = Encoding.Unicode.GetString(plainBytes);
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
 
