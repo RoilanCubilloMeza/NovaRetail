@@ -325,6 +325,7 @@ namespace NovaRetail.ViewModels
         public ICommand RecallHoldCommand { get; }
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
+        public ICommand NavigateToCategoryConfigCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -737,6 +738,7 @@ namespace NovaRetail.ViewModels
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
+            NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
@@ -886,6 +888,20 @@ namespace NovaRetail.ViewModels
             catch
             {
             }
+        }
+
+        public async Task ReloadCategoriesAsync()
+        {
+            try
+            {
+                var categories = await _storeConfigService.GetCategoriesAsync();
+                if (categories.Count > 0)
+                {
+                    CategoryKeys.Load(categories);
+                    OnPropertyChanged(nameof(CategoryTabs));
+                }
+            }
+            catch { }
         }
 
         private async Task ShowSalesRepPickerAsync()

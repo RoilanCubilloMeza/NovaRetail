@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NovaRetail.ViewModels"
+             x:Class="NovaRetail.Pages.CategoryConfigPage"
+             Title="Configurar Categorías"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *" Padding="20">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,10,0,16">
+            <Border Grid.Column="0"
+                    BackgroundColor="#F1F5F9"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    HorizontalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Volver" FontSize="14" FontAttributes="Bold" TextColor="#475569"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                <Label Text="📂 Configurar Categorías"
+                       FontSize="20" FontAttributes="Bold"
+                       TextColor="#1E293B" HorizontalTextAlignment="Center"/>
+                <Label Text="Seleccione las categorías visibles en el POS (máximo 6)"
+                       FontSize="12" TextColor="#64748B" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <Border Grid.Column="2"
+                    BackgroundColor="#2563EB"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="16,8"
+                    HorizontalOptions="End">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SaveCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="💾 Guardar" FontSize="14" FontAttributes="Bold" TextColor="White"/>
+            </Border>
+        </Grid>
+
+        <!-- Content: two panels -->
+        <Grid Grid.Row="1" ColumnDefinitions="1*, 1*" ColumnSpacing="16">
+
+            <!-- Left: All departments -->
+            <Border Grid.Column="0"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#1E293B"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Label Text="📋 Departamentos disponibles"
+                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <CollectionView Grid.Row="1"
+                                    ItemsSource="{Binding AllCategories}"
+                                    SelectionMode="None"
+                                    Margin="4,4">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SelectableCategoryItem">
+                                <Border Margin="6,3"
+                                        Padding="14,10"
+                                        StrokeShape="RoundRectangle 8"
+                                        StrokeThickness="1"
+                                        Stroke="{Binding IsSelected, Converter={StaticResource BoolToStrokeConverter}}"
+                                        BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToBgConverter}}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryConfigViewModel}}, Path=ToggleCategoryCommand}"
+                                            CommandParameter="{Binding}"/>
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding ID, StringFormat='#{0}'}"
+                                               FontSize="12" TextColor="#94A3B8"
+                                               VerticalOptions="Center"
+                                               WidthRequest="40"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Name}"
+                                               FontSize="14" FontAttributes="Bold"
+                                               TextColor="#1E293B"
+                                               VerticalOptions="Center"/>
+                                        <Label Grid.Column="2"
+                                               Text="{Binding IsSelected, Converter={StaticResource BoolToCheckConverter}}"
+                                               FontSize="18"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                        <CollectionView.EmptyView>
+                            <Label Text="No se encontraron departamentos."
+                                   FontSize="13" TextColor="#94A3B8"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   Margin="20"/>
+                        </CollectionView.EmptyView>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <!-- Right: Selected categories (ordered) -->
+            <Border Grid.Column="1"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *, Auto">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#1E293B"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Grid.Column="0"
+                                   Text="✅ Categorías seleccionadas"
+                                   FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#334155"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 10"
+                                    Padding="10,4">
+                                <Label Text="{Binding SelectedCountText}"
+                                       FontSize="12" TextColor="#CBD5E1"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <CollectionView Grid.Row="1"
+                                    ItemsSource="{Binding SelectedCategories}"
+                                    SelectionMode="None"
+                                    Margin="4,4">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SelectableCategoryItem">
+                                <Border Margin="6,3"
+                                        Padding="10,8"
+                                        StrokeShape="RoundRectangle 8"
+                                        StrokeThickness="1"
+                                        Stroke="#C7D2FE"
+                                        BackgroundColor="#EEF2FF">
+                                    <Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding ID, StringFormat='#{0}'}"
+                                               FontSize="12" TextColor="#6366F1"
+                                               VerticalOptions="Center"
+                                               WidthRequest="40"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Name}"
+                                               FontSize="14" FontAttributes="Bold"
+                                               TextColor="#1E293B"
+                                               VerticalOptions="Center"/>
+                                        <Border Grid.Column="2"
+                                                BackgroundColor="#E0E7FF"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="8,4"
+                                                HeightRequest="30">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryConfigViewModel}}, Path=MoveUpCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                            </Border.GestureRecognizers>
+                                            <Label Text="▲" FontSize="12" TextColor="#4338CA"
+                                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        </Border>
+                                        <Border Grid.Column="3"
+                                                BackgroundColor="#E0E7FF"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="8,4"
+                                                HeightRequest="30">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryConfigViewModel}}, Path=MoveDownCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                            </Border.GestureRecognizers>
+                                            <Label Text="▼" FontSize="12" TextColor="#4338CA"
+                                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        </Border>
+                                        <Border Grid.Column="4"
+                                                BackgroundColor="#FEE2E2"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="8,4"
+                                                HeightRequest="30">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryConfigViewModel}}, Path=RemoveCategoryCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                            </Border.GestureRecognizers>
+                                            <Label Text="✕" FontSize="12" TextColor="#DC2626"
+                                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout HorizontalOptions="Center"
+                                                 VerticalOptions="Center"
+                                                 Padding="20" Spacing="6">
+                                <Label Text="📂" FontSize="32" HorizontalTextAlignment="Center"/>
+                                <Label Text="Seleccione categorías del panel izquierdo"
+                                       FontSize="13" TextColor="#94A3B8"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
+                    </CollectionView>
+
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,12,12"
+                            Padding="16,10">
+                        <Label Text="El orden de las categorías será el mismo que se muestra en el POS."
+                               FontSize="11" TextColor="#94A3B8"
+                               HorizontalTextAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Loading overlay -->
+        <Grid Grid.RowSpan="2" IsVisible="{Binding IsBusy}">
+            <BoxView Color="#000000" Opacity="0.3"/>
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               Color="#2563EB"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+        </Grid>
+    </Grid>
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <local:BoolToCheckConverter x:Key="BoolToCheckConverter"
+                                        xmlns:local="clr-namespace:NovaRetail.Converters"/>
+            <local:BoolToColorConverter x:Key="BoolToStrokeConverter"
+                                         xmlns:local="clr-namespace:NovaRetail.Converters"
+                                         TrueColor="#6366F1" FalseColor="#E2E8F0"/>
+            <local:BoolToColorConverter x:Key="BoolToBgConverter"
+                                         xmlns:local="clr-namespace:NovaRetail.Converters"
+                                         TrueColor="#EEF2FF" FalseColor="#F8FAFC"/>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+</ContentPage>

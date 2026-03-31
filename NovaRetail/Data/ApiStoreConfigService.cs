@@ -78,4 +78,70 @@ public sealed class ApiStoreConfigService : IStoreConfigService
 
         return [];
     }
+
+    public async Task<List<CategoryModel>> GetAllCategoriesAsync()
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var result = await http.GetFromJsonAsync<List<CategoryModel>>($"{baseUrl}/api/Categories/All");
+                if (result is not null && result.Count > 0)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener todos los departamentos desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return [];
+    }
+
+    public async Task<string> GetCategoryConfigAsync()
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var result = await http.GetFromJsonAsync<CategoryConfigResponse>($"{baseUrl}/api/Categories/Config");
+                if (result is not null)
+                    return result.SelectedIds ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener configuración de categorías desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    public async Task<bool> SaveCategoryConfigAsync(string selectedIds)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var response = await http.PutAsJsonAsync(
+                    $"{baseUrl}/api/Categories/Config",
+                    new CategoryConfigResponse { SelectedIds = selectedIds });
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al guardar configuración de categorías en {BaseUrl}", baseUrl);
+            }
+        }
+
+        return false;
+    }
+
+    private sealed class CategoryConfigResponse
+    {
+        public string SelectedIds { get; set; } = string.Empty;
+    }
 }

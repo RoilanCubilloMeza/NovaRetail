@@ -48,6 +48,16 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
+[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/CategoryConfigPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.CategoryConfigPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\CategoryConfigPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\CategoryConfigPage.xaml
+build_metadata.AdditionalFiles.Inflator = SourceGen
+build_metadata.AdditionalFiles.NoWarn = 
+build_metadata.AdditionalFiles.EnableDiagnostics = 
+build_metadata.AdditionalFiles.LineInfo = 
+
 [C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/ClientePage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.ClientePage.xaml

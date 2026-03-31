@@ -69,12 +69,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<ClienteViewModel>();
         builder.Services.AddTransient<InvoiceHistoryViewModel>();
+        builder.Services.AddTransient<CategoryConfigViewModel>();
 
         // Pages
         builder.Services.AddSingleton<LoginPage>();
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<ClientePage>();
         builder.Services.AddTransient<InvoiceHistoryPage>();
+        builder.Services.AddTransient<CategoryConfigPage>();
 
         // Shell
         builder.Services.AddSingleton<AppShell>();

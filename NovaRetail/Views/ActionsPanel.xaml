@@ -105,6 +105,13 @@
                                             SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
                                             IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
 
+                    <BoxView Style="{DynamicResource FormDivider}" Margin="0,8,0,8"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4C2;" Text="Categorías"
+                                            Command="{Binding NavigateToCategoryConfigCommand}"
+                                            SurfaceColor="#FFF7ED" StrokeColor="#FED7AA"
+                                            IconColor="#EA580C" LabelColor="#9A3412" ArrowColor="#EA580C"/>
+
                 </VerticalStackLayout>
 
             </VerticalStackLayout>
