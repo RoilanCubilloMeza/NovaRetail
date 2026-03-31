@@ -122,7 +122,7 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
-            // VE-01: PedirVendedor / VE-02: RequiereVendedor
+            // VE-01: PedirVendedor / VE-02: RequiereVendedor / TC-01: TipoCambio / CL-01: ClienteContadoID / CL-02: ClienteContadoNombre
             try
             {
                 var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
@@ -130,7 +130,7 @@ namespace NovaAPI.Controllers
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
                     using (var cmd = new System.Data.SqlClient.SqlCommand(
-                        "SELECT CODIGO, CAST(VALOR AS INT) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02')", cn))
+                        "SELECT CODIGO, LTRIM(RTRIM(VALOR)) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02','TC-01','CL-01','CL-02')", cn))
                     {
                         cn.Open();
                         using (var reader = cmd.ExecuteReader())
@@ -138,11 +138,43 @@ namespace NovaAPI.Controllers
                             while (reader.Read())
                             {
                                 var codigo = reader["CODIGO"].ToString();
-                                var valor = Convert.ToInt32(reader["VALOR"]);
-                                if (codigo == "VE-01") dto.AskForSalesRep = valor == 1;
-                                if (codigo == "VE-02") dto.RequireSalesRep = valor == 1;
+                                var valorStr = reader["VALOR"]?.ToString() ?? string.Empty;
+                                int valorInt;
+                                int.TryParse(valorStr, out valorInt);
+
+                                if (codigo == "VE-01") dto.AskForSalesRep = valorInt == 1;
+                                if (codigo == "VE-02") dto.RequireSalesRep = valorInt == 1;
+                                if (codigo == "TC-01")
+                                {
+                                    decimal tc;
+                                    if (decimal.TryParse(valorStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out tc) && tc > 0)
+                                        dto.DefaultExchangeRate = tc;
+                                }
+                                if (codigo == "CL-01" && !string.IsNullOrWhiteSpace(valorStr))
+                                    dto.DefaultClientId = valorStr;
+                                if (codigo == "CL-02" && !string.IsNullOrWhiteSpace(valorStr))
+                                    dto.DefaultClientName = valorStr;
                             }
                         }
+                    }
+                }
+            }
+            catch { }
+
+            // Impuesto por defecto: porcentaje del Tax más común
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT TOP 1 Percentage FROM dbo.Tax ORDER BY ID", cn))
+                    {
+                        cn.Open();
+                        var val = cmd.ExecuteScalar();
+                        if (val != null && val != DBNull.Value)
+                            dto.DefaultTaxPercentage = Convert.ToDecimal(val);
                     }
                 }
             }
@@ -153,16 +185,52 @@ namespace NovaAPI.Controllers
 
         [HttpGet]
         [Route("api/StoreConfig/Tenders")]
-        public IEnumerable<TenderDto> GetTenders()
+        public IHttpActionResult GetTenders()
         {
+            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            if (string.IsNullOrWhiteSpace(connectionString))
+                return Ok(new List<TenderDto>());
+
             try
             {
-                return db.ExecuteQuery<TenderDto>(
-                    "SELECT ID, Description, CurrencyID, DisplayOrder FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder");
+                var tenders = new List<TenderDto>();
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+
+                    // Detectar si existe la columna MedioPagoCodigo en Tender
+                    var hasMedioPago = false;
+                    using (var colCmd = new SqlCommand(
+                        "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Tender' AND COLUMN_NAME = 'MedioPagoCodigo'", cn))
+                    {
+                        hasMedioPago = Convert.ToInt32(colCmd.ExecuteScalar()) > 0;
+                    }
+
+                    var sql = hasMedioPago
+                        ? "SELECT ID, Description, CurrencyID, DisplayOrder, ISNULL(MedioPagoCodigo,'') AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder"
+                        : "SELECT ID, Description, CurrencyID, DisplayOrder, '' AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder";
+
+                    using (var cmd = new SqlCommand(sql, cn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            tenders.Add(new TenderDto
+                            {
+                                ID = Convert.ToInt32(reader["ID"]),
+                                Description = reader["Description"]?.ToString() ?? string.Empty,
+                                CurrencyID = Convert.ToInt32(reader["CurrencyID"]),
+                                DisplayOrder = Convert.ToInt32(reader["DisplayOrder"]),
+                                MedioPagoCodigo = reader["MedioPagoCodigo"]?.ToString() ?? string.Empty
+                            });
+                        }
+                    }
+                }
+                return Ok(tenders);
             }
             catch
             {
-                return new List<TenderDto>();
+                return Ok(new List<TenderDto>());
             }
         }
 
@@ -205,6 +273,14 @@ namespace NovaAPI.Controllers
         public bool AskForSalesRep { get; set; }
         /// <summary>VE-02: Si el vendedor es obligatorio para facturar.</summary>
         public bool RequireSalesRep { get; set; }
+        /// <summary>Porcentaje de impuesto por defecto (primer registro de Tax).</summary>
+        public decimal DefaultTaxPercentage { get; set; } = 13m;
+        /// <summary>Tipo de cambio por defecto (TC-01 en AVS_Parametros).</summary>
+        public decimal DefaultExchangeRate { get; set; }
+        /// <summary>Código del cliente contado por defecto (CL-01 en AVS_Parametros).</summary>
+        public string DefaultClientId { get; set; } = "00001";
+        /// <summary>Nombre del cliente contado por defecto (CL-02 en AVS_Parametros).</summary>
+        public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
     }
 
     public class TenderDto
@@ -213,6 +289,8 @@ namespace NovaAPI.Controllers
         public string Description { get; set; }
         public int CurrencyID { get; set; }
         public int DisplayOrder { get; set; }
+        /// <summary>Código de medio de pago para facturación electrónica (01=Efectivo, 02=Tarjeta, 04=Transferencia, etc.).</summary>
+        public string MedioPagoCodigo { get; set; } = string.Empty;
     }
 
     public class ConnectionInfoDto

@@ -40,6 +40,9 @@ namespace NovaRetail.ViewModels
         private string _storeName = string.Empty;
         private string _storeAddress = string.Empty;
         private string _storePhone = string.Empty;
+        private decimal _defaultTaxPercentage = 13m;
+        private string _defaultClientId = "00001";
+        private string _defaultClientName = "CLIENTE CONTADO";
         private decimal _tax;
         private decimal _total;
         private decimal _discountAmount;
@@ -457,7 +460,7 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetSelectedCategoryAction(value));
                     FilterProducts();
 
-                    if (value == CategoryKeys.Todos || value == CategoryKeys.Super || value == CategoryKeys.Supermercado)
+                    if (value == CategoryKeys.Todos)
                         _ = LoadProductsAsync();
 
                     _ = LoadCategoryProductsAsync(value);
@@ -479,18 +482,15 @@ namespace NovaRetail.ViewModels
 
         private async Task LoadCategoryProductsAsync(string category)
         {
-            if (string.IsNullOrWhiteSpace(category) || category == CategoryKeys.Todos || category == CategoryKeys.Supermercado || category == CategoryKeys.Super)
+            if (string.IsNullOrWhiteSpace(category) || category == CategoryKeys.Todos)
                 return;
 
             if (_allProducts.Any(p => MatchesCategory(p.Category, category)))
                 return;
 
-            if (!CategoryKeys.Seeds.TryGetValue(category, out var seed))
-                return;
-
             try
             {
-                var products = await _productService.SearchAsync(seed, 300, _exchangeRate);
+                var products = await _productService.SearchAsync(category, 300, _exchangeRate);
                 if (products.Count == 0)
                     return;
 
@@ -517,9 +517,7 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            if (string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(SelectedCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(SelectedCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
             {
                 await LoadProductsAsync();
                 return;
@@ -673,7 +671,7 @@ namespace NovaRetail.ViewModels
 
         // ── Tipo de cambio ──
 
-        private decimal _exchangeRate = 510.00m;
+        private decimal _exchangeRate;
         public decimal ExchangeRate
         {
             get => _exchangeRate;
@@ -858,12 +856,27 @@ namespace NovaRetail.ViewModels
                 _priceOverridePriceSource = config.PriceOverridePriceSource > 0 ? config.PriceOverridePriceSource : 1;
                 _askForSalesRep = config.AskForSalesRep;
                 _requireSalesRep = config.RequireSalesRep;
+                _defaultTaxPercentage = config.DefaultTaxPercentage > 0 ? config.DefaultTaxPercentage : 13m;
+                _defaultClientId = !string.IsNullOrWhiteSpace(config.DefaultClientId) ? config.DefaultClientId : "00001";
+                _defaultClientName = !string.IsNullOrWhiteSpace(config.DefaultClientName) ? config.DefaultClientName : "CLIENTE CONTADO";
+
+                if (config.DefaultExchangeRate > 0)
+                    ExchangeRate = config.DefaultExchangeRate;
+
                 OnPropertyChanged(nameof(ShowSalesRepFeature));
 
                 var tenders = await _storeConfigService.GetTendersAsync();
                 Tenders.Clear();
                 foreach (var t in tenders)
                     Tenders.Add(t);
+
+                // Cargar categorías desde la DB
+                var categories = await _storeConfigService.GetCategoriesAsync();
+                if (categories.Count > 0)
+                {
+                    CategoryKeys.Load(categories);
+                    OnPropertyChanged(nameof(CategoryTabs));
+                }
 
                 RecalculateTotal();
 
@@ -1247,8 +1260,7 @@ namespace NovaRetail.ViewModels
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
                 return false;
 
-            return string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase)
-                || MatchesCategory(CategoryKeys.Super, SelectedCategory);
+            return string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase);
         }
 
         private void AppendPagedProducts(IEnumerable<ProductModel> pageProducts)
@@ -1342,13 +1354,6 @@ namespace NovaRetail.ViewModels
 
         private static bool MatchesCategory(string productCategory, string selectedCategory)
         {
-            if (string.Equals(selectedCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(selectedCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase))
-            {
-                return string.Equals(productCategory, CategoryKeys.Supermercado, StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(productCategory, CategoryKeys.Super, StringComparison.OrdinalIgnoreCase);
-            }
-
             return string.Equals(productCategory, selectedCategory, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -1387,7 +1392,7 @@ namespace NovaRetail.ViewModels
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
                 return;
 
-            if (!MatchesCategory(CategoryKeys.Super, SelectedCategory) && !string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
                 return;
 
             IsLoadingMoreProducts = true;
@@ -1427,10 +1432,7 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(value))
                 return string.Empty;
 
-            var text = value.Trim().ToLowerInvariant()
-                .Replace("tennis", "tenis")
-                .Replace("clazado", "calzado")
-                .Replace("feretria", "ferreteria");
+            var text = value.Trim().ToLowerInvariant();
 
             var normalized = text.Normalize(NormalizationForm.FormD);
             var sb = new StringBuilder(normalized.Length);
@@ -1573,7 +1575,7 @@ namespace NovaRetail.ViewModels
                 Code = $"MANUAL-{DateTime.Now:HHmmss}",
                 UnitPriceColones = roundedPriceColones,
                 UnitPrice = ConvertFromColones(roundedPriceColones),
-                TaxPercentage = 13m,
+                TaxPercentage = _defaultTaxPercentage,
                 TaxID = 0,
                 Cabys = string.Empty,
                 Stock = quantity,
@@ -1957,10 +1959,10 @@ namespace NovaRetail.ViewModels
                         Code = entry.ItemID.ToString(),
                         UnitPriceColones = entry.Price,
                         UnitPrice = ConvertFromColones(entry.Price),
-                        TaxPercentage = entry.Taxable ? 13m : 0m,
+                        TaxPercentage = entry.Taxable ? _defaultTaxPercentage : 0m,
                         TaxID = entry.TaxID,
                         Cabys = string.Empty,
-                        Stock = 9999m,
+                        Stock = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
                         Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m
                     };
                     CartItems.Add(cartItem);
@@ -2168,7 +2170,7 @@ namespace NovaRetail.ViewModels
                 ReceiptVm.Load(
                     transactionNumber: result.TransactionNumber,
                     clientId: CurrentClientId,
-                    clientName: HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                    clientName: HasClient ? CurrentClientName : _defaultClientName,
                     cashierName: currentUser.DisplayName,
                     registerNumber: _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     storeName: _storeName,
@@ -2264,8 +2266,8 @@ namespace NovaRetail.ViewModels
                     ComprobanteTipo           = request.COMPROBANTE_TIPO,
                     Clave50                   = !string.IsNullOrWhiteSpace(result.Clave50) ? result.Clave50 : request.CLAVE50,
                     Consecutivo               = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : request.COMPROBANTE_INTERNO,
-                    ClientId                  = HasClient ? CurrentClientId : "S-00001",
-                    ClientName                = HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                    ClientId                  = HasClient ? CurrentClientId : _defaultClientId,
+                    ClientName                = HasClient ? CurrentClientName : _defaultClientName,
                     CashierName               = currentUser?.DisplayName ?? string.Empty,
                     RegisterNumber            = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     StoreName                 = _storeName,
@@ -2381,8 +2383,8 @@ namespace NovaRetail.ViewModels
                 CurrencyCode = currencyCode,
                 TipoCambio = (_exchangeRate > 0 ? _exchangeRate : 1m).ToString(CultureInfo.InvariantCulture),
                 CondicionVenta = "01",
-                CodCliente = HasClient ? CurrentClientId : "00001",
-                NombreCliente = HasClient ? CurrentClientName : "CLIENTE CONTADO",
+                CodCliente = HasClient ? CurrentClientId : _defaultClientId,
+                NombreCliente = HasClient ? CurrentClientName : _defaultClientName,
                 CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
                 Exonera = (short)(CartItems.Any(item => item.HasExoneration) ? 1 : 0),
                 InsertarTiqueteEspera = true,
@@ -2397,19 +2399,21 @@ namespace NovaRetail.ViewModels
 
         private static string ResolveMedioPagoCodigo(TenderModel tender)
         {
+            // Si la DB tiene el código de medio de pago configurado, usarlo directamente
+            if (!string.IsNullOrWhiteSpace(tender.MedioPagoCodigo))
+                return tender.MedioPagoCodigo.Trim();
+
+            // Fallback: derivar del nombre de la forma de pago
             var description = (tender.Description ?? string.Empty).Trim().ToUpperInvariant();
 
-            return tender.ID switch
-            {
-                22 => "01",
-                7 => "04",
-                _ when description.Contains("EFECTIVO") => "01",
-                _ when description.Contains("CONTADO") => "01",
-                _ when description.Contains("TARJETA") => "02",
-                _ when description.Contains("TRANSFER") => "04",
-                _ when description.Contains("SINPE") => "04",
-                _ => string.Empty
-            };
+            if (description.Contains("EFECTIVO") || description.Contains("CONTADO"))
+                return "01";
+            if (description.Contains("TARJETA"))
+                return "02";
+            if (description.Contains("TRANSFER") || description.Contains("SINPE"))
+                return "04";
+
+            return string.Empty;
         }
 
         private List<NovaRetailSaleItemRequest> BuildSaleItems()

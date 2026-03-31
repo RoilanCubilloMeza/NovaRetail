@@ -1,39 +1,57 @@
+using NovaRetail.Models;
+
 namespace NovaRetail;
 
-public sealed record CategoryOption(string Key, string Label, string Icon, string? Seed = null)
+public sealed record CategoryOption(string Key, string Label, string Icon)
 {
     public string TabText => $"{Icon} {Label}";
 }
 
 /// <summary>
 /// Claves de categoría usadas como identificadores en el ViewModel y la UI.
-/// Centraliza los literales para evitar valores quemados dispersos.
+/// La opción "Todos" siempre está disponible; las demás se cargan dinámicamente
+/// desde la tabla Department vía la API.
 /// </summary>
 public static class CategoryKeys
 {
-    public const string Todos        = "Todos";
-    public const string Supermercado = "Supermercado";
-    public const string Super        = "Super";
-    public const string Ferreteria   = "Ferreteria";
-    public const string Calzado      = "Calzado";
-    public const string Hogar        = "Hogar";
+    public const string Todos = "Todos";
 
-    public static readonly IReadOnlyList<CategoryOption> Options =
-        new[]
-        {
-            new CategoryOption(Todos, "Todos", "🏷️"),
-            new CategoryOption(Supermercado, "Supermercado", "🛒"),
-            new CategoryOption(Ferreteria, "Ferretería", "🔧", "tornillo"),
-            new CategoryOption(Calzado, "Calzado", "👟", "tenis"),
-            new CategoryOption(Hogar, "Hogar", "🏠", "escoba"),
-        };
+    private static readonly object _lock = new();
+    private static List<CategoryOption> _dynamicOptions = new() { new(Todos, "Todos", "📋") };
+
+    /// <summary>Opciones activas (Todos + categorías cargadas de la DB).</summary>
+    public static IReadOnlyList<CategoryOption> Options
+    {
+        get { lock (_lock) return _dynamicOptions.ToList(); }
+    }
 
     /// <summary>
-    /// Término de búsqueda semilla que se usa para cargar productos por categoría
-    /// desde la API cuando aún no se han cargado localmente.
+    /// Reemplaza las categorías dinámicas con las obtenidas del API.
+    /// Debe llamarse una vez después de obtener las categorías de la DB.
     /// </summary>
-    public static readonly IReadOnlyDictionary<string, string> Seeds =
-        Options
-            .Where(option => !string.IsNullOrWhiteSpace(option.Seed))
-            .ToDictionary(option => option.Key, option => option.Seed!, StringComparer.OrdinalIgnoreCase);
+    public static void Load(IEnumerable<CategoryModel> categories)
+    {
+        var list = new List<CategoryOption> { new(Todos, "Todos", "📋") };
+
+        foreach (var cat in categories)
+        {
+            if (string.IsNullOrWhiteSpace(cat.Name))
+                continue;
+
+            list.Add(new CategoryOption(cat.Name, cat.Name, "📂"));
+        }
+
+        lock (_lock)
+            _dynamicOptions = list;
+    }
+
+    /// <summary>Comprueba si un nombre de categoría es conocido.</summary>
+    public static bool IsKnown(string category)
+    {
+        if (string.Equals(category, Todos, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        lock (_lock)
+            return _dynamicOptions.Any(o => string.Equals(o.Key, category, StringComparison.OrdinalIgnoreCase));
+    }
 }

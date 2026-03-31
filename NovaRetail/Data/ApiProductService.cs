@@ -26,6 +26,7 @@ public sealed class ApiProductService : IProductService
         var safePage = page < 1 ? 1 : page;
         var safePageSize = Math.Clamp(pageSize, 1, 500);
         var safeStoreId = storeId > 0 ? storeId : 1;
+        var deptMap = await GetDepartmentMapAsync();
 
         foreach (var baseUrl in _baseUrls)
         {
@@ -38,7 +39,7 @@ public sealed class ApiProductService : IProductService
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
-                return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
+                return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
             }
             catch (Exception ex)
             {
@@ -52,6 +53,7 @@ public sealed class ApiProductService : IProductService
     public async Task<List<ProductModel>> SearchAsync(string criteria, int top, decimal exchangeRate)
     {
         var safeTop = Math.Clamp(top, 1, 1000);
+        var deptMap = await GetDepartmentMapAsync();
 
         foreach (var baseUrl in _baseUrls)
         {
@@ -64,7 +66,7 @@ public sealed class ApiProductService : IProductService
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
-                return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
+                return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
             }
             catch (Exception ex)
             {
@@ -120,7 +122,7 @@ public sealed class ApiProductService : IProductService
         return 0;
     }
 
-    private static ProductModel MapToProduct(ApiItem item, decimal exchangeRate)
+    private static ProductModel MapToProduct(ApiItem item, decimal exchangeRate, IReadOnlyDictionary<int, string>? departmentMap = null)
     {
         var priceColones = item.PRICE > 0 ? item.PRICE : item.PriceA;
         var priceDollars = exchangeRate > 0 ? Math.Round(priceColones / exchangeRate, 2) : priceColones;
@@ -128,13 +130,14 @@ public sealed class ApiProductService : IProductService
         return new ProductModel
         {
             ItemID = item.ID,
+            DepartmentID = item.DepartmentID,
             Name = string.IsNullOrWhiteSpace(item.Description)
                 ? item.ExtendedDescription ?? string.Empty
                 : item.Description,
             Code = item.ItemLookupCode ?? item.ID.ToString(),
             PriceValue = priceDollars,
             Price = $"${priceDollars:F2}",
-            Category = DetermineCategory(item),
+            Category = ResolveCategoryFromDepartment(item.DepartmentID, departmentMap),
             Stock = Convert.ToDecimal(item.Quantity ?? 0),
             PriceColonesValue = priceColones,
             TaxPercentage = NormalizeTaxPercentage(item.Percentage),
@@ -142,6 +145,51 @@ public sealed class ApiProductService : IProductService
             Cabys = NormalizeCabys(item.SubDescription3)
         };
     }
+
+    /// <summary>
+    /// Resuelve el nombre de categoría usando el mapa de departamentos cargado desde la DB.
+    /// Si no se tiene mapa o el DepartmentID no existe, retorna el ID como texto.
+    /// </summary>
+    private static string ResolveCategoryFromDepartment(int departmentId, IReadOnlyDictionary<int, string>? departmentMap)
+    {
+        if (departmentMap is not null && departmentMap.TryGetValue(departmentId, out var name))
+            return name;
+
+        return departmentId.ToString();
+    }
+
+    /// <summary>
+    /// Carga o devuelve el mapa de departamentos (ID → Nombre) desde la API.
+    /// Se almacena en caché para evitar llamadas repetidas.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<int, string>> GetDepartmentMapAsync()
+    {
+        if (_departmentMap is not null)
+            return _departmentMap;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ItemsClientName);
+                var categories = await http.GetFromJsonAsync<List<DepartmentEntry>>($"{baseUrl}/api/Categories");
+                if (categories is not null && categories.Count > 0)
+                {
+                    _departmentMap = categories.ToDictionary(c => c.ID, c => c.Name);
+                    return _departmentMap;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener departamentos desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        _departmentMap = new Dictionary<int, string>();
+        return _departmentMap;
+    }
+
+    private IReadOnlyDictionary<int, string>? _departmentMap;
 
     private static decimal NormalizeTaxPercentage(float percentage)
         => percentage <= 0 ? 0m : Convert.ToDecimal(percentage);
@@ -153,29 +201,6 @@ public sealed class ApiProductService : IProductService
 
         var normalized = new string(cabys.Where(char.IsDigit).ToArray());
         return normalized.Length == 13 ? normalized : string.Empty;
-    }
-
-    private static string DetermineCategory(ApiItem item)
-    {
-        var text = $"{item.Description} {item.ExtendedDescription} {item.SubDescription2}".ToLowerInvariant();
-
-        if (text.Contains("sandalia") || text.Contains("zapato") || text.Contains("tenis") ||
-            text.Contains("zapat") || text.Contains("bota") || text.Contains("calcetin") ||
-            text.Contains("plantilla"))
-            return CategoryKeys.Calzado;
-
-        if (text.Contains("martillo") || text.Contains("tornillo") || text.Contains("clavo") ||
-            text.Contains("llave") || text.Contains("pintura") || text.Contains("broca") ||
-            text.Contains("cinta") || text.Contains("pvc") || text.Contains("taco") ||
-            text.Contains("ferreter"))
-            return CategoryKeys.Ferreteria;
-
-        if (text.Contains("escoba") || text.Contains("cojin") || text.Contains("cubeta") ||
-            text.Contains("almohada") || text.Contains("hogar") || text.Contains("vela") ||
-            text.Contains("limpiador"))
-            return CategoryKeys.Hogar;
-
-        return CategoryKeys.Supermercado;
     }
 
     private sealed class ApiItem
@@ -192,6 +217,12 @@ public sealed class ApiProductService : IProductService
         public string? SubDescription3 { get; set; }
         public int TaxID { get; set; }
         public float Percentage { get; set; }
+    }
+
+    private sealed class DepartmentEntry
+    {
+        public int ID { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     private sealed class ProductCountResult

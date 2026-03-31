@@ -25,6 +25,18 @@ public class StoreConfigModel
 
     /// <summary>VE-02: Si el vendedor es obligatorio para facturar.</summary>
     public bool RequireSalesRep { get; set; }
+
+    /// <summary>Porcentaje de impuesto por defecto (primer registro de Tax en la DB).</summary>
+    public decimal DefaultTaxPercentage { get; set; } = 13m;
+
+    /// <summary>Tipo de cambio por defecto (TC-01 en AVS_Parametros).</summary>
+    public decimal DefaultExchangeRate { get; set; }
+
+    /// <summary>Código del cliente contado por defecto (CL-01 en AVS_Parametros).</summary>
+    public string DefaultClientId { get; set; } = "00001";
+
+    /// <summary>Nombre del cliente contado por defecto (CL-02 en AVS_Parametros).</summary>
+    public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
 }
 
 public class TenderModel : System.ComponentModel.INotifyPropertyChanged
@@ -36,6 +48,9 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
     public string Description { get; set; } = string.Empty;
     public int CurrencyID { get; set; }
     public int DisplayOrder { get; set; }
+
+    /// <summary>Código de medio de pago para facturación electrónica (01=Efectivo, 02=Tarjeta, 04=Transferencia, etc.).</summary>
+    public string MedioPagoCodigo { get; set; } = string.Empty;
 
     /// <summary>Símbolo de moneda para mostrar en UI</summary>
     public string CurrencySymbol => CurrencyID switch

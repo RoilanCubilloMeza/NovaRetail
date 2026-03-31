@@ -171,6 +171,7 @@
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Compile>
     <Compile Include="Controllers\AR_LedgerEntryController.cs" />
+    <Compile Include="Controllers\CategoriesController.cs" />
     <Compile Include="Controllers\CustomersController.cs" />
     <Compile Include="Controllers\AR_TransactionController.cs" />
     <Compile Include="Controllers\EmailController.cs" />

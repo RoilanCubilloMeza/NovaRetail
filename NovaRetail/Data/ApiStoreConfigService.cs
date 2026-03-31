@@ -58,4 +58,24 @@ public sealed class ApiStoreConfigService : IStoreConfigService
 
         return [];
     }
+
+    public async Task<List<CategoryModel>> GetCategoriesAsync()
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var result = await http.GetFromJsonAsync<List<CategoryModel>>($"{baseUrl}/api/Categories");
+                if (result is not null && result.Count > 0)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener categorías desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return [];
+    }
 }
