@@ -81,10 +81,10 @@ namespace NovaAPI.Models
         [Range(1, int.MaxValue)]
         public int ItemID { get; set; }
 
-        [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
+        [Range(0.0001, (double)decimal.MaxValue)]
         public decimal Quantity { get; set; }
 
-        [Range(typeof(decimal), "0", "999999999999999.9999")]
+        [Range(0, (double)decimal.MaxValue)]
         public decimal UnitPrice { get; set; }
 
         public decimal? FullPrice { get; set; }
@@ -149,7 +149,7 @@ namespace NovaAPI.Models
         public int PaymentID { get; set; }
         public string Description { get; set; } = string.Empty;
 
-        [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
+        [Range(0.0001, (double)decimal.MaxValue)]
         public decimal Amount { get; set; }
 
         public decimal? AmountForeign { get; set; }

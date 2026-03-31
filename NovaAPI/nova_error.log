@@ -1,0 +1,33 @@
+[2026-03-31 08:38:47] POST http://localhost:52500/api/NovaRetailSales/create-sale
+System.Exception: 0.0001 is not a valid value for Decimal. ---> System.FormatException: Input string was not in a correct format.
+   at System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, NumberFormatInfo info, Boolean parseDecimal)
+   at System.Number.ParseDecimal(String value, NumberStyles options, NumberFormatInfo numfmt)
+   at System.ComponentModel.DecimalConverter.FromString(String value, NumberFormatInfo formatInfo)
+   at System.ComponentModel.BaseNumberConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   --- End of inner exception stack trace ---
+   at System.ComponentModel.BaseNumberConverter.ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, Object value)
+   at System.ComponentModel.DataAnnotations.RangeAttribute.SetupConversion()
+   at System.ComponentModel.DataAnnotations.RangeAttribute.IsValid(Object value)
+   at System.ComponentModel.DataAnnotations.ValidationAttribute.IsValid(Object value, ValidationContext validationContext)
+   at System.ComponentModel.DataAnnotations.ValidationAttribute.GetValidationResult(Object value, ValidationContext validationContext)
+   at System.Web.Http.Validation.Validators.DataAnnotationsModelValidator.Validate(ModelMetadata metadata, Object container)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ShallowValidate(ModelMetadata metadata, BodyModelValidatorContext validationContext, Object container, IEnumerable`1 validators)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateProperties(ModelMetadata metadata, BodyModelValidatorContext validationContext)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateNodeAndChildren(ModelMetadata metadata, BodyModelValidatorContext validationContext, Object container, IEnumerable`1 validators)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateElements(IEnumerable model, BodyModelValidatorContext validationContext)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateNodeAndChildren(ModelMetadata metadata, BodyModelValidatorContext validationContext, Object container, IEnumerable`1 validators)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateProperties(ModelMetadata metadata, BodyModelValidatorContext validationContext)
+   at System.Web.Http.Validation.DefaultBodyModelValidator.ValidateNodeAndChildren(ModelMetadata metadata, BodyModelValidatorContext validationContext, Object container, IEnumerable`1 validators)
+   at System.Web.Http.ModelBinding.FormatterParameterBinding.<ExecuteBindingAsyncCore>d__18.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Web.Http.Controllers.HttpActionBinding.<ExecuteBindingAsyncCore>d__12.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ActionFilterResult.<ExecuteAsync>d__5.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+

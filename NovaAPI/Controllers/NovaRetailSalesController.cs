@@ -204,6 +204,7 @@ namespace NovaAPI.Controllers
                         {
                             try
                             {
+                                ApplyIntegraFast02Config(cn, request);
                                 EnsureClaves(request, response.TransactionNumber, cn);
                                 response.Clave50 = request.CLAVE50 ?? string.Empty;
                                 response.Clave20 = request.CLAVE20 ?? string.Empty;
@@ -272,7 +273,10 @@ namespace NovaAPI.Controllers
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                var inner = ex.InnerException != null ? $" | Inner: {ex.InnerException.Message}" : string.Empty;
+                response.Message = $"{ex.GetType().Name}: {ex.Message}{inner} | StackTrace: {ex.StackTrace}";
+
+                try { System.IO.File.AppendAllText(@"C:\Users\developer01\Documents\NovaRetail\nova_error.log", $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n"); } catch { }
 
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
@@ -862,7 +866,9 @@ ORDER BY te.ID";
             var sucursal  = (request.COD_SUCURSAL ?? "001").PadLeft(3, '0');
             var terminal  = (request.TERMINAL_POS ?? "00001").PadLeft(5, '0');
             var tipoCvta  = string.IsNullOrWhiteSpace(request.COMPROBANTE_TIPO) ? "04" : request.COMPROBANTE_TIPO.PadLeft(2, '0');
-            var consec    = transactionNumber.ToString().PadLeft(10, '0');
+            // Usar COMPROBANTE_INTERNO (consecutivo de AVS_INTEGRAFAST_02) si está disponible
+            var consec    = (!string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO)
+                ? request.COMPROBANTE_INTERNO : transactionNumber.ToString()).PadLeft(10, '0');
             var situacion = "1";   // Normal
             var seguridad = new Random().Next(10000000, 99999999).ToString("D8");
 
@@ -971,6 +977,52 @@ ORDER BY te.ID";
             return inserted;
         }
 
+        /// <summary>
+        /// Lee AVS_INTEGRAFAST_02 y actualiza el request con COD_SUCURSAL, CEDULA_TRIBUTARIA,
+        /// COMPROBANTE_INTERNO, TIPOCAMBIO y TERMINAL_POS corregidos.
+        /// Debe llamarse ANTES de EnsureClaves para que CLAVE50/CLAVE20 usen los valores correctos.
+        /// </summary>
+        private static void ApplyIntegraFast02Config(SqlConnection cn, NovaRetailCreateSaleRequest request)
+        {
+            var comprobanteTipo = request.COMPROBANTE_TIPO ?? string.Empty;
+            var consecutivoCol = GetConsecutivoColumnIntegraFast02(comprobanteTipo);
+
+            if (consecutivoCol != null)
+            {
+                try
+                {
+                    using (var incCmd = new SqlCommand(
+                        $"UPDATE dbo.AVS_INTEGRAFAST_02 SET {consecutivoCol} = {consecutivoCol} + 1 " +
+                        $"OUTPUT INSERTED.{consecutivoCol} AS Consecutivo, INSERTED.COD_SUCURSAL, INSERTED.PROVEEDOR_SISTEMA", cn))
+                    {
+                        incCmd.CommandTimeout = 30;
+                        using (var rd = incCmd.ExecuteReader())
+                        {
+                            if (rd.Read())
+                            {
+                                request.COMPROBANTE_INTERNO = Convert.ToInt32(rd["Consecutivo"]).ToString();
+                                var suc = rd["COD_SUCURSAL"];
+                                if (suc != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(suc)))
+                                    request.COD_SUCURSAL = Convert.ToString(suc);
+                                var ced = rd["PROVEEDOR_SISTEMA"];
+                                if (ced != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(ced)))
+                                    request.CedulaTributaria = Convert.ToString(ced);
+                            }
+                        }
+                    }
+                }
+                catch { /* tabla AVS_INTEGRAFAST_02 no existe — usar valores del request */ }
+            }
+
+            // Corregir TIPOCAMBIO: si la moneda es CRC el tipo de cambio es 1
+            if (string.Equals(request.CurrencyCode, "CRC", StringComparison.OrdinalIgnoreCase))
+                request.TipoCambio = "1";
+
+            // Corregir TERMINAL_POS: eliminar ceros a la izquierda
+            if (!string.IsNullOrWhiteSpace(request.TERMINAL_POS) && int.TryParse(request.TERMINAL_POS, out int terminalPosNum))
+                request.TERMINAL_POS = terminalPosNum.ToString();
+        }
+
         private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
             using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
@@ -989,6 +1041,16 @@ ORDER BY te.ID";
             while (medioPagos.Count < 4)
                 medioPagos.Add(string.Empty);
 
+            // Valores ya corregidos por ApplyIntegraFast02Config
+            string codSucursal = request.COD_SUCURSAL ?? string.Empty;
+            string cedulaTributaria = request.CedulaTributaria ?? string.Empty;
+            string comprobanteInterno = string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO)
+                ? transactionNumber.ToString()
+                : request.COMPROBANTE_INTERNO;
+            string tipoCambio = request.TipoCambio ?? "1";
+            string terminalPos = request.TERMINAL_POS ?? string.Empty;
+            string comprobanteTipo = request.COMPROBANTE_TIPO ?? string.Empty;
+
             // Intentar primero via SP, si falla usar INSERT directo
             try
             {
@@ -999,11 +1061,11 @@ ORDER BY te.ID";
                     cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
                     cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
                     cmd.Parameters.AddWithValue("@TRANSACTIONNUMBER", transactionNumber.ToString());
-                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
+                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", codSucursal);
+                    cmd.Parameters.AddWithValue("@TERMINAL_POS", terminalPos);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", comprobanteInterno);
                     cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", comprobanteTipo);
                     cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
                     cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
                     cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
@@ -1012,8 +1074,8 @@ ORDER BY te.ID";
                     cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
                     cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
                     cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
-                    cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
-                    cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@TIPOCAMBIO", tipoCambio);
+                    cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", cedulaTributaria);
                     cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
                     cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
                     cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
@@ -1027,11 +1089,13 @@ ORDER BY te.ID";
             catch
             {
                 // SP no existe — INSERT directo
-                InsertIntegraFast01Direct(cn, request, transactionNumber, medioPagos);
+                InsertIntegraFast01Direct(cn, request, transactionNumber, medioPagos,
+                    codSucursal, terminalPos, comprobanteInterno, tipoCambio, cedulaTributaria);
             }
         }
 
-        private static void InsertIntegraFast01Direct(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, List<string> medioPagos)
+        private static void InsertIntegraFast01Direct(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, List<string> medioPagos,
+            string codSucursal, string terminalPos, string comprobanteInterno, string tipoCambio, string cedulaTributaria)
         {
             using (var cmd = new SqlCommand(@"
                 INSERT INTO dbo.AVS_INTEGRAFAST_01
@@ -1055,9 +1119,9 @@ ORDER BY te.ID";
                 cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
                 cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
                 cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
+                cmd.Parameters.AddWithValue("@COD_SUCURSAL", codSucursal);
+                cmd.Parameters.AddWithValue("@TERMINAL_POS", terminalPos);
+                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", comprobanteInterno);
                 cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
                 cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
                 cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
@@ -1068,8 +1132,8 @@ ORDER BY te.ID";
                 cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
                 cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
                 cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
-                cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
-                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
+                cmd.Parameters.AddWithValue("@TIPOCAMBIO", tipoCambio);
+                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", cedulaTributaria);
                 cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
                 cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
                 cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
@@ -1077,6 +1141,22 @@ ORDER BY te.ID";
                 cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
                 cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
                 cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Mapea COMPROBANTE_TIPO al nombre de la columna de consecutivo en AVS_INTEGRAFAST_02.
+        /// </summary>
+        private static string GetConsecutivoColumnIntegraFast02(string comprobanteTipo)
+        {
+            switch (comprobanteTipo)
+            {
+                case "01": return "CN_FE";   // Factura Electrónica
+                case "02": return "CN_ND";   // Nota de Débito
+                case "03": return "CN_NC";   // Nota de Crédito
+                case "04": return "CN_TE";   // Tiquete Electrónico
+                case "09": return "CN_FEX";  // Factura Electrónica de Exportación
+                default:   return null;
             }
         }
 

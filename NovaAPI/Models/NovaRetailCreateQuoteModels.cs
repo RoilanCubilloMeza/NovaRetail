@@ -53,7 +53,7 @@ namespace NovaAPI.Models
         public int PriceSource { get; set; } = 1;
         public decimal Price { get; set; }
 
-        [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
+        [Range(0.0001, (double)decimal.MaxValue)]
         public decimal QuantityOnOrder { get; set; } = 1;
 
         public int SalesRepID { get; set; }
