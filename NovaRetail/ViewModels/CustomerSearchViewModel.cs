@@ -92,8 +92,13 @@ public class CustomerSearchViewModel : INotifyPropertyChanged
     public void SetCustomers(IEnumerable<CustomerLookupModel> customers, string? statusMessage = null)
     {
         Customers.Clear();
+        int i = 0;
         foreach (var c in customers)
+        {
+            c.IsEven = i % 2 == 0;
             Customers.Add(c);
+            i++;
+        }
 
         TotalCount = Customers.Count;
         StatusMessage = statusMessage ?? (Customers.Count == 0 ? "No se encontraron clientes." : string.Empty);

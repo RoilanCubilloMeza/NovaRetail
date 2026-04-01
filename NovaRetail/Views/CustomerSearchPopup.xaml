@@ -8,184 +8,252 @@
 
         <Border BackgroundColor="White"
                 StrokeShape="RoundRectangle 14"
-                StrokeThickness="0"
-                MaximumWidthRequest="960"
-                MaximumHeightRequest="640"
+                Stroke="#E2E8F0"
+                StrokeThickness="1"
+                MaximumWidthRequest="1100"
+                MaximumHeightRequest="720"
                 Margin="20"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
                 Shadow="{x:Null}">
 
-            <Grid RowDefinitions="Auto, Auto, Auto, *, Auto" RowSpacing="0">
+            <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="0">
 
-                <!-- Row 0: Title bar -->
+                <!-- ══════ Row 0: Title bar ══════ -->
                 <Border Grid.Row="0"
                         BackgroundColor="#1E293B"
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 14,14,0,0"
-                        Padding="18,12">
-                    <Grid ColumnDefinitions="Auto, *, Auto">
-                        <Label Grid.Column="0" Text="&#x1F465;" FontSize="16"
-                               VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Label Grid.Column="1"
-                               Text="Búsqueda de Cliente"
-                               FontSize="16" FontAttributes="Bold"
-                               TextColor="White" VerticalOptions="Center"/>
-                        <Label Grid.Column="2"
-                               Text="{Binding CountText}"
-                               FontSize="11" TextColor="#94A3B8"
-                               VerticalOptions="Center"/>
+                        Padding="20,14">
+                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+                        <Border Grid.Column="0"
+                                BackgroundColor="#334155"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10"
+                                WidthRequest="40" HeightRequest="40"
+                                VerticalOptions="Center">
+                            <Label Text="&#x1F465;" FontSize="17"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Búsqueda de Cliente"
+                                   FontSize="17" FontAttributes="Bold"
+                                   TextColor="White"/>
+                            <Label Text="Buscar por cuenta, nombre, teléfono, correo, dirección, ciudad, estado o código postal"
+                                   FontSize="11"
+                                   TextColor="#94A3B8"/>
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2"
+                                BackgroundColor="#334155"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="12,6"
+                                VerticalOptions="Center">
+                            <Label Text="{Binding CountText}"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#CBD5E1"
+                                   HorizontalTextAlignment="Center"/>
+                        </Border>
                     </Grid>
                 </Border>
 
-                <!-- Row 1: Search hint -->
-                <Label Grid.Row="1"
-                       Text="número de cuenta, nombre, apellido, teléfono, correo electrónico, dirección, ciudad, estado, código postal"
-                       FontSize="10"
-                       TextColor="#9CA3AF"
-                       Padding="18,6,18,0"
-                       LineBreakMode="WordWrap"/>
+                <!-- ══════ Row 1: Search bar ══════ -->
+                <Border Grid.Row="1"
+                        BackgroundColor="#F8FAFC"
+                        StrokeThickness="0"
+                        Padding="20,12"
+                        HorizontalOptions="Fill">
+                    <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="10" VerticalOptions="Center" HorizontalOptions="Fill">
+                        
+                        <!-- Search Box (Entry) -->
+                        <Border Grid.Column="0"
+                                BackgroundColor="White"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                HeightRequest="42"
+                                Padding="12,0"
+                                HorizontalOptions="Fill">
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="8" VerticalOptions="Center">
+                                <Label Grid.Column="0" Text="&#x1F50D;" FontSize="14"
+                                       TextColor="#94A3B8" VerticalOptions="Center"/>
+                                <Entry Grid.Column="1"
+                                       Text="{Binding SearchText}"
+                                       Placeholder="Buscar cliente..."
+                                       ReturnCommand="{Binding SearchCommand}"
+                                       ClearButtonVisibility="WhileEditing"
+                                       FontSize="13"
+                                       TextColor="#0F172A"
+                                       BackgroundColor="Transparent"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Fill"/>
+                            </Grid>
+                        </Border>
 
-                <!-- Row 2: Search bar -->
-                <Grid Grid.Row="2" ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8"
-                      Padding="18,8,18,6">
-                    <Border Grid.Column="0"
-                            BackgroundColor="#F9FAFB"
-                            Stroke="#CBD5E1"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 8"
-                            Padding="12,0"
-                            HeightRequest="42">
-                        <Entry Text="{Binding SearchText}"
-                               Placeholder="Buscar cliente..."
-                               ReturnCommand="{Binding SearchCommand}"
-                               ClearButtonVisibility="WhileEditing"
-                               FontSize="13"
-                               TextColor="#0F172A"
-                               VerticalOptions="Center"/>
-                    </Border>
-                    <Button Grid.Column="1"
-                            Text="Buscar"
-                            Command="{Binding SearchCommand}"
-                            FontSize="12"
-                            BackgroundColor="#3B82F6"
-                            TextColor="White"
-                            HeightRequest="40"
-                            CornerRadius="8"
-                            Padding="16,0"/>
-                    <Button Grid.Column="2"
-                            Text="&#x21BB;"
-                            Command="{Binding ClearSearchCommand}"
-                            FontSize="16"
-                            BackgroundColor="#F3F4F6"
-                            TextColor="#374151"
-                            HeightRequest="40"
-                            WidthRequest="40"
-                            CornerRadius="8"
-                            Padding="0"/>
-                </Grid>
+                        <!-- Search Button -->
+                        <Border Grid.Column="1"
+                                BackgroundColor="#3B82F6"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                HeightRequest="42"
+                                Padding="18,0"
+                                HorizontalOptions="Fill">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SearchCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Buscar" FontSize="13" FontAttributes="Bold"
+                                   TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
 
-                <!-- Row 3: Results grid -->
-                <Grid Grid.Row="3" RowDefinitions="Auto, *" Padding="18,0,18,0">
+                        <!-- Refresh Button -->
+                        <Border Grid.Column="2"
+                                BackgroundColor="White"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                WidthRequest="42" HeightRequest="42"
+                                Padding="0"
+                                HorizontalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ClearSearchCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="&#x21BB;" FontSize="17" TextColor="#64748B"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
 
-                    <!-- Header row -->
-                    <Grid Grid.Row="0"
-                          ColumnDefinitions="90, 2*, 1.5*, 1.5*, 2*, 1.2*, 100"
-                          ColumnSpacing="6"
-                          Padding="10,6"
-                          BackgroundColor="#F1F5F9">
-                        <Label Grid.Column="0" Text="Cuenta" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="1" Text="Apellido" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="2" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="3" Text="Dirección" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="4" Text="Ciudad" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="5" Text="Estado" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                        <Label Grid.Column="6" Text="Teléfono" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
                     </Grid>
+                </Border>
+
+                <!-- ══════ Row 2: Table ══════ -->
+                <Grid Grid.Row="2" RowDefinitions="Auto, *" Padding="0">
+
+                    <!-- Table header -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#F1F5F9"
+                            StrokeThickness="0"
+                            Padding="20,8">
+                        <Grid ColumnDefinitions="80, 2*, *, *, 2*, *, 2*, 100"
+                              ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="Cuenta" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="1" Text="Apellido" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="2" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="3" Text="Dirección" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="4" Text="Ciudad" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="5" Text="Estado" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="6" Text="Correo" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="7" Text="Teléfono" FontSize="11" FontAttributes="Bold" TextColor="#475569" HorizontalTextAlignment="End"/>
+                        </Grid>
+                    </Border>
 
                     <!-- Customer list -->
                     <CollectionView Grid.Row="1"
                                     ItemsSource="{Binding Customers}"
                                     SelectionMode="None">
                         <CollectionView.EmptyView>
-                            <Label Text="{Binding StatusMessage}"
-                                   FontSize="13"
-                                   TextColor="#9CA3AF"
-                                   HorizontalTextAlignment="Center"
-                                   VerticalOptions="Center"
-                                   Margin="0,30"/>
+                            <VerticalStackLayout HorizontalOptions="Center"
+                                                 VerticalOptions="Center"
+                                                 Padding="20,40">
+                                <Label Text="&#x1F50D;" FontSize="28"
+                                       HorizontalTextAlignment="Center" Margin="0,0,0,8"/>
+                                <Label Text="{Binding StatusMessage}"
+                                       FontSize="14"
+                                       TextColor="#94A3B8"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
-                                <Border StrokeShape="RoundRectangle 4"
-                                        Stroke="#E5E7EB"
+                                <Border StrokeThickness="0"
                                         BackgroundColor="White"
-                                        Padding="10,8"
-                                        Margin="0,1">
+                                        Padding="20,10">
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>
-                                    <Grid ColumnDefinitions="90, 2*, 1.5*, 1.5*, 2*, 1.2*, 100"
-                                          ColumnSpacing="6">
+                                    <Grid ColumnDefinitions="80, 2*, *, *, 2*, *, 2*, 100"
+                                          ColumnSpacing="10">
                                         <Label Grid.Column="0"
                                                Text="{Binding AccountNumber}"
-                                               FontSize="12" TextColor="#111827"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#1D4ED8"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="1"
                                                Text="{Binding LastName}"
-                                               FontSize="12" TextColor="#111827"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#1E293B"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="2"
                                                Text="{Binding FirstName}"
-                                               FontSize="12" TextColor="#111827"
+                                               FontSize="12"
+                                               TextColor="#334155"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="3"
                                                Text="{Binding Address}"
-                                               FontSize="11" TextColor="#6B7280"
+                                               FontSize="11" TextColor="#64748B"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="4"
                                                Text="{Binding City}"
-                                               FontSize="11" TextColor="#6B7280"
+                                               FontSize="11" TextColor="#64748B"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="5"
                                                Text="{Binding State}"
-                                               FontSize="11" TextColor="#6B7280"
+                                               FontSize="11" TextColor="#64748B"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="6"
-                                               Text="{Binding Phone}"
-                                               FontSize="11" TextColor="#6B7280"
+                                               Text="{Binding Email}"
+                                               FontSize="11" TextColor="#64748B"
                                                LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="7"
+                                               Text="{Binding Phone}"
+                                               FontSize="12" TextColor="#334155"
+                                               LineBreakMode="TailTruncation"
+                                               HorizontalTextAlignment="End"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+
+                    <!-- Loading overlay -->
+                    <ActivityIndicator Grid.Row="1"
+                                       IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#3B82F6"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Start"
+                                       Margin="0,30"/>
                 </Grid>
 
-                <!-- Row 4: Activity indicator + buttons -->
-                <Grid Grid.Row="4" Padding="18,8,18,14">
-                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
-                        <ActivityIndicator Grid.Column="0"
-                                           IsRunning="{Binding IsBusy}"
-                                           IsVisible="{Binding IsBusy}"
-                                           Color="#3B82F6"
-                                           HeightRequest="24"
-                                           WidthRequest="24"
-                                           VerticalOptions="Center"/>
-                        <Label Grid.Column="1"/>
-                        <Button Grid.Column="2"
-                                Text="Cancelar"
-                                Command="{Binding CloseCommand}"
-                                FontSize="13"
-                                BackgroundColor="#F3F4F6"
-                                TextColor="#374151"
-                                HeightRequest="40"
-                                CornerRadius="8"
-                                Padding="20,0"/>
+                <!-- ══════ Row 3: Footer ══════ -->
+                <Border Grid.Row="3"
+                        BackgroundColor="#F8FAFC"
+                        StrokeThickness="0"
+                        Padding="20,12">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Grid.Column="0"
+                               Text="Toque un cliente para seleccionarlo"
+                               FontSize="12"
+                               TextColor="#94A3B8"
+                               VerticalOptions="Center"/>
+                        <Border Grid.Column="1"
+                                BackgroundColor="#F1F5F9"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 9"
+                                Padding="24,0"
+                                HeightRequest="40">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancelar"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="#475569"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </Border>
                     </Grid>
-                </Grid>
+                </Border>
 
             </Grid>
         </Border>

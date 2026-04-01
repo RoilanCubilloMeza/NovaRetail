@@ -11,6 +11,7 @@ public class CustomerLookupModel
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string Zip { get; set; } = string.Empty;
+    public bool IsEven { get; set; }
 
     public string FullName => string.Join(" ",
         new[] { FirstName, LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
