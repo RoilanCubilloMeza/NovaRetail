@@ -234,6 +234,35 @@ namespace NovaAPI.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("api/StoreConfig/TaxSystem")]
+        public IHttpActionResult UpdateTaxSystem([FromBody] TaxSystemUpdateDto body)
+        {
+            if (body is null)
+                return BadRequest("Body is required.");
+
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(posConnectionString))
+                    return InternalServerError(new Exception("No connection string found."));
+
+                using (var cn = new SqlConnection(posConnectionString))
+                using (var cmd = new SqlCommand("UPDATE dbo.[Configuration] SET TaxSystem = @TaxSystem", cn))
+                {
+                    cmd.Parameters.AddWithValue("@TaxSystem", body.TaxSystem);
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         [HttpGet]
         [Route("api/StoreConfig/ConnectionInfo")]
         public ConnectionInfoDto GetConnectionInfo()
@@ -297,5 +326,10 @@ namespace NovaAPI.Controllers
     {
         public string DatabaseServer { get; set; }
         public string DatabaseName { get; set; }
+    }
+
+    public class TaxSystemUpdateDto
+    {
+        public int TaxSystem { get; set; }
     }
 }
