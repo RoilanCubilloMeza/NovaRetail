@@ -100,6 +100,30 @@ public sealed class ApiProductService : IProductService
         return [];
     }
 
+    public async Task<List<ReasonCodeModel>> GetExonerationDocumentTypesAsync()
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ReasonCodeClientName);
+                var url = $"{baseUrl}/api/ReasonCodes/exoneration-document-types";
+                var json = await http.GetStringAsync(url);
+                var codes = JsonConvert.DeserializeObject<List<ReasonCodeModel>>(json);
+
+                if (codes is not null && codes.Count > 0)
+                    return codes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener tipos de documento de exoneracion desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        _logger.LogWarning("No se encontraron tipos de documento de exoneracion en ningun endpoint configurado.");
+        return [];
+    }
+
     public async Task<int> GetProductCountAsync(int storeId = 1)
     {
         var safeStoreId = storeId > 0 ? storeId : 1;

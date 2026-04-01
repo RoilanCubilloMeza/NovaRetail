@@ -20,13 +20,13 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = NovaRetail
-build_property.ProjectDir = C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\
+build_property.ProjectDir = c:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/App.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/App.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.App.xaml
 build_metadata.AdditionalFiles.TargetPath = App.xaml
@@ -36,7 +36,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/AppShell.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/AppShell.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.AppShell.xaml
 build_metadata.AdditionalFiles.TargetPath = AppShell.xaml
@@ -46,7 +46,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/CategoryConfigPage.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/CategoryConfigPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.CategoryConfigPage.xaml
 build_metadata.AdditionalFiles.TargetPath = Pages\CategoryConfigPage.xaml
@@ -56,7 +56,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/ClientePage.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/ClientePage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.ClientePage.xaml
 build_metadata.AdditionalFiles.TargetPath = Pages\ClientePage.xaml
@@ -66,7 +66,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/InvoiceHistoryPage.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/InvoiceHistoryPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.InvoiceHistoryPage.xaml
 build_metadata.AdditionalFiles.TargetPath = Pages\InvoiceHistoryPage.xaml
@@ -76,7 +76,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/LoginPage.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/LoginPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.LoginPage.xaml
 build_metadata.AdditionalFiles.TargetPath = Pages\LoginPage.xaml
@@ -86,7 +86,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/MainPage.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/MainPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.MainPage.xaml
 build_metadata.AdditionalFiles.TargetPath = Pages\MainPage.xaml
@@ -96,7 +96,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Colors.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Colors.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Resources.Styles.Colors.xaml
 build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Colors.xaml
@@ -106,7 +106,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/PageStyles.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/PageStyles.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Resources.Styles.PageStyles.xaml
 build_metadata.AdditionalFiles.TargetPath = Resources\Styles\PageStyles.xaml
@@ -116,7 +116,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Styles.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Styles.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Resources.Styles.Styles.xaml
 build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Styles.xaml
@@ -126,7 +126,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ActionsPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ActionsPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ActionsPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ActionsPanel.xaml
@@ -136,7 +136,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CartPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CartPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.CartPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\CartPanel.xaml
@@ -146,7 +146,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ChangePasswordPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ChangePasswordPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ChangePasswordPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ChangePasswordPanel.xaml
@@ -156,7 +156,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CheckoutPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CheckoutPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.CheckoutPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\CheckoutPopup.xaml
@@ -166,7 +166,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ClienteDataPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ClienteDataPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ClienteDataPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ClienteDataPanel.xaml
@@ -176,7 +176,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ClienteIdPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ClienteIdPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ClienteIdPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ClienteIdPanel.xaml
@@ -186,7 +186,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CustomerSearchPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/CustomerSearchPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.CustomerSearchPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\CustomerSearchPopup.xaml
@@ -196,7 +196,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/DiscountPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/DiscountPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.DiscountPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\DiscountPopup.xaml
@@ -206,7 +206,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ItemActionPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ItemActionPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ItemActionPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ItemActionPopup.xaml
@@ -216,7 +216,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/LoginPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/LoginPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.LoginPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\LoginPanel.xaml
@@ -226,7 +226,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/LoginStatusBar.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/LoginStatusBar.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.LoginStatusBar.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\LoginStatusBar.xaml
@@ -236,7 +236,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ManualExonerationPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ManualExonerationPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ManualExonerationPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ManualExonerationPopup.xaml
@@ -246,7 +246,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/OrderSearchPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/OrderSearchPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.OrderSearchPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\OrderSearchPopup.xaml
@@ -256,7 +256,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/PriceJustificationPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/PriceJustificationPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.PriceJustificationPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\PriceJustificationPopup.xaml
@@ -266,7 +266,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ProductsPanel.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ProductsPanel.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ProductsPanel.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ProductsPanel.xaml
@@ -276,7 +276,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/QuoteReceiptPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/QuoteReceiptPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.QuoteReceiptPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\QuoteReceiptPopup.xaml
@@ -286,7 +286,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ReceiptPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/ReceiptPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.ReceiptPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\ReceiptPopup.xaml
@@ -296,7 +296,7 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
-[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/SalesRepPickerPopup.xaml]
+[c:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Views/SalesRepPickerPopup.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Views.SalesRepPickerPopup.xaml
 build_metadata.AdditionalFiles.TargetPath = Views\SalesRepPickerPopup.xaml

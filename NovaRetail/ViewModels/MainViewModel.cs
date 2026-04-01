@@ -3277,16 +3277,13 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                var codes = await _productService.GetReasonCodesAsync(7);
-                if (codes.Count > 0)
-                {
-                    ManualExonerationVm.LoadDocumentTypes(
-                        codes.Select(c => new ExonerationDocumentType
-                        {
-                            Codigo = c.Code,
-                            Descripcion = c.Description
-                        }));
-                }
+                var codes = await _productService.GetExonerationDocumentTypesAsync();
+                ManualExonerationVm.LoadDocumentTypes(
+                    codes.Select(c => new ExonerationDocumentType
+                    {
+                        Codigo = c.Code,
+                        Descripcion = c.Description
+                    }));
             }
             catch
             {

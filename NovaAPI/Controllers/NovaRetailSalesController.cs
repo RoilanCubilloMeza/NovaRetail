@@ -1240,6 +1240,7 @@ ORDER BY te.ID";
                     : 0m;
                 var montoImpuesto = Math.Round(item.SalesTax, 2);
                 var montoLinea = subTotal + montoImpuesto;
+                var hasExoneration = !string.IsNullOrWhiteSpace(item.ExNumeroDoc);
 
                 itemInfoMap.TryGetValue(item.ItemID, out var info);
                 var cabys = info.Cabys ?? string.Empty;
@@ -1262,43 +1263,52 @@ ORDER BY te.ID";
                 {
                     using (var cmd = new SqlCommand(@"
                         INSERT INTO dbo.AVS_INTEGRAFAST_05
-                            (CLAVE50, TRANSACTIONNUMBER, NUMLINEA, TIPOCOD, CABYS, CODARTICULO, DETALLE, UNIDAD,
-                             CANTIDAD, PRECIO_UNITARIO, MONTOTOTAL, MONTODESCUENTO, NATDESCUENTO, SUBTOTAL,
-                             CODIMPUESTO, TARIFAIVA, MONTOIMPUESTO, MONTOLINEA, TARIFA_IMPUESTO, CODTARIFAIMPUESTO,
-                             ID_PRODUCTO, SALESREPID, EXONERA_PORCENTAJE_COMPRA)
+                            (CLAVE50, TRANSACTIONNUMBER, NUM_LINEA, ID_PRODUCTO, CANTIDAD, UNIDAD_MEDIDA,
+                             DETALLE, PRECIO_UNITARIO, MONTO_TOTAL, MONTO_DESCUENTO, NATURALEZA_DESCUENTO,
+                             SUBTOTAL, COD_IMPUESTO, COD_IMPUESTO_BASE, TARIFA_IMPUESTO, MONTO_IMPUESTO,
+                             EXONERA_TIPO_DOCUMENTO, EXONERA_NUMERO_DOCUMENTO, EXONERA_INSTITUCION,
+                             EXONERA_FECHA_EMISION, EXONERA_MONTO_IMPUESTO, EXONERA_PORCENTAJE_COMPRA,
+                             EXONERA_TOTAL_LINEA, SyncGuid, ARTICULO, INCISO)
                         VALUES
-                            (@CLAVE50, @TN, @NUMLINEA, @TIPOCOD, @CABYS, @CODART, @DETALLE, @UNIDAD,
-                             @CANTIDAD, @PRECIOUNIT, @MONTOTOTAL, @MONTODESC, @NATDESC, @SUBTOTAL,
-                             @CODIMP, @TARIFAIVA, @MONTOIMP, @MONTOLINEA, @TARIFAIMP, @CODTARIFAIMP,
-                             @IDPROD, @SALESREPID, @EXONERAPORC)", cn))
+                            (@CLAVE50, @TN, @NUM_LINEA, @ID_PRODUCTO, @CANTIDAD, @UNIDAD_MEDIDA,
+                             @DETALLE, @PRECIOUNIT, @MONTO_TOTAL, @MONTO_DESCUENTO, @NATURALEZA_DESCUENTO,
+                             @SUBTOTAL, @COD_IMPUESTO, @COD_IMPUESTO_BASE, @TARIFA_IMPUESTO, @MONTO_IMPUESTO,
+                             @EXONERA_TIPO_DOCUMENTO, @EXONERA_NUMERO_DOCUMENTO, @EXONERA_INSTITUCION,
+                             @EXONERA_FECHA_EMISION, @EXONERA_MONTO_IMPUESTO, @EXONERA_PORCENTAJE_COMPRA,
+                             @EXONERA_TOTAL_LINEA, NEWID(), @ARTICULO, @INCISO)", cn))
                     {
                         cmd.Parameters.AddWithValue("@CLAVE50", clave50);
                         cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                        cmd.Parameters.AddWithValue("@NUMLINEA", numLinea);
-                        cmd.Parameters.AddWithValue("@TIPOCOD", "01");
-                        cmd.Parameters.AddWithValue("@CABYS", Truncate(cabys, 20));
-                        cmd.Parameters.AddWithValue("@CODART", Truncate(codProducto, 20));
-                        cmd.Parameters.AddWithValue("@DETALLE", Truncate(detalle, 200));
-                        cmd.Parameters.AddWithValue("@UNIDAD", "Und");
+                        cmd.Parameters.AddWithValue("@NUM_LINEA", numLinea);
+                        cmd.Parameters.AddWithValue("@ID_PRODUCTO", Truncate(item.ItemID.ToString(), 15));
                         cmd.Parameters.AddWithValue("@CANTIDAD", qty);
+                        cmd.Parameters.AddWithValue("@UNIDAD_MEDIDA", "Und");
+                        cmd.Parameters.AddWithValue("@DETALLE", Truncate(detalle, 160));
                         cmd.Parameters.AddWithValue("@PRECIOUNIT", Math.Round(fullPrice, 5));
-                        cmd.Parameters.AddWithValue("@MONTOTOTAL", montoTotal);
-                        cmd.Parameters.AddWithValue("@MONTODESC", montoDescuento);
-                        cmd.Parameters.AddWithValue("@NATDESC", Truncate(naturalezaDescuento, 100));
+                        cmd.Parameters.AddWithValue("@MONTO_TOTAL", montoTotal);
+                        cmd.Parameters.AddWithValue("@MONTO_DESCUENTO", montoDescuento);
+                        cmd.Parameters.AddWithValue("@NATURALEZA_DESCUENTO", Truncate(naturalezaDescuento, 80));
                         cmd.Parameters.AddWithValue("@SUBTOTAL", subTotal);
-                        cmd.Parameters.AddWithValue("@CODIMP", codImpuesto);
-                        cmd.Parameters.AddWithValue("@TARIFAIVA", taxRate);
-                        cmd.Parameters.AddWithValue("@MONTOIMP", montoImpuesto);
-                        cmd.Parameters.AddWithValue("@MONTOLINEA", montoLinea);
-                        cmd.Parameters.AddWithValue("@TARIFAIMP", taxRate > 0 ? taxRate : 0m);
-                        cmd.Parameters.AddWithValue("@CODTARIFAIMP", codTarifaIVA);
-                        cmd.Parameters.AddWithValue("@IDPROD", item.ItemID);
-                        cmd.Parameters.AddWithValue("@SALESREPID", item.SalesRepID);
-                        cmd.Parameters.AddWithValue("@EXONERAPORC", exoneraPorcentaje);
+                        cmd.Parameters.AddWithValue("@COD_IMPUESTO", codImpuesto);
+                        cmd.Parameters.AddWithValue("@COD_IMPUESTO_BASE", string.Empty);
+                        cmd.Parameters.AddWithValue("@TARIFA_IMPUESTO", taxRate > 0 ? taxRate : 0m);
+                        cmd.Parameters.AddWithValue("@MONTO_IMPUESTO", montoImpuesto);
+                        cmd.Parameters.AddWithValue("@EXONERA_TIPO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExTipoDoc, 2) : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_NUMERO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExNumeroDoc, 40) : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_INSTITUCION", hasExoneration ? (object)Truncate(item.ExInstitucion, 100) : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_FECHA_EMISION", hasExoneration && item.ExFecha.HasValue ? (object)item.ExFecha.Value.ToString("yyyy-MM-dd") : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_MONTO_IMPUESTO", hasExoneration ? (object)item.ExMonto : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_PORCENTAJE_COMPRA", hasExoneration ? (object)Convert.ToInt16(Math.Round(exoneraPorcentaje, 0, MidpointRounding.AwayFromZero)) : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EXONERA_TOTAL_LINEA", hasExoneration ? (object)montoLinea : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ARTICULO", Truncate(codProducto, 6));
+                        cmd.Parameters.AddWithValue("@INCISO", Truncate(cabys, 6));
                         cmd.ExecuteNonQuery();
                     }
                 }
-                catch { /* columna faltante o tipo incompatible - no bloquear venta */ }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"No se pudo insertar AVS_INTEGRAFAST_05 para ItemID {item.ItemID}.", ex);
+                }
             }
         }
 
@@ -1313,28 +1323,30 @@ ORDER BY te.ID";
                         ID                        INT IDENTITY(1,1) PRIMARY KEY,
                         CLAVE50                   NVARCHAR(50)  NOT NULL DEFAULT '',
                         TRANSACTIONNUMBER         NVARCHAR(20)  NOT NULL DEFAULT '',
-                        NUMLINEA                  INT           NOT NULL DEFAULT 0,
-                        TIPOCOD                   NVARCHAR(2)   NOT NULL DEFAULT '01',
-                        CABYS                     NVARCHAR(20)  NOT NULL DEFAULT '',
-                        CODARTICULO               NVARCHAR(20)  NOT NULL DEFAULT '',
-                        DETALLE                   NVARCHAR(200) NOT NULL DEFAULT '',
-                        UNIDAD                    NVARCHAR(5)   NOT NULL DEFAULT 'Und',
+                        NUM_LINEA                 INT           NOT NULL DEFAULT 0,
+                        ID_PRODUCTO               NVARCHAR(15)  NOT NULL DEFAULT '',
                         CANTIDAD                  DECIMAL(18,4) NOT NULL DEFAULT 0,
+                        UNIDAD_MEDIDA             NVARCHAR(15)  NOT NULL DEFAULT 'Und',
+                        DETALLE                   NVARCHAR(160) NOT NULL DEFAULT '',
                         PRECIO_UNITARIO           DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        MONTOTOTAL                DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTODESCUENTO            DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        NATDESCUENTO              NVARCHAR(100) NOT NULL DEFAULT '',
+                        MONTO_TOTAL               DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MONTO_DESCUENTO           DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        NATURALEZA_DESCUENTO      NVARCHAR(80)  NOT NULL DEFAULT '',
                         SUBTOTAL                  DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        CODIMPUESTO               NVARCHAR(2)   NOT NULL DEFAULT '',
-                        TARIFAIVA                 DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTOIMPUESTO             DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTOLINEA                DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        COD_IMPUESTO              NVARCHAR(2)   NOT NULL DEFAULT '',
+                        COD_IMPUESTO_BASE         NVARCHAR(2)   NULL,
                         TARIFA_IMPUESTO           DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        CODTARIFAIMPUESTO         NVARCHAR(2)   NOT NULL DEFAULT '',
-                        ID_PRODUCTO               INT           NOT NULL DEFAULT 0,
-                        SALESREPID                INT           NOT NULL DEFAULT 0,
-                        EXONERA_PORCENTAJE_COMPRA DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        SyncGuid                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID()
+                        MONTO_IMPUESTO            DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        EXONERA_TIPO_DOCUMENTO    NVARCHAR(2)   NULL,
+                        EXONERA_NUMERO_DOCUMENTO  NVARCHAR(40)  NULL,
+                        EXONERA_INSTITUCION       NVARCHAR(100) NULL,
+                        EXONERA_FECHA_EMISION     NVARCHAR(25)  NULL,
+                        EXONERA_MONTO_IMPUESTO    DECIMAL(18,2) NULL,
+                        EXONERA_PORCENTAJE_COMPRA SMALLINT      NULL,
+                        EXONERA_TOTAL_LINEA       DECIMAL(18,2) NULL,
+                        SyncGuid                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+                        ARTICULO                  NVARCHAR(6)   NULL,
+                        INCISO                    NVARCHAR(6)   NULL
                     )", cn))
                 {
                     cmd.ExecuteNonQuery();
