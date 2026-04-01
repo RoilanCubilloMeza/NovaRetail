@@ -8,7 +8,7 @@ namespace NovaAPI.Controllers
 {
     public class UtilidadesController : ApiController
     {
-        wsSecurityMain.FacturaMeCrContractClient wsCliente = new wsSecurityMain.FacturaMeCrContractClient();
+        wsSecurityMain.FacturaMeCrContractClient wsCliente = new wsSecurityMain.FacturaMeCrContractClient("BasicHttpBinding_IFacturaMeCrContract");
         wsEmails.IntegraFastServiceSoapClient wsEmails = new wsEmails.IntegraFastServiceSoapClient();
 
         //readonly LINQDataContext db = new LINQDataContext();
@@ -29,6 +29,13 @@ namespace NovaAPI.Controllers
         public CommondEntitie[] GetDistrito(int provincia, int canton)
         {
             return wsCliente.GetDistritoByCantonIdProvinciaId(provincia, canton);
+        }
+
+        [Route("api/Utilidades/GetTipoIdentificacion")]
+        [HttpGet]
+        public CommondEntitie[] GetTipoIdentificacion()
+        {
+            return wsCliente.GetTipoIdentificacion();
         }
 
         /*        [HttpGet]

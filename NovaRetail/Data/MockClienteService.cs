@@ -78,4 +78,18 @@ public sealed class MockClienteService : IClienteService
             "Exportación"
         ];
     }
+
+    public async Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync()
+    {
+        await Task.Delay(200);
+        return
+        [
+            "Cédula Física",
+            "Cédula Jurídica",
+            "DIMEX",
+            "NITE",
+            "Extranjero No Domiciliado",
+            "No Contribuyente"
+        ];
+    }
 }

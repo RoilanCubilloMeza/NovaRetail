@@ -302,15 +302,7 @@ namespace NovaRetail.ViewModels
 
         private readonly List<ProvinciaNode> _provinciasData = new();
 
-        public IReadOnlyList<string> IdentificationTypes { get; } = new[]
-        {
-            "Cédula Física",
-            "Cédula Jurídica",
-            "DIMEX",
-            "NITE",
-            "Extranjero No Domiciliado",
-            "No Contribuyente"
-        };
+        public ObservableCollection<string> IdentificationTypes { get; } = new();
 
         // ──────── Commands ────────
 
@@ -333,6 +325,7 @@ namespace NovaRetail.ViewModels
 
             _ = LoadLocationsAsync();
             _ = LoadCustomerTypesAsync();
+            _ = LoadIdentificationTypesAsync();
         }
 
         // ──────── Data Loaders ────────
@@ -521,6 +514,17 @@ namespace NovaRetail.ViewModels
 
             if (string.IsNullOrWhiteSpace(SelectedCustomerType) && CustomerTypes.Count > 0)
                 SelectedCustomerType = CustomerTypes[0];
+        }
+
+        private async Task LoadIdentificationTypesAsync()
+        {
+            var tipos = await _clienteService.ObtenerTiposIdentificacionAsync();
+            IdentificationTypes.Clear();
+            foreach (var tipo in tipos)
+                IdentificationTypes.Add(tipo);
+
+            if (string.IsNullOrWhiteSpace(IdType) && IdentificationTypes.Count > 0)
+                IdType = IdentificationTypes[0];
         }
 
         // ──────── Command Handlers ────────

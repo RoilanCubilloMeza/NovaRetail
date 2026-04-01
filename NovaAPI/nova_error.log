@@ -31,3 +31,258 @@ System.Exception: 0.0001 is not a valid value for Decimal. ---> System.FormatExc
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
    at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
 
+[2026-03-31 12:18:36] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:20:50] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:22:35] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:26:04] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:28:09] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:28:09] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:28:15] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: An error occurred when trying to create a controller of type 'UtilidadesController'. Make sure that the controller has a parameterless public constructor. ---> System.InvalidOperationException: An endpoint configuration section for contract 'wsSecurityMain.IFacturaMeCrContract' could not be loaded because more than one endpoint configuration for that contract was found. Please indicate the preferred endpoint configuration section by name.
+   at System.ServiceModel.Description.ConfigLoader.LookupChannel(ContextInformation configurationContext, String configurationName, ContractDescription contract, EndpointAddress address, Boolean wildcard, Boolean useChannelElementKind, ServiceEndpoint& serviceEndpoint)
+   at System.ServiceModel.ChannelFactory.InitializeEndpoint(String configurationName, EndpointAddress address)
+   at System.ServiceModel.ChannelFactory`1..ctor(String endpointConfigurationName, EndpointAddress remoteAddress)
+   at System.ServiceModel.ConfigurationEndpointTrait`1.CreateSimplexFactory()
+   at System.ServiceModel.ClientBase`1.CreateChannelFactoryRef(EndpointTrait`1 endpointTrait)
+   at System.ServiceModel.ClientBase`1.InitializeChannelFactoryRef()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 10433
+   at NovaAPI.Controllers.UtilidadesController..ctor() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 11
+   at lambda_method(Closure )
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   --- End of inner exception stack trace ---
+   at System.Web.Http.Dispatcher.DefaultHttpControllerActivator.Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:29:23] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: Multiple actions were found that match the request: 
+GetProvincias on type NovaAPI.Controllers.UtilidadesController
+GetTipoIdentificacion on type NovaAPI.Controllers.UtilidadesController
+   at System.Web.Http.Controllers.ApiControllerActionSelector.ActionSelectorCacheItem.SelectAction(HttpControllerContext controllerContext)
+   at System.Web.Http.ApiController.ExecuteAsync(HttpControllerContext controllerContext, CancellationToken cancellationToken)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:29:23] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: Multiple actions were found that match the request: 
+GetProvincias on type NovaAPI.Controllers.UtilidadesController
+GetTipoIdentificacion on type NovaAPI.Controllers.UtilidadesController
+   at System.Web.Http.Controllers.ApiControllerActionSelector.ActionSelectorCacheItem.SelectAction(HttpControllerContext controllerContext)
+   at System.Web.Http.ApiController.ExecuteAsync(HttpControllerContext controllerContext, CancellationToken cancellationToken)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:29:33] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: Multiple actions were found that match the request: 
+GetProvincias on type NovaAPI.Controllers.UtilidadesController
+GetTipoIdentificacion on type NovaAPI.Controllers.UtilidadesController
+   at System.Web.Http.Controllers.ApiControllerActionSelector.ActionSelectorCacheItem.SelectAction(HttpControllerContext controllerContext)
+   at System.Web.Http.ApiController.ExecuteAsync(HttpControllerContext controllerContext, CancellationToken cancellationToken)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:29:38] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.InvalidOperationException: Multiple actions were found that match the request: 
+GetProvincias on type NovaAPI.Controllers.UtilidadesController
+GetTipoIdentificacion on type NovaAPI.Controllers.UtilidadesController
+   at System.Web.Http.Controllers.ApiControllerActionSelector.ActionSelectorCacheItem.SelectAction(HttpControllerContext controllerContext)
+   at System.Web.Http.ApiController.ExecuteAsync(HttpControllerContext controllerContext, CancellationToken cancellationToken)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:30:22] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.ServiceModel.EndpointNotFoundException: There was no endpoint listening at http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc that could accept the message. This is often caused by an incorrect address or SOAP action. See InnerException, if present, for more details. ---> System.Net.WebException: The remote server returned an error: (404) Not Found.
+   at System.Net.HttpWebRequest.GetResponse()
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   --- End of inner exception stack trace ---
+
+Server stack trace: 
+   at System.ServiceModel.Channels.HttpChannelUtilities.ProcessGetResponseWebException(WebException webException, HttpWebRequest request, HttpAbortReason abortReason)
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   at System.ServiceModel.Channels.RequestChannel.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Dispatcher.RequestChannelBinder.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannel.Call(String action, Boolean oneway, ProxyOperationRuntime operation, Object[] ins, Object[] outs, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannelProxy.InvokeService(IMethodCallMessage methodCall, ProxyOperationRuntime operation)
+   at System.ServiceModel.Channels.ServiceChannelProxy.Invoke(IMessage message)
+
+Exception rethrown at [0]: 
+   at System.Runtime.Remoting.Proxies.RealProxy.HandleReturnMessage(IMessage reqMsg, IMessage retMsg)
+   at System.Runtime.Remoting.Proxies.RealProxy.PrivateInvoke(MessageData& msgData, Int32 type)
+   at NovaAPI.wsSecurityMain.IFacturaMeCrContract.GetTipoIdentificacion()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient.GetTipoIdentificacion() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 11133
+   at NovaAPI.Controllers.UtilidadesController.GetTipoIdentificacion() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 38
+   at lambda_method(Closure , Object , Object[] )
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ActionExecutor.<>c__DisplayClass6_0.<GetExecutor>b__2(Object instance, Object[] methodParameters)
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ExecuteAsync(HttpControllerContext controllerContext, IDictionary`2 arguments, CancellationToken cancellationToken)
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ApiControllerActionInvoker.<InvokeActionAsyncCore>d__1.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ActionFilterResult.<ExecuteAsync>d__5.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:30:32] GET http://localhost:52500/api/Utilidades/GetProvincias
+System.ServiceModel.EndpointNotFoundException: There was no endpoint listening at http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc that could accept the message. This is often caused by an incorrect address or SOAP action. See InnerException, if present, for more details. ---> System.Net.WebException: The remote server returned an error: (404) Not Found.
+   at System.Net.HttpWebRequest.GetResponse()
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   --- End of inner exception stack trace ---
+
+Server stack trace: 
+   at System.ServiceModel.Channels.HttpChannelUtilities.ProcessGetResponseWebException(WebException webException, HttpWebRequest request, HttpAbortReason abortReason)
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   at System.ServiceModel.Channels.RequestChannel.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Dispatcher.RequestChannelBinder.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannel.Call(String action, Boolean oneway, ProxyOperationRuntime operation, Object[] ins, Object[] outs, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannelProxy.InvokeService(IMethodCallMessage methodCall, ProxyOperationRuntime operation)
+   at System.ServiceModel.Channels.ServiceChannelProxy.Invoke(IMessage message)
+
+Exception rethrown at [0]: 
+   at System.Runtime.Remoting.Proxies.RealProxy.HandleReturnMessage(IMessage reqMsg, IMessage retMsg)
+   at System.Runtime.Remoting.Proxies.RealProxy.PrivateInvoke(MessageData& msgData, Int32 type)
+   at NovaAPI.wsSecurityMain.IFacturaMeCrContract.GetProvincias()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient.GetProvincias() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 11077
+   at NovaAPI.Controllers.UtilidadesController.GetProvincias() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 19
+   at lambda_method(Closure , Object , Object[] )
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ActionExecutor.<>c__DisplayClass6_0.<GetExecutor>b__2(Object instance, Object[] methodParameters)
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ExecuteAsync(HttpControllerContext controllerContext, IDictionary`2 arguments, CancellationToken cancellationToken)
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ApiControllerActionInvoker.<InvokeActionAsyncCore>d__1.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ActionFilterResult.<ExecuteAsync>d__5.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+
+[2026-03-31 12:32:01] GET http://localhost:52500/api/Utilidades/GetTipoIdentificacion
+System.ServiceModel.EndpointNotFoundException: There was no endpoint listening at http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc that could accept the message. This is often caused by an incorrect address or SOAP action. See InnerException, if present, for more details. ---> System.Net.WebException: The remote server returned an error: (404) Not Found.
+   at System.Net.HttpWebRequest.GetResponse()
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   --- End of inner exception stack trace ---
+
+Server stack trace: 
+   at System.ServiceModel.Channels.HttpChannelUtilities.ProcessGetResponseWebException(WebException webException, HttpWebRequest request, HttpAbortReason abortReason)
+   at System.ServiceModel.Channels.HttpChannelFactory`1.HttpRequestChannel.HttpChannelRequest.WaitForReply(TimeSpan timeout)
+   at System.ServiceModel.Channels.RequestChannel.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Dispatcher.RequestChannelBinder.Request(Message message, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannel.Call(String action, Boolean oneway, ProxyOperationRuntime operation, Object[] ins, Object[] outs, TimeSpan timeout)
+   at System.ServiceModel.Channels.ServiceChannelProxy.InvokeService(IMethodCallMessage methodCall, ProxyOperationRuntime operation)
+   at System.ServiceModel.Channels.ServiceChannelProxy.Invoke(IMessage message)
+
+Exception rethrown at [0]: 
+   at System.Runtime.Remoting.Proxies.RealProxy.HandleReturnMessage(IMessage reqMsg, IMessage retMsg)
+   at System.Runtime.Remoting.Proxies.RealProxy.PrivateInvoke(MessageData& msgData, Int32 type)
+   at NovaAPI.wsSecurityMain.IFacturaMeCrContract.GetTipoIdentificacion()
+   at NovaAPI.wsSecurityMain.FacturaMeCrContractClient.GetTipoIdentificacion() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Connected Services\wsSecurityMain\Reference.cs:line 11133
+   at NovaAPI.Controllers.UtilidadesController.GetTipoIdentificacion() in C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\Controllers\UtilidadesController.cs:line 38
+   at lambda_method(Closure , Object , Object[] )
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ActionExecutor.<>c__DisplayClass6_0.<GetExecutor>b__2(Object instance, Object[] methodParameters)
+   at System.Web.Http.Controllers.ReflectedHttpActionDescriptor.ExecuteAsync(HttpControllerContext controllerContext, IDictionary`2 arguments, CancellationToken cancellationToken)
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ApiControllerActionInvoker.<InvokeActionAsyncCore>d__1.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Controllers.ActionFilterResult.<ExecuteAsync>d__5.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Web.Http.Dispatcher.HttpControllerDispatcher.<SendAsync>d__15.MoveNext()
+

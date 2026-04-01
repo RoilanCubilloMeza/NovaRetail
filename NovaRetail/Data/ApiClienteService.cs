@@ -208,6 +208,40 @@ namespace NovaRetail.Data
             return Task.FromResult(tipos);
         }
 
+        // ──────── Tipos de identificación (desde BD) ────────
+
+        public async Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync()
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Utilidades/GetTipoIdentificacion";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var items = JsonConvert.DeserializeObject<List<CommondEntitieDto>>(json);
+                    if (items is { Count: > 0 })
+                        return items.Select(i => i.StrDescripcion ?? string.Empty)
+                                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                                    .ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener tipos de identificación desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return new[]
+            {
+                "Cédula Física",
+                "Cédula Jurídica",
+                "DIMEX",
+                "NITE",
+                "Extranjero No Domiciliado",
+                "No Contribuyente"
+            };
+        }
+
         // ──────── Mapeo API → ClienteModel ────────
 
         private static ClienteModel MapToClienteModel(ApiCustomer c)

@@ -10,5 +10,6 @@ public interface IClienteService
     Task<bool> GuardarAsync(ClienteModel cliente);
     Task<string> BuscarActividadAsync(string codActividad);
     Task<IReadOnlyList<string>> ObtenerTiposClienteAsync();
+    Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync();
 }
 
