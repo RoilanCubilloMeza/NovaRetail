@@ -20,6 +20,34 @@ public sealed class MockClienteService : IClienteService
         return _store.TryGetValue(clienteId, out var cliente) ? cliente : null;
     }
 
+    public async Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria)
+    {
+        await Task.Delay(300);
+        var results = _store.Values.Select(c => new CustomerLookupModel
+        {
+            AccountNumber = c.ClientId,
+            FirstName = c.Name,
+            Phone = c.Phone,
+            Email = c.Email,
+            Address = c.Address,
+            City = c.Canton ?? string.Empty,
+            State = c.Province ?? string.Empty,
+            Zip = c.Barrio ?? string.Empty
+        });
+
+        if (!string.IsNullOrWhiteSpace(criteria))
+        {
+            var term = criteria.Trim().ToUpperInvariant();
+            results = results.Where(c =>
+                c.AccountNumber.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                c.FirstName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                c.LastName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                c.Phone.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return results.ToList();
+    }
+
     public async Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId)
     {
         await Task.Delay(1500);

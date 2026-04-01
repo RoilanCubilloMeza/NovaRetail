@@ -64,6 +64,12 @@
               IsVisible="{Binding IsSalesRepPickerVisible}">
             <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
         </Grid>
+
+        <!-- Customer search overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCustomerSearchVisible}">
+            <views:CustomerSearchPopup BindingContext="{Binding CustomerSearchVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

@@ -21,6 +21,7 @@ namespace NovaRetail.ViewModels
         private readonly IStoreConfigService _storeConfigService;
         private readonly ISalesRepService _salesRepService;
         private readonly IInvoiceHistoryService _invoiceHistoryService;
+        private readonly IClienteService _clienteService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
@@ -163,6 +164,7 @@ namespace NovaRetail.ViewModels
         public OrderSearchViewModel OrderSearchVm { get; } = new();
 
         public SalesRepPickerViewModel SalesRepPickerVm { get; } = new();
+        public CustomerSearchViewModel CustomerSearchVm { get; } = new();
 
         public bool IsManualExonerationVisible
         {
@@ -221,6 +223,16 @@ namespace NovaRetail.ViewModels
             {
                 if (IsSalesRepPickerVisible != value)
                     _appStore.Dispatch(new SetSalesRepPickerVisibleAction(value));
+            }
+        }
+
+        public bool IsCustomerSearchVisible
+        {
+            get => _appStore.State.IsCustomerSearchVisible;
+            private set
+            {
+                if (IsCustomerSearchVisible != value)
+                    _appStore.Dispatch(new SetCustomerSearchVisibleAction(value));
             }
         }
 
@@ -309,6 +321,7 @@ namespace NovaRetail.ViewModels
         public ICommand DecrementProductCommand { get; }
         public ICommand SelectSpanCommand { get; }
         public ICommand NavigateToClienteCommand { get; }
+        public ICommand OpenCustomerSearchCommand { get; }
         public ICommand LoadMoreProductsCommand { get; }
         public ICommand EditCartItemCommand { get; }
         public ICommand ToggleSelectionModeCommand { get; }
@@ -722,6 +735,7 @@ namespace NovaRetail.ViewModels
             DecrementProductCommand = new Command<ProductModel>(DecrementProduct);
             SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
             NavigateToClienteCommand = new Command(async () => await Shell.Current.GoToAsync("ClientePage"));
+            OpenCustomerSearchCommand = new Command(async () => await OpenCustomerSearchAsync());
             LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
             EditCartItemCommand = new Command<CartItemModel>(async item => await OpenItemActionAsync(item));
             ToggleSelectionModeCommand = new Command(() => IsSelectionMode = !IsSelectionMode);
@@ -770,6 +784,9 @@ namespace NovaRetail.ViewModels
             QuoteReceiptVm.RequestClose += () => IsQuoteReceiptVisible = false;
             SalesRepPickerVm.RequestConfirm += OnSalesRepSelected;
             SalesRepPickerVm.RequestSkip += OnSalesRepSkipped;
+            CustomerSearchVm.RequestClose += () => IsCustomerSearchVisible = false;
+            CustomerSearchVm.RequestSearch += async criteria => await SearchCustomersAsync(criteria);
+            CustomerSearchVm.RequestSelect += OnCustomerSelected;
             RefreshCartItemsView();
             _ = InitializeAsync();
         }
@@ -796,6 +813,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsOrderSearchVisible));
             OnPropertyChanged(nameof(IsQuoteReceiptVisible));
             OnPropertyChanged(nameof(IsSalesRepPickerVisible));
+            OnPropertyChanged(nameof(IsCustomerSearchVisible));
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
@@ -3252,6 +3270,47 @@ namespace NovaRetail.ViewModels
             catch
             {
             }
+        }
+
+        // ── Búsqueda de clientes ──
+
+        private async Task OpenCustomerSearchAsync()
+        {
+            CustomerSearchVm.Reset();
+            IsCustomerSearchVisible = true;
+            await SearchCustomersAsync(null);
+        }
+
+        private async Task SearchCustomersAsync(string? criteria)
+        {
+            try
+            {
+                CustomerSearchVm.SetBusy(true);
+                var clienteService = GetClienteService();
+                var results = await clienteService.BuscarClientesAsync(criteria);
+                CustomerSearchVm.SetCustomers(results);
+            }
+            catch (Exception ex)
+            {
+                CustomerSearchVm.SetError($"Error al buscar clientes: {ex.Message}");
+            }
+            finally
+            {
+                CustomerSearchVm.SetBusy(false);
+            }
+        }
+
+        private void OnCustomerSelected(Models.CustomerLookupModel customer)
+        {
+            IsCustomerSearchVisible = false;
+            SetCliente(customer.AccountNumber, customer.FullName);
+        }
+
+        private IClienteService GetClienteService()
+        {
+            // Resolve from the service provider via the Shell
+            return Shell.Current.Handler?.MauiContext?.Services.GetService<IClienteService>()
+                ?? throw new InvalidOperationException("IClienteService not available.");
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

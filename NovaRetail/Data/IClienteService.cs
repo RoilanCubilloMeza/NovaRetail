@@ -11,5 +11,6 @@ public interface IClienteService
     Task<string> BuscarActividadAsync(string codActividad);
     Task<IReadOnlyList<string>> ObtenerTiposClienteAsync();
     Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync();
+    Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria);
 }
 

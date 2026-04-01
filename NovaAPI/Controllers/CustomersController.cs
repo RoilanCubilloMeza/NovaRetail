@@ -75,30 +75,24 @@ VALUES
                 accountNumber, email2, state, city, city2, zip, activityCode, address, priceLevel);
         }
 
+        private const string BaseSelectSql = @"
+SELECT AccountNumber, FirstName, LastName,
+       PhoneNumber  AS PhoneNumber1,
+       FaxNumber    AS PhoneNumber2,
+       EmailAddress,
+       State, City,
+       CustomText3  AS City2,
+       Zip, Address,
+       CustomText5  AS ActivityCode,
+       CAST(PriceLevel AS INT) AS PriceLevel
+FROM Customer";
+
         [HttpGet]
         public IEnumerable<CustomerLookupDto> Get()
         {
             try
             {
-                return db.ExecuteQuery<CustomerLookupDto>(@"
-SELECT TOP 5000
-    AccountNumber,
-    FirstName,
-    LastName,
-    ISNULL(PhoneNumber,'')  AS PhoneNumber1,
-    ''                      AS PhoneNumber2,
-    ISNULL(EmailAddress,'') AS EmailAddress,
-    ISNULL(State,'')        AS State,
-    ISNULL(City,'')         AS City,
-    ISNULL(CustomText3,'')  AS City2,
-    ISNULL(Zip,'')          AS Zip,
-    ISNULL(Address,'')      AS Address,
-    ISNULL(CustomText5,'')  AS ActivityCode,
-    ISNULL(CustomText2,'')  AS Email2,
-    CAST(0 AS INT)          AS CreditDays,
-    CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
-FROM Customer
-ORDER BY AccountNumber").ToList();
+                return db.ExecuteQuery<CustomerLookupDto>(BaseSelectSql).ToList();
             }
             catch (Exception ex)
             {
@@ -129,30 +123,23 @@ ORDER BY AccountNumber").ToList();
             try
             {
                 var term = (criteria ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(term))
+                    return Get();
 
-                return db.ExecuteQuery<CustomerLookupDto>(@"
-SELECT TOP 200
-    AccountNumber,
-    FirstName,
-    LastName,
-    ISNULL(PhoneNumber,'')  AS PhoneNumber1,
-    ''                      AS PhoneNumber2,
-    ISNULL(EmailAddress,'') AS EmailAddress,
-    ISNULL(State,'')        AS State,
-    ISNULL(City,'')         AS City,
-    ISNULL(CustomText3,'')  AS City2,
-    ISNULL(Zip,'')          AS Zip,
-    ISNULL(Address,'')      AS Address,
-    ISNULL(CustomText5,'')  AS ActivityCode,
-    ISNULL(CustomText2,'')  AS Email2,
-    CAST(0 AS INT)          AS CreditDays,
-    CAST(ISNULL(PriceLevel,1) AS INT) AS PriceLevel
-FROM Customer
-WHERE AccountNumber = {0}
-   OR FirstName     LIKE '%' + {0} + '%'
-   OR LastName      LIKE '%' + {0} + '%'
-   OR (FirstName + ' ' + LastName) LIKE '%' + {0} + '%'
-ORDER BY AccountNumber", term).ToList();
+                var like = "%" + term + "%";
+                var sql = BaseSelectSql + @"
+WHERE AccountNumber LIKE {0}
+   OR FirstName     LIKE {0}
+   OR LastName      LIKE {0}
+   OR PhoneNumber   LIKE {0}
+   OR FaxNumber     LIKE {0}
+   OR EmailAddress  LIKE {0}
+   OR Address       LIKE {0}
+   OR City          LIKE {0}
+   OR State         LIKE {0}
+   OR Zip           LIKE {0}";
+
+                return db.ExecuteQuery<CustomerLookupDto>(sql, like).ToList();
             }
             catch (Exception ex)
             {

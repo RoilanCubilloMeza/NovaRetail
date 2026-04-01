@@ -65,6 +65,50 @@ namespace NovaRetail.Data
 
         // ──────── Sincronizar con Hacienda / GoMeta ────────
 
+        public async Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria)
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    string url;
+
+                    if (string.IsNullOrWhiteSpace(criteria))
+                        url = $"{baseUrl}/api/Customers";
+                    else
+                        url = $"{baseUrl}/api/Customers?criteria={Uri.EscapeDataString(criteria.Trim())}";
+
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<ApiCustomer>>(json);
+
+                    if (results is null)
+                        continue;
+
+                    return results.Select(c => new CustomerLookupModel
+                    {
+                        AccountNumber = c.AccountNumber ?? string.Empty,
+                        FirstName = c.FirstName ?? string.Empty,
+                        LastName = c.LastName ?? string.Empty,
+                        Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
+                        Email = c.EmailAddress ?? string.Empty,
+                        Address = c.Address ?? string.Empty,
+                        City = FirstNonEmpty(c.City, c.CITY) ?? string.Empty,
+                        State = FirstNonEmpty(c.State, c.STATE) ?? string.Empty,
+                        Zip = FirstNonEmpty(c.Zip, c.ZIP) ?? string.Empty
+                    }).ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al buscar clientes desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<CustomerLookupModel>();
+        }
+
+        // ──────── Sincronizar con Hacienda / GoMeta (original) ────────
+
         public async Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId)
         {
             var datos = await _utilities.GetDatosCedulaAsync(clienteId);

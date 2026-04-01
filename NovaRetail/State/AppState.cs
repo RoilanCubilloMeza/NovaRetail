@@ -15,6 +15,7 @@ public sealed record AppState(
     bool IsOrderSearchVisible = false,
     bool IsQuoteReceiptVisible = false,
     bool IsSalesRepPickerVisible = false,
+    bool IsCustomerSearchVisible = false,
 
     // ── Cliente ──
     string CurrentClientId = "",
