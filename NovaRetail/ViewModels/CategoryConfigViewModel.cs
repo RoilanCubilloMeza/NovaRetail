@@ -5,6 +5,7 @@ using System.Windows.Input;
 using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
+using NovaRetail.State;
 
 namespace NovaRetail.ViewModels;
 
@@ -15,6 +16,7 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
     private readonly IStoreConfigService _configService;
     private readonly IDialogService _dialogService;
     private readonly MainViewModel _mainVm;
+    private readonly UserSession _userSession;
 
     private bool _isBusy;
     private bool _isSaving;
@@ -45,11 +47,12 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
     public ICommand SaveCommand { get; }
     public ICommand GoBackCommand { get; }
 
-    public CategoryConfigViewModel(IStoreConfigService configService, IDialogService dialogService, MainViewModel mainVm)
+    public CategoryConfigViewModel(IStoreConfigService configService, IDialogService dialogService, MainViewModel mainVm, UserSession userSession)
     {
         _configService = configService;
         _dialogService = dialogService;
         _mainVm = mainVm;
+        _userSession = userSession;
 
         ToggleCategoryCommand = new Command<SelectableCategoryItem>(ToggleCategory);
         MoveUpCommand = new Command<SelectableCategoryItem>(MoveUp);
@@ -67,7 +70,8 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
         try
         {
             var allTask = _configService.GetAllCategoriesAsync();
-            var configTask = _configService.GetCategoryConfigAsync();
+            var userName = _userSession.CurrentUser?.UserName;
+            var configTask = _configService.GetCategoryConfigAsync(userName);
             await Task.WhenAll(allTask, configTask);
 
             var allDepts = allTask.Result;
@@ -190,7 +194,8 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
         try
         {
             var ids = string.Join(",", SelectedCategories.Select(c => c.ID));
-            var success = await _configService.SaveCategoryConfigAsync(ids);
+            var userName = _userSession.CurrentUser?.UserName;
+            var success = await _configService.SaveCategoryConfigAsync(ids, userName);
 
             if (success)
             {

@@ -59,14 +59,17 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return [];
     }
 
-    public async Task<List<CategoryModel>> GetCategoriesAsync()
+    public async Task<List<CategoryModel>> GetCategoriesAsync(string userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
             try
             {
                 var http = _httpClientFactory.CreateClient(ClientName);
-                var result = await http.GetFromJsonAsync<List<CategoryModel>>($"{baseUrl}/api/Categories");
+                var url = string.IsNullOrWhiteSpace(userName)
+                    ? $"{baseUrl}/api/Categories"
+                    : $"{baseUrl}/api/Categories?userName={Uri.EscapeDataString(userName)}";
+                var result = await http.GetFromJsonAsync<List<CategoryModel>>(url);
                 if (result is not null && result.Count > 0)
                     return result;
             }
@@ -99,14 +102,17 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return [];
     }
 
-    public async Task<string> GetCategoryConfigAsync()
+    public async Task<string> GetCategoryConfigAsync(string userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
             try
             {
                 var http = _httpClientFactory.CreateClient(ClientName);
-                var result = await http.GetFromJsonAsync<CategoryConfigResponse>($"{baseUrl}/api/Categories/Config");
+                var url = string.IsNullOrWhiteSpace(userName)
+                    ? $"{baseUrl}/api/Categories/Config"
+                    : $"{baseUrl}/api/Categories/Config?userName={Uri.EscapeDataString(userName)}";
+                var result = await http.GetFromJsonAsync<CategoryConfigResponse>(url);
                 if (result is not null)
                     return result.SelectedIds ?? string.Empty;
             }
@@ -119,7 +125,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return string.Empty;
     }
 
-    public async Task<bool> SaveCategoryConfigAsync(string selectedIds)
+    public async Task<bool> SaveCategoryConfigAsync(string selectedIds, string userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
@@ -128,7 +134,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
                 var http = _httpClientFactory.CreateClient(ClientName);
                 var response = await http.PutAsJsonAsync(
                     $"{baseUrl}/api/Categories/Config",
-                    new CategoryConfigResponse { SelectedIds = selectedIds });
+                    new CategoryConfigResponse { SelectedIds = selectedIds, UserName = userName });
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -143,5 +149,6 @@ public sealed class ApiStoreConfigService : IStoreConfigService
     private sealed class CategoryConfigResponse
     {
         public string SelectedIds { get; set; } = string.Empty;
+        public string UserName { get; set; }
     }
 }

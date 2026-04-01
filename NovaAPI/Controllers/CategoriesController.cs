@@ -10,23 +10,22 @@ namespace NovaAPI.Controllers
     /// <summary>
     /// GET api/Categories → categorías visibles en la UI.
     ///
-    /// Si existe el parámetro CAT-01 en AVS_Parametros, su VALOR es una lista
-    /// de IDs de departamento separados por coma.  Ejemplo:
-    ///   CODIGO = 'CAT-01'  VALOR = '1,5,12,8'
-    /// Solo se devuelven los departamentos cuyos IDs coincidan, en el orden
-    /// indicado por el parámetro, con un máximo de 6.
+    /// Prioridad:
+    ///   1. Si se envía ?userName=X y ese usuario tiene preferencia en AVS_UserPreferences, se usa.
+    ///   2. Si no, se busca el parámetro global CAT-01 en AVS_Parametros.
+    ///   3. Si tampoco existe, devuelve los primeros 6 departamentos.
     ///
-    /// Si CAT-01 NO existe, devuelve TODOS los departamentos de la tabla
-    /// Department ordenados por nombre (máximo 6).
+    /// El valor almacenado es una lista de IDs separados por coma: '1,5,12,8'
     /// </summary>
     [RoutePrefix("api/Categories")]
     public class CategoriesController : ApiController
     {
         private const int MaxCategories = 6;
+        private const string PrefKey = "CAT-01";
 
         [HttpGet]
         [Route("")]
-        public IHttpActionResult Get()
+        public IHttpActionResult Get(string userName = null)
         {
             var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -79,14 +78,24 @@ namespace NovaAPI.Controllers
                         }
                     }
 
-                    // 3. Leer el parámetro CAT-01 (opcional) para filtrar/ordenar
+                    // 3. Leer preferencia: primero por usuario, luego global
                     string paramValue = null;
-                    using (var cmd = new SqlCommand(
-                        "SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'CAT-01'", cn))
+
+                    if (!string.IsNullOrWhiteSpace(userName))
                     {
-                        var val = cmd.ExecuteScalar();
-                        if (val != null && val != DBNull.Value)
-                            paramValue = Convert.ToString(val);
+                        EnsureUserPreferencesTable(cn);
+                        paramValue = ReadUserPreference(cn, userName.Trim(), PrefKey);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(paramValue))
+                    {
+                        using (var cmd = new SqlCommand(
+                            "SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'CAT-01'", cn))
+                        {
+                            var val = cmd.ExecuteScalar();
+                            if (val != null && val != DBNull.Value)
+                                paramValue = Convert.ToString(val);
+                        }
                     }
 
                     if (string.IsNullOrWhiteSpace(paramValue))
@@ -197,11 +206,11 @@ namespace NovaAPI.Controllers
         }
 
         /// <summary>
-        /// GET api/Categories/Config → devuelve el valor actual de CAT-01 (IDs separados por coma).
+        /// GET api/Categories/Config?userName=X → devuelve los IDs seleccionados del usuario (o global).
         /// </summary>
         [HttpGet]
         [Route("Config")]
-        public IHttpActionResult GetConfig()
+        public IHttpActionResult GetConfig(string userName = null)
         {
             var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -213,6 +222,16 @@ namespace NovaAPI.Controllers
                 {
                     cn.Open();
 
+                    // Preferencia por usuario
+                    if (!string.IsNullOrWhiteSpace(userName))
+                    {
+                        EnsureUserPreferencesTable(cn);
+                        var userVal = ReadUserPreference(cn, userName.Trim(), PrefKey);
+                        if (userVal != null)
+                            return Ok(new CategoryConfigDto { SelectedIds = userVal });
+                    }
+
+                    // Fallback global
                     using (var cmd = new SqlCommand(
                         "SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'CAT-01'", cn))
                     {
@@ -231,8 +250,10 @@ namespace NovaAPI.Controllers
         }
 
         /// <summary>
-        /// PUT api/Categories/Config → guarda los IDs seleccionados en CAT-01.
-        /// Body: { "SelectedIds": "1,5,12" }
+        /// PUT api/Categories/Config → guarda los IDs seleccionados.
+        /// Body: { "SelectedIds": "1,5,12", "UserName": "roilan" }
+        /// Si se envía UserName, guarda como preferencia del usuario.
+        /// Si no, guarda en el parámetro global CAT-01.
         /// </summary>
         [HttpPut]
         [Route("Config")]
@@ -262,30 +283,39 @@ namespace NovaAPI.Controllers
                 {
                     cn.Open();
 
-                    // Verificar si CAT-01 ya existe
-                    bool exists;
-                    using (var cmd = new SqlCommand(
-                        "SELECT COUNT(1) FROM dbo.AVS_Parametros WHERE CODIGO = 'CAT-01'", cn))
+                    if (!string.IsNullOrWhiteSpace(dto?.UserName))
                     {
-                        exists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-                    }
-
-                    if (exists)
-                    {
-                        using (var cmd = new SqlCommand(
-                            "UPDATE dbo.AVS_Parametros SET VALOR = @valor WHERE CODIGO = 'CAT-01'", cn))
-                        {
-                            cmd.Parameters.AddWithValue("@valor", cleanValue);
-                            cmd.ExecuteNonQuery();
-                        }
+                        // Guardar como preferencia de usuario
+                        EnsureUserPreferencesTable(cn);
+                        SaveUserPreference(cn, dto.UserName.Trim(), PrefKey, cleanValue);
                     }
                     else
                     {
+                        // Guardar como parámetro global
+                        bool exists;
                         using (var cmd = new SqlCommand(
-                            "INSERT INTO dbo.AVS_Parametros (CODIGO, VALOR) VALUES ('CAT-01', @valor)", cn))
+                            "SELECT COUNT(1) FROM dbo.AVS_Parametros WHERE CODIGO = 'CAT-01'", cn))
                         {
-                            cmd.Parameters.AddWithValue("@valor", cleanValue);
-                            cmd.ExecuteNonQuery();
+                            exists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                        }
+
+                        if (exists)
+                        {
+                            using (var cmd = new SqlCommand(
+                                "UPDATE dbo.AVS_Parametros SET VALOR = @valor WHERE CODIGO = 'CAT-01'", cn))
+                            {
+                                cmd.Parameters.AddWithValue("@valor", cleanValue);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        else
+                        {
+                            using (var cmd = new SqlCommand(
+                                "INSERT INTO dbo.AVS_Parametros (CODIGO, VALOR) VALUES ('CAT-01', @valor)", cn))
+                            {
+                                cmd.Parameters.AddWithValue("@valor", cleanValue);
+                                cmd.ExecuteNonQuery();
+                            }
                         }
                     }
                 }
@@ -307,6 +337,58 @@ namespace NovaAPI.Controllers
             }
             return null;
         }
+
+        /// <summary>Crea AVS_UserPreferences si no existe.</summary>
+        private static void EnsureUserPreferencesTable(SqlConnection cn)
+        {
+            const string sql = @"
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'AVS_UserPreferences')
+                BEGIN
+                    CREATE TABLE dbo.AVS_UserPreferences (
+                        UserName  NVARCHAR(100) NOT NULL,
+                        PrefKey   NVARCHAR(50)  NOT NULL,
+                        PrefValue NVARCHAR(500) NOT NULL DEFAULT '',
+                        CONSTRAINT PK_AVS_UserPreferences PRIMARY KEY (UserName, PrefKey)
+                    );
+                END";
+
+            using (var cmd = new SqlCommand(sql, cn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private static string ReadUserPreference(SqlConnection cn, string userName, string prefKey)
+        {
+            using (var cmd = new SqlCommand(
+                "SELECT TOP 1 LTRIM(RTRIM(PrefValue)) FROM dbo.AVS_UserPreferences WHERE UserName = @user AND PrefKey = @key", cn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.Parameters.AddWithValue("@key", prefKey);
+                var val = cmd.ExecuteScalar();
+                if (val != null && val != DBNull.Value)
+                {
+                    var result = Convert.ToString(val);
+                    return string.IsNullOrWhiteSpace(result) ? null : result;
+                }
+            }
+            return null;
+        }
+
+        private static void SaveUserPreference(SqlConnection cn, string userName, string prefKey, string prefValue)
+        {
+            const string sql = @"
+                IF EXISTS (SELECT 1 FROM dbo.AVS_UserPreferences WHERE UserName = @user AND PrefKey = @key)
+                    UPDATE dbo.AVS_UserPreferences SET PrefValue = @val WHERE UserName = @user AND PrefKey = @key
+                ELSE
+                    INSERT INTO dbo.AVS_UserPreferences (UserName, PrefKey, PrefValue) VALUES (@user, @key, @val)";
+
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.Parameters.AddWithValue("@key", prefKey);
+                cmd.Parameters.AddWithValue("@val", prefValue ?? string.Empty);
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 
     public class CategoryDto
@@ -318,5 +400,6 @@ namespace NovaAPI.Controllers
     public class CategoryConfigDto
     {
         public string SelectedIds { get; set; } = string.Empty;
+        public string UserName { get; set; }
     }
 }

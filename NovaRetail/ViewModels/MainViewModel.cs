@@ -873,7 +873,8 @@ namespace NovaRetail.ViewModels
                     Tenders.Add(t);
 
                 // Cargar categorías desde la DB
-                var categories = await _storeConfigService.GetCategoriesAsync();
+                var userName = _userSession.CurrentUser?.UserName;
+                var categories = await _storeConfigService.GetCategoriesAsync(userName);
                 if (categories.Count > 0)
                 {
                     CategoryKeys.Load(categories);
@@ -894,7 +895,8 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                var categories = await _storeConfigService.GetCategoriesAsync();
+                var userName = _userSession.CurrentUser?.UserName;
+                var categories = await _storeConfigService.GetCategoriesAsync(userName);
                 if (categories.Count > 0)
                 {
                     CategoryKeys.Load(categories);
