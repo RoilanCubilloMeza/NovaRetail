@@ -21,7 +21,6 @@ namespace NovaRetail.ViewModels
         private readonly IStoreConfigService _storeConfigService;
         private readonly ISalesRepService _salesRepService;
         private readonly IInvoiceHistoryService _invoiceHistoryService;
-        private readonly IClienteService _clienteService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();

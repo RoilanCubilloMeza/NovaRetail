@@ -59,7 +59,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return [];
     }
 
-    public async Task<List<CategoryModel>> GetCategoriesAsync(string userName = null)
+    public async Task<List<CategoryModel>> GetCategoriesAsync(string? userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
@@ -102,7 +102,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return [];
     }
 
-    public async Task<string> GetCategoryConfigAsync(string userName = null)
+    public async Task<string> GetCategoryConfigAsync(string? userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
@@ -125,7 +125,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return string.Empty;
     }
 
-    public async Task<bool> SaveCategoryConfigAsync(string selectedIds, string userName = null)
+    public async Task<bool> SaveCategoryConfigAsync(string selectedIds, string? userName = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
@@ -149,6 +149,6 @@ public sealed class ApiStoreConfigService : IStoreConfigService
     private sealed class CategoryConfigResponse
     {
         public string SelectedIds { get; set; } = string.Empty;
-        public string UserName { get; set; }
+        public string? UserName { get; set; }
     }
 }
