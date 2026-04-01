@@ -21,7 +21,7 @@ namespace NovaRetail.ViewModels
 
     public class ManualExonerationViewModel : INotifyPropertyChanged
     {
-        public static readonly IReadOnlyList<ExonerationDocumentType> AllDocumentTypes = new List<ExonerationDocumentType>
+        private static readonly IReadOnlyList<ExonerationDocumentType> FallbackDocumentTypes = new List<ExonerationDocumentType>
         {
             new() { Codigo = "01", Descripcion = "Compras autorizadas por la Dirección General de Tributación" },
             new() { Codigo = "02", Descripcion = "Ventas exentas a diplomáticos" },
@@ -37,6 +37,8 @@ namespace NovaRetail.ViewModels
             new() { Codigo = "12", Descripcion = "Otros" },
         };
 
+        private IReadOnlyList<ExonerationDocumentType> _allDocumentTypes = FallbackDocumentTypes;
+
         private string _authorizationNumber = string.Empty;
         private ExonerationDocumentType? _selectedDocumentType;
         private DateTime _fechaEmision = DateTime.Today;
@@ -50,7 +52,14 @@ namespace NovaRetail.ViewModels
         private decimal _cartSubtotalColones;
         private string _clientName = string.Empty;
 
-        public IReadOnlyList<ExonerationDocumentType> DocumentTypes => AllDocumentTypes;
+        public IReadOnlyList<ExonerationDocumentType> DocumentTypes => _allDocumentTypes;
+
+        public void LoadDocumentTypes(IEnumerable<ExonerationDocumentType> types)
+        {
+            var list = types?.ToList() ?? [];
+            _allDocumentTypes = list.Count > 0 ? list : FallbackDocumentTypes;
+            OnPropertyChanged(nameof(DocumentTypes));
+        }
 
         public string AuthorizationNumber
         {
@@ -153,7 +162,7 @@ namespace NovaRetail.ViewModels
             _cartSubtotalColones = cartSubtotalColones;
             _clientName = clientName?.Trim() ?? string.Empty;
             AuthorizationNumber = existingAuthorization;
-            SelectedDocumentType = AllDocumentTypes[0];
+            SelectedDocumentType = _allDocumentTypes[0];
             FechaEmision = DateTime.Today;
             FechaVencimiento = DateTime.Today;
             Institucion = _clientName;
@@ -176,9 +185,9 @@ namespace NovaRetail.ViewModels
 
             var doc = result.Document;
             AuthorizationNumber = doc.NumeroDocumento;
-            SelectedDocumentType = AllDocumentTypes
+            SelectedDocumentType = _allDocumentTypes
                 .FirstOrDefault(t => t.Codigo == doc.TipoDocumentoCodigo)
-                ?? AllDocumentTypes[^1];
+                ?? _allDocumentTypes[^1];
             FechaEmision = doc.FechaEmision ?? DateTime.Today;
             FechaVencimiento = doc.FechaVencimiento ?? DateTime.Today;
             Institucion = string.IsNullOrWhiteSpace(_clientName) ? doc.NombreInstitucion : _clientName;

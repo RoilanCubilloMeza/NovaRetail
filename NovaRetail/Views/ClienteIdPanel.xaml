@@ -8,11 +8,11 @@
         <VerticalStackLayout Spacing="0">
 
             <!-- ID Cliente -->
-            <Label Text="ID Cliente" Style="{DynamicResource FieldLabel}"/>
+            <Label Text="Identificación del cliente" Style="{DynamicResource FieldLabel}"/>
             <Border Style="{DynamicResource InputBox}">
                 <Grid ColumnDefinitions="*, Auto">
                     <Entry Grid.Column="0"
-                           Placeholder="Ingrese identificación..."
+                           Placeholder="Ingrese cédula o identificación"
                            Text="{Binding ClientId}"
                             Keyboard="{Binding ClientIdKeyboard}"
                            ReturnType="Next"
@@ -56,9 +56,26 @@
                                  FontSize="13"
                                  Margin="0,14,0,0"/>
 
-            <Label Text="{Binding ClientStatusHint}"
-                   Style="{DynamicResource HelpText}"
-                   Margin="0,12,0,0"/>
+                 <Label Text="Primero se busca el cliente en su base. Si no existe, se intentan traer datos automáticos para completar el formulario."
+                     Style="{DynamicResource HelpText}"
+                     Margin="0,12,0,0"/>
+
+                 <Border BackgroundColor="{Binding ClientStatusBackgroundColor}"
+                      Stroke="{Binding ClientStatusBorderColor}"
+                      StrokeShape="RoundRectangle 10"
+                      StrokeThickness="1"
+                      Padding="12,10"
+                      Margin="0,12,0,0">
+                  <VerticalStackLayout Spacing="3">
+                      <Label Text="{Binding ClientStatusTitle}"
+                          FontSize="13"
+                          FontAttributes="Bold"
+                          TextColor="{Binding ClientStatusTitleColor}"/>
+                      <Label Text="{Binding ClientStatusHint}"
+                          Style="{DynamicResource HelpText}"
+                          TextColor="{DynamicResource Gray600}"/>
+                  </VerticalStackLayout>
+                 </Border>
 
         </VerticalStackLayout>
     </controls:SectionCard>

@@ -8,6 +8,22 @@
         <controls:SectionCard Margin="0,20,0,0" Title="Datos del Cliente">
             <VerticalStackLayout Spacing="0">
 
+                <Border BackgroundColor="{DynamicResource InputBackground}"
+                        Stroke="{DynamicResource Gray200Brush}"
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="1"
+                        Padding="12,10"
+                        Margin="0,0,0,14">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="{Binding SaveActionTitle}"
+                               Style="{DynamicResource SectionSubheaderLabel}"
+                               TextColor="{DynamicResource Gray900}"/>
+                        <Label Text="{Binding SaveActionHint}"
+                               Style="{DynamicResource HelpText}"
+                               TextColor="{DynamicResource Gray600}"/>
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Nombre -->
                 <Label Text="Nombre del Cliente" Style="{DynamicResource FieldLabelDark}"/>
                 <Entry Placeholder="Juan Pérez"
@@ -16,19 +32,37 @@
 
                 <BoxView Style="{DynamicResource FormDivider}" Margin="0,14,0,12"/>
 
+                <Label Text="{Binding TaxSectionTitle}"
+                       Style="{DynamicResource FieldLabelDark}"/>
+                <Label Text="{Binding TaxSectionHint}"
+                       Style="{DynamicResource HelpText}"
+                       Margin="0,0,0,8"/>
+
                 <!-- Toggle ¿Es Receptor? -->
-                <controls:ToggleSwitchCard Title="¿Es Receptor?"
-                                           Description="Actívalo solo si requiere factura electrónica / envío por email"
+                <controls:ToggleSwitchCard Title="Factura electrónica y envío por correo"
+                                           Description="Actívelo cuando este cliente necesite recibir la factura por email."
                                            IsToggled="{Binding IsReceiver}"/>
 
                 <BoxView HeightRequest="12" BackgroundColor="Transparent"/>
 
-                <Label IsVisible="{Binding IsNotReceiver}"
-                       Text="Active &#xAB;Es Receptor&#xBB; para ver los datos fiscales"
-                       Style="{DynamicResource InactiveHintLabel}"/>
+                <Border IsVisible="{Binding IsNotReceiver}"
+                        BackgroundColor="{DynamicResource InputBackground}"
+                        Stroke="{DynamicResource Gray200Brush}"
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="1"
+                        Padding="12,10">
+                    <Label Text="Si lo deja desactivado, solo se guardarán los datos básicos del cliente: identificación y nombre."
+                           Style="{DynamicResource HelpText}"
+                           TextColor="{DynamicResource Gray600}"/>
+                </Border>
 
                 <!-- Datos fiscales (solo si EsReceptor) -->
                 <VerticalStackLayout IsVisible="{Binding ShowTaxData}" Spacing="0">
+
+                    <Label Text="Complete estos datos para facturar electrónicamente."
+                           Style="{DynamicResource HelpText}"
+                           TextColor="{DynamicResource Gray600}"
+                           Margin="0,0,0,8"/>
 
                     <!-- Teléfono -->
                     <controls:IconFieldHeader Icon="&#x260E;" Text="Teléfono" Margin="0,0,0,2"/>
@@ -59,6 +93,8 @@
 
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,12,0,0"/>
 
+                    <Label Text="Ubicación fiscal" Style="{DynamicResource IconFieldLabel}"
+                           Margin="0,8,0,2"/>
                     <controls:FormEntry Placeholder="Buscar ubicación (ej: Quepos)"
                                         Text="{Binding LocationSearch}"
                                         Margin="0,8,0,0"/>
@@ -105,16 +141,19 @@
                                              ItemsSource="{Binding Cantons}"
                                              SelectedItem="{Binding SelectedCanton, Mode=TwoWay}"
                                              FontSize="12"
+                                                                              IsEnabled="{Binding CanHaveCanton}"
                                              Opacity="{Binding CantonOpacity}"/>
                         <controls:FormPicker Grid.Column="2"
                                              ItemsSource="{Binding Districts}"
                                              SelectedItem="{Binding SelectedDistrict, Mode=TwoWay}"
                                              FontSize="12"
+                                                                              IsEnabled="{Binding CanHaveDistrict}"
                                              Opacity="{Binding DistrictOpacity}"/>
                         <controls:FormPicker Grid.Column="3"
                                              ItemsSource="{Binding Barrios}"
                                              SelectedItem="{Binding SelectedBarrio, Mode=TwoWay}"
                                              FontSize="12"
+                                                                              IsEnabled="{Binding CanHaveBarrio}"
                                              Opacity="{Binding BarrioOpacity}"/>
                     </Grid>
 
@@ -156,7 +195,8 @@
                            IsVisible="{Binding HasActivityDescription}"
                            Style="{DynamicResource FieldDescriptionItalic}"/>
                     <Label Text="Puede ingresar uno o varios códigos separados por coma (máx. 5)."
-                           Style="{DynamicResource InactiveHintLabel}"/>
+                           Style="{DynamicResource HelpText}"
+                           TextColor="{DynamicResource Gray500}"/>
 
                 </VerticalStackLayout>
 
@@ -176,15 +216,21 @@
                             Command="{Binding CancelCommand}"/>
                 </Grid>
 
-                <Label Text="{Binding ValidationMessage}"
-                       IsVisible="{Binding HasValidationMessage}"
-                       Style="{DynamicResource ValidationErrorLabel}"/>
+                            <Border IsVisible="{Binding HasValidationMessage}"
+                                          BackgroundColor="{Binding ValidationMessageBackgroundColor}"
+                                          Stroke="{Binding ValidationMessageBorderColor}"
+                                          StrokeShape="RoundRectangle 10"
+                                          StrokeThickness="1"
+                                          Padding="12,10"
+                                          Margin="0,10,0,0">
+                                   <Label Text="{Binding ValidationMessage}"
+                                             TextColor="{Binding ValidationMessageTextColor}"
+                                             FontSize="12"
+                                             LineBreakMode="WordWrap"/>
+                            </Border>
 
             </VerticalStackLayout>
         </controls:SectionCard>
-
-        <!-- Badge RECEPTOR ELECTRÓNICO - floats over top of card -->
-        <controls:BadgeLabel Text="RECEPTOR ELECTRÓNICO"/>
     </Grid>
 
 </ContentView>

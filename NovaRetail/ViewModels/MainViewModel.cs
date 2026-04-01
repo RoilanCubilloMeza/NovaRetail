@@ -2811,6 +2811,8 @@ namespace NovaRetail.ViewModels
             if (_cachedExonerationCodes.Count == 0)
                 await LoadExonerationCodesAsync();
 
+            await LoadExonerationDocumentTypesAsync();
+
             ManualExonerationVm.Load(CheckoutVm.ExonerationAuthorization, _subtotalColones, CurrentClientName);
             IsManualExonerationVisible = true;
         }
@@ -3265,6 +3267,26 @@ namespace NovaRetail.ViewModels
                 {
                     _cachedExonerationCodes.Clear();
                     _cachedExonerationCodes.AddRange(codes);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private async Task LoadExonerationDocumentTypesAsync()
+        {
+            try
+            {
+                var codes = await _productService.GetReasonCodesAsync(7);
+                if (codes.Count > 0)
+                {
+                    ManualExonerationVm.LoadDocumentTypes(
+                        codes.Select(c => new ExonerationDocumentType
+                        {
+                            Codigo = c.Code,
+                            Descripcion = c.Description
+                        }));
                 }
             }
             catch
