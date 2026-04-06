@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Web.Http;
 
 namespace NovaAPI.Controllers
@@ -132,6 +133,9 @@ namespace NovaAPI.Controllers
             }
         }
 
+        // Palabras vacías que no aportan al filtrado de productos.
+        // Sinónimos, stop words y lógica de expansión → ver SearchSynonyms.cs
+
         private List<spWS_GetProductsbyCriteriaResult> SmartSearch(string criteria, int top)
         {
             if (string.IsNullOrWhiteSpace(criteria))
@@ -143,21 +147,25 @@ namespace NovaAPI.Controllers
             if (words.Length == 0)
                 return new List<spWS_GetProductsbyCriteriaResult>();
 
-            // If single word, use the original stored procedure for compatibility
-            if (words.Length == 1)
-                return db.spWS_GetProductsbyCriteria(criteria).Take(top).ToList();
+            // Filtrar stop words, pero conservar todas si al hacerlo quedaría vacío
+            var filtered = SearchSynonyms.RemoveStopWords(words);
+            if (filtered.Length == 0) filtered = words;
 
             var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
             if (string.IsNullOrWhiteSpace(connectionString))
                 return db.spWS_GetProductsbyCriteria(criteria).Take(top).ToList();
 
+            // Expandir cada palabra con sinónimos de unidad y separación número+unidad
+            var wordGroups = SearchSynonyms.ExpandSearchWords(filtered);
+
             var results = new List<spWS_GetProductsbyCriteriaResult>();
             var searchFields = new[] { "Description", "ItemLookupCode", "ExtendedDescription",
                                        "SubDescription1", "SubDescription2", "SubDescription3" };
 
-            // Para queries de 3+ palabras se permite 1 palabra sin match (e.g. "coca cola 3 litros"
+            // Para queries de 3+ conceptos se permite 1 sin match (e.g. "coca cola 3 litros"
             // encuentra "COCA COLA 3L" aunque "litros" no aparezca literalmente).
-            var minMatch = words.Length <= 2 ? words.Length : words.Length - 1;
+            var totalConcepts = wordGroups.Count;
+            var minMatch = totalConcepts <= 2 ? totalConcepts : totalConcepts - 1;
 
             using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
             {
@@ -166,18 +174,20 @@ namespace NovaAPI.Controllers
                 {
                     cmd.Connection = cn;
 
-                    // Construir expresión de puntaje: cada palabra suma 1 si aparece en algún campo.
-                    // COLLATE CI_AI garantiza búsqueda sin distinguir mayúsculas ni acentos.
+                    // Cada grupo de variantes cuenta como 1 punto si alguna variante
+                    // aparece en algún campo. COLLATE CI_AI ignora mayúsculas/acentos.
                     var scoreExpressions = new List<string>();
-                    for (int i = 0; i < words.Length; i++)
+                    for (int i = 0; i < wordGroups.Count; i++)
                     {
-                        var paramName = "@w" + i;
-                        cmd.Parameters.AddWithValue(paramName, "%" + words[i] + "%");
-
-                        var fieldConditions = string.Join(" OR ",
-                            searchFields.Select(f =>
-                                $"ISNULL({f}, '') COLLATE SQL_Latin1_General_CP1_CI_AI LIKE {paramName}"));
-                        scoreExpressions.Add($"CASE WHEN ({fieldConditions}) THEN 1 ELSE 0 END");
+                        var allConditions = new List<string>();
+                        for (int v = 0; v < wordGroups[i].Count; v++)
+                        {
+                            var paramName = $"@w{i}_{v}";
+                            cmd.Parameters.AddWithValue(paramName, "%" + wordGroups[i][v] + "%");
+                            foreach (var f in searchFields)
+                                allConditions.Add($"ISNULL({f}, '') COLLATE SQL_Latin1_General_CP1_CI_AI LIKE {paramName}");
+                        }
+                        scoreExpressions.Add($"CASE WHEN ({string.Join(" OR ", allConditions)}) THEN 1 ELSE 0 END");
                     }
 
                     var scoreExpr = string.Join(" + ", scoreExpressions);
@@ -231,6 +241,14 @@ namespace NovaAPI.Controllers
                         }
                     }
                 }
+            }
+
+            // Fallback: si la consulta expandida no trajo nada y hay 1 sola palabra,
+            // intentar con el stored procedure original por compatibilidad.
+            if (results.Count == 0 && words.Length == 1)
+            {
+                try { return db.spWS_GetProductsbyCriteria(criteria).Take(top).ToList(); }
+                catch { /* ignorar */ }
             }
 
             return results;

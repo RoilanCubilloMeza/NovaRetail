@@ -115,8 +115,8 @@
                     </ScrollView>
 
                     <!-- Row 2: Product Grid (no footer to avoid WinUI scroll reset) -->
-                    <CollectionView Grid.Row="2"
-                                    x:Name="ProductsCollectionView"
+                    <Grid Grid.Row="2">
+                        <CollectionView x:Name="ProductsCollectionView"
                                     ItemsSource="{Binding Products}"
                                     ItemSizingStrategy="MeasureAllItems"
                                     SelectionMode="None"
@@ -145,6 +145,26 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+
+                        <!-- Search overlay -->
+                        <Border BackgroundColor="#CCFFFFFF"
+                                StrokeThickness="0"
+                                IsVisible="{Binding IsSearchingProducts}"
+                                InputTransparent="False">
+                            <VerticalStackLayout VerticalOptions="Center"
+                                                 HorizontalOptions="Center"
+                                                 Spacing="10">
+                                <ActivityIndicator IsRunning="{Binding IsSearchingProducts}"
+                                                   Color="{DynamicResource AccentBlue}"
+                                                   WidthRequest="36"
+                                                   HeightRequest="36"/>
+                                <Label Text="Buscando productos..."
+                                       FontSize="13"
+                                       TextColor="{DynamicResource Gray600}"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
 
                     <!-- Row 3: Load progress (outside CollectionView to preserve scroll) -->
                     <VerticalStackLayout Grid.Row="3" Spacing="6"

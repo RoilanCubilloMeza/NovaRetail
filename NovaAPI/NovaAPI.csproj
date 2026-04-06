@@ -151,6 +151,7 @@
     <Compile Include="AppCentral.cs">
       <DependentUpon>AppCentral.dbml</DependentUpon>
     </Compile>
+    <Compile Include="SearchSynonyms.cs" />
     <Compile Include="AppCentral.designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

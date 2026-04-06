@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
@@ -661,6 +662,20 @@ namespace NovaRetail.ViewModels
                 if (_isLoadingMoreProducts != value)
                 {
                     _isLoadingMoreProducts = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool _isSearchingProducts;
+        public bool IsSearchingProducts
+        {
+            get => _isSearchingProducts;
+            private set
+            {
+                if (_isSearchingProducts != value)
+                {
+                    _isSearchingProducts = value;
                     OnPropertyChanged();
                 }
             }
@@ -1348,16 +1363,20 @@ namespace NovaRetail.ViewModels
 
                 if (words.Length > 0)
                 {
-                    // Para 3+ palabras se permite 1 sin match para que "coca cola 3 litros"
-                    // encuentre productos como "COCA COLA 3L".
-                    var minMatch = words.Length <= 2 ? words.Length : words.Length - 1;
+                    // Filtrar stop words, pero conservar todas si al hacerlo quedaría vacío
+                    var searchWords = SearchSynonyms.RemoveStopWords(words);
+                    if (searchWords.Length == 0) searchWords = words;
+
+                    var wordGroups = SearchSynonyms.ExpandSearchWords(searchWords);
+                    var totalConcepts = wordGroups.Count;
+                    var minMatch = totalConcepts <= 2 ? totalConcepts : totalConcepts - 1;
                     query = query.Where(p =>
                     {
                         var name = NormalizeText(p.Name);
                         var code = NormalizeText(p.Code ?? string.Empty);
-                        return words.Count(w =>
-                            name.Contains(w, StringComparison.OrdinalIgnoreCase) ||
-                            code.Contains(w, StringComparison.OrdinalIgnoreCase)) >= minMatch;
+                        return wordGroups.Count(g => g.Any(variant =>
+                            SearchSynonyms.ContainsWord(name, variant) ||
+                            SearchSynonyms.ContainsWord(code, variant))) >= minMatch;
                     });
                 }
             }
@@ -1484,6 +1503,7 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(normalized) || normalized.Length < 3)
                 return;
 
+            await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = true);
             try
             {
                 var products = await _productService.SearchAsync(normalized, 300, _exchangeRate);
@@ -1503,6 +1523,10 @@ namespace NovaRetail.ViewModels
             catch (OperationCanceledException) { }
             catch
             {
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = false);
             }
         }
 
@@ -1567,6 +1591,8 @@ namespace NovaRetail.ViewModels
 
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
+
+        // Sinónimos, stop words y lógica de expansión → ver Services/SearchSynonyms.cs
 
         private void SelectTab(string? tab)
         {
