@@ -32,6 +32,7 @@ namespace NovaRetail.ViewModels
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
         private bool _isLoadingItems;
+        private bool _isSearchingByCode;
         private CancellationTokenSource _searchCts = new();
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
@@ -1112,58 +1113,67 @@ namespace NovaRetail.ViewModels
 
         private async Task SearchOrAddProductByCodeAsync()
         {
-            var parsedInput = ParseCodeAndQuantity(ProductSearchText);
-            var code = parsedInput.Code;
-            var quantityToAdd = parsedInput.Quantity;
-
-            if (string.IsNullOrWhiteSpace(code))
+            if (_isSearchingByCode) return;
+            _isSearchingByCode = true;
+            try
             {
+                var parsedInput = ParseCodeAndQuantity(ProductSearchText);
+                var code = parsedInput.Code;
+                var quantityToAdd = parsedInput.Quantity;
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    FilterProducts();
+                    return;
+                }
+
+                // Intentar primero búsqueda exacta (código de barras / código de producto)
+                var product = FindProductByCode(_allProducts, code);
+
+                if (product is null)
+                {
+                    try
+                    {
+                        var results = await _productService.SearchAsync(code, 20, _exchangeRate);
+                        product = FindProductByCode(results, code);
+
+                        // Si no hay match exacto y el código parece un código de barras (solo dígitos, 8-14 caracteres), intentar sin check-digit
+                        if (product is null && IsBarcodeFormat(code))
+                        {
+                            var codeWithoutCheckDigit = code[..^1];
+                            product = FindProductByCode(results, codeWithoutCheckDigit);
+                        }
+
+                        if (product is not null && !ContainsProductCode(_allProducts, product.Code))
+                        {
+                            StampNonInventoryFlag(new[] { product });
+                            _allProducts.Add(product);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (product is not null)
+                {
+                    if (IsNonInventoryItem(product.ItemType))
+                        OpenServicePriceEntry(product);
+                    else
+                        AddProduct(product, quantityToAdd);
+                    ProductSearchText = string.Empty;
+
+                    // Restablecer catálogo normal después de agregar por código.
+                    await LoadProductsAsync();
+                    return;
+                }
+
                 FilterProducts();
-                return;
             }
-
-            // Intentar primero búsqueda exacta (código de barras / código de producto)
-            var product = FindProductByCode(_allProducts, code);
-
-            if (product is null)
+            finally
             {
-                try
-                {
-                    var results = await _productService.SearchAsync(code, 20, _exchangeRate);
-                    product = FindProductByCode(results, code);
-
-                    // Si no hay match exacto y el código parece un código de barras (solo dígitos, 8-14 caracteres), intentar sin check-digit
-                    if (product is null && IsBarcodeFormat(code))
-                    {
-                        var codeWithoutCheckDigit = code[..^1];
-                        product = FindProductByCode(results, codeWithoutCheckDigit);
-                    }
-
-                    if (product is not null && !ContainsProductCode(_allProducts, product.Code))
-                    {
-                        StampNonInventoryFlag(new[] { product });
-                        _allProducts.Add(product);
-                    }
-                }
-                catch
-                {
-                }
+                _isSearchingByCode = false;
             }
-
-            if (product is not null)
-            {
-                if (IsNonInventoryItem(product.ItemType))
-                    OpenServicePriceEntry(product);
-                else
-                    AddProduct(product, quantityToAdd);
-                ProductSearchText = string.Empty;
-
-                // Restablecer catálogo normal después de agregar por código.
-                await LoadProductsAsync();
-                return;
-            }
-
-            FilterProducts();
         }
 
         private static bool IsBarcodeFormat(string code)
