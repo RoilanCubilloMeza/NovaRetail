@@ -37,6 +37,9 @@ public class StoreConfigModel
 
     /// <summary>Nombre del cliente contado por defecto (CL-02 en AVS_Parametros).</summary>
     public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
+
+    /// <summary>IT-01: IDs de ItemType no inventariables separados por coma (ej: "7,5,9").</summary>
+    public string NonInventoryItemTypes { get; set; } = string.Empty;
 }
 
 public class TenderModel : System.ComponentModel.INotifyPropertyChanged

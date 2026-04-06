@@ -14,6 +14,7 @@ namespace NovaRetail.ViewModels
         private decimal _maxStock = int.MaxValue;
         private string _activeField = "Cantidad";
         private string _inputBuffer = string.Empty;
+        private bool _isServiceMode;
 
         private string _tempQty = "1";
         private string _tempPrice = "0";
@@ -108,6 +109,15 @@ namespace NovaRetail.ViewModels
         public bool IsPrecioExtActive => _activeField == "PrecioExt";
         public bool IsDescripcionActive => _activeField == "Descripcion";
         public bool IsDescuentoPctActive => _activeField == "DescuentoPct";
+
+        /// <summary>True when the popup is used for non-inventory (service) price entry.</summary>
+        public bool IsServiceMode
+        {
+            get => _isServiceMode;
+            private set { if (_isServiceMode != value) { _isServiceMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(TitleText)); } }
+        }
+        public bool IsNormalMode => !_isServiceMode;
+        public string TitleText => _isServiceMode ? "Ingrese el Precio" : "Acción Sobre Artículo";
 
         // ── Discount panel ──
 
@@ -207,6 +217,7 @@ namespace NovaRetail.ViewModels
             _item = item;
             _originalPrice = item.EffectivePriceColones;
             _maxStock = item.Stock > 0 ? item.Stock : int.MaxValue;
+            IsServiceMode = false;
             ItemName = item.OverrideDescription ?? item.Name;
             ItemCode = item.Code;
 
@@ -236,6 +247,52 @@ namespace NovaRetail.ViewModels
                 DiscountCodes.Add(dc);
 
             OnPropertyChanged(string.Empty);
+        }
+
+        /// <summary>
+        /// Opens the popup in service-price mode: only the price field and keypad
+        /// are shown. <paramref name="prefillPrice"/> pre-populates the field when
+        /// the product already has a known price.
+        /// </summary>
+        public void LoadServiceItem(ProductModel product, decimal prefillPrice = 0m)
+        {
+            _item = null;
+            _originalPrice = 0m;
+            _maxStock = int.MaxValue;
+            IsServiceMode = true;
+            ItemName = product.Name;
+            ItemCode = product.Code;
+            PrecioText = prefillPrice > 0 ? $"{UiConfig.CurrencySymbol}{prefillPrice:N2}" : "Precio variable";
+            DisponibleText = "∞";
+            ComprometidoText = "0";
+
+            _tempQty = "1";
+            _tempPrice = prefillPrice > 0 ? prefillPrice.ToString("0.##", CultureInfo.InvariantCulture) : string.Empty;
+            _tempExtPrice = _tempPrice;
+            _tempDesc = product.Name;
+            _discountPercentText = "0";
+            _selectedDiscountCode = null;
+            _salesRepId = 0;
+            _salesRepName = string.Empty;
+
+            _activeField = "Precio";
+            _inputBuffer = _tempPrice;
+
+            IsDiscountVisible = false;
+            IsDiscountConfirmVisible = false;
+            DiscountCodes.Clear();
+
+            OnPropertyChanged(string.Empty);
+        }
+
+        /// <summary>Returns the validated price in colones entered in service mode, or null if invalid.</summary>
+        public decimal? ServicePriceColones
+        {
+            get
+            {
+                CommitCurrentBuffer();
+                return decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p) && p > 0 ? p : null;
+            }
         }
 
         public void RefreshSalesRep(SalesRepModel rep)

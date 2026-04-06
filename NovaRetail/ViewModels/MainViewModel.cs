@@ -84,6 +84,8 @@ namespace NovaRetail.ViewModels
 
         private int _defaultTenderID;
         private int _priceOverridePriceSource = 1;
+        private HashSet<int> _nonInventoryItemTypes = new();
+        private ProductModel? _pendingServiceProduct;
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
         private CartItemModel? _pendingPriceItem;
@@ -508,6 +510,7 @@ namespace NovaRetail.ViewModels
                 if (products.Count == 0)
                     return;
 
+                StampNonInventoryFlag(products);
                 _allProducts.Clear();
                 _allProducts.AddRange(products);
                 _loadedItemsPage = 0;
@@ -722,7 +725,7 @@ namespace NovaRetail.ViewModels
             _appStore = appStore;
             _userSession = userSession;
             _appStore.StateChanged += OnAppStateChanged;
-            AddProductCommand = new Command<ProductModel>(AddProduct);
+            AddProductCommand = new Command<ProductModel>(p => _ = AddProductAsync(p));
             IncrementCommand = new Command<CartItemModel>(Increment);
             DecrementCommand = new Command<CartItemModel>(Decrement);
             ClearCartCommand = new Command(ClearCart);
@@ -759,8 +762,8 @@ namespace NovaRetail.ViewModels
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
             RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(2, "Recuperar Factura en Espera"));
             AssignSalesRepCommand = new Command(async () => await ShowSalesRepPickerForItemsAsync());
-            ItemActionVm.RequestOk += CloseItemAction;
-            ItemActionVm.RequestCancel += CloseItemAction;
+            ItemActionVm.RequestOk += OnItemActionOk;
+            ItemActionVm.RequestCancel += OnItemActionCancel;
             ItemActionVm.RequestPriceJustification += OnPriceJustificationRequired;
             ItemActionVm.RequestItemDiscount += async () => await StartItemDiscountAsync();
             ItemActionVm.RequestAssignSalesRep += () => OpenSalesRepPickerForItem(ItemActionVm.CurrentItem);
@@ -875,6 +878,7 @@ namespace NovaRetail.ViewModels
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
                 _priceOverridePriceSource = config.PriceOverridePriceSource > 0 ? config.PriceOverridePriceSource : 1;
+                _nonInventoryItemTypes = ParseNonInventoryItemTypes(config.NonInventoryItemTypes);
                 _askForSalesRep = config.AskForSalesRep;
                 _requireSalesRep = config.RequireSalesRep;
                 _defaultTaxPercentage = config.DefaultTaxPercentage > 0 ? config.DefaultTaxPercentage : 13m;
@@ -1131,7 +1135,10 @@ namespace NovaRetail.ViewModels
                     }
 
                     if (product is not null && !ContainsProductCode(_allProducts, product.Code))
+                    {
+                        StampNonInventoryFlag(new[] { product });
                         _allProducts.Add(product);
+                    }
                 }
                 catch
                 {
@@ -1140,7 +1147,10 @@ namespace NovaRetail.ViewModels
 
             if (product is not null)
             {
-                AddProduct(product, quantityToAdd);
+                if (IsNonInventoryItem(product.ItemType))
+                    OpenServicePriceEntry(product);
+                else
+                    AddProduct(product, quantityToAdd);
                 ProductSearchText = string.Empty;
 
                 // Restablecer catálogo normal después de agregar por código.
@@ -1222,6 +1232,28 @@ namespace NovaRetail.ViewModels
             return Math.Floor(stock);
         }
 
+        private bool IsNonInventoryItem(int itemType)
+            => _nonInventoryItemTypes.Count > 0 && _nonInventoryItemTypes.Contains(itemType);
+
+        private void StampNonInventoryFlag(IEnumerable<ProductModel> products)
+        {
+            if (_nonInventoryItemTypes.Count == 0) return;
+            foreach (var p in products)
+                p.IsNonInventory = _nonInventoryItemTypes.Contains(p.ItemType);
+        }
+
+        private static HashSet<int> ParseNonInventoryItemTypes(string? value)
+        {
+            var set = new HashSet<int>();
+            if (string.IsNullOrWhiteSpace(value)) return set;
+            foreach (var part in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (int.TryParse(part, out var id))
+                    set.Add(id);
+            }
+            return set;
+        }
+
         private void ShowStockLimitAlert(string? productName, decimal stock)
         {
             var safeProductName = string.IsNullOrWhiteSpace(productName) ? "este producto" : productName.Trim();
@@ -1263,6 +1295,7 @@ namespace NovaRetail.ViewModels
                 if (!loadMore)
                     _allProducts.Clear();
 
+                StampNonInventoryFlag(products);
                 _allProducts.AddRange(products);
                 _loadedItemsPage = nextPage;
                 _canLoadMoreFromApi = products.Count >= ProductsPageSize;
@@ -1295,10 +1328,16 @@ namespace NovaRetail.ViewModels
 
             if (!string.IsNullOrWhiteSpace(ProductSearchText))
             {
-                var search = NormalizeText(ProductSearchText);
-                query = query.Where(p =>
-                    NormalizeText(p.Name).Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    NormalizeText(p.Code).Contains(search, StringComparison.OrdinalIgnoreCase));
+                var words = NormalizeText(ProductSearchText)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var word in words)
+                {
+                    var w = word;
+                    query = query.Where(p =>
+                        NormalizeText(p.Name).Contains(w, StringComparison.OrdinalIgnoreCase) ||
+                        NormalizeText(p.Code).Contains(w, StringComparison.OrdinalIgnoreCase));
+                }
             }
 
             var filtered = query
@@ -1431,6 +1470,7 @@ namespace NovaRetail.ViewModels
                 if (products.Count == 0)
                     return;
 
+                StampNonInventoryFlag(products);
                 _allProducts.Clear();
                 _allProducts.AddRange(products);
                 _loadedItemsPage = 0;
@@ -1525,23 +1565,131 @@ namespace NovaRetail.ViewModels
         private void AddProduct(ProductModel? product)
             => AddProduct(product, 1m);
 
+        private Task AddProductAsync(ProductModel? product)
+        {
+            if (product is null) return Task.CompletedTask;
+
+            if (IsNonInventoryItem(product.ItemType))
+            {
+                OpenServicePriceEntry(product);
+                return Task.CompletedTask;
+            }
+
+            AddProduct(product, 1m);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Opens the ItemAction popup in service-price mode so the user
+        /// can type the price using the existing numeric keypad.
+        /// </summary>
+        private void OpenServicePriceEntry(ProductModel product)
+        {
+            _pendingServiceProduct = product;
+
+            var existing = CartItems.FirstOrDefault(c =>
+                c.ItemID == product.ItemID &&
+                string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
+
+            var prefillPrice = existing?.UnitPriceColones ??
+                               (product.PriceColonesValue > 0 ? product.PriceColonesValue : 0m);
+
+            ItemActionVm.LoadServiceItem(product, prefillPrice);
+            IsItemActionVisible = true;
+        }
+
+        /// <summary>
+        /// Called when the user presses "Aplicar" in service-price mode.
+        /// Reads the price from the keypad and creates/updates the cart item.
+        /// </summary>
+        private async void FinalizeServicePriceEntry()
+        {
+            var product = _pendingServiceProduct;
+            _pendingServiceProduct = null;
+
+            var priceColones = ItemActionVm.ServicePriceColones;
+            IsItemActionVisible = false;
+
+            if (product is null || priceColones is null || priceColones <= 0m)
+            {
+                await _dialogService.AlertAsync(
+                    "Precio inválido",
+                    "Debe ingresar un valor numérico mayor a cero.",
+                    "OK");
+                return;
+            }
+
+            var priceDollars = _exchangeRate > 0
+                ? Math.Round(priceColones.Value / _exchangeRate, 2)
+                : priceColones.Value;
+
+            var existing = CartItems.FirstOrDefault(c =>
+                c.ItemID == product.ItemID &&
+                string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+            {
+                existing.UnitPriceColones = priceColones.Value;
+                existing.UnitPrice = priceDollars;
+                existing.Quantity += 1m;
+                existing.NotifyPriceChanged();
+                product.CartQuantity = existing.Quantity;
+            }
+            else
+            {
+                var newItem = new CartItemModel
+                {
+                    ItemID = product.ItemID,
+                    Emoji = product.Emoji,
+                    Name = product.Name,
+                    Code = product.Code,
+                    UnitPrice = priceDollars,
+                    UnitPriceColones = priceColones.Value,
+                    TaxPercentage = product.TaxPercentage,
+                    TaxID = product.TaxId,
+                    Cabys = product.Cabys,
+                    Stock = product.Stock,
+                    ItemType = product.ItemType,
+                    Quantity = 1m,
+                    SalesRepID = _activeSalesRep?.ID ?? 0,
+                    SalesRepName = _activeSalesRep?.Nombre ?? string.Empty
+                };
+                CartItems.Insert(0, newItem);
+                product.CartQuantity = 1m;
+                UpdateExonerationEligibility(newItem, null);
+            }
+
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
         private void AddProduct(ProductModel? product, decimal quantityToAdd)
         {
             if (product is null) return;
 
+            var isNonInventory = IsNonInventoryItem(product.ItemType);
             var safeQuantity = quantityToAdd <= 0m ? 1m : Math.Floor(quantityToAdd);
             var existing = CartItems.FirstOrDefault(c => c.ItemID == product.ItemID && string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
-            var maxAvailableQuantity = GetMaxAvailableQuantity(product.Stock);
-            var currentQuantity = existing?.Quantity ?? 0m;
-            var availableToAdd = maxAvailableQuantity - currentQuantity;
 
-            if (availableToAdd <= 0m)
+            decimal quantityToApply;
+            if (isNonInventory)
             {
-                ShowStockLimitAlert(product.Name, maxAvailableQuantity);
-                return;
+                quantityToApply = safeQuantity;
             }
+            else
+            {
+                var maxAvailableQuantity = GetMaxAvailableQuantity(product.Stock);
+                var currentQuantity = existing?.Quantity ?? 0m;
+                var availableToAdd = maxAvailableQuantity - currentQuantity;
 
-            var quantityToApply = Math.Min(safeQuantity, availableToAdd);
+                if (availableToAdd <= 0m)
+                {
+                    ShowStockLimitAlert(product.Name, maxAvailableQuantity);
+                    return;
+                }
+
+                quantityToApply = Math.Min(safeQuantity, availableToAdd);
+            }
 
             if (existing is not null)
             {
@@ -1562,6 +1710,7 @@ namespace NovaRetail.ViewModels
                     TaxID = product.TaxId,
                     Cabys = product.Cabys,
                     Stock = product.Stock,
+                    ItemType = product.ItemType,
                     Quantity = quantityToApply,
                     SalesRepID = _activeSalesRep?.ID ?? 0,
                     SalesRepName = _activeSalesRep?.Nombre ?? string.Empty
@@ -1571,8 +1720,8 @@ namespace NovaRetail.ViewModels
                 UpdateExonerationEligibility(newItem, null);
             }
 
-            if (quantityToApply < safeQuantity)
-                ShowStockLimitAlert(product.Name, maxAvailableQuantity);
+            if (!isNonInventory && quantityToApply < safeQuantity)
+                ShowStockLimitAlert(product.Name, GetMaxAvailableQuantity(product.Stock));
 
             RecalculateTotal();
             RefreshCartItemsView();
@@ -1654,14 +1803,21 @@ namespace NovaRetail.ViewModels
         {
             if (item is null) return;
 
-            var maxAvailableQuantity = GetMaxAvailableQuantity(item.Stock);
-            if (item.Quantity >= maxAvailableQuantity)
+            if (!IsNonInventoryItem(item.ItemType))
             {
-                ShowStockLimitAlert(item.DisplayName, maxAvailableQuantity);
-                return;
+                var maxAvailableQuantity = GetMaxAvailableQuantity(item.Stock);
+                if (item.Quantity >= maxAvailableQuantity)
+                {
+                    ShowStockLimitAlert(item.DisplayName, maxAvailableQuantity);
+                    return;
+                }
+                item.Quantity = Math.Min(item.Quantity + 1m, maxAvailableQuantity);
+            }
+            else
+            {
+                item.Quantity += 1m;
             }
 
-            item.Quantity = Math.Min(item.Quantity + 1m, maxAvailableQuantity);
             var product = _allProducts.FirstOrDefault(p => p.ItemID == item.ItemID && string.Equals(p.Code, item.Code, StringComparison.OrdinalIgnoreCase));
             if (product is not null) product.CartQuantity = item.Quantity;
             RecalculateTotal();
@@ -2531,7 +2687,7 @@ namespace NovaRetail.ViewModels
                     ReturnReasonCodeID = 0,
                     TaxChangeReasonCodeID = taxChangeReasonCodeID,
                     QuantityDiscountID = 0,
-                    ItemType = 0,
+                    ItemType = item.ItemType,
                     ComputedQuantity = 0m,
                     IsAddMoney = false,
                     VoucherID = 0,
@@ -3093,6 +3249,22 @@ namespace NovaRetail.ViewModels
 
             ItemActionVm.LoadItem(item, _cachedDiscountCodes);
             IsItemActionVisible = true;
+        }
+
+        private void OnItemActionOk()
+        {
+            if (ItemActionVm.IsServiceMode)
+            {
+                FinalizeServicePriceEntry();
+                return;
+            }
+            CloseItemAction();
+        }
+
+        private void OnItemActionCancel()
+        {
+            _pendingServiceProduct = null;
+            CloseItemAction();
         }
 
         private void CloseItemAction()

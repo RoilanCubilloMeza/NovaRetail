@@ -43,6 +43,10 @@ namespace NovaRetail.Controls
             BindableProperty.Create(nameof(Stock), typeof(decimal), typeof(ProductCard), 0m,
                 propertyChanged: (b, _, __) => ((ProductCard)b).RefreshStock());
 
+        public static readonly BindableProperty IsNonInventoryProperty =
+            BindableProperty.Create(nameof(IsNonInventory), typeof(bool), typeof(ProductCard), false,
+                propertyChanged: (b, _, __) => ((ProductCard)b).RefreshStock());
+
         public static readonly BindableProperty PriceColonesProperty =
             BindableProperty.Create(nameof(PriceColones), typeof(string), typeof(ProductCard), string.Empty);
 
@@ -67,6 +71,7 @@ namespace NovaRetail.Controls
         public string    Price                     { get => (string)GetValue(PriceProperty);                    set => SetValue(PriceProperty, value); }
         public string    OldPrice                  { get => (string)GetValue(OldPriceProperty);                 set => SetValue(OldPriceProperty, value); }
         public decimal       Stock                     { get => (decimal)GetValue(StockProperty);                       set => SetValue(StockProperty, value); }
+        public bool          IsNonInventory            { get => (bool)GetValue(IsNonInventoryProperty);                 set => SetValue(IsNonInventoryProperty, value); }
         public string    PriceColones              { get => (string)GetValue(PriceColonesProperty);             set => SetValue(PriceColonesProperty, value); }
         public ICommand? Command                   { get => (ICommand?)GetValue(CommandProperty);               set => SetValue(CommandProperty, value); }
         public object?   CommandParameter          { get => GetValue(CommandParameterProperty);                 set => SetValue(CommandParameterProperty, value); }
@@ -251,13 +256,42 @@ namespace NovaRetail.Controls
                 _imageBorder.BackgroundColor = UiConfig.InputBackground;
 
             _codeLayout.IsVisible   = !string.IsNullOrEmpty(Code);
-            _regularPrice.IsVisible = string.IsNullOrEmpty(OldPrice);
-            _offerLayout.IsVisible  = !string.IsNullOrEmpty(OldPrice);
+
+            // Non-inventory cards manage price visibility in RefreshStock
+            if (!IsNonInventory)
+            {
+                _regularPrice.IsVisible = string.IsNullOrEmpty(OldPrice);
+                _offerLayout.IsVisible  = !string.IsNullOrEmpty(OldPrice);
+            }
         }
 
         private void RefreshStock()
         {
             if (_stockLabel is null) return;
+
+            if (IsNonInventory)
+            {
+                _stockLabel.Text           = "\u2699 Servicio";
+                _stockLabel.TextColor      = UiConfig.AccentBlue;
+                _stockLabel.FontAttributes = FontAttributes.Bold;
+
+                // Replace catalog price with "Precio variable" for service items
+                _colonesLabel.Text           = "Precio variable";
+                _colonesLabel.TextColor      = UiConfig.TextGray500;
+                _colonesLabel.FontAttributes = FontAttributes.Italic;
+                _colonesLabel.FontSize       = 11;
+                _regularPrice.IsVisible      = false;
+                _offerLayout.IsVisible       = false;
+                return;
+            }
+
+            // Restore normal price display for inventory products
+            _colonesLabel.SetBinding(Label.TextProperty, new Binding(nameof(PriceColones), source: this));
+            _colonesLabel.TextColor      = UiConfig.TextDarkBlue;
+            _colonesLabel.FontAttributes = FontAttributes.None;
+            _colonesLabel.FontSize       = 12;
+            _regularPrice.IsVisible      = string.IsNullOrEmpty(OldPrice);
+            _offerLayout.IsVisible       = !string.IsNullOrEmpty(OldPrice);
 
             if (Stock <= 0)
             {

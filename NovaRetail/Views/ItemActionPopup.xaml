@@ -29,7 +29,7 @@
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 12,12,0,0"
                         Padding="16,10">
-                    <Label Text="Acción Sobre Artículo"
+                    <Label Text="{Binding TitleText}"
                            FontSize="16" FontAttributes="Bold"
                            TextColor="White"
                            HorizontalTextAlignment="Center"/>
@@ -71,6 +71,7 @@
 
                         <!-- Editable fields -->
                         <Grid ColumnDefinitions="Auto, *, 32, 32"
+                              IsVisible="{Binding IsNormalMode}"
                               ColumnSpacing="6"
                               Margin="12,0,12,4">
                             <Label Grid.Column="0" Text="Cantidad:"
@@ -128,9 +129,18 @@
                         <Grid ColumnDefinitions="Auto, *"
                               ColumnSpacing="6"
                               Margin="12,0,12,6">
-                            <Label Grid.Column="0" Text="Precio nuevo:"
+                            <Label Grid.Column="0"
                                    FontSize="13" TextColor="#64748B"
-                                   WidthRequest="95" VerticalOptions="Center"/>
+                                   WidthRequest="95" VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsServiceMode}" Value="True">
+                                        <Setter Property="Text" Value="Precio ₡:"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsServiceMode}" Value="False">
+                                        <Setter Property="Text" Value="Precio nuevo:"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
                             <Border Grid.Column="1"
                                     StrokeShape="RoundRectangle 5" StrokeThickness="1.5"
                                     Padding="6,4" HeightRequest="36">
@@ -154,7 +164,8 @@
                         </Grid>
 
                         <!-- Discount panel (conditional) -->
-                        <Grid RowDefinitions="Auto, Auto" Margin="12,0,12,4">
+                        <Grid RowDefinitions="Auto, Auto" Margin="12,0,12,4"
+                              IsVisible="{Binding IsNormalMode}">
 
                             <Border Grid.Row="0"
                                     IsVisible="{Binding IsDiscountVisible}"
@@ -251,6 +262,7 @@
 
                         <!-- Aplicar desc. button -->
                         <Border Margin="12,0,12,4"
+                                IsVisible="{Binding IsNormalMode}"
                                 StrokeShape="RoundRectangle 8" StrokeThickness="0"
                                 Padding="12,9" HeightRequest="42">
                             <Border.Triggers>
@@ -270,6 +282,7 @@
 
                         <!-- Vendedor button -->
                         <Border Margin="12,0,12,20"
+                                IsVisible="{Binding IsNormalMode}"
                                 StrokeShape="RoundRectangle 8" StrokeThickness="1"
                                 Padding="12,9" HeightRequest="42">
                             <Border.Triggers>

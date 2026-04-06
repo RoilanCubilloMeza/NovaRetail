@@ -166,7 +166,8 @@ public sealed class ApiProductService : IProductService
             PriceColonesValue = priceColones,
             TaxPercentage = NormalizeTaxPercentage(item.Percentage),
             TaxId = item.TaxID,
-            Cabys = NormalizeCabys(item.SubDescription3)
+            Cabys = NormalizeCabys(item.SubDescription3),
+            ItemType = item.ItemType
         };
     }
 
@@ -241,6 +242,7 @@ public sealed class ApiProductService : IProductService
         public string? SubDescription3 { get; set; }
         public int TaxID { get; set; }
         public float Percentage { get; set; }
+        public int ItemType { get; set; }
     }
 
     private sealed class DepartmentEntry

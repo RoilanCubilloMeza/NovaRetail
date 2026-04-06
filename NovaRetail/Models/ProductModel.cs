@@ -22,6 +22,8 @@ public class ProductModel : INotifyPropertyChanged
     public string  PriceColonesText => $"{UiConfig.CurrencySymbol}{PriceColonesValue:N2}";
     public string  Category        { get; set; } = string.Empty;
     public decimal     Stock           { get; set; }
+    public int     ItemType        { get; set; }
+    public bool    IsNonInventory  { get; set; }
 
     public decimal CartQuantity
     {

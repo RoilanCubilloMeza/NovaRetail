@@ -28,6 +28,7 @@ namespace NovaRetail.Models
         public int TaxID { get; set; }
         public string Cabys { get; set; } = string.Empty;
         public decimal Stock { get; set; }
+        public int ItemType { get; set; }
 
         public decimal? OverridePriceColones
         {
@@ -217,6 +218,20 @@ namespace NovaRetail.Models
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones * Quantity * DiscountFactor:N2}";
         public string UnitPriceUsdText => $"${UnitPrice:F2}";
         public string TotalUsdText => $"${EffectiveUnitPriceUsd * Quantity * DiscountFactor:F2}";
+
+        /// <summary>
+        /// Fires property-changed notifications for all price-derived fields.
+        /// Call after directly updating <see cref="UnitPriceColones"/> or <see cref="UnitPrice"/>.
+        /// </summary>
+        public void NotifyPriceChanged()
+        {
+            OnPropertyChanged(nameof(EffectivePriceColones));
+            OnPropertyChanged(nameof(UnitPriceColonesText));
+            OnPropertyChanged(nameof(OriginalPriceColonesText));
+            OnPropertyChanged(nameof(UnitPriceUsdText));
+            OnPropertyChanged(nameof(TotalColonesText));
+            OnPropertyChanged(nameof(TotalUsdText));
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)

@@ -136,6 +136,7 @@
                                                       PriceColones="{Binding PriceColonesText}"
                                                       OldPrice="{Binding OldPrice}"
                                                       Stock="{Binding Stock}"
+                                                      IsNonInventory="{Binding IsNonInventory}"
                                                       Quantity="{Binding CartQuantity}"
                                                       Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
                                                       CommandParameter="{Binding .}"

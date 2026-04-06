@@ -161,6 +161,25 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
+            // IT-01: Tipos de artículo no inventariables (IDs separados por coma, ej: "7,5,9")
+            try
+            {
+                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (!string.IsNullOrWhiteSpace(posConnectionString))
+                {
+                    using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'IT-01'", cn))
+                    {
+                        cn.Open();
+                        var val = cmd.ExecuteScalar();
+                        if (val != null && val != DBNull.Value)
+                            dto.NonInventoryItemTypes = val.ToString();
+                    }
+                }
+            }
+            catch { }
+
             // Impuesto por defecto: porcentaje del Tax más común
             try
             {
@@ -310,6 +329,8 @@ namespace NovaAPI.Controllers
         public string DefaultClientId { get; set; } = "00001";
         /// <summary>Nombre del cliente contado por defecto (CL-02 en AVS_Parametros).</summary>
         public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
+        /// <summary>IT-01: IDs de ItemType no inventariables separados por coma (ej: "7,5,9").</summary>
+        public string NonInventoryItemTypes { get; set; } = string.Empty;
     }
 
     public class TenderDto
