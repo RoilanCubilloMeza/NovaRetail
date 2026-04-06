@@ -529,7 +529,12 @@ namespace NovaRetail.ViewModels
                 FilterProducts();
 
                 if (NormalizeText(ProductSearchText).Length >= 3)
-                    await SearchFromApiAsync(ProductSearchText);
+                {
+                    _searchCts.Cancel();
+                    _searchCts = new CancellationTokenSource();
+                    var cts = _searchCts;
+                    await SearchFromApiAsync(ProductSearchText, cts.Token);
+                }
 
                 return;
             }
@@ -1331,12 +1336,19 @@ namespace NovaRetail.ViewModels
                 var words = NormalizeText(ProductSearchText)
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-                foreach (var word in words)
+                if (words.Length > 0)
                 {
-                    var w = word;
+                    // Para 3+ palabras se permite 1 sin match para que "coca cola 3 litros"
+                    // encuentre productos como "COCA COLA 3L".
+                    var minMatch = words.Length <= 2 ? words.Length : words.Length - 1;
                     query = query.Where(p =>
-                        NormalizeText(p.Name).Contains(w, StringComparison.OrdinalIgnoreCase) ||
-                        NormalizeText(p.Code).Contains(w, StringComparison.OrdinalIgnoreCase));
+                    {
+                        var name = NormalizeText(p.Name);
+                        var code = NormalizeText(p.Code ?? string.Empty);
+                        return words.Count(w =>
+                            name.Contains(w, StringComparison.OrdinalIgnoreCase) ||
+                            code.Contains(w, StringComparison.OrdinalIgnoreCase)) >= minMatch;
+                    });
                 }
             }
 

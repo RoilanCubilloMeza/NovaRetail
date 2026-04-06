@@ -155,6 +155,10 @@ namespace NovaAPI.Controllers
             var searchFields = new[] { "Description", "ItemLookupCode", "ExtendedDescription",
                                        "SubDescription1", "SubDescription2", "SubDescription3" };
 
+            // Para queries de 3+ palabras se permite 1 palabra sin match (e.g. "coca cola 3 litros"
+            // encuentra "COCA COLA 3L" aunque "litros" no aparezca literalmente).
+            var minMatch = words.Length <= 2 ? words.Length : words.Length - 1;
+
             using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
             {
                 cn.Open();
@@ -162,28 +166,42 @@ namespace NovaAPI.Controllers
                 {
                     cmd.Connection = cn;
 
-                    var whereClauses = new List<string>();
+                    // Construir expresión de puntaje: cada palabra suma 1 si aparece en algún campo.
+                    // COLLATE CI_AI garantiza búsqueda sin distinguir mayúsculas ni acentos.
+                    var scoreExpressions = new List<string>();
                     for (int i = 0; i < words.Length; i++)
                     {
                         var paramName = "@w" + i;
                         cmd.Parameters.AddWithValue(paramName, "%" + words[i] + "%");
 
                         var fieldConditions = string.Join(" OR ",
-                            searchFields.Select(f => $"ISNULL({f}, '') LIKE {paramName}"));
-                        whereClauses.Add($"({fieldConditions})");
+                            searchFields.Select(f =>
+                                $"ISNULL({f}, '') COLLATE SQL_Latin1_General_CP1_CI_AI LIKE {paramName}"));
+                        scoreExpressions.Add($"CASE WHEN ({fieldConditions}) THEN 1 ELSE 0 END");
                     }
+
+                    var scoreExpr = string.Join(" + ", scoreExpressions);
 
                     cmd.CommandText = $@"
                         SELECT TOP (@top)
-                            ID, ItemLookupCode, Description, Quantity, QuantityCommitted,
-                            DepartmentID, CategoryID, Price, PriceA, PriceB, PriceC,
-                            TaxID, Cost, ExtendedDescription,
-                            SubDescription1, SubDescription2, SubDescription3, WebItem
-                        FROM dbo.Item
-                        WHERE {string.Join(" AND ", whereClauses)}
-                        ORDER BY Quantity DESC, Description";
+                            s.ID, s.ItemLookupCode, s.Description, s.Quantity, s.QuantityCommitted,
+                            s.DepartmentID, s.CategoryID, s.Price, s.PriceA, s.PriceB, s.PriceC,
+                            s.TaxID, s.Cost, s.ExtendedDescription,
+                            s.SubDescription1, s.SubDescription2, s.SubDescription3, s.WebItem
+                        FROM (
+                            SELECT
+                                ID, ItemLookupCode, Description, Quantity, QuantityCommitted,
+                                DepartmentID, CategoryID, Price, PriceA, PriceB, PriceC,
+                                TaxID, Cost, ExtendedDescription,
+                                SubDescription1, SubDescription2, SubDescription3, WebItem,
+                                {scoreExpr} AS MatchScore
+                            FROM dbo.Item
+                        ) s
+                        WHERE s.MatchScore >= @minMatch
+                        ORDER BY s.MatchScore DESC, s.Quantity DESC, s.Description";
 
                     cmd.Parameters.AddWithValue("@top", top);
+                    cmd.Parameters.AddWithValue("@minMatch", minMatch);
 
                     using (var reader = cmd.ExecuteReader())
                     {
