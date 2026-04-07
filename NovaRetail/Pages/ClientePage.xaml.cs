@@ -17,6 +17,6 @@ public partial class ClientePage : ContentPage
     {
         base.OnDisappearing();
         if (BindingContext is ClienteViewModel clienteVm)
-            _mainVm.SetCliente(clienteVm.ClientId, clienteVm.Name, clienteVm.IsReceiver);
+            _mainVm.SetCliente(clienteVm.ClientId, clienteVm.Name, clienteVm.IsReceiver, clienteVm.SelectedCustomerType ?? string.Empty);
     }
 }

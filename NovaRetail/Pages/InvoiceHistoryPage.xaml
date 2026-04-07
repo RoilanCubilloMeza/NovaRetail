@@ -479,26 +479,33 @@
                 </VerticalStackLayout>
             </ScrollView>
 
-            <!-- Footer detalle con botï¿½n reimprimir -->
+            <!-- Footer detalle con botones -->
             <Border Grid.Row="2"
                     BackgroundColor="#F8FAFC"
                     Stroke="#E2E8F0"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 0"
                     Padding="16,12">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                     <Button Grid.Column="0"
+                            Text="↩ Nota Crédito"
+                            Command="{Binding CreditNoteCommand}"
+                            CommandParameter="{Binding SelectedEntry}"
+                            BackgroundColor="#991B1B" TextColor="White"
+                            FontAttributes="Bold" FontSize="13"
+                            CornerRadius="12" HeightRequest="48"/>
+                    <Button Grid.Column="1"
                             Text="&#x1F5A8; Reimprimir"
                             Command="{Binding ReprintCommand}"
                             CommandParameter="{Binding SelectedEntry}"
                             BackgroundColor="#2563EB" TextColor="White"
-                            FontAttributes="Bold" FontSize="14"
+                            FontAttributes="Bold" FontSize="13"
                             CornerRadius="12" HeightRequest="48"/>
-                    <Button Grid.Column="1"
+                    <Button Grid.Column="2"
                             Text="Cerrar"
                             Command="{Binding CloseDetailCommand}"
                             BackgroundColor="#0F172A" TextColor="White"
-                            FontAttributes="Bold" FontSize="14"
+                            FontAttributes="Bold" FontSize="13"
                             CornerRadius="12" HeightRequest="48"/>
                 </Grid>
             </Border>

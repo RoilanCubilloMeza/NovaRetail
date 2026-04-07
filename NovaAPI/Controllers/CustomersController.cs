@@ -84,6 +84,7 @@ SELECT AccountNumber, FirstName, LastName,
        CustomText3  AS City2,
        Zip, Address,
        CustomText5  AS ActivityCode,
+       ISNULL(AccountTypeID, 0) AS AccountTypeID,
        CAST(PriceLevel AS INT) AS PriceLevel
 FROM Customer";
 
@@ -115,6 +116,53 @@ FROM Customer";
         public IEnumerable<spWS_AR_DetailResult> ARDetail()
         {
             return db.spWS_AR_Detail();
+        }
+
+        [HttpGet]
+        [Route("api/Customers/CreditInfo")]
+        public HttpResponseMessage CreditInfo(string accountNumber)
+        {
+            try
+            {
+                var term = (accountNumber ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(term))
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, "accountNumber es requerido.");
+
+                var results = db.spWS_GetCustomers();
+                var match = results?.FirstOrDefault(c =>
+                    string.Equals((c.AccountNumber ?? string.Empty).Trim(), term, StringComparison.OrdinalIgnoreCase));
+
+                if (match == null)
+                {
+                    return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto
+                    {
+                        AccountNumber = term,
+                        HasCredit = false
+                    });
+                }
+
+                var creditLimit = match.CreditLimit ?? 0m;
+                var hasCredit = creditLimit > 0;
+
+                return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto
+                {
+                    ID = match.ID,
+                    AccountNumber = match.AccountNumber ?? term,
+                    FirstName = match.FirstName ?? string.Empty,
+                    LastName = match.LastName ?? string.Empty,
+                    AccountTypeID = match.PriceLevel,
+                    CreditDays = match.CreditDays,
+                    ClosingBalance = match.ClosingBalance ?? 0m,
+                    CreditLimit = creditLimit,
+                    Available = match.Available ?? 0m,
+                    HasCredit = hasCredit
+                });
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, "CreditInfo error: " + msg);
+            }
         }
 
         [HttpGet]

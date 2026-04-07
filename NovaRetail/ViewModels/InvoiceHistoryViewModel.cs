@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
@@ -98,6 +99,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public ICommand SelectEntryCommand { get; }
     public ICommand CloseDetailCommand { get; }
     public ICommand ReprintCommand { get; }
+    public ICommand CreditNoteCommand { get; }
 
     public InvoiceHistoryViewModel(IInvoiceHistoryService historyService, IDialogService dialogService, ISaleService saleService)
     {
@@ -111,6 +113,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         SelectEntryCommand = new Command<InvoiceHistoryEntry>(async e => await SelectEntryAsync(e));
         CloseDetailCommand = new Command(() => SelectedEntry = null);
         ReprintCommand = new Command<InvoiceHistoryEntry>(async e => await ShowReprintAsync(e));
+        CreditNoteCommand = new Command<InvoiceHistoryEntry>(async e => await NavigateToCreditNoteAsync(e));
 
         ReprintVm.RequestClose += () => IsReprintVisible = false;
     }
@@ -199,6 +202,34 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         var fullEntry = await EnsureDetailAsync(entry);
         ReprintVm.LoadFromHistory(fullEntry);
         IsReprintVisible = true;
+    }
+
+    private async Task NavigateToCreditNoteAsync(InvoiceHistoryEntry? entry)
+    {
+        if (entry is null)
+            return;
+
+        // Only allow NC for facturas/tiquetes, not for existing NCs
+        if (entry.ComprobanteTipo == "03")
+        {
+            await _dialogService.AlertAsync("Nota de Crédito", "No se puede crear una nota de crédito sobre otra nota de crédito.", "OK");
+            return;
+        }
+
+        var fullEntry = await EnsureDetailAsync(entry);
+        if (fullEntry.Lines.Count == 0)
+        {
+            await _dialogService.AlertAsync("Nota de Crédito", "No se encontraron líneas de detalle para esta factura.", "OK");
+            return;
+        }
+
+        // Navigate to CreditNotePage passing the entry via the service provider
+        var page = Application.Current?.Handler?.MauiContext?.Services.GetService<NovaRetail.Pages.CreditNotePage>();
+        if (page is null)
+            return;
+
+        await page.LoadAsync(fullEntry);
+        await Shell.Current.Navigation.PushAsync(page);
     }
 
     private async Task LoadRemoteEntriesAsync(string search, CancellationToken cancellationToken, bool forceRefresh = false)
@@ -300,6 +331,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             SecondTenderAmountColones = entry.SecondTenderAmountColones,
             Lines = entry.Lines.Select(line => new InvoiceHistoryLine
             {
+                ItemID = line.ItemID,
+                TaxID = line.TaxID,
                 DisplayName = line.DisplayName,
                 Code = line.Code,
                 Quantity = line.Quantity,
@@ -342,6 +375,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             SecondTenderAmountColones = entry.SecondTenderAmountColones,
             Lines = entry.Lines.Select(line => new InvoiceHistoryLine
             {
+                ItemID = line.ItemID,
+                TaxID = line.TaxID,
                 DisplayName = line.DisplayName ?? string.Empty,
                 Code = line.Code ?? string.Empty,
                 Quantity = line.Quantity,

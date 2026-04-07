@@ -12,5 +12,6 @@ public interface IClienteService
     Task<IReadOnlyList<string>> ObtenerTiposClienteAsync();
     Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync();
     Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria);
+    Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber);
 }
 

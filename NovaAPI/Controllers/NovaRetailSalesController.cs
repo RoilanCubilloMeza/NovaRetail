@@ -250,6 +250,16 @@ namespace NovaAPI.Controllers
                                 response.Warnings.Add($"DeleteHold: {exHold.Message}");
                             }
                         }
+
+                        // ── AR Transaction: create entry for credit sales / credit NCs ──
+                        try
+                        {
+                            TryCreateARTransaction(request, response);
+                        }
+                        catch (Exception exAR)
+                        {
+                            response.Warnings.Add($"AR_Transaction: {exAR.Message}");
+                        }
                     }
                 }
 
@@ -472,6 +482,8 @@ WHERE t.TransactionNumber = @TransactionNumber";
 
                     const string linesSql = @"
 SELECT
+    ISNULL(te.ItemID, 0) AS ItemID,
+    ISNULL(i.TaxID, 0) AS TaxID,
     ISNULL(NULLIF(i.Description, ''), 'Artículo') AS DisplayName,
     ISNULL(NULLIF(i.ItemLookupCode, ''), CAST(te.ItemID AS NVARCHAR(50))) AS Code,
     CAST(ISNULL(te.Quantity, 0) AS decimal(18, 2)) AS Quantity,
@@ -499,6 +511,8 @@ ORDER BY te.ID";
                             {
                                 entry.Lines.Add(new NovaRetailInvoiceHistoryLineDto
                                 {
+                                    ItemID = reader["ItemID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemID"]),
+                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
                                     DisplayName = reader["DisplayName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["DisplayName"]),
                                     Code = reader["Code"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Code"]),
                                     Quantity = reader["Quantity"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Quantity"]),
@@ -1418,6 +1432,137 @@ ORDER BY te.ID";
                 var s = value ?? string.Empty;
                 return s.Length <= maxLength ? s : s.Substring(0, maxLength);
             }
+
+        /// <summary>
+        /// Creates an AR_Transaction entry when the sale is a credit sale or a credit-mode credit note.
+        /// Credit sale (CondicionVenta=02, no NC): DocumentType=2 (Invoice) – increases customer debt.
+        /// Credit NC (has NC_REFERENCIA, MedioPago 99): DocumentType=3 (Credit Memo) – reduces customer debt.
+        /// </summary>
+        private static void TryCreateARTransaction(NovaRetailCreateSaleRequest request, NovaRetailCreateSaleResponse response)
+        {
+            if (response.TransactionNumber <= 0 || string.IsNullOrWhiteSpace(request.CodCliente))
+                return;
+
+            var total = Math.Abs(response.Total ?? 0m);
+            if (total <= 0m)
+                return;
+
+            bool isNC = !string.IsNullOrWhiteSpace(request.NC_REFERENCIA);
+            bool isCreditSale = string.Equals(request.CondicionVenta, "02", StringComparison.OrdinalIgnoreCase) && !isNC;
+            bool isCreditNC = isNC && request.Tenders != null &&
+                              request.Tenders.Any(t => string.Equals(t.MedioPagoCodigo, "99", StringComparison.OrdinalIgnoreCase));
+
+            if (!isCreditSale && !isCreditNC)
+                return;
+
+            var connectionString = GetConnectionString();
+
+            using (var cn = new SqlConnection(connectionString))
+            {
+                cn.Open();
+
+                // Resolve AR_Account.ID for the customer
+                int accountID = 0;
+                using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
+                {
+                    cmd.Parameters.AddWithValue("@Number", request.CodCliente);
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        accountID = Convert.ToInt32(result);
+                }
+
+                if (accountID <= 0)
+                    return;
+
+                // Resolve Customer.ID
+                int customerID = 0;
+                using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn))
+                {
+                    cmd.Parameters.AddWithValue("@Acct", request.CodCliente);
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        customerID = Convert.ToInt32(result);
+                }
+
+                var now = DateTime.Now;
+                var reference = "TR:" + response.TransactionNumber;
+
+                // Credit sale: DocumentType=3 (Invoice), LedgerType=3, Positive=1, amount positive → increases balance
+                // Credit NC:  DocumentType=4 (Credit Memo), LedgerType=3, Positive=1, amount negative → decreases balance
+                byte documentType = (byte)(isCreditSale ? 3 : 4);
+                byte ledgerType = 3;
+                decimal amountACY = isCreditSale ? total : -total;
+
+                // 1. Insert AR_LedgerEntry
+                int ledgerEntryID = 0;
+                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 60;
+
+                    cmd.Parameters.AddWithValue("@LastUpdated", now);
+                    cmd.Parameters.AddWithValue("@AccountID", accountID);
+                    cmd.Parameters.AddWithValue("@CustomerID", customerID);
+                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                    cmd.Parameters.AddWithValue("@LinkType", (byte)0);
+                    cmd.Parameters.AddWithValue("@LinkID", 0);
+                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                    cmd.Parameters.AddWithValue("@DocumentType", documentType);
+                    cmd.Parameters.AddWithValue("@DocumentID", 0);
+                    cmd.Parameters.AddWithValue("@PostingDate", now);
+                    cmd.Parameters.AddWithValue("@DueDate", now.AddDays(30));
+                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                    cmd.Parameters.AddWithValue("@Reference", reference);
+                    cmd.Parameters.AddWithValue("@Description", isCreditSale ? "Venta a crédito" : "Nota de crédito");
+                    cmd.Parameters.AddWithValue("@CurrencyID", 0);
+                    cmd.Parameters.AddWithValue("@CurrencyFactor", 1.0);
+                    cmd.Parameters.AddWithValue("@Positive", true);
+                    cmd.Parameters.AddWithValue("@ClosingDate", DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ReasonID", 0);
+                    cmd.Parameters.AddWithValue("@HoldReasonID", 0);
+                    cmd.Parameters.AddWithValue("@UndoReasonID", 0);
+                    cmd.Parameters.AddWithValue("@PayMethodID", 0);
+                    cmd.Parameters.AddWithValue("@TransactionID", 0);
+                    cmd.Parameters.AddWithValue("@ExtReference", string.Empty);
+                    cmd.Parameters.AddWithValue("@Comment", string.Empty);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                            ledgerEntryID = Convert.ToInt32(reader["ID"]);
+                    }
+                }
+
+                if (ledgerEntryID <= 0)
+                    return;
+
+                // 2. Insert AR_LedgerEntryDetail
+                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 60;
+
+                    cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                    cmd.Parameters.AddWithValue("@AccountID", accountID);
+                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                    cmd.Parameters.AddWithValue("@DueDate", now.AddDays(30));
+                    cmd.Parameters.AddWithValue("@PostingDate", now);
+                    cmd.Parameters.AddWithValue("@DetailType", (byte)0);
+                    cmd.Parameters.AddWithValue("@Reference", reference);
+                    cmd.Parameters.AddWithValue("@Amount", amountACY);
+                    cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
+                    cmd.Parameters.AddWithValue("@AmountACY", amountACY);
+                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                    cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
+                    cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
+                    cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                    cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                    cmd.Parameters.AddWithValue("@ISCLOSING", false);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
 
         [HttpPost]
         [Route("create-quote")]

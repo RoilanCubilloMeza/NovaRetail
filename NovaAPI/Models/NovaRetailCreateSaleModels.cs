@@ -78,10 +78,8 @@ namespace NovaAPI.Models
         [Range(1, int.MaxValue)]
         public int RowNo { get; set; }
 
-        [Range(1, int.MaxValue)]
         public int ItemID { get; set; }
 
-        [Range(0.0001, (double)decimal.MaxValue)]
         public decimal Quantity { get; set; }
 
         [Range(0, (double)decimal.MaxValue)]
@@ -118,8 +116,6 @@ namespace NovaAPI.Models
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (Taxable && !TaxID.HasValue)
-                yield return new ValidationResult("TaxID es requerido cuando Taxable es true.", new[] { nameof(TaxID) });
 
             if (Cost < 0)
                 yield return new ValidationResult("Cost no puede ser negativo.", new[] { nameof(Cost) });
@@ -149,7 +145,6 @@ namespace NovaAPI.Models
         public int PaymentID { get; set; }
         public string Description { get; set; } = string.Empty;
 
-        [Range(0.0001, (double)decimal.MaxValue)]
         public decimal Amount { get; set; }
 
         public decimal? AmountForeign { get; set; }
@@ -175,8 +170,8 @@ namespace NovaAPI.Models
             if (string.IsNullOrWhiteSpace(Description))
                 yield return new ValidationResult("Description es requerido.", new[] { nameof(Description) });
 
-            if (AmountForeign.HasValue && AmountForeign.Value < 0)
-                yield return new ValidationResult("AmountForeign no puede ser negativo.", new[] { nameof(AmountForeign) });
+            if (Amount == 0)
+                yield return new ValidationResult("Amount no puede ser cero.", new[] { nameof(Amount) });
 
             if (RoundingError < 0)
                 yield return new ValidationResult("RoundingError no puede ser negativo.", new[] { nameof(RoundingError) });
@@ -335,6 +330,12 @@ namespace NovaAPI.Models
 
     public class NovaRetailInvoiceHistoryLineDto
     {
+        [JsonProperty("itemID")]
+        public int ItemID { get; set; }
+
+        [JsonProperty("taxID")]
+        public int TaxID { get; set; }
+
         [JsonProperty("displayName")]
         public string DisplayName { get; set; } = string.Empty;
 

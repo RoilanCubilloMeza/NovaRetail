@@ -69,6 +69,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<ClienteViewModel>();
         builder.Services.AddTransient<InvoiceHistoryViewModel>();
+        builder.Services.AddTransient<CreditNoteViewModel>();
         builder.Services.AddTransient<CategoryConfigViewModel>();
 
         // Pages
@@ -76,6 +77,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<ClientePage>();
         builder.Services.AddTransient<InvoiceHistoryPage>();
+        builder.Services.AddTransient<CreditNotePage>();
         builder.Services.AddTransient<CategoryConfigPage>();
 
         // Shell

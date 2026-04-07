@@ -260,10 +260,10 @@ namespace NovaRetail.ViewModels
             || string.Equals(CurrentClientCustomerType, "Gobierno", StringComparison.OrdinalIgnoreCase)
             || string.Equals(CurrentClientCustomerType, "Exportación", StringComparison.OrdinalIgnoreCase);
 
-        public void SetCliente(string clientId, string name, bool isReceiver = false)
+        public void SetCliente(string clientId, string name, bool isReceiver = false, string customerType = "")
         {
             if (string.IsNullOrWhiteSpace(clientId)) return;
-            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim(), isReceiver));
+            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim(), isReceiver, customerType));
         }
 
         public ObservableCollection<ProductModel> Products { get; } = new();
@@ -2646,7 +2646,7 @@ namespace NovaRetail.ViewModels
                 AllowNegativeInventory = false,
                 CurrencyCode = currencyCode,
                 TipoCambio = (_exchangeRate > 0 ? _exchangeRate : 1m).ToString(CultureInfo.InvariantCulture),
-                CondicionVenta = "01",
+                CondicionVenta = (tender.IsCredit || (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender?.IsCredit == true)) ? "02" : "01",
                 CodCliente = HasClient ? CurrentClientId : _defaultClientId,
                 NombreCliente = HasClient ? CurrentClientName : _defaultClientName,
                 CedulaTributaria = HasClient ? CurrentClientId : string.Empty,
@@ -2674,6 +2674,8 @@ namespace NovaRetail.ViewModels
                 return "01";
             if (description.Contains("TARJETA"))
                 return "02";
+            if (description.Contains("CR\u00C9DITO") || description.Contains("CREDITO"))
+                return "99";
             if (description.Contains("TRANSFER") || description.Contains("SINPE"))
                 return "04";
 
@@ -3566,7 +3568,14 @@ namespace NovaRetail.ViewModels
         private void OnCustomerSelected(Models.CustomerLookupModel customer)
         {
             IsCustomerSearchVisible = false;
-            SetCliente(customer.AccountNumber, customer.FullName);
+            var customerType = customer.AccountTypeID switch
+            {
+                2 => "Cr\u00e9dito",
+                3 => "Gobierno",
+                4 => "Exportaci\u00f3n",
+                _ => "Contado"
+            };
+            SetCliente(customer.AccountNumber, customer.FullName, customerType: customerType);
         }
 
         private IClienteService GetClienteService()

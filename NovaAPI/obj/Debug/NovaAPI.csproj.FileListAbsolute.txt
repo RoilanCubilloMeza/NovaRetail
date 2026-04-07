@@ -163,6 +163,6 @@ C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.c
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.Properties.Resources.resources
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.csproj.GenerateResource.cache
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.csproj.CoreCompileInputs.cache
-C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.csproj.Up2Date
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.pdb
+C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaAPI\obj\Debug\NovaAPI.csproj.CopyComplete

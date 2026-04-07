@@ -120,4 +120,9 @@ public sealed class MockClienteService : IClienteService
             "No Contribuyente"
         ];
     }
+
+    public Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber)
+    {
+        return Task.FromResult<CustomerCreditInfo?>(null);
+    }
 }

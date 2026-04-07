@@ -95,7 +95,8 @@ namespace NovaRetail.Data
                         Address = c.Address ?? string.Empty,
                         City = FirstNonEmpty(c.City, c.CITY) ?? string.Empty,
                         State = FirstNonEmpty(c.State, c.STATE) ?? string.Empty,
-                        Zip = FirstNonEmpty(c.Zip, c.ZIP) ?? string.Empty
+                        Zip = FirstNonEmpty(c.Zip, c.ZIP) ?? string.Empty,
+                        AccountTypeID = c.AccountTypeID
                     }).ToList();
                 }
                 catch (Exception ex)
@@ -105,6 +106,32 @@ namespace NovaRetail.Data
             }
 
             return Array.Empty<CustomerLookupModel>();
+        }
+
+        // ──────── Obtener información de crédito del cliente ────────
+
+        public async Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber)
+        {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return null;
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/CreditInfo?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var result = JsonConvert.DeserializeObject<CustomerCreditInfo>(json);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener crédito desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return null;
         }
 
         // ──────── Sincronizar con Hacienda / GoMeta (original) ────────

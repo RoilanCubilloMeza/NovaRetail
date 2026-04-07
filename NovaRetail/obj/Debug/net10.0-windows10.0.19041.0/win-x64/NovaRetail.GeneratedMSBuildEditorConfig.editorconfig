@@ -68,6 +68,16 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
+[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/CreditNotePage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.CreditNotePage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\CreditNotePage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\CreditNotePage.xaml
+build_metadata.AdditionalFiles.Inflator = SourceGen
+build_metadata.AdditionalFiles.NoWarn = 
+build_metadata.AdditionalFiles.EnableDiagnostics = 
+build_metadata.AdditionalFiles.LineInfo = 
+
 [C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/InvoiceHistoryPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.InvoiceHistoryPage.xaml

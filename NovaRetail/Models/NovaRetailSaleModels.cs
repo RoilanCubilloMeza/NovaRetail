@@ -166,6 +166,8 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
 
 public sealed class NovaRetailInvoiceHistoryLineDto
 {
+    public int ItemID { get; set; }
+    public int TaxID { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public decimal Quantity { get; set; }

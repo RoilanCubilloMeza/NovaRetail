@@ -15,6 +15,7 @@ namespace NovaAPI.Models
         public string Zip { get; set; }
         public string Address { get; set; }
         public string ActivityCode { get; set; }
+        public int AccountTypeID { get; set; }
         public int? CreditDays { get; set; }
         public int PriceLevel { get; set; }
     }

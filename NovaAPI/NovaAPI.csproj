@@ -201,6 +201,7 @@
     <Compile Include="Models\AR_Transaction.cs" />
     <Compile Include="Models\Cliente_App.cs" />
     <Compile Include="Models\Customer.cs" />
+    <Compile Include="Models\CustomerCreditInfoDto.cs" />
     <Compile Include="Models\CustomerLookupDto.cs" />
     <Compile Include="Models\LoginRequest.cs" />
     <Compile Include="Models\NovaRetailCreateQuoteModels.cs" />
