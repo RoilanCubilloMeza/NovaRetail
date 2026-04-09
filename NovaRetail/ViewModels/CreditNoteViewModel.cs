@@ -655,13 +655,29 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             return;
         }
 
+        var returnTotal = selectedLines.Sum(l => l.ReturnTotal);
         var modeLabel = _selectedTender?.Description ?? "Sin medio de pago";
+
+        // Build credit balance preview when the selected tender is credit-type
+        var creditPreview = string.Empty;
+        if (_isCreditMode && _creditInfo is not null)
+        {
+            var currentBalance = _creditInfo.ClosingBalance;
+            var newBalance = currentBalance - returnTotal;
+            creditPreview =
+                $"\n\n── Crédito del cliente ──\n" +
+                $"Saldo actual: {UiConfig.CurrencySymbol}{currentBalance:N2}\n" +
+                $"Devolución:   -{UiConfig.CurrencySymbol}{returnTotal:N2}\n" +
+                $"Nuevo saldo:  {UiConfig.CurrencySymbol}{newBalance:N2}";
+        }
+
         var confirmed = await _dialogService.ConfirmAsync(
             "Nota de Crédito",
-            $"¿Crear nota de crédito por {SelectedTotalText}?\n" +
+            $"¿Crear nota de crédito por {UiConfig.CurrencySymbol}{returnTotal:N2}?\n" +
             $"Modo: {modeLabel}\n" +
-            $"Ref #: {ReferenceNumber}\n" +
-            (!string.IsNullOrWhiteSpace(CommentText) ? $"Comentario: {CommentText}" : string.Empty),
+            $"Ref #: {ReferenceNumber}" +
+            (!string.IsNullOrWhiteSpace(CommentText) ? $"\nComentario: {CommentText}" : string.Empty) +
+            creditPreview,
             "Crear NC", "Cancelar");
 
         if (!confirmed) return;
@@ -688,8 +704,6 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     "OK");
                 return;
             }
-
-            var returnTotal = selectedLines.Sum(l => l.ReturnTotal);
 
             // Determine the original document type code for NC_TIPO_DOC
             var ncTipoDoc = _isStandaloneMode

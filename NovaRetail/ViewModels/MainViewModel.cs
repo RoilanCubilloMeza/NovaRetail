@@ -2324,7 +2324,7 @@ namespace NovaRetail.ViewModels
             IsSalesRepPickerVisible = true;
         }
 
-        private void OpenCheckoutPopup()
+        private async void OpenCheckoutPopup()
         {
             CheckoutVm.Load(
                 subtotalText: SubtotalText,
@@ -2341,6 +2341,20 @@ namespace NovaRetail.ViewModels
                 exonerationState: BuildCheckoutExonerationState(),
                 salesRep: _activeSalesRep
             );
+
+            // Fetch and display customer credit information
+            CustomerCreditInfo? creditInfo = null;
+            if (HasClient && CurrentClientHasCredit)
+            {
+                try
+                {
+                    var clienteService = GetClienteService();
+                    creditInfo = await clienteService.ObtenerCreditoAsync(CurrentClientId);
+                }
+                catch { /* non-critical */ }
+            }
+            CheckoutVm.SetCreditInfo(creditInfo);
+
             IsCheckoutVisible = true;
         }
 

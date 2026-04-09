@@ -31,6 +31,7 @@ namespace NovaRetail.ViewModels
         private bool _hasSecondTender;
         private TenderModel? _secondTender;
         private string _secondAmountText = string.Empty;
+        private CustomerCreditInfo? _creditInfo;
 
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
@@ -48,6 +49,7 @@ namespace NovaRetail.ViewModels
                     OnPropertyChanged(nameof(SelectedTenderText));
                     OnPropertyChanged(nameof(SelectedTenderName));
                     OnPropertyChanged(nameof(TenderedSectionTitle));
+                    NotifyCreditPreview();
                     OnPropertyChanged(nameof(CanConfirm));
                     ((Command)ConfirmCommand).ChangeCanExecute();
                     ((Command)SelectTenderCommand).ChangeCanExecute();
@@ -129,6 +131,7 @@ namespace NovaRetail.ViewModels
                     if (_secondTender != null) _secondTender.IsSecondSelected = true;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(SecondTenderSelectedText));
+                    NotifyCreditPreview();
                     OnPropertyChanged(nameof(CanConfirm));
                     ((Command)ConfirmCommand).ChangeCanExecute();
                 }
@@ -157,6 +160,26 @@ namespace NovaRetail.ViewModels
             : string.Empty;
 
         public string SelectedTenderName => SelectedTender?.Description ?? "1er pago";
+
+        // ── Información de crédito del cliente ──────────────────────────
+        public bool ShowCreditPreview => _creditInfo is not null && _creditInfo.HasCredit
+            && (_selectedTender?.IsCredit == true || (HasSecondTender && _secondTender?.IsCredit == true));
+        public string CreditClientName => _creditInfo?.FullName ?? string.Empty;
+        public string CreditLimitText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.CreditLimit:N2}" : string.Empty;
+        public string CreditBalanceText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.ClosingBalance:N2}" : string.Empty;
+        public string CreditAvailableText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.Available:N2}" : string.Empty;
+        public string CreditAfterSaleText
+        {
+            get
+            {
+                if (_creditInfo is null) return string.Empty;
+                var newAvailable = _creditInfo.Available - _totalColonesValue;
+                return $"{UiConfig.CurrencySymbol}{newAvailable:N2}";
+            }
+        }
+        public bool CreditInsufficient => _creditInfo is not null && _totalColonesValue > _creditInfo.Available
+            && (_selectedTender?.IsCredit == true || (HasSecondTender && _secondTender?.IsCredit == true));
+        public string CreditDaysText => _creditInfo?.CreditDays is > 0 ? $"{_creditInfo.CreditDays} días" : "N/A";
         public string SecondAmountFormattedText => SecondAmount > 0m ? $"{UiConfig.CurrencySymbol}{SecondAmount:N2}" : $"{UiConfig.CurrencySymbol}0.00";
         public string SplitTotalText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount + SecondAmount:N2}";
 
@@ -394,6 +417,7 @@ namespace NovaRetail.ViewModels
 
             SelectedTender = defaultTender ?? Tenders.FirstOrDefault();
             SetExonerationState(exonerationState);
+            NotifyCreditPreview();
             RefreshDerivedAmounts();
         }
 
@@ -487,6 +511,24 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(text)) return 0m;
             var cleaned = text.Replace(UiConfig.CurrencySymbol, string.Empty).Replace(",", string.Empty).Trim();
             return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+        }
+
+        public void SetCreditInfo(CustomerCreditInfo? credit)
+        {
+            _creditInfo = credit;
+            NotifyCreditPreview();
+        }
+
+        private void NotifyCreditPreview()
+        {
+            OnPropertyChanged(nameof(ShowCreditPreview));
+            OnPropertyChanged(nameof(CreditClientName));
+            OnPropertyChanged(nameof(CreditLimitText));
+            OnPropertyChanged(nameof(CreditBalanceText));
+            OnPropertyChanged(nameof(CreditAvailableText));
+            OnPropertyChanged(nameof(CreditAfterSaleText));
+            OnPropertyChanged(nameof(CreditInsufficient));
+            OnPropertyChanged(nameof(CreditDaysText));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
