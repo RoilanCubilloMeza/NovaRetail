@@ -292,6 +292,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public ICommand SelectTenderCommand { get; }
     public ICommand AddProductCommand { get; }
     public ICommand RemoveLineCommand { get; }
+    public ICommand GoBackCommand { get; }
 
     public CreditNoteViewModel(
         IProductService productService,
@@ -318,6 +319,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         SelectTenderCommand = new Command<TenderModel>(SelectTender);
         AddProductCommand = new Command<ProductModel>(AddProductToLines);
         RemoveLineCommand = new Command<CreditNoteLineItem>(RemoveLine);
+        GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
     }
 
     public async Task LoadAsync(InvoiceHistoryEntry entry)
@@ -377,8 +379,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
             NotifyCreditProperties();
 
-            // Load available tenders
-            await LoadTendersAsync();
+            // Load available tenders — match the original invoice's payment method
+            await LoadTendersAsync(entry.TenderDescription);
 
             // Populate lines from the source entry
             Lines.Clear();
@@ -469,7 +471,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             ProductSearchResults.Clear();
 
             // Load available tenders
-            await LoadTendersAsync();
+            await LoadTendersAsync(null);
 
             RefreshSelectedSummary();
         }
@@ -570,7 +572,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             line.IsSelected = selected;
     }
 
-    private async Task LoadTendersAsync()
+    private async Task LoadTendersAsync(string? sourceTenderDescription)
     {
         AvailableTenders.Clear();
         _selectedTender = null;
@@ -583,8 +585,19 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 AvailableTenders.Add(t);
             }
 
-            // Auto-select the first non-credit tender as default
-            var defaultTender = AvailableTenders.FirstOrDefault(t => !t.IsCredit)
+            // Try to match the original invoice's tender
+            TenderModel? matchedTender = null;
+            if (!string.IsNullOrWhiteSpace(sourceTenderDescription))
+            {
+                matchedTender = AvailableTenders.FirstOrDefault(t =>
+                    t.Description.Equals(sourceTenderDescription, StringComparison.OrdinalIgnoreCase));
+                matchedTender ??= AvailableTenders.FirstOrDefault(t =>
+                    sourceTenderDescription.Contains(t.Description, StringComparison.OrdinalIgnoreCase)
+                    || t.Description.Contains(sourceTenderDescription, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var defaultTender = matchedTender
+                                ?? AvailableTenders.FirstOrDefault(t => !t.IsCredit)
                                 ?? AvailableTenders.FirstOrDefault();
             if (defaultTender is not null)
                 SelectTender(defaultTender);

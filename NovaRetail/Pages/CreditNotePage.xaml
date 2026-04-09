@@ -48,6 +48,9 @@
                             StrokeShape="RoundRectangle 12"
                             WidthRequest="40" HeightRequest="40"
                             VerticalOptions="Center">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                        </Border.GestureRecognizers>
                         <Label Text="↩" FontSize="20"
                                HorizontalOptions="Center" VerticalOptions="Center"
                                TextColor="White"/>
