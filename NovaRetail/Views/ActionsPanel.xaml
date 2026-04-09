@@ -112,11 +112,6 @@
                                             SurfaceColor="#FFF7ED" StrokeColor="#FED7AA"
                                             IconColor="#EA580C" LabelColor="#9A3412" ArrowColor="#EA580C"/>
 
-                    <controls:ActionLinkRow Icon="&#x1F4B0;" Text="{Binding TaxSystemText}"
-                                            Command="{Binding ToggleTaxSystemCommand}"
-                                            SurfaceColor="#F0F9FF" StrokeColor="#BAE6FD"
-                                            IconColor="#0284C7" LabelColor="#0C4A6E" ArrowColor="#0284C7"/>
-
                 </VerticalStackLayout>
 
             </VerticalStackLayout>

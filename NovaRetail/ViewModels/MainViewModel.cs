@@ -342,7 +342,6 @@ namespace NovaRetail.ViewModels
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
         public ICommand NavigateToCategoryConfigCommand { get; }
-        public ICommand ToggleTaxSystemCommand { get; }
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -777,7 +776,6 @@ namespace NovaRetail.ViewModels
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
-            ToggleTaxSystemCommand = new Command(async () => await ToggleTaxSystemAsync());
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
@@ -948,29 +946,6 @@ namespace NovaRetail.ViewModels
                 }
             }
             catch { }
-        }
-
-        private async Task ToggleTaxSystemAsync()
-        {
-            var newValue = _storeTaxSystem > 0 ? 0 : 1;
-            var label = newValue > 0 ? "IVA Incluido" : "IVA Excluido";
-            var confirm = await Shell.Current.DisplayAlert(
-                "Sistema de Impuesto",
-                $"¿Desea cambiar a \"{label}\"?",
-                "Sí", "No");
-
-            if (!confirm) return;
-
-            var saved = await _storeConfigService.UpdateTaxSystemAsync(newValue);
-            if (!saved)
-            {
-                await Shell.Current.DisplayAlert("Error", "No se pudo actualizar el sistema de impuesto.", "OK");
-                return;
-            }
-
-            _storeTaxSystem = newValue;
-            TaxSystemText = label;
-            RecalculateTotal();
         }
 
         private async Task ShowSalesRepPickerAsync()

@@ -5,7 +5,7 @@ public class StoreConfigModel
     public int StoreID { get; set; }
     public int RegisterID { get; set; }
     public int BatchNumber { get; set; }
-    /// <summary>0 = IVA Excluido, valores mayores a 0 = IVA Incluido (compatibilidad RMH).</summary>
+    /// <summary>0 = IVA Excluido, valores mayores a 0 = IVA Incluido. Controlado por TX-01 en AVS_Parametros (TX-01: 0=Incluido, 1=Excluido).</summary>
     public int TaxSystem { get; set; }
     public int QuoteExpirationDays { get; set; }
     public int DefaultTenderID { get; set; }

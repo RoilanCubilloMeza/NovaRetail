@@ -146,27 +146,6 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return false;
     }
 
-    public async Task<bool> UpdateTaxSystemAsync(int taxSystem)
-    {
-        foreach (var baseUrl in _baseUrls)
-        {
-            try
-            {
-                var http = _httpClientFactory.CreateClient(ClientName);
-                var response = await http.PutAsJsonAsync(
-                    $"{baseUrl}/api/StoreConfig/TaxSystem",
-                    new { TaxSystem = taxSystem });
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error al actualizar TaxSystem en {BaseUrl}", baseUrl);
-            }
-        }
-
-        return false;
-    }
-
     private sealed class CategoryConfigResponse
     {
         public string SelectedIds { get; set; } = string.Empty;

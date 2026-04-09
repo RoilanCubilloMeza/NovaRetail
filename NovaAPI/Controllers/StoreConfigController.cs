@@ -28,14 +28,13 @@ namespace NovaAPI.Controllers
                 {
                     using (var cn = new SqlConnection(posConnectionString))
                     using (var cmd = new SqlCommand(
-                        "SELECT TOP 1 TaxSystem, QuoteExpirationDays, DefaultTenderID FROM dbo.[Configuration]", cn))
+                        "SELECT TOP 1 QuoteExpirationDays, DefaultTenderID FROM dbo.[Configuration]", cn))
                     {
                         cn.Open();
                         using (var reader = cmd.ExecuteReader())
                         {
                             if (reader.Read())
                             {
-                                dto.TaxSystem = reader["TaxSystem"] != DBNull.Value ? Convert.ToInt32(reader["TaxSystem"]) : 0;
                                 dto.QuoteExpirationDays = reader["QuoteExpirationDays"] != DBNull.Value ? Convert.ToInt32(reader["QuoteExpirationDays"]) : 0;
                                 dto.DefaultTenderID = reader["DefaultTenderID"] != DBNull.Value ? Convert.ToInt32(reader["DefaultTenderID"]) : 0;
                             }
@@ -122,7 +121,7 @@ namespace NovaAPI.Controllers
             }
             catch { }
 
-            // VE-01: PedirVendedor / VE-02: RequiereVendedor / TC-01: TipoCambio / CL-01: ClienteContadoID / CL-02: ClienteContadoNombre
+            // VE-01: PedirVendedor / VE-02: RequiereVendedor / TC-01: TipoCambio / CL-01: ClienteContadoID / CL-02: ClienteContadoNombre / TX-01: IVA Incluido/Excluido
             try
             {
                 var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
@@ -130,7 +129,7 @@ namespace NovaAPI.Controllers
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
                     using (var cmd = new System.Data.SqlClient.SqlCommand(
-                        "SELECT CODIGO, LTRIM(RTRIM(VALOR)) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02','TC-01','CL-01','CL-02')", cn))
+                        "SELECT CODIGO, LTRIM(RTRIM(VALOR)) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02','TC-01','CL-01','CL-02','TX-01')", cn))
                     {
                         cn.Open();
                         using (var reader = cmd.ExecuteReader())
@@ -154,6 +153,9 @@ namespace NovaAPI.Controllers
                                     dto.DefaultClientId = valorStr;
                                 if (codigo == "CL-02" && !string.IsNullOrWhiteSpace(valorStr))
                                     dto.DefaultClientName = valorStr;
+                                // TX-01: 0 = IVA Incluido, 1 = IVA Excluido
+                                if (codigo == "TX-01")
+                                    dto.TaxSystem = valorInt == 0 ? 1 : 0;
                             }
                         }
                     }
@@ -266,12 +268,27 @@ namespace NovaAPI.Controllers
                 if (string.IsNullOrWhiteSpace(posConnectionString))
                     return InternalServerError(new Exception("No connection string found."));
 
+                // TX-01: 0 = IVA Incluido, 1 = IVA Excluido
+                int txValue = body.TaxSystem > 0 ? 0 : 1;
+
                 using (var cn = new SqlConnection(posConnectionString))
-                using (var cmd = new SqlCommand("UPDATE dbo.[Configuration] SET TaxSystem = @TaxSystem", cn))
                 {
-                    cmd.Parameters.AddWithValue("@TaxSystem", body.TaxSystem);
                     cn.Open();
-                    cmd.ExecuteNonQuery();
+
+                    // Actualizar o crear AVS_Parametros TX-01
+                    using (var cmd = new SqlCommand(
+                        @"IF EXISTS (SELECT 1 FROM dbo.AVS_Parametros WHERE CODIGO = 'TX-01')
+                              UPDATE dbo.AVS_Parametros
+                              SET VALOR = @val,
+                                  DESCRIPCION = 'IVA Incluido o Excluido (0=Incluido, 1=Excluido)'
+                              WHERE CODIGO = 'TX-01'
+                          ELSE
+                              INSERT INTO dbo.AVS_Parametros (CODIGO, DESCRIPCION, VALOR)
+                              VALUES ('TX-01', 'IVA Incluido o Excluido (0=Incluido, 1=Excluido)', @val)", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@val", txValue.ToString());
+                        cmd.ExecuteNonQuery();
+                    }
                 }
 
                 return Ok();
