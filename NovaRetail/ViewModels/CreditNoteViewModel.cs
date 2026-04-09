@@ -94,11 +94,16 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private string _productSearchText = string.Empty;
     private CancellationTokenSource? _productSearchCts;
     private TenderModel? _selectedTender;
+    private string _customerSearchText = string.Empty;
+    private CancellationTokenSource? _customerSearchCts;
+    private string _overrideClientId = string.Empty;
+    private string _overrideClientName = string.Empty;
 
     public ObservableCollection<CreditNoteLineItem> Lines { get; } = new();
     public ObservableCollection<ReasonCodeModel> ReasonCodes { get; } = new();
     public ObservableCollection<ProductModel> ProductSearchResults { get; } = new();
     public ObservableCollection<TenderModel> AvailableTenders { get; } = new();
+    public ObservableCollection<CustomerLookupModel> CustomerSearchResults { get; } = new();
 
     // ── Standalone mode ──────────────────────────────────────────────
     public bool IsStandaloneMode => _isStandaloneMode;
@@ -128,6 +133,33 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public string SourceClave50 => _isStandaloneMode ? _standaloneClave50 : (_sourceEntry?.Clave50 ?? string.Empty);
     public string SourceConsecutivo => _isStandaloneMode ? string.Empty : (_sourceEntry?.Consecutivo ?? string.Empty);
     public bool HasFiscalData => _isStandaloneMode ? !string.IsNullOrWhiteSpace(_standaloneClave50) : !string.IsNullOrWhiteSpace(_sourceEntry?.Clave50);
+
+    // ── Customer override (billing recipient) ────────────────────────
+    public string CustomerSearchText
+    {
+        get => _customerSearchText;
+        set
+        {
+            if (_customerSearchText != value)
+            {
+                _customerSearchText = value;
+                OnPropertyChanged();
+                _ = SearchCustomersAsync();
+            }
+        }
+    }
+
+    public bool HasOverrideClient => !string.IsNullOrWhiteSpace(_overrideClientId);
+    public string OverrideClientDisplay => HasOverrideClient
+        ? $"{_overrideClientName} ({_overrideClientId})"
+        : "Mismo cliente de la factura";
+
+    public string EffectiveClientId => HasOverrideClient
+        ? _overrideClientId
+        : (_isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty));
+    public string EffectiveClientName => HasOverrideClient
+        ? _overrideClientName
+        : (_isStandaloneMode ? "Estimado Cliente" : (_sourceEntry?.ClientName ?? string.Empty));
 
     // ── Ref# / Comment / Mode ────────────────────────────────────────
     public string ReferenceNumber
@@ -293,6 +325,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public ICommand AddProductCommand { get; }
     public ICommand RemoveLineCommand { get; }
     public ICommand GoBackCommand { get; }
+    public ICommand SelectCustomerCommand { get; }
+    public ICommand ClearCustomerCommand { get; }
 
     public CreditNoteViewModel(
         IProductService productService,
@@ -320,6 +354,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         AddProductCommand = new Command<ProductModel>(AddProductToLines);
         RemoveLineCommand = new Command<CreditNoteLineItem>(RemoveLine);
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        SelectCustomerCommand = new Command<CustomerLookupModel>(c => _ = SelectCustomerAsync(c));
+        ClearCustomerCommand = new Command(() => _ = ClearCustomerOverrideAsync());
     }
 
     public async Task LoadAsync(InvoiceHistoryEntry entry)
@@ -333,11 +369,19 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _selectedReason = null;
         _creditInfo = null;
         _creditLoaded = false;
+        _overrideClientId = string.Empty;
+        _overrideClientName = string.Empty;
+        _customerSearchText = string.Empty;
         ReferenceNumber = entry.TransactionNumber.ToString(CultureInfo.InvariantCulture);
         CommentText = string.Empty;
 
         OnPropertyChanged(nameof(IsStandaloneMode));
         OnPropertyChanged(nameof(IsNotStandaloneMode));
+        OnPropertyChanged(nameof(CustomerSearchText));
+        OnPropertyChanged(nameof(HasOverrideClient));
+        OnPropertyChanged(nameof(OverrideClientDisplay));
+        OnPropertyChanged(nameof(EffectiveClientId));
+        OnPropertyChanged(nameof(EffectiveClientName));
         OnPropertyChanged(nameof(SourceTransactionText));
         OnPropertyChanged(nameof(SourceClientName));
         OnPropertyChanged(nameof(SourceClientId));
@@ -430,6 +474,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _selectedReason = null;
         _creditInfo = null;
         _creditLoaded = true;
+        _overrideClientId = string.Empty;
+        _overrideClientName = string.Empty;
+        _customerSearchText = string.Empty;
         ReferenceNumber = clave50;
         CommentText = string.Empty;
         _productSearchText = string.Empty;
@@ -437,6 +484,11 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsStandaloneMode));
         OnPropertyChanged(nameof(IsNotStandaloneMode));
         OnPropertyChanged(nameof(ProductSearchText));
+        OnPropertyChanged(nameof(CustomerSearchText));
+        OnPropertyChanged(nameof(HasOverrideClient));
+        OnPropertyChanged(nameof(OverrideClientDisplay));
+        OnPropertyChanged(nameof(EffectiveClientId));
+        OnPropertyChanged(nameof(EffectiveClientName));
         OnPropertyChanged(nameof(SourceTransactionText));
         OnPropertyChanged(nameof(SourceClientName));
         OnPropertyChanged(nameof(SourceClientId));
@@ -558,6 +610,86 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (item is null) return;
         Lines.Remove(item);
         RefreshSelectedSummary();
+    }
+
+    // ── Customer search / override ───────────────────────────────────
+    private async Task SearchCustomersAsync()
+    {
+        _customerSearchCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _customerSearchCts = cts;
+
+        try
+        {
+            var term = (_customerSearchText ?? string.Empty).Trim();
+            if (term.Length < 2)
+            {
+                CustomerSearchResults.Clear();
+                return;
+            }
+
+            await Task.Delay(350, cts.Token);
+
+            var results = await _clienteService.BuscarClientesAsync(term);
+            if (cts.IsCancellationRequested) return;
+
+            CustomerSearchResults.Clear();
+            foreach (var c in results)
+                CustomerSearchResults.Add(c);
+        }
+        catch (OperationCanceledException) { }
+        catch { CustomerSearchResults.Clear(); }
+    }
+
+    private async Task SelectCustomerAsync(CustomerLookupModel? customer)
+    {
+        if (customer is null) return;
+
+        _overrideClientId = customer.AccountNumber;
+        _overrideClientName = customer.FullName;
+        OnPropertyChanged(nameof(HasOverrideClient));
+        OnPropertyChanged(nameof(OverrideClientDisplay));
+        OnPropertyChanged(nameof(EffectiveClientId));
+        OnPropertyChanged(nameof(EffectiveClientName));
+
+        // Clear search
+        _customerSearchText = string.Empty;
+        OnPropertyChanged(nameof(CustomerSearchText));
+        CustomerSearchResults.Clear();
+
+        // Fetch credit for the selected customer
+        await LoadCreditForClientAsync(customer.AccountNumber);
+    }
+
+    private async Task ClearCustomerOverrideAsync()
+    {
+        var originalClientId = _isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty);
+
+        _overrideClientId = string.Empty;
+        _overrideClientName = string.Empty;
+        OnPropertyChanged(nameof(HasOverrideClient));
+        OnPropertyChanged(nameof(OverrideClientDisplay));
+        OnPropertyChanged(nameof(EffectiveClientId));
+        OnPropertyChanged(nameof(EffectiveClientName));
+
+        // Reload credit for the original invoice client
+        await LoadCreditForClientAsync(originalClientId);
+    }
+
+    private async Task LoadCreditForClientAsync(string? clientId)
+    {
+        if (!string.IsNullOrWhiteSpace(clientId))
+        {
+            try { _creditInfo = await _clienteService.ObtenerCreditoAsync(clientId); }
+            catch { _creditInfo = null; }
+        }
+        else
+        {
+            _creditInfo = null;
+        }
+        _creditLoaded = true;
+        IsCreditMode = _creditInfo is not null && _creditInfo.HasCredit;
+        NotifyCreditProperties();
     }
 
     private void ToggleLine(CreditNoteLineItem? item)
@@ -744,8 +876,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 : (_isCreditMode ? "99" : "01");
             var tenderId = _selectedTender?.ID ?? 1;
 
-            var clientId = _isStandaloneMode ? string.Empty : (_sourceEntry!.ClientId ?? string.Empty);
-            var clientName = _isStandaloneMode ? "Estimado Cliente" : (_sourceEntry!.ClientName ?? string.Empty);
+            var clientId = EffectiveClientId;
+            var clientName = EffectiveClientName;
 
             var request = new NovaRetailCreateSaleRequest
             {
@@ -813,8 +945,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     ComprobanteTipo = "03",
                     Clave50 = !string.IsNullOrWhiteSpace(result.Clave50) ? result.Clave50 : string.Empty,
                     Consecutivo = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : string.Empty,
-                    ClientId = _isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty),
-                    ClientName = _isStandaloneMode ? "Estimado Cliente" : (_sourceEntry?.ClientName ?? string.Empty),
+                    ClientId = clientId,
+                    ClientName = clientName,
                     CashierName = currentUser.DisplayName ?? string.Empty,
                     RegisterNumber = _registerId,
                     StoreName = _storeName,

@@ -105,6 +105,71 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <!-- ═══ CLIENTE DESTINO (a quién va la NC) ═══ -->
+                    <Border BackgroundColor="White"
+                            Stroke="#E2E8F0" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="16,12">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="CLIENTE DESTINO DE LA NC" FontSize="10" FontAttributes="Bold"
+                                   TextColor="#94A3B8" CharacterSpacing="0.5"/>
+
+                            <!-- Current selection -->
+                            <Border BackgroundColor="{Binding HasOverrideClient, Converter={StaticResource BoolToColorConverter}}"
+                                    Stroke="#E2E8F0" StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="10,8">
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding OverrideClientDisplay}"
+                                           FontSize="13" TextColor="#0F172A" VerticalOptions="Center"/>
+                                    <Button Grid.Column="1"
+                                            Text="✕"
+                                            Command="{Binding ClearCustomerCommand}"
+                                            IsVisible="{Binding HasOverrideClient}"
+                                            BackgroundColor="#FEF2F2" TextColor="#DC2626"
+                                            FontSize="10" CornerRadius="6"
+                                            HeightRequest="24" WidthRequest="28"
+                                            Padding="0" VerticalOptions="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Search -->
+                            <Entry Text="{Binding CustomerSearchText}"
+                                   Placeholder="Buscar por cédula, nombre o teléfono..."
+                                   FontSize="13"
+                                   BackgroundColor="#F8FAFC"
+                                   ClearButtonVisibility="WhileEditing"/>
+
+                            <!-- Results -->
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding CustomerSearchResults}" Spacing="2">
+                                <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="m:CustomerLookupModel">
+                                        <Border BackgroundColor="#EFF6FF"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CreditNoteViewModel}}, Path=SelectCustomerCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                                <VerticalStackLayout Grid.Column="0" Spacing="1">
+                                                    <Label Text="{Binding FullName}" FontSize="13"
+                                                           FontAttributes="Bold" TextColor="#0F172A"/>
+                                                    <Label Text="{Binding AccountNumber}" FontSize="11" TextColor="#64748B"/>
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding Phone}" FontSize="11"
+                                                       TextColor="#94A3B8" VerticalOptions="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
                     <!-- ═══ BUSCAR Y AGREGAR ARTÍCULOS (solo modo standalone) ═══ -->
                     <Border BackgroundColor="White"
                             Stroke="#E2E8F0" StrokeThickness="1"
