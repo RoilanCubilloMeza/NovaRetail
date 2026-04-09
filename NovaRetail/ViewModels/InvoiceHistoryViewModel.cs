@@ -100,6 +100,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public ICommand CloseDetailCommand { get; }
     public ICommand ReprintCommand { get; }
     public ICommand CreditNoteCommand { get; }
+    public ICommand StandaloneCreditNoteCommand { get; }
 
     public InvoiceHistoryViewModel(IInvoiceHistoryService historyService, IDialogService dialogService, ISaleService saleService)
     {
@@ -114,6 +115,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         CloseDetailCommand = new Command(() => SelectedEntry = null);
         ReprintCommand = new Command<InvoiceHistoryEntry>(async e => await ShowReprintAsync(e));
         CreditNoteCommand = new Command<InvoiceHistoryEntry>(async e => await NavigateToCreditNoteAsync(e));
+        StandaloneCreditNoteCommand = new Command(async () => await StandaloneCreditNoteAsync());
 
         ReprintVm.RequestClose += () => IsReprintVisible = false;
     }
@@ -229,6 +231,67 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             return;
 
         await page.LoadAsync(fullEntry);
+        await Shell.Current.Navigation.PushAsync(page);
+    }
+
+    private async Task StandaloneCreditNoteAsync()
+    {
+        var clave50 = await _dialogService.PromptAsync(
+            "NC por Clave 50",
+            "Ingrese la Clave 50 de referencia (máx. 50 caracteres):",
+            "Continuar", "Cancelar",
+            placeholder: "Clave 50...",
+            maxLength: 50);
+
+        if (string.IsNullOrWhiteSpace(clave50))
+            return;
+
+        clave50 = clave50.Trim();
+        if (clave50.Length > 50)
+        {
+            await _dialogService.AlertAsync("Error", "La clave no puede tener más de 50 caracteres.", "OK");
+            return;
+        }
+
+        // Try to find the invoice by Clave50 in the server
+        InvoiceHistoryEntry? foundEntry = null;
+        try
+        {
+            var result = await _saleService.SearchInvoiceHistoryAsync(clave50, CancellationToken.None);
+            if (result.Ok && result.Entries.Count > 0)
+            {
+                var match = result.Entries.FirstOrDefault(e =>
+                    !string.IsNullOrWhiteSpace(e.Clave50) &&
+                    string.Equals(e.Clave50, clave50, StringComparison.OrdinalIgnoreCase));
+
+                if (match is not null)
+                {
+                    foundEntry = MapRemoteEntry(match);
+                    foundEntry = await EnsureDetailAsync(foundEntry);
+                }
+            }
+        }
+        catch
+        {
+            // If search fails, continue with standalone mode
+        }
+
+        var page = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<NovaRetail.Pages.CreditNotePage>();
+        if (page is null)
+            return;
+
+        if (foundEntry is not null && foundEntry.Lines.Count > 0)
+        {
+            // Found the invoice - use normal NC flow
+            await page.LoadAsync(foundEntry);
+        }
+        else
+        {
+            // Standalone NC - no source invoice found
+            await page.LoadStandaloneAsync(clave50);
+        }
+
         await Shell.Current.Navigation.PushAsync(page);
     }
 

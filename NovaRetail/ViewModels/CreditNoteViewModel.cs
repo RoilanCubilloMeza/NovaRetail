@@ -89,20 +89,45 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private bool _isCreditMode = true;
     private CustomerCreditInfo? _creditInfo;
     private bool _creditLoaded;
+    private bool _isStandaloneMode;
+    private string _standaloneClave50 = string.Empty;
+    private string _productSearchText = string.Empty;
+    private CancellationTokenSource? _productSearchCts;
+    private TenderModel? _selectedTender;
 
     public ObservableCollection<CreditNoteLineItem> Lines { get; } = new();
     public ObservableCollection<ReasonCodeModel> ReasonCodes { get; } = new();
+    public ObservableCollection<ProductModel> ProductSearchResults { get; } = new();
+    public ObservableCollection<TenderModel> AvailableTenders { get; } = new();
+
+    // ── Standalone mode ──────────────────────────────────────────────
+    public bool IsStandaloneMode => _isStandaloneMode;
+    public bool IsNotStandaloneMode => !_isStandaloneMode;
+
+    public string ProductSearchText
+    {
+        get => _productSearchText;
+        set
+        {
+            if (_productSearchText != value)
+            {
+                _productSearchText = value;
+                OnPropertyChanged();
+                _ = SearchProductsAsync();
+            }
+        }
+    }
 
     // ── Source invoice info ──────────────────────────────────────────
-    public string SourceTransactionText => _sourceEntry is not null ? $"#{_sourceEntry.TransactionNumber}" : string.Empty;
-    public string SourceClientName => _sourceEntry?.ClientName ?? string.Empty;
-    public string SourceClientId => _sourceEntry?.ClientId ?? string.Empty;
-    public string SourceDateText => _sourceEntry?.DateText ?? string.Empty;
-    public string SourceTotalText => _sourceEntry is not null ? $"{UiConfig.CurrencySymbol}{_sourceEntry.TotalColones:N2}" : string.Empty;
-    public string SourceDocumentType => _sourceEntry?.DocumentTypeName ?? string.Empty;
-    public string SourceClave50 => _sourceEntry?.Clave50 ?? string.Empty;
-    public string SourceConsecutivo => _sourceEntry?.Consecutivo ?? string.Empty;
-    public bool HasFiscalData => !string.IsNullOrWhiteSpace(_sourceEntry?.Clave50);
+    public string SourceTransactionText => _isStandaloneMode ? "NC Manual" : (_sourceEntry is not null ? $"#{_sourceEntry.TransactionNumber}" : string.Empty);
+    public string SourceClientName => _isStandaloneMode ? "NC sin Factura" : (_sourceEntry?.ClientName ?? string.Empty);
+    public string SourceClientId => _isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty);
+    public string SourceDateText => _isStandaloneMode ? string.Empty : (_sourceEntry?.DateText ?? string.Empty);
+    public string SourceTotalText => _isStandaloneMode ? string.Empty : (_sourceEntry is not null ? $"{UiConfig.CurrencySymbol}{_sourceEntry.TotalColones:N2}" : string.Empty);
+    public string SourceDocumentType => _isStandaloneMode ? "NC por Clave 50" : (_sourceEntry?.DocumentTypeName ?? string.Empty);
+    public string SourceClave50 => _isStandaloneMode ? _standaloneClave50 : (_sourceEntry?.Clave50 ?? string.Empty);
+    public string SourceConsecutivo => _isStandaloneMode ? string.Empty : (_sourceEntry?.Consecutivo ?? string.Empty);
+    public bool HasFiscalData => _isStandaloneMode ? !string.IsNullOrWhiteSpace(_standaloneClave50) : !string.IsNullOrWhiteSpace(_sourceEntry?.Clave50);
 
     // ── Ref# / Comment / Mode ────────────────────────────────────────
     public string ReferenceNumber
@@ -140,7 +165,31 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         set => IsCreditMode = !value;
     }
 
-    public string RefundModeText => _isCreditMode ? "Crédito a Cliente" : "Devolución en Efectivo";
+    public string RefundModeText => _selectedTender?.Description ?? (_isCreditMode ? "Crédito a Cliente" : "Devolución en Efectivo");
+
+    public TenderModel? SelectedTender
+    {
+        get => _selectedTender;
+        private set
+        {
+            if (_selectedTender != value)
+            {
+                _selectedTender = value;
+                _isCreditMode = _selectedTender?.IsCredit ?? false;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedTenderText));
+                OnPropertyChanged(nameof(RefundModeText));
+                OnPropertyChanged(nameof(IsCreditMode));
+                OnPropertyChanged(nameof(IsCashMode));
+                OnPropertyChanged(nameof(HasCreditInfo));
+                OnPropertyChanged(nameof(NoCreditInfo));
+                OnPropertyChanged(nameof(CanConfirm));
+                ((Command)ConfirmCommand).ChangeCanExecute();
+            }
+        }
+    }
+
+    public string SelectedTenderText => _selectedTender?.Description ?? "Seleccione un modo de devolución";
 
     // ── Credit info ──────────────────────────────────────────────────
     public CustomerCreditInfo? CreditInfo => _creditInfo;
@@ -212,7 +261,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     }
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(_statusMessage);
-    public bool CanConfirm => !IsSubmitting && HasSelectedReason && SelectedCount > 0;
+    public bool CanConfirm => !IsSubmitting && HasSelectedReason && SelectedCount > 0 && _selectedTender is not null;
     public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar Nota de Crédito";
 
     // ── Result ───────────────────────────────────────────────────────
@@ -240,8 +289,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public ICommand SelectAllCommand { get; }
     public ICommand DeselectAllCommand { get; }
     public ICommand SelectReasonCommand { get; }
-    public ICommand SetCreditModeCommand { get; }
-    public ICommand SetCashModeCommand { get; }
+    public ICommand SelectTenderCommand { get; }
+    public ICommand AddProductCommand { get; }
+    public ICommand RemoveLineCommand { get; }
 
     public CreditNoteViewModel(
         IProductService productService,
@@ -265,13 +315,16 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         SelectAllCommand = new Command(() => SetAllSelected(true));
         DeselectAllCommand = new Command(() => SetAllSelected(false));
         SelectReasonCommand = new Command<ReasonCodeModel>(r => SelectedReason = r);
-        SetCreditModeCommand = new Command(async () => await SetCreditModeAsync());
-        SetCashModeCommand = new Command(() => IsCreditMode = false);
+        SelectTenderCommand = new Command<TenderModel>(SelectTender);
+        AddProductCommand = new Command<ProductModel>(AddProductToLines);
+        RemoveLineCommand = new Command<CreditNoteLineItem>(RemoveLine);
     }
 
     public async Task LoadAsync(InvoiceHistoryEntry entry)
     {
         _sourceEntry = entry;
+        _isStandaloneMode = false;
+        _standaloneClave50 = string.Empty;
         IsLoading = true;
         IsResultVisible = false;
         StatusMessage = string.Empty;
@@ -281,6 +334,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         ReferenceNumber = entry.TransactionNumber.ToString(CultureInfo.InvariantCulture);
         CommentText = string.Empty;
 
+        OnPropertyChanged(nameof(IsStandaloneMode));
+        OnPropertyChanged(nameof(IsNotStandaloneMode));
         OnPropertyChanged(nameof(SourceTransactionText));
         OnPropertyChanged(nameof(SourceClientName));
         OnPropertyChanged(nameof(SourceClientId));
@@ -322,6 +377,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
             NotifyCreditProperties();
 
+            // Load available tenders
+            await LoadTendersAsync();
+
             // Populate lines from the source entry
             Lines.Clear();
             foreach (var line in entry.Lines)
@@ -359,6 +417,147 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
     }
 
+    public async Task LoadStandaloneAsync(string clave50)
+    {
+        _sourceEntry = null;
+        _isStandaloneMode = true;
+        _standaloneClave50 = clave50;
+        IsLoading = true;
+        IsResultVisible = false;
+        StatusMessage = string.Empty;
+        _selectedReason = null;
+        _creditInfo = null;
+        _creditLoaded = true;
+        ReferenceNumber = clave50;
+        CommentText = string.Empty;
+        _productSearchText = string.Empty;
+
+        OnPropertyChanged(nameof(IsStandaloneMode));
+        OnPropertyChanged(nameof(IsNotStandaloneMode));
+        OnPropertyChanged(nameof(ProductSearchText));
+        OnPropertyChanged(nameof(SourceTransactionText));
+        OnPropertyChanged(nameof(SourceClientName));
+        OnPropertyChanged(nameof(SourceClientId));
+        OnPropertyChanged(nameof(SourceDateText));
+        OnPropertyChanged(nameof(SourceTotalText));
+        OnPropertyChanged(nameof(SourceDocumentType));
+        OnPropertyChanged(nameof(SourceClave50));
+        OnPropertyChanged(nameof(SourceConsecutivo));
+        OnPropertyChanged(nameof(HasFiscalData));
+        OnPropertyChanged(nameof(HasSelectedReason));
+        OnPropertyChanged(nameof(SelectedReasonText));
+        OnPropertyChanged(nameof(HasCreditInfo));
+        OnPropertyChanged(nameof(NoCreditInfo));
+
+        try
+        {
+            ReasonCodes.Clear();
+            var codes = await _productService.GetReasonCodesAsync(5);
+            foreach (var c in codes)
+                ReasonCodes.Add(c);
+
+            var config = await _storeConfigService.GetConfigAsync();
+            if (config is not null)
+            {
+                _storeId = config.StoreID;
+                _registerId = config.RegisterID > 0 ? config.RegisterID : 1;
+                _storeName = config.StoreName ?? string.Empty;
+            }
+
+            IsCreditMode = false;
+            Lines.Clear();
+            ProductSearchResults.Clear();
+
+            // Load available tenders
+            await LoadTendersAsync();
+
+            RefreshSelectedSummary();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SearchProductsAsync()
+    {
+        _productSearchCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _productSearchCts = cts;
+
+        try
+        {
+            var term = (_productSearchText ?? string.Empty).Trim();
+            if (term.Length < 2)
+            {
+                ProductSearchResults.Clear();
+                return;
+            }
+
+            await Task.Delay(350, cts.Token);
+
+            var results = await _productService.SearchAsync(term, 10, 1m);
+            if (cts.IsCancellationRequested) return;
+
+            ProductSearchResults.Clear();
+            foreach (var p in results)
+                ProductSearchResults.Add(p);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void AddProductToLines(ProductModel? product)
+    {
+        if (product is null) return;
+
+        // Check if already added
+        var existing = Lines.FirstOrDefault(l => l.ItemID == product.ItemID);
+        if (existing is not null)
+        {
+            existing.ReturnQuantity += 1;
+            return;
+        }
+
+        var item = new CreditNoteLineItem
+        {
+            ItemID = product.ItemID,
+            TaxID = product.TaxId,
+            DisplayName = product.Name,
+            Code = product.Code,
+            OriginalQuantity = 999,
+            TaxPercentage = product.TaxPercentage,
+            UnitPriceColones = product.PriceColonesValue,
+            LineTotalColones = product.PriceColonesValue * 999,
+            HasDiscount = false,
+            DiscountPercent = 0,
+            HasExoneration = false,
+            ExonerationPercent = 0,
+            HasOverridePrice = false
+        };
+        item.ReturnQuantity = 1;
+        item.PropertyChanged += (_, _) => RefreshSelectedSummary();
+        Lines.Add(item);
+        RefreshSelectedSummary();
+
+        // Clear search
+        _productSearchText = string.Empty;
+        OnPropertyChanged(nameof(ProductSearchText));
+        ProductSearchResults.Clear();
+    }
+
+    private void RemoveLine(CreditNoteLineItem? item)
+    {
+        if (item is null) return;
+        Lines.Remove(item);
+        RefreshSelectedSummary();
+    }
+
     private void ToggleLine(CreditNoteLineItem? item)
     {
         if (item is null) return;
@@ -371,19 +570,51 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             line.IsSelected = selected;
     }
 
-    private async Task SetCreditModeAsync()
+    private async Task LoadTendersAsync()
     {
-        if (_creditInfo is null || !_creditInfo.HasCredit)
+        AvailableTenders.Clear();
+        _selectedTender = null;
+        try
         {
-            await _dialogService.AlertAsync(
+            var tenders = await _storeConfigService.GetTendersAsync();
+            foreach (var t in tenders)
+            {
+                t.IsSelected = false;
+                AvailableTenders.Add(t);
+            }
+
+            // Auto-select the first non-credit tender as default
+            var defaultTender = AvailableTenders.FirstOrDefault(t => !t.IsCredit)
+                                ?? AvailableTenders.FirstOrDefault();
+            if (defaultTender is not null)
+                SelectTender(defaultTender);
+        }
+        catch
+        {
+            // Non-critical: if tenders fail, user cannot confirm until they retry
+        }
+        OnPropertyChanged(nameof(SelectedTenderText));
+    }
+
+    private void SelectTender(TenderModel? tender)
+    {
+        if (tender is null) return;
+
+        // If this tender is credit-type, validate client has credit
+        if (tender.IsCredit && (_creditInfo is null || !_creditInfo.HasCredit))
+        {
+            _ = _dialogService.AlertAsync(
                 "Sin Crédito",
-                "Este cliente no tiene crédito asignado. Solo se permite devolución en efectivo.",
+                "Este cliente no tiene crédito asignado. Solo se permiten otros modos de devolución.",
                 "OK");
-            IsCreditMode = false;
             return;
         }
 
-        IsCreditMode = true;
+        foreach (var t in AvailableTenders)
+            t.IsSelected = false;
+
+        tender.IsSelected = true;
+        SelectedTender = tender;
     }
 
     private void NotifyCreditProperties()
@@ -411,7 +642,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private async Task ConfirmAsync()
     {
-        if (_sourceEntry is null || _selectedReason is null || SelectedCount == 0)
+        if (!_isStandaloneMode && _sourceEntry is null)
+            return;
+
+        if (_selectedReason is null || SelectedCount == 0)
             return;
 
         var selectedLines = Lines.Where(l => l.IsSelected && l.ReturnQuantity > 0).ToList();
@@ -421,7 +655,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             return;
         }
 
-        var modeLabel = _isCreditMode ? "Crédito a Cliente" : "Devolución en Efectivo";
+        var modeLabel = _selectedTender?.Description ?? "Sin medio de pago";
         var confirmed = await _dialogService.ConfirmAsync(
             "Nota de Crédito",
             $"¿Crear nota de crédito por {SelectedTotalText}?\n" +
@@ -458,23 +692,33 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             var returnTotal = selectedLines.Sum(l => l.ReturnTotal);
 
             // Determine the original document type code for NC_TIPO_DOC
-            var ncTipoDoc = _sourceEntry.ComprobanteTipo switch
-            {
-                "01" => "01",
-                "04" => "04",
-                _ => _sourceEntry.ComprobanteTipo
-            };
+            var ncTipoDoc = _isStandaloneMode
+                ? "04"
+                : _sourceEntry!.ComprobanteTipo switch
+                {
+                    "01" => "01",
+                    "04" => "04",
+                    _ => _sourceEntry.ComprobanteTipo
+                };
 
             var commentParts = new List<string>();
             if (!string.IsNullOrWhiteSpace(CommentText))
                 commentParts.Add(CommentText);
-            commentParts.Add($"NC ref. #{ReferenceNumber}");
+            commentParts.Add(_isStandaloneMode
+                ? $"NC manual ref. Clave50: {_standaloneClave50}"
+                : $"NC ref. #{ReferenceNumber}");
             if (!_isCreditMode)
-                commentParts.Add("Devolución en efectivo");
+                commentParts.Add($"Devolución: {_selectedTender?.Description ?? "Efectivo"}");
 
-            // Tender: credit mode = medio pago 99 (otros), cash = medio pago 01 (efectivo)
-            var tenderDescription = _isCreditMode ? "Nota de Crédito" : "Efectivo";
-            var medioPagoCodigo = _isCreditMode ? "99" : "01";
+            // Tender from selected tender model
+            var tenderDescription = _selectedTender?.Description ?? "Efectivo";
+            var medioPagoCodigo = !string.IsNullOrWhiteSpace(_selectedTender?.MedioPagoCodigo)
+                ? _selectedTender.MedioPagoCodigo
+                : (_isCreditMode ? "99" : "01");
+            var tenderId = _selectedTender?.ID ?? 1;
+
+            var clientId = _isStandaloneMode ? string.Empty : (_sourceEntry!.ClientId ?? string.Empty);
+            var clientName = _isStandaloneMode ? "Estimado Cliente" : (_sourceEntry!.ClientName ?? string.Empty);
 
             var request = new NovaRetailCreateSaleRequest
             {
@@ -490,17 +734,17 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 CurrencyCode = "CRC",
                 TipoCambio = "1",
                 CondicionVenta = "01",
-                CodCliente = !string.IsNullOrWhiteSpace(_sourceEntry.ClientId) ? _sourceEntry.ClientId : string.Empty,
-                NombreCliente = !string.IsNullOrWhiteSpace(_sourceEntry.ClientName) ? _sourceEntry.ClientName : string.Empty,
-                CedulaTributaria = !string.IsNullOrWhiteSpace(_sourceEntry.ClientId) ? _sourceEntry.ClientId : string.Empty,
+                CodCliente = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
+                NombreCliente = !string.IsNullOrWhiteSpace(clientName) ? clientName : string.Empty,
+                CedulaTributaria = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
                 InsertarTiqueteEspera = true,
                 COMPROBANTE_TIPO = "03",
                 COMPROBANTE_SITUACION = "1",
                 COD_SUCURSAL = (currentUser.StoreId > 0 ? currentUser.StoreId : _storeId > 0 ? _storeId : 1).ToString("000", CultureInfo.InvariantCulture),
                 TERMINAL_POS = (_registerId > 0 ? _registerId : 1).ToString("00000", CultureInfo.InvariantCulture),
                 NC_TIPO_DOC = ncTipoDoc,
-                NC_REFERENCIA = !string.IsNullOrWhiteSpace(_sourceEntry.Clave50) ? _sourceEntry.Clave50 : _sourceEntry.Consecutivo,
-                NC_REFERENCIA_FECHA = _sourceEntry.Date,
+                NC_REFERENCIA = _isStandaloneMode ? _standaloneClave50 : (!string.IsNullOrWhiteSpace(_sourceEntry!.Clave50) ? _sourceEntry.Clave50 : _sourceEntry.Consecutivo),
+                NC_REFERENCIA_FECHA = _isStandaloneMode ? (DateTime?)null : _sourceEntry!.Date,
                 NC_CODIGO = _selectedReason.Code,
                 NC_RAZON = _selectedReason.Description,
                 Items = BuildCreditNoteItems(selectedLines, _selectedReason.ID),
@@ -509,7 +753,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     new()
                     {
                         RowNo = 1,
-                        TenderID = 1,
+                        TenderID = tenderId,
                         Description = tenderDescription,
                         Amount = returnTotal,
                         AmountForeign = returnTotal,
@@ -542,14 +786,14 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     ComprobanteTipo = "03",
                     Clave50 = !string.IsNullOrWhiteSpace(result.Clave50) ? result.Clave50 : string.Empty,
                     Consecutivo = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : string.Empty,
-                    ClientId = _sourceEntry.ClientId,
-                    ClientName = _sourceEntry.ClientName,
+                    ClientId = _isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty),
+                    ClientName = _isStandaloneMode ? "Estimado Cliente" : (_sourceEntry?.ClientName ?? string.Empty),
                     CashierName = currentUser.DisplayName ?? string.Empty,
                     RegisterNumber = _registerId,
                     StoreName = _storeName,
                     SubtotalColones = returnTotal,
                     TotalColones = returnTotal,
-                    TenderDescription = _isCreditMode ? "Nota de Crédito" : "Efectivo",
+                    TenderDescription = _selectedTender?.Description ?? (_isCreditMode ? "Nota de Crédito" : "Efectivo"),
                     Lines = selectedLines.Select(l => new InvoiceHistoryLine
                     {
                         ItemID = l.ItemID,
@@ -660,7 +904,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 FullPrice = line.UnitPriceColones,
                 Taxable = line.TaxPercentage > 0,
                 TaxID = line.TaxID,
-                SalesTax = line.TaxPercentage,
+                SalesTax = line.TaxPercentage > 0
+                    ? Math.Round(line.UnitPriceColones * Math.Abs(line.ReturnQuantity) * line.TaxPercentage / 100m, 2)
+                    : 0m,
                 LineComment = string.Empty,
                 ReturnReasonCodeID = returnReasonCodeId,
                 ItemType = 0,

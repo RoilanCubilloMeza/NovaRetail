@@ -19,6 +19,11 @@ public partial class CreditNotePage : ContentPage
         await _vm.LoadAsync(entry);
     }
 
+    public async Task LoadStandaloneAsync(string clave50)
+    {
+        await _vm.LoadStandaloneAsync(clave50);
+    }
+
     private async void OnBackToHistory(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("..");
