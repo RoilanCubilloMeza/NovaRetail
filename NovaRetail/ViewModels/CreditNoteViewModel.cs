@@ -75,6 +75,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private readonly IClienteService _clienteService;
     private readonly UserSession _userSession;
     private readonly IStoreConfigService _storeConfigService;
+    private readonly IParametrosService _parametrosService;
 
     private InvoiceHistoryEntry? _sourceEntry;
     private ReasonCodeModel? _selectedReason;
@@ -335,6 +336,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         IInvoiceHistoryService invoiceHistoryService,
         IStoreConfigService storeConfigService,
         IClienteService clienteService,
+        IParametrosService parametrosService,
         UserSession userSession)
     {
         _productService = productService;
@@ -343,6 +345,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _invoiceHistoryService = invoiceHistoryService;
         _storeConfigService = storeConfigService;
         _clienteService = clienteService;
+        _parametrosService = parametrosService;
         _userSession = userSession;
 
         ConfirmCommand = new Command(async () => await ConfirmAsync(), () => CanConfirm);
@@ -711,6 +714,29 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         try
         {
             var tenders = await _storeConfigService.GetTendersAsync();
+
+            // Filtrar tenders según NCTenderCods
+            try
+            {
+                var settings = await _parametrosService.GetTenderSettingsAsync();
+                if (settings is not null && !string.IsNullOrWhiteSpace(settings.NCTenderCods))
+                {
+                    var allowed = new HashSet<int>();
+                    foreach (var code in settings.NCTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        if (int.TryParse(code, out var id))
+                            allowed.Add(id);
+                    }
+                    if (allowed.Count > 0)
+                    {
+                        var filtered = tenders.Where(t => allowed.Contains(t.ID)).ToList();
+                        if (filtered.Count > 0)
+                            tenders = filtered;
+                    }
+                }
+            }
+            catch { /* si falla, mostrar todos */ }
+
             foreach (var t in tenders)
             {
                 t.IsSelected = false;

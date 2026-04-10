@@ -22,6 +22,7 @@ namespace NovaRetail.ViewModels
         private readonly IStoreConfigService _storeConfigService;
         private readonly ISalesRepService _salesRepService;
         private readonly IInvoiceHistoryService _invoiceHistoryService;
+        private readonly IParametrosService _parametrosService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
         private readonly List<ProductModel> _allProducts = new();
@@ -735,7 +736,7 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
@@ -745,6 +746,7 @@ namespace NovaRetail.ViewModels
             _storeConfigService = storeConfigService;
             _salesRepService = salesRepService;
             _invoiceHistoryService = invoiceHistoryService;
+            _parametrosService = parametrosService;
             _appStore = appStore;
             _userSession = userSession;
             _appStore.StateChanged += OnAppStateChanged;
@@ -914,6 +916,29 @@ namespace NovaRetail.ViewModels
                 OnPropertyChanged(nameof(ShowSalesRepFeature));
 
                 var tenders = await _storeConfigService.GetTendersAsync();
+
+                // Filtrar tenders según SalesTenderCods (IDs de tender)
+                try
+                {
+                    var settings = await _parametrosService.GetTenderSettingsAsync();
+                    if (settings is not null && !string.IsNullOrWhiteSpace(settings.SalesTenderCods))
+                    {
+                        var allowed = new HashSet<int>();
+                        foreach (var code in settings.SalesTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            if (int.TryParse(code, out var id))
+                                allowed.Add(id);
+                        }
+                        if (allowed.Count > 0)
+                        {
+                            var filtered = tenders.Where(t => allowed.Contains(t.ID)).ToList();
+                            if (filtered.Count > 0)
+                                tenders = filtered;
+                        }
+                    }
+                }
+                catch { /* si falla, mostrar todos */ }
+
                 Tenders.Clear();
                 foreach (var t in tenders)
                     Tenders.Add(t);
