@@ -17,6 +17,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private bool _isSaving;
     private string _statusMessage = string.Empty;
+    private string _activeSection = "Parametros";
 
     // Parámetros generales
     public ObservableCollection<ParametroEditItem> Parametros { get; } = new();
@@ -38,7 +39,15 @@ public class ParametrosViewModel : INotifyPropertyChanged
     public bool IsSaving
     {
         get => _isSaving;
-        private set { if (_isSaving != value) { _isSaving = value; OnPropertyChanged(); } }
+        private set
+        {
+            if (_isSaving != value)
+            {
+                _isSaving = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(OperacionResumen));
+            }
+        }
     }
 
     public string StatusMessage
@@ -49,50 +58,65 @@ public class ParametrosViewModel : INotifyPropertyChanged
 
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasParametros => Parametros.Count > 0;
+    public int ParametrosCount => Parametros.Count;
+    public int TendersConfiguradosCount => CountConfiguredTenders();
+    public string DashboardResumen => $"{ParametrosCount} parámetros generales y {TendersConfiguradosCount}/5 grupos tender configurados.";
+    public string OperacionResumen => IsSaving ? "Guardando cambios..." : "Use una sección a la vez para trabajar con más espacio.";
+    public bool IsParametrosSectionActive => _activeSection == "Parametros";
+    public bool IsTendersSectionActive => _activeSection == "Tenders";
 
     public string SalesTenderCods
     {
         get => _salesTenderCods;
-        set { if (_salesTenderCods != value) { _salesTenderCods = value; OnPropertyChanged(); } }
+        set { if (_salesTenderCods != value) { _salesTenderCods = value; OnPropertyChanged(); OnPropertyChanged(nameof(TendersConfiguradosCount)); OnPropertyChanged(nameof(DashboardResumen)); } }
     }
 
     public string PaymentsTenderCods
     {
         get => _paymentsTenderCods;
-        set { if (_paymentsTenderCods != value) { _paymentsTenderCods = value; OnPropertyChanged(); } }
+        set { if (_paymentsTenderCods != value) { _paymentsTenderCods = value; OnPropertyChanged(); OnPropertyChanged(nameof(TendersConfiguradosCount)); OnPropertyChanged(nameof(DashboardResumen)); } }
     }
 
     public string NCTenderCods
     {
         get => _ncTenderCods;
-        set { if (_ncTenderCods != value) { _ncTenderCods = value; OnPropertyChanged(); } }
+        set { if (_ncTenderCods != value) { _ncTenderCods = value; OnPropertyChanged(); OnPropertyChanged(nameof(TendersConfiguradosCount)); OnPropertyChanged(nameof(DashboardResumen)); } }
     }
 
     public string NCPaymentCods
     {
         get => _ncPaymentCods;
-        set { if (_ncPaymentCods != value) { _ncPaymentCods = value; OnPropertyChanged(); } }
+        set { if (_ncPaymentCods != value) { _ncPaymentCods = value; OnPropertyChanged(); OnPropertyChanged(nameof(TendersConfiguradosCount)); OnPropertyChanged(nameof(DashboardResumen)); } }
     }
 
     public string NCPaymentChargeCode
     {
         get => _ncPaymentChargeCode;
-        set { if (_ncPaymentChargeCode != value) { _ncPaymentChargeCode = value; OnPropertyChanged(); } }
+        set { if (_ncPaymentChargeCode != value) { _ncPaymentChargeCode = value; OnPropertyChanged(); OnPropertyChanged(nameof(TendersConfiguradosCount)); OnPropertyChanged(nameof(DashboardResumen)); } }
     }
 
     public ICommand SaveParametroCommand { get; }
     public ICommand SaveTenderSettingsCommand { get; }
     public ICommand GoBackCommand { get; }
+    public ICommand ShowParametrosSectionCommand { get; }
+    public ICommand ShowTendersSectionCommand { get; }
 
     public ParametrosViewModel(IParametrosService service, IDialogService dialog)
     {
         _service = service;
         _dialog = dialog;
-        Parametros.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasParametros));
+        Parametros.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasParametros));
+            OnPropertyChanged(nameof(ParametrosCount));
+            OnPropertyChanged(nameof(DashboardResumen));
+        };
 
         SaveParametroCommand = new Command<ParametroEditItem>(async item => await SaveParametroAsync(item));
         SaveTenderSettingsCommand = new Command(async () => await SaveTenderSettingsAsync());
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        ShowParametrosSectionCommand = new Command(() => SetActiveSection("Parametros"));
+        ShowTendersSectionCommand = new Command(() => SetActiveSection("Tenders"));
     }
 
     public async Task LoadAsync()
@@ -210,13 +234,13 @@ public class ParametrosViewModel : INotifyPropertyChanged
                 item.OriginalValor = item.Valor;
                 item.NotifyChanged();
                 StatusMessage = $"Parámetro {item.Codigo} guardado.";
-                await _dialog.AlertAsync("✅ Parámetro Actualizado",
-                    $"Se actualizó el parámetro '{item.Codigo}' ({item.Descripcion}).\n\nNuevo valor: {item.Valor}", "Aceptar");
+                await _dialog.AlertAsync("Parámetro Actualizado",
+                    $"El parámetro {item.Codigo} ({item.Descripcion}) se guardó correctamente.\n\nNuevo valor: {item.Valor}", "Aceptar");
             }
             else
             {
                 StatusMessage = $"Error al guardar {item.Codigo}.";
-                await _dialog.AlertAsync("❌ Error", $"No se pudo guardar el parámetro '{item.Codigo}'.", "Aceptar");
+                await _dialog.AlertAsync("Error", $"No se pudo guardar el parámetro {item.Codigo}. Intente de nuevo.", "Aceptar");
             }
         }
         catch
@@ -250,13 +274,13 @@ public class ParametrosViewModel : INotifyPropertyChanged
             if (ok)
             {
                 StatusMessage = "Configuración de tenders guardada.";
-                await _dialog.AlertAsync("✅ Tenders Actualizados",
-                    "Se guardó correctamente la configuración de formas de pago.", "Aceptar");
+                await _dialog.AlertAsync("Tenders Actualizados",
+                    "La configuración de formas de pago se guardó correctamente.", "Aceptar");
             }
             else
             {
                 StatusMessage = "Error al guardar tenders.";
-                await _dialog.AlertAsync("❌ Error", "No se pudo guardar la configuración de tenders.", "Aceptar");
+                await _dialog.AlertAsync("Error", "No se pudo guardar la configuración de tenders. Intente de nuevo.", "Aceptar");
             }
         }
         catch
@@ -270,6 +294,31 @@ public class ParametrosViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    private int CountConfiguredTenders()
+    {
+        var values = new[]
+        {
+            SalesTenderCods,
+            PaymentsTenderCods,
+            NCTenderCods,
+            NCPaymentCods,
+            NCPaymentChargeCode
+        };
+
+        return values.Count(value => !string.IsNullOrWhiteSpace(value));
+    }
+
+    private void SetActiveSection(string section)
+    {
+        if (_activeSection == section)
+            return;
+
+        _activeSection = section;
+        OnPropertyChanged(nameof(IsParametrosSectionActive));
+        OnPropertyChanged(nameof(IsTendersSectionActive));
+    }
+
     private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

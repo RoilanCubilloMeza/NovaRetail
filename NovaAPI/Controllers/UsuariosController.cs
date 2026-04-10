@@ -17,7 +17,7 @@ namespace NovaAPI.Controllers
         // ───── GET api/Usuarios ─────
 
         [HttpGet]
-        public IHttpActionResult Get()
+        public IHttpActionResult Get(string q = null, string estado = null)
         {
             var list = new List<UsuarioDto>();
             try
@@ -33,6 +33,39 @@ namespace NovaAPI.Controllers
                     var privCol = GetFirst(columns, "Privileges");
                     var storeCol = GetFirst(columns, "StoreID", "ID_STORE", "Store");
 
+                    var whereParts = new List<string>();
+                    var cmd = new SqlCommand();
+
+                    if (!string.IsNullOrWhiteSpace(q))
+                    {
+                        var searchParts = new List<string>();
+                        var searchValue = "%" + q.Trim() + "%";
+
+                        if (!string.IsNullOrWhiteSpace(loginCol))
+                            searchParts.Add("[" + loginCol + "] LIKE @q");
+
+                        if (!string.IsNullOrWhiteSpace(nameCol) && !string.Equals(nameCol, loginCol, StringComparison.OrdinalIgnoreCase))
+                            searchParts.Add("[" + nameCol + "] LIKE @q");
+
+                        if (!string.IsNullOrWhiteSpace(idCol))
+                            searchParts.Add("CAST([" + idCol + "] AS NVARCHAR(30)) LIKE @q");
+
+                        if (searchParts.Count > 0)
+                        {
+                            whereParts.Add("(" + string.Join(" OR ", searchParts) + ")");
+                            cmd.Parameters.AddWithValue("@q", searchValue);
+                        }
+                    }
+
+                    var estadoValue = (estado ?? string.Empty).Trim().ToLowerInvariant();
+                    if (!string.IsNullOrWhiteSpace(secCol))
+                    {
+                        if (estadoValue == "activo" || estadoValue == "activos")
+                            whereParts.Add("[" + secCol + "] > 0");
+                        else if (estadoValue == "inactivo" || estadoValue == "inactivos")
+                            whereParts.Add("[" + secCol + "] <= 0");
+                    }
+
                     var sql =
                         "SELECT " +
                         Col(idCol, "CashierID", "0") + ", " +
@@ -41,9 +74,14 @@ namespace NovaAPI.Controllers
                         Col(secCol, "SecurityLevel", "0") + ", " +
                         Col(privCol, "Privileges", "0") + ", " +
                         Col(storeCol, "StoreID", "0") +
-                        " FROM [Cashier] ORDER BY " + (idCol ?? "1");
+                        " FROM [Cashier]" +
+                        (whereParts.Count > 0 ? " WHERE " + string.Join(" AND ", whereParts) : string.Empty) +
+                        " ORDER BY " + (idCol ?? "1");
 
-                    using (var cmd = new SqlCommand(sql, cn))
+                    cmd.Connection = cn;
+                    cmd.CommandText = sql;
+
+                    using (cmd)
                     using (var r = cmd.ExecuteReader())
                     {
                         while (r.Read())

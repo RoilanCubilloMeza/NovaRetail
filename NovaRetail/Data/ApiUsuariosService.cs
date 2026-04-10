@@ -24,14 +24,24 @@ public sealed class ApiUsuariosService : IUsuariosService
         _baseUrls = settings.BaseUrls;
     }
 
-    public async Task<List<UsuarioModel>> GetUsuariosAsync()
+    public async Task<List<UsuarioModel>> GetUsuariosAsync(string? busqueda = null, string? estado = null)
     {
         foreach (var baseUrl in _baseUrls)
         {
             try
             {
                 var http = _httpClientFactory.CreateClient(ClientName);
-                var response = await http.GetAsync($"{baseUrl}/api/Usuarios");
+                var query = new List<string>();
+                if (!string.IsNullOrWhiteSpace(busqueda))
+                    query.Add($"q={Uri.EscapeDataString(busqueda.Trim())}");
+                if (!string.IsNullOrWhiteSpace(estado))
+                    query.Add($"estado={Uri.EscapeDataString(estado.Trim())}");
+
+                var url = $"{baseUrl}/api/Usuarios";
+                if (query.Count > 0)
+                    url += "?" + string.Join("&", query);
+
+                var response = await http.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
                     continue;
 

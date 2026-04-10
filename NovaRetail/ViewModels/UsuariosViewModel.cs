@@ -10,6 +10,10 @@ namespace NovaRetail.ViewModels;
 
 public class UsuariosViewModel : INotifyPropertyChanged
 {
+    private const string EstadoTodos = "todos";
+    private const string EstadoActivos = "activos";
+    private const string EstadoInactivos = "inactivos";
+
     private readonly IUsuariosService _service;
     private readonly IDialogService _dialog;
 
@@ -17,13 +21,15 @@ public class UsuariosViewModel : INotifyPropertyChanged
     private bool _isSaving;
     private string _statusMessage = string.Empty;
     private bool _isEditing;
+    private string _searchText = string.Empty;
+    private string _estadoFiltro = EstadoTodos;
 
-    // Campos del formulario
     private int _editingId;
     private string _editNombreUsuario = string.Empty;
     private string _editNombreCompleto = string.Empty;
     private short _editSecurityLevel;
     private RolModel? _editSelectedRol;
+    private UsuarioEditItem? _originalItem;
 
     public ObservableCollection<UsuarioEditItem> Usuarios { get; } = new();
     public ObservableCollection<RolModel> RolesDisponibles { get; } = new();
@@ -48,14 +54,62 @@ public class UsuariosViewModel : INotifyPropertyChanged
 
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasUsuarios => Usuarios.Count > 0;
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
+    public bool IsBrowseMode => !IsEditing;
 
     public bool IsEditing
     {
         get => _isEditing;
-        private set { if (_isEditing != value) { _isEditing = value; OnPropertyChanged(); OnPropertyChanged(nameof(FormTitle)); } }
+        private set
+        {
+            if (_isEditing != value)
+            {
+                _isEditing = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsBrowseMode));
+                OnPropertyChanged(nameof(FormTitle));
+            }
+        }
     }
 
-    public string FormTitle => IsEditing ? $"Editar Usuario #{_editingId}" : "Seleccione un usuario";
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasSearchText));
+                OnPropertyChanged(nameof(ResultadosResumen));
+                OnPropertyChanged(nameof(EmptyMessage));
+            }
+        }
+    }
+
+    public bool FiltroTodosActivo => string.Equals(_estadoFiltro, EstadoTodos, StringComparison.OrdinalIgnoreCase);
+    public bool FiltroActivosActivo => string.Equals(_estadoFiltro, EstadoActivos, StringComparison.OrdinalIgnoreCase);
+    public bool FiltroInactivosActivo => string.Equals(_estadoFiltro, EstadoInactivos, StringComparison.OrdinalIgnoreCase);
+
+    public string FormTitle => IsEditing ? $"Editar Usuario #{_editingId}" : string.Empty;
+
+    public string ResultadosResumen
+    {
+        get
+        {
+            if (HasUsuarios)
+                return $"{Usuarios.Count} usuario(s) encontrados";
+
+            return HasSearchText || !FiltroTodosActivo
+                ? "No hay resultados para ese filtro."
+                : "No hay usuarios disponibles.";
+        }
+    }
+
+    public string EmptyMessage => HasSearchText || !FiltroTodosActivo
+        ? "No se encontraron usuarios con los criterios indicados."
+        : "No se encontraron usuarios.";
 
     public string EditNombreUsuario
     {
@@ -72,8 +126,29 @@ public class UsuariosViewModel : INotifyPropertyChanged
     public short EditSecurityLevel
     {
         get => _editSecurityLevel;
-        set { if (_editSecurityLevel != value) { _editSecurityLevel = value; OnPropertyChanged(); } }
+        set
+        {
+            if (_editSecurityLevel != value)
+            {
+                _editSecurityLevel = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EditEstadoTexto));
+                OnPropertyChanged(nameof(EditEstadoDescripcion));
+                OnPropertyChanged(nameof(EditEstadoColor));
+                OnPropertyChanged(nameof(EditEstadoBackground));
+            }
+        }
     }
+
+    public string EditEstadoTexto => EditSecurityLevel > 0 ? "Activo" : "Inactivo";
+
+    public string EditEstadoDescripcion => EditSecurityLevel > 0
+        ? "El usuario puede iniciar sesión en el sistema."
+        : "El usuario está desactivado para ingresar.";
+
+    public Color EditEstadoColor => EditSecurityLevel > 0 ? Color.FromArgb("#166534") : Color.FromArgb("#64748B");
+
+    public Color EditEstadoBackground => EditSecurityLevel > 0 ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#E2E8F0");
 
     public RolModel? EditSelectedRol
     {
@@ -86,18 +161,33 @@ public class UsuariosViewModel : INotifyPropertyChanged
     public ICommand ToggleActivoCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand GoBackCommand { get; }
+    public ICommand SearchCommand { get; }
+    public ICommand ClearSearchCommand { get; }
+    public ICommand ShowTodosCommand { get; }
+    public ICommand ShowActivosCommand { get; }
+    public ICommand ShowInactivosCommand { get; }
 
     public UsuariosViewModel(IUsuariosService service, IDialogService dialog)
     {
         _service = service;
         _dialog = dialog;
-        Usuarios.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasUsuarios));
+        Usuarios.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasUsuarios));
+            OnPropertyChanged(nameof(ResultadosResumen));
+            OnPropertyChanged(nameof(EmptyMessage));
+        };
 
         SaveCommand = new Command(async () => await SaveAsync());
         EditCommand = new Command<UsuarioEditItem>(LoadForEdit);
         ToggleActivoCommand = new Command<UsuarioEditItem>(async item => await ToggleActivoAsync(item));
         CancelCommand = new Command(ClearForm);
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        SearchCommand = new Command(async () => await SearchAsync());
+        ClearSearchCommand = new Command(async () => await ClearSearchAsync());
+        ShowTodosCommand = new Command(async () => await SetEstadoFiltroAsync(EstadoTodos));
+        ShowActivosCommand = new Command(async () => await SetEstadoFiltroAsync(EstadoActivos));
+        ShowInactivosCommand = new Command(async () => await SetEstadoFiltroAsync(EstadoInactivos));
     }
 
     public async Task LoadAsync()
@@ -108,7 +198,10 @@ public class UsuariosViewModel : INotifyPropertyChanged
 
         try
         {
-            var usuariosTask = _service.GetUsuariosAsync();
+            var busqueda = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
+            var estado = GetEstadoApiValue();
+
+            var usuariosTask = _service.GetUsuariosAsync(busqueda, estado);
             var rolesTask = _service.GetRolesAsync();
 
             await Task.WhenAll(usuariosTask, rolesTask);
@@ -119,28 +212,30 @@ public class UsuariosViewModel : INotifyPropertyChanged
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 RolesDisponibles.Clear();
-                foreach (var r in roles)
-                    RolesDisponibles.Add(r);
+                foreach (var rol in roles)
+                    RolesDisponibles.Add(rol);
 
                 Usuarios.Clear();
-                foreach (var u in usuarios)
+                foreach (var usuario in usuarios)
                 {
                     Usuarios.Add(new UsuarioEditItem
                     {
-                        Id = u.Id,
-                        NombreUsuario = u.NombreUsuario,
-                        NombreCompleto = u.NombreCompleto,
-                        SecurityLevel = u.SecurityLevel,
-                        Privileges = u.Privileges,
-                        StoreID = u.StoreID,
-                        RoleId = u.RoleId,
-                        RolCode = u.RolCode,
-                        RolName = u.RolName
+                        Id = usuario.Id,
+                        NombreUsuario = usuario.NombreUsuario,
+                        NombreCompleto = usuario.NombreCompleto,
+                        SecurityLevel = usuario.SecurityLevel,
+                        Privileges = usuario.Privileges,
+                        StoreID = usuario.StoreID,
+                        RoleId = usuario.RoleId,
+                        RolCode = usuario.RolCode,
+                        RolName = usuario.RolName
                     });
                 }
             });
 
-            StatusMessage = $"{usuarios.Count} usuario(s) cargado(s).";
+            StatusMessage = BuildLoadMessage(usuarios.Count, busqueda, estado);
+            OnPropertyChanged(nameof(ResultadosResumen));
+            OnPropertyChanged(nameof(EmptyMessage));
         }
         catch (Exception ex)
         {
@@ -152,8 +247,63 @@ public class UsuariosViewModel : INotifyPropertyChanged
         }
     }
 
-    // Guarda referencia al item original para detectar cambios
-    private UsuarioEditItem? _originalItem;
+    private async Task SearchAsync()
+    {
+        ClearForm();
+        await LoadAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        SearchText = string.Empty;
+        ClearForm();
+        await LoadAsync();
+    }
+
+    private async Task SetEstadoFiltroAsync(string estado)
+    {
+        if (string.Equals(_estadoFiltro, estado, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _estadoFiltro = estado;
+        NotifyFilterStateChanged();
+        ClearForm();
+        await LoadAsync();
+    }
+
+    private void NotifyFilterStateChanged()
+    {
+        OnPropertyChanged(nameof(FiltroTodosActivo));
+        OnPropertyChanged(nameof(FiltroActivosActivo));
+        OnPropertyChanged(nameof(FiltroInactivosActivo));
+        OnPropertyChanged(nameof(ResultadosResumen));
+        OnPropertyChanged(nameof(EmptyMessage));
+    }
+
+    private string? GetEstadoApiValue()
+    {
+        if (FiltroActivosActivo) return EstadoActivos;
+        if (FiltroInactivosActivo) return EstadoInactivos;
+        return null;
+    }
+
+    private static string BuildLoadMessage(int count, string? busqueda, string? estado)
+    {
+        var filtros = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(busqueda))
+            filtros.Add($"búsqueda '{busqueda}'");
+
+        if (string.Equals(estado, EstadoActivos, StringComparison.OrdinalIgnoreCase))
+            filtros.Add("solo activos");
+        else if (string.Equals(estado, EstadoInactivos, StringComparison.OrdinalIgnoreCase))
+            filtros.Add("solo inactivos");
+
+        if (filtros.Count == 0)
+            return $"{count} usuario(s) cargado(s).";
+
+        return $"{count} usuario(s) para {string.Join(" y ", filtros)}.";
+    }
 
     private void LoadForEdit(UsuarioEditItem? item)
     {
@@ -201,14 +351,14 @@ public class UsuariosViewModel : INotifyPropertyChanged
                 var nombre = EditNombreUsuario;
                 ClearForm();
                 await LoadAsync();
-                StatusMessage = $"✅ Usuario '{nombre}' actualizado.";
-                await _dialog.AlertAsync("✅ Usuario Actualizado",
-                    $"Se actualizó el usuario '{nombre}'.\n\n{cambios}", "Aceptar");
+                StatusMessage = $"Usuario '{nombre}' actualizado.";
+                await _dialog.AlertAsync("Usuario Actualizado",
+                    $"El usuario {nombre} se actualizó correctamente.\n\n{cambios}", "Aceptar");
             }
             else
             {
-                StatusMessage = "❌ Error al guardar el usuario.";
-                await _dialog.AlertAsync("❌ Error", "No se pudo guardar el usuario.", "Aceptar");
+                StatusMessage = "Error al guardar el usuario.";
+                await _dialog.AlertAsync("Error", "No se pudo guardar el usuario. Intente de nuevo.", "Aceptar");
             }
         }
         catch (Exception ex)
@@ -227,14 +377,14 @@ public class UsuariosViewModel : INotifyPropertyChanged
 
         var parts = new List<string>();
         if (!string.Equals(_originalItem.NombreCompleto, EditNombreCompleto.Trim(), StringComparison.Ordinal))
-            parts.Add($"Nombre → '{EditNombreCompleto.Trim()}'");
+            parts.Add($"• Nombre: {EditNombreCompleto.Trim()}");
         if (_originalItem.SecurityLevel != EditSecurityLevel)
-            parts.Add($"Nivel de seguridad → {EditSecurityLevel}");
+            parts.Add($"• Nivel de seguridad: {EditSecurityLevel}");
         var newRoleId = EditSelectedRol?.Id ?? 0;
         if (_originalItem.RoleId != newRoleId)
-            parts.Add($"Rol → '{EditSelectedRol?.Name ?? "Sin rol"}'");
+            parts.Add($"• Rol: {EditSelectedRol?.Name ?? "Sin rol"}");
 
-        return parts.Count > 0 ? "Cambios: " + string.Join(", ", parts) : "Sin cambios detectados.";
+        return parts.Count > 0 ? "Cambios realizados:\n" + string.Join("\n", parts) : "No se detectaron cambios.";
     }
 
     private async Task ToggleActivoAsync(UsuarioEditItem? item)
@@ -259,21 +409,24 @@ public class UsuariosViewModel : INotifyPropertyChanged
             var ok = await _service.SaveUsuarioAsync(item.Id, item.NombreCompleto, nuevoNivel, item.RoleId);
             if (ok)
             {
+                if (item.Id == _editingId)
+                    ClearForm();
+
                 await LoadAsync();
-                StatusMessage = $"✅ Usuario '{item.NombreUsuario}' {accionPasada}.";
-                await _dialog.AlertAsync($"✅ Usuario {accionPasada}",
-                    $"El usuario '{item.NombreUsuario}' ({item.NombreCompleto}) fue {accionPasada}.\nNivel de seguridad → {nuevoNivel}", "Aceptar");
+                StatusMessage = $"Usuario '{item.NombreUsuario}' {accionPasada}.";
+                await _dialog.AlertAsync($"Usuario {accionPasada}",
+                    $"El usuario {item.NombreUsuario} ({item.NombreCompleto}) fue {accionPasada} correctamente.", "Aceptar");
             }
             else
             {
-                StatusMessage = $"❌ Error al {accion} '{item.NombreUsuario}'.";
-                await _dialog.AlertAsync("❌ Error", $"No se pudo {accion} el usuario '{item.NombreUsuario}'.", "Aceptar");
+                StatusMessage = $"Error al {accion} '{item.NombreUsuario}'.";
+                await _dialog.AlertAsync("Error", $"No se pudo {accion} el usuario {item.NombreUsuario}. Intente de nuevo.", "Aceptar");
             }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ Error: {ex.Message}";
-            await _dialog.AlertAsync("❌ Error", ex.Message, "Aceptar");
+            StatusMessage = $"Error: {ex.Message}";
+            await _dialog.AlertAsync("Error", ex.Message, "Aceptar");
         }
         finally
         {
@@ -302,8 +455,9 @@ public class UsuarioEditItem : INotifyPropertyChanged
     public string SecurityDisplay => $"Nivel {SecurityLevel}";
     public bool IsActivo => SecurityLevel > 0;
     public string EstadoTexto => IsActivo ? "Activo" : "Inactivo";
-    public Color EstadoColor => IsActivo ? Colors.Green : Colors.Gray;
-    public string ToggleTexto => IsActivo ? "🚫 Desactivar" : "✅ Activar";
+    public Color EstadoColor => IsActivo ? Color.FromArgb("#166534") : Color.FromArgb("#64748B");
+    public Color EstadoBackgroundColor => IsActivo ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#E2E8F0");
+    public string ToggleTexto => IsActivo ? "Desactivar" : "Activar";
     public Color ToggleBgColor => IsActivo ? Color.FromArgb("#FEF2F2") : Color.FromArgb("#F0FDF4");
     public Color ToggleTextColor => IsActivo ? Color.FromArgb("#DC2626") : Color.FromArgb("#16A34A");
 

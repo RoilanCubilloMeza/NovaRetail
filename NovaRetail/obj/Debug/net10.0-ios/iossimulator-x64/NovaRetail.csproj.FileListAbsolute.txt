@@ -321,7 +321,6 @@ C:\Users\developer01\Documents\GitHub\NovaRetail\NovaRetail\obj\Debug\net10.0-io
 C:\Users\developer01\Documents\GitHub\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\NovaRetail.genruntimeconfig.cache
 C:\Users\developer01\Documents\GitHub\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\ref\NovaRetail.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\NovaRetail.runtimeconfig.json
-C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\NovaRetail.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\NovaRetail.pdb
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\Microsoft.Extensions.Configuration.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\Microsoft.Extensions.Configuration.Abstractions.dll
@@ -641,4 +640,5 @@ C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\obj\Debug\net10.
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\refint\NovaRetail.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\NovaRetail.pdb
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\NovaRetail.genruntimeconfig.cache
+C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\bin\Debug\net10.0-ios\iossimulator-x64\NovaRetail.dll
 C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail\obj\Debug\net10.0-ios\iossimulator-x64\ref\NovaRetail.dll

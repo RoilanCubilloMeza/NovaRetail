@@ -1,5 +1,4 @@
 using System.Collections.Specialized;
-using System.ComponentModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using NovaRetail.ViewModels;
@@ -56,72 +55,141 @@ public partial class ParametrosPage : ContentPage
         ParametrosScrollView.IsVisible = true;
 
         foreach (var item in vm.Parametros)
-        {
-            item.PropertyChanged -= OnParametroItemPropertyChanged;
-            item.PropertyChanged += OnParametroItemPropertyChanged;
             ParametrosListHost.Children.Add(BuildParametroCard(vm, item));
-        }
-    }
-
-    private void OnParametroItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(ParametroEditItem.Valor) or nameof(ParametroEditItem.IsModified))
-        {
-            if (BindingContext is ParametrosViewModel vm)
-                MainThread.BeginInvokeOnMainThread(() => RenderParametros(vm));
-        }
     }
 
     private static View BuildParametroCard(ParametrosViewModel vm, ParametroEditItem item)
     {
+        var accentBar = new BoxView
+        {
+            Color = UiConfig.BorderLight,
+            CornerRadius = 2,
+            WidthRequest = 4,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var accentModifiedTrigger = new DataTrigger(typeof(BoxView))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = true
+        };
+        accentModifiedTrigger.Setters.Add(new Setter
+        {
+            Property = BoxView.ColorProperty,
+            Value = UiConfig.AccentBlue
+        });
+        accentBar.Triggers.Add(accentModifiedTrigger);
+
         var codeLabel = new Label
         {
-            FontSize = 12,
+            FontSize = 11,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4338CA"),
+            TextColor = UiConfig.AccentBlue,
             VerticalOptions = LayoutOptions.Center
         };
         codeLabel.SetBinding(Label.TextProperty, new Binding(nameof(ParametroEditItem.Codigo), source: item));
 
         var codeBadge = new Border
         {
-            BackgroundColor = Color.FromArgb("#EEF2FF"),
+            BackgroundColor = Color.FromArgb("#EFF6FF"),
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 4 },
-            Padding = new Thickness(8, 2),
+            StrokeShape = new RoundRectangle { CornerRadius = 999 },
+            Padding = new Thickness(10, 4),
             Content = codeLabel
         };
 
+        var pendingLabel = new Label
+        {
+            Text = "Pendiente",
+            FontSize = 10,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = UiConfig.AccentOrange,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var pendingBadge = new Border
+        {
+            BackgroundColor = Color.FromArgb("#FFF7ED"),
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 999 },
+            Padding = new Thickness(10, 4),
+            HorizontalOptions = LayoutOptions.End,
+            IsVisible = item.IsModified,
+            Content = pendingLabel
+        };
+
+        var pendingShowTrigger = new DataTrigger(typeof(Border))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = true
+        };
+        pendingShowTrigger.Setters.Add(new Setter
+        {
+            Property = VisualElement.IsVisibleProperty,
+            Value = true
+        });
+
+        var pendingHideTrigger = new DataTrigger(typeof(Border))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = false
+        };
+        pendingHideTrigger.Setters.Add(new Setter
+        {
+            Property = VisualElement.IsVisibleProperty,
+            Value = false
+        });
+        pendingBadge.Triggers.Add(pendingShowTrigger);
+        pendingBadge.Triggers.Add(pendingHideTrigger);
+
+        var titleRow = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10
+        };
+        titleRow.Add(codeBadge);
+        Grid.SetColumn(codeBadge, 0);
+        titleRow.Add(pendingBadge);
+        Grid.SetColumn(pendingBadge, 2);
+
         var descriptionLabel = new Label
         {
-            FontSize = 12,
-            TextColor = Color.FromArgb("#64748B"),
-            VerticalOptions = LayoutOptions.Center,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = UiConfig.TextPrimary,
             LineBreakMode = LineBreakMode.WordWrap
         };
         descriptionLabel.SetBinding(Label.TextProperty, new Binding(nameof(ParametroEditItem.Descripcion), source: item));
 
-        var headerRow = new HorizontalStackLayout
+        var helperLabel = new Label
         {
-            Spacing = 8,
-            Children = { codeBadge, descriptionLabel }
+            Text = "Ajuste general del sistema",
+            FontSize = 11,
+            TextColor = UiConfig.TextGray500
         };
 
         var entry = new Entry
         {
-            FontSize = 13,
+            FontSize = 14,
             BackgroundColor = Colors.Transparent,
-            Placeholder = "Valor..."
+            Placeholder = "Valor del parámetro"
         };
         entry.SetBinding(Entry.TextProperty, new Binding(nameof(ParametroEditItem.Valor), BindingMode.TwoWay, source: item));
 
         var entryBorder = new Border
         {
-            BackgroundColor = Color.FromArgb("#F8FAFC"),
-            Stroke = Color.FromArgb("#CBD5E1"),
-            StrokeThickness = 1,
-            StrokeShape = new RoundRectangle { CornerRadius = 6 },
-            Padding = new Thickness(8, 4),
+            BackgroundColor = UiConfig.InputBackground,
+            Stroke = UiConfig.BorderGray,
+            StrokeThickness = UiConfig.StrokeThin,
+            StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusMd },
+            Padding = new Thickness(12, 8),
+            MinimumHeightRequest = 44,
             Content = entry
         };
 
@@ -137,56 +205,120 @@ public partial class ParametrosPage : ContentPage
 
         var saveBorder = new Border
         {
-            BackgroundColor = item.IsModified ? Color.FromArgb("#2563EB") : Color.FromArgb("#94A3B8"),
+            BackgroundColor = item.IsModified ? UiConfig.AccentBlue : Color.FromArgb("#94A3B8"),
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 8 },
-            Padding = new Thickness(12, 8),
-            VerticalOptions = LayoutOptions.Center,
+            StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusMd },
+            Padding = new Thickness(16, 12),
+            WidthRequest = 110,
+            HorizontalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.End,
+            Opacity = item.IsModified ? 1 : 0.82,
             Content = saveLabel
         };
+
+        var modifiedTrigger = new DataTrigger(typeof(Border))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = true
+        };
+        modifiedTrigger.Setters.Add(new Setter
+        {
+            Property = Border.BackgroundColorProperty,
+            Value = UiConfig.AccentBlue
+        });
+        modifiedTrigger.Setters.Add(new Setter
+        {
+            Property = VisualElement.OpacityProperty,
+            Value = 1.0
+        });
+
+        var unmodifiedTrigger = new DataTrigger(typeof(Border))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = false
+        };
+        unmodifiedTrigger.Setters.Add(new Setter
+        {
+            Property = Border.BackgroundColorProperty,
+            Value = Color.FromArgb("#94A3B8")
+        });
+        unmodifiedTrigger.Setters.Add(new Setter
+        {
+            Property = VisualElement.OpacityProperty,
+            Value = 0.82
+        });
+
+        saveBorder.Triggers.Add(modifiedTrigger);
+        saveBorder.Triggers.Add(unmodifiedTrigger);
         saveBorder.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = vm.SaveParametroCommand,
             CommandParameter = item
         });
 
-        var grid = new Grid
+        var editorRow = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
             {
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Auto)
             },
-            RowDefinitions = new RowDefinitionCollection
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            RowSpacing = 4
+            ColumnSpacing = 12,
+            VerticalOptions = LayoutOptions.End
         };
-
-        grid.Add(headerRow);
-        Grid.SetRow(headerRow, 0);
-        Grid.SetColumn(headerRow, 0);
-
-        grid.Add(entryBorder);
-        Grid.SetRow(entryBorder, 1);
+        editorRow.Add(entryBorder);
         Grid.SetColumn(entryBorder, 0);
-
-        grid.Add(saveBorder);
-        Grid.SetRow(saveBorder, 0);
-        Grid.SetRowSpan(saveBorder, 2);
+        editorRow.Add(saveBorder);
         Grid.SetColumn(saveBorder, 1);
 
-        return new Border
+        var contentStack = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children = { titleRow, descriptionLabel, helperLabel, editorRow }
+        };
+
+        var cardBody = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 14
+        };
+        cardBody.Add(accentBar);
+        Grid.SetColumn(accentBar, 0);
+        cardBody.Add(contentStack);
+        Grid.SetColumn(contentStack, 1);
+
+        var card = new Border
         {
             Margin = new Thickness(0, 0, 0, 6),
-            Padding = new Thickness(14, 10),
-            StrokeShape = new RoundRectangle { CornerRadius = 8 },
-            StrokeThickness = 1,
-            Stroke = Color.FromArgb("#E2E8F0"),
+            Padding = new Thickness(16, 14),
+            StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusLg },
+            StrokeThickness = UiConfig.StrokeThin,
+            Stroke = UiConfig.BorderLight,
             BackgroundColor = Colors.White,
-            Content = grid
+            Content = cardBody
         };
+
+        var cardModifiedTrigger = new DataTrigger(typeof(Border))
+        {
+            Binding = new Binding(nameof(ParametroEditItem.IsModified), source: item),
+            Value = true
+        };
+        cardModifiedTrigger.Setters.Add(new Setter
+        {
+            Property = Border.StrokeProperty,
+            Value = Color.FromArgb("#BFDBFE")
+        });
+        cardModifiedTrigger.Setters.Add(new Setter
+        {
+            Property = Border.BackgroundColorProperty,
+            Value = Color.FromArgb("#FCFEFF")
+        });
+        card.Triggers.Add(cardModifiedTrigger);
+
+        return card;
     }
 }

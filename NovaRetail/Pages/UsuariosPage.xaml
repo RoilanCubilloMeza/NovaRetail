@@ -2,7 +2,6 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:NovaRetail.ViewModels"
-             xmlns:m="clr-namespace:NovaRetail.Models"
              x:Class="NovaRetail.Pages.UsuariosPage"
              Title="Mantenimiento de Usuarios"
              BackgroundColor="{DynamicResource PageBackground}"
@@ -10,10 +9,9 @@
 
     <Grid RowDefinitions="Auto, *" Padding="20">
 
-        <!-- Header -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,10,0,16">
             <Border Grid.Column="0"
-                    BackgroundColor="#F1F5F9"
+                    BackgroundColor="{DynamicResource PageBackground}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 8"
                     Padding="12,8"
@@ -21,244 +19,444 @@
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
                 </Border.GestureRecognizers>
-                <Label Text="← Volver" FontSize="14" FontAttributes="Bold" TextColor="#475569"/>
+                <Label Text="← Volver" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource SlateActive}"/>
             </Border>
 
             <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
                 <Label Text="👤 Mantenimiento de Usuarios"
-                       FontSize="20" FontAttributes="Bold"
-                       TextColor="#1E293B" HorizontalTextAlignment="Center"/>
-                <Label Text="Usuarios del sistema (Cashier) y roles RMH"
-                       FontSize="12" TextColor="#64748B" HorizontalTextAlignment="Center"/>
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource PanelNavy}"
+                       HorizontalTextAlignment="Center"/>
+                <Label Text="Búsqueda, filtros por estado y edición rápida de cajeros"
+                       FontSize="{DynamicResource UIFontSM}"
+                       TextColor="{DynamicResource Gray500}"
+                       HorizontalTextAlignment="Center"/>
             </VerticalStackLayout>
 
-            <!-- Status message -->
             <Border Grid.Column="2"
-                    BackgroundColor="#DCFCE7"
+                    BackgroundColor="{DynamicResource GreenSurface}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 8"
                     Padding="14,8"
                     HorizontalOptions="End"
                     IsVisible="{Binding HasStatus}">
                 <Label Text="{Binding StatusMessage}"
-                       FontSize="12" FontAttributes="Bold"
+                       FontSize="{DynamicResource UIFontSM}"
+                       FontAttributes="Bold"
                        TextColor="#166534"/>
             </Border>
         </Grid>
 
-        <!-- Loading -->
         <ActivityIndicator Grid.Row="1"
                            IsRunning="{Binding IsBusy}"
                            IsVisible="{Binding IsBusy}"
                            Color="{DynamicResource AccentBlue}"
                            VerticalOptions="Center"
                            HorizontalOptions="Center"
-                           WidthRequest="40" HeightRequest="40"/>
+                           WidthRequest="40"
+                           HeightRequest="40"/>
 
-        <!-- Content: two panels side by side -->
-        <Grid Grid.Row="1" ColumnDefinitions="3*, 2*" ColumnSpacing="16"
+        <Grid x:Name="UsuariosContentGrid"
+              Grid.Row="1"
+              ColumnDefinitions="*, 0"
+              ColumnSpacing="16"
               IsVisible="{Binding IsBusy, Converter={StaticResource InvertBoolConverter}}">
 
-            <!-- Left: Lista de usuarios -->
-            <Border Grid.Column="0"
-                    BackgroundColor="White"
-                    StrokeShape="RoundRectangle 12"
-                    Stroke="#E2E8F0"
-                    StrokeThickness="1"
-                    Padding="0">
-                <Grid RowDefinitions="Auto, *">
-                    <Border Grid.Row="0"
-                            BackgroundColor="#1E293B"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 12,12,0,0"
-                            Padding="16,12">
-                        <Label Text="📋 Usuarios Registrados (Cashier)"
-                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+            <Border x:Name="UsuariosListPanel"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Style="{StaticResource PanelCard}">
+                <Grid RowDefinitions="Auto, Auto, *">
+                    <Border Grid.Row="0" Style="{StaticResource PanelHeaderBar}" Padding="16,12">
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="📋 Usuarios Registrados"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                                <Label Text="Use el lápiz para abrir el panel de edición."
+                                       FontSize="11"
+                                       TextColor="#CBD5E1"/>
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#334155"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="10,6"
+                                    VerticalOptions="Center">
+                                <Label Text="{Binding ResultadosResumen}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </Border>
+                        </Grid>
                     </Border>
 
-                    <ScrollView Grid.Row="1">
-                        <VerticalStackLayout Spacing="6" Padding="10">
+                    <VerticalStackLayout Grid.Row="1" Spacing="12" Padding="16,16,16,14">
+                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+                            <Border Style="{StaticResource InputBox}" HeightRequest="-1">
+                                <Grid ColumnDefinitions="Auto, *" ColumnSpacing="8">
+                                    <Label Text="🔎"
+                                           FontSize="14"
+                                           VerticalOptions="Center"
+                                           Margin="0,0,4,0"/>
+                                    <Entry Grid.Column="1"
+                                           Text="{Binding SearchText}"
+                                           Placeholder="Buscar por login, nombre o id"
+                                           ReturnCommand="{Binding SearchCommand}"
+                                           ClearButtonVisibility="WhileEditing"
+                                           FontSize="14"
+                                           TextColor="{DynamicResource PanelNavy}"/>
+                                </Grid>
+                            </Border>
 
-                            <Label Text="No se encontraron usuarios."
-                                   FontSize="13" TextColor="#94A3B8"
-                                   HorizontalOptions="Center" Margin="20"
-                                   IsVisible="{Binding HasUsuarios, Converter={StaticResource InvertBoolConverter}}"/>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="{DynamicResource AccentBlue}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="16,10">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SearchCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Buscar"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </Border>
 
-                            <CollectionView ItemsSource="{Binding Usuarios}">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:UsuarioEditItem">
-                                        <Border BackgroundColor="#F8FAFC"
-                                                StrokeShape="RoundRectangle 10"
-                                                Stroke="#E2E8F0"
-                                                StrokeThickness="1"
-                                                Padding="14,10"
-                                                Margin="0,3">
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=EditCommand}"
-                                                                      CommandParameter="{Binding .}"/>
-                                            </Border.GestureRecognizers>
-                                            <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="12">
-                                                <!-- ID badge -->
-                                                <Border Grid.Column="0" BackgroundColor="#EEF2FF" StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 8" Padding="10,6"
-                                                        VerticalOptions="Center">
-                                                    <Label Text="{Binding Id, StringFormat='#{0}'}" FontSize="13"
-                                                           FontAttributes="Bold" TextColor="#4F46E5"/>
-                                                </Border>
+                            <Border Grid.Column="2"
+                                    BackgroundColor="{DynamicResource PageBackground}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="16,10"
+                                    IsVisible="{Binding HasSearchText}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ClearSearchCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Limpiar"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Gray500}"/>
+                            </Border>
+                        </Grid>
 
-                                                <!-- Info -->
-                                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                                    <HorizontalStackLayout Spacing="8">
-                                                        <Label FontSize="14" FontAttributes="Bold" TextColor="#1E293B">
-                                                            <Label.FormattedText>
-                                                                <FormattedString>
-                                                                    <Span Text="{Binding NombreCompleto}" />
-                                                                    <Span Text="  " />
-                                                                    <Span Text="{Binding NombreUsuario, StringFormat='({0})'}" FontSize="12" TextColor="#64748B"/>
-                                                                </FormattedString>
-                                                            </Label.FormattedText>
-                                                        </Label>
-                                                        <!-- Estado badge -->
-                                                        <Border BackgroundColor="{Binding EstadoColor}" StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 6" Padding="8,2"
-                                                                VerticalOptions="Center">
-                                                            <Label Text="{Binding EstadoTexto}" FontSize="10" TextColor="White" FontAttributes="Bold"/>
-                                                        </Border>
-                                                    </HorizontalStackLayout>
-                                                    <HorizontalStackLayout Spacing="14">
-                                                        <Label FontSize="12" TextColor="#4F46E5" FontAttributes="Bold">
-                                                            <Label.FormattedText>
-                                                                <FormattedString>
-                                                                    <Span Text="🔑 " />
-                                                                    <Span Text="{Binding RolDisplay}" />
-                                                                </FormattedString>
-                                                            </Label.FormattedText>
-                                                        </Label>
-                                                        <Label Text="{Binding SecurityDisplay}" FontSize="12" TextColor="#64748B"/>
-                                                        <Label Text="{Binding StoreID, StringFormat='Tienda: {0}'}" FontSize="12" TextColor="#94A3B8"/>
-                                                    </HorizontalStackLayout>
-                                                </VerticalStackLayout>
+                        <Grid ColumnDefinitions="Auto, Auto, Auto, *, Auto" ColumnSpacing="8">
+                            <Border Grid.Column="0"
+                                    BackgroundColor="{DynamicResource PageBackground}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16"
+                                    Padding="14,8">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding FiltroTodosActivo}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource AccentBlue}"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ShowTodosCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Todos" FontSize="12" FontAttributes="Bold" TextColor="{DynamicResource Gray600}">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding FiltroTodosActivo}" Value="True">
+                                            <Setter Property="TextColor" Value="White"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
 
-                                                <!-- Desactivar/Activar -->
-                                                <Border Grid.Column="2" BackgroundColor="{Binding ToggleBgColor}" StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 6" Padding="10,6"
-                                                        VerticalOptions="Center">
-                                                    <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=ToggleActivoCommand}"
-                                                                              CommandParameter="{Binding .}"/>
-                                                    </Border.GestureRecognizers>
-                                                    <Label Text="{Binding ToggleTexto}" FontSize="12" TextColor="{Binding ToggleTextColor}" FontAttributes="Bold"/>
-                                                </Border>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="{DynamicResource PageBackground}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16"
+                                    Padding="14,8">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding FiltroActivosActivo}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource AccentGreen}"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ShowActivosCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Activos" FontSize="12" FontAttributes="Bold" TextColor="{DynamicResource Gray600}">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding FiltroActivosActivo}" Value="True">
+                                            <Setter Property="TextColor" Value="White"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
 
-                                                <!-- Edit hint -->
-                                                <Label Grid.Column="3" Text="✏️" FontSize="16" VerticalOptions="Center" TextColor="#94A3B8"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
+                            <Border Grid.Column="2"
+                                    BackgroundColor="{DynamicResource PageBackground}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16"
+                                    Padding="14,8">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding FiltroInactivosActivo}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource SlateActive}"/>
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ShowInactivosCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Inactivos" FontSize="12" FontAttributes="Bold" TextColor="{DynamicResource Gray600}">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding FiltroInactivosActivo}" Value="True">
+                                            <Setter Property="TextColor" Value="White"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
 
-                        </VerticalStackLayout>
-                    </ScrollView>
+                            <Label Grid.Column="4"
+                                   Text="{Binding ResultadosResumen}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Gray500}"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <Grid Grid.Row="2" Padding="16,0,16,16">
+                        <Label Text="{Binding EmptyMessage}"
+                               FontSize="{DynamicResource UIFontMD}"
+                               TextColor="{DynamicResource Gray400}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Margin="20"
+                               IsVisible="{Binding HasUsuarios, Converter={StaticResource InvertBoolConverter}}"/>
+
+                        <CollectionView ItemsSource="{Binding Usuarios}"
+                                        IsVisible="{Binding HasUsuarios}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:UsuarioEditItem">
+                                    <Border BackgroundColor="White"
+                                            StrokeShape="RoundRectangle 12"
+                                            Stroke="{DynamicResource Gray200Brush}"
+                                            StrokeThickness="1"
+                                            Padding="16,14"
+                                            Margin="0,0,0,10">
+                                        <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="12">
+                                            <Border Grid.Column="0"
+                                                    BackgroundColor="#EEF2FF"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 10"
+                                                    Padding="10,8"
+                                                    VerticalOptions="Start">
+                                                <Label Text="{Binding Id, StringFormat='#{0}'}"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{DynamicResource AccentBlue}"/>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                                <HorizontalStackLayout Spacing="8">
+                                                    <Label Text="{Binding NombreCompleto}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource PanelNavy}"/>
+                                                    <Border BackgroundColor="{Binding EstadoBackgroundColor}"
+                                                            StrokeThickness="0"
+                                                            StrokeShape="RoundRectangle 8"
+                                                            Padding="8,3"
+                                                            VerticalOptions="Center">
+                                                        <Label Text="{Binding EstadoTexto}"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="{Binding EstadoColor}"/>
+                                                    </Border>
+                                                </HorizontalStackLayout>
+
+                                                <Label Text="{Binding NombreUsuario, StringFormat='Login: {0}'}"
+                                                       FontSize="12"
+                                                       TextColor="{DynamicResource Gray500}"/>
+
+                                                <HorizontalStackLayout Spacing="14">
+                                                    <Label FontSize="12" TextColor="{DynamicResource AccentBlue}" FontAttributes="Bold">
+                                                        <Label.FormattedText>
+                                                            <FormattedString>
+                                                                <Span Text="Rol: " />
+                                                                <Span Text="{Binding RolDisplay}" />
+                                                            </FormattedString>
+                                                        </Label.FormattedText>
+                                                    </Label>
+                                                    <Label Text="{Binding SecurityDisplay}"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource Gray500}"/>
+                                                    <Label Text="{Binding StoreID, StringFormat='Tienda: {0}'}"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource Gray400}"/>
+                                                </HorizontalStackLayout>
+                                            </VerticalStackLayout>
+
+                                            <Border Grid.Column="2"
+                                                    BackgroundColor="{DynamicResource PageBackground}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 8"
+                                                    Padding="12,10"
+                                                    VerticalOptions="Center">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=EditCommand}"
+                                                                          CommandParameter="{Binding .}"/>
+                                                </Border.GestureRecognizers>
+                                                <HorizontalStackLayout Spacing="6">
+                                                    <Label Text="✏️" FontSize="14" VerticalOptions="Center"/>
+                                                    <Label Text="Editar"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource Gray600}"
+                                                           VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
+                                            </Border>
+
+                                            <Border Grid.Column="3"
+                                                    BackgroundColor="{Binding ToggleBgColor}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 8"
+                                                    Padding="12,10"
+                                                    VerticalOptions="Center">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=ToggleActivoCommand}"
+                                                                          CommandParameter="{Binding .}"/>
+                                                </Border.GestureRecognizers>
+                                                <Label Text="{Binding ToggleTexto}"
+                                                       FontSize="12"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{Binding ToggleTextColor}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
                 </Grid>
             </Border>
 
-            <!-- Right: Formulario de edición -->
-            <Border Grid.Column="1"
-                    BackgroundColor="White"
-                    StrokeShape="RoundRectangle 12"
-                    Stroke="#E2E8F0"
-                    StrokeThickness="1"
-                    Padding="0">
+            <Border x:Name="UsuariosEditorPanel"
+                    Grid.Column="1"
+                    Style="{StaticResource PanelCard}"
+                    IsVisible="False">
                 <Grid RowDefinitions="Auto, *, Auto">
-                    <Border Grid.Row="0"
-                            BackgroundColor="#4F46E5"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 12,12,0,0"
-                            Padding="16,12">
+                    <Border Grid.Row="0" Style="{StaticResource PanelHeaderBar}" Padding="16,12">
                         <Label Text="{Binding FormTitle}"
-                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="White"/>
                     </Border>
 
                     <ScrollView Grid.Row="1" Padding="16,12">
                         <VerticalStackLayout Spacing="14">
-
-                            <!-- Nombre de usuario (solo lectura) -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Login (Cashier Number)" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1"
-                                        Padding="10,8" BackgroundColor="#F1F5F9">
-                                    <Label Text="{Binding EditNombreUsuario}" FontSize="14" TextColor="#64748B"/>
+                                <Label Text="Login (Cashier Number)" Style="{StaticResource FieldLabel}"/>
+                                <Border Style="{StaticResource InfoDisplayBorder}">
+                                    <Label Text="{Binding EditNombreUsuario}"
+                                           FontSize="14"
+                                           TextColor="{DynamicResource Gray500}"/>
                                 </Border>
                             </VerticalStackLayout>
 
-                            <!-- Nombre completo -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Nombre Completo" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8">
-                                    <Entry Text="{Binding EditNombreCompleto}" Placeholder="Nombre del cajero"
-                                           FontSize="14" TextColor="#1E293B"/>
+                                <Label Text="Estado actual" Style="{StaticResource FieldLabel}"/>
+                                <Border Style="{StaticResource InfoDisplayBorder}">
+                                    <VerticalStackLayout Spacing="8">
+                                        <Border BackgroundColor="{Binding EditEstadoBackground}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 8"
+                                                Padding="10,6"
+                                                HorizontalOptions="Start">
+                                            <Label Text="{Binding EditEstadoTexto}"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{Binding EditEstadoColor}"/>
+                                        </Border>
+                                        <Label Text="{Binding EditEstadoDescripcion}"
+                                               FontSize="12"
+                                               TextColor="{DynamicResource Gray500}"/>
+                                    </VerticalStackLayout>
                                 </Border>
                             </VerticalStackLayout>
 
-                            <!-- Rol -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Rol (RMH_ApplicationRole)" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="4,0">
+                                <Label Text="Nombre Completo" Style="{StaticResource FieldLabel}"/>
+                                <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
+                                    <Entry Text="{Binding EditNombreCompleto}"
+                                           Placeholder="Nombre del cajero"
+                                           FontSize="14"
+                                           TextColor="{DynamicResource PanelNavy}"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Rol (RMH_ApplicationRole)" Style="{StaticResource FieldLabel}"/>
+                                <Border Style="{StaticResource CompactInputBox}" Padding="4,0">
                                     <Picker Title="Seleccione un rol"
                                             ItemsSource="{Binding RolesDisponibles}"
                                             ItemDisplayBinding="{Binding Name}"
                                             SelectedItem="{Binding EditSelectedRol}"
-                                            FontSize="14" TextColor="#1E293B"/>
+                                            FontSize="14"
+                                            TextColor="{DynamicResource PanelNavy}"/>
                                 </Border>
                             </VerticalStackLayout>
 
-                            <!-- Security Level -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Nivel de Seguridad" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8">
-                                    <Entry Text="{Binding EditSecurityLevel}" Placeholder="0-99"
-                                           Keyboard="Numeric" FontSize="14" TextColor="#1E293B"/>
+                                <Label Text="Nivel de Seguridad" Style="{StaticResource FieldLabel}"/>
+                                <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
+                                    <Entry Text="{Binding EditSecurityLevel}"
+                                           Placeholder="0-99"
+                                           Keyboard="Numeric"
+                                           FontSize="14"
+                                           TextColor="{DynamicResource PanelNavy}"/>
                                 </Border>
-                                <Label Text="≥ 99 = Administrador" FontSize="11" TextColor="#94A3B8"/>
+                                <Label Text="0 deja el usuario inactivo. Valores altos entregan más permisos." Style="{StaticResource HelpText}"/>
                             </VerticalStackLayout>
-
                         </VerticalStackLayout>
                     </ScrollView>
 
-                    <!-- Botones de acción -->
                     <Border Grid.Row="2"
-                            BackgroundColor="#F8FAFC"
+                            BackgroundColor="{DynamicResource InputBackground}"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 0,0,12,12"
                             Padding="16,12">
                         <HorizontalStackLayout Spacing="10" HorizontalOptions="End">
-                            <Border BackgroundColor="#F1F5F9" StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 8" Padding="16,10"
+                            <Border BackgroundColor="{DynamicResource PageBackground}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="16,10"
                                     IsVisible="{Binding IsEditing}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding CancelCommand}"/>
                                 </Border.GestureRecognizers>
-                                <Label Text="Cancelar" FontSize="13" FontAttributes="Bold" TextColor="#64748B"/>
+                                <Label Text="Cerrar"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Gray500}"/>
                             </Border>
 
-                            <Border BackgroundColor="#4F46E5" StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 8" Padding="16,10"
+                            <Border BackgroundColor="{DynamicResource AccentBlue}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="16,10"
                                     IsVisible="{Binding IsEditing}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding SaveCommand}"/>
                                 </Border.GestureRecognizers>
                                 <HorizontalStackLayout Spacing="6">
-                                    <ActivityIndicator IsRunning="{Binding IsSaving}" IsVisible="{Binding IsSaving}"
-                                                       Color="White" WidthRequest="16" HeightRequest="16"/>
-                                    <Label Text="💾 Guardar" FontSize="13" FontAttributes="Bold" TextColor="White"/>
+                                    <ActivityIndicator IsRunning="{Binding IsSaving}"
+                                                       IsVisible="{Binding IsSaving}"
+                                                       Color="White"
+                                                       WidthRequest="16"
+                                                       HeightRequest="16"/>
+                                    <Label Text="Guardar cambios"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="White"/>
                                 </HorizontalStackLayout>
                             </Border>
                         </HorizontalStackLayout>
                     </Border>
                 </Grid>
             </Border>
-
         </Grid>
     </Grid>
 

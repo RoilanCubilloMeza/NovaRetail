@@ -126,6 +126,16 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
+[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/UsuariosPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.UsuariosPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\UsuariosPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\UsuariosPage.xaml
+build_metadata.AdditionalFiles.Inflator = SourceGen
+build_metadata.AdditionalFiles.NoWarn = 
+build_metadata.AdditionalFiles.EnableDiagnostics = 
+build_metadata.AdditionalFiles.LineInfo = 
+
 [C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Colors.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Resources.Styles.Colors.xaml
