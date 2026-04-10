@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using Microsoft.Maui.ApplicationModel;
 using NovaRetail.Data;
+using NovaRetail.Messages;
 using NovaRetail.Models;
 using NovaRetail.Services;
 
@@ -12,6 +13,7 @@ namespace NovaRetail.ViewModels;
 public class ParametrosViewModel : INotifyPropertyChanged
 {
     private readonly IParametrosService _service;
+    private readonly IStoreConfigService _storeConfig;
     private readonly IDialogService _dialog;
 
     private bool _isBusy;
@@ -21,6 +23,9 @@ public class ParametrosViewModel : INotifyPropertyChanged
 
     // Parámetros generales
     public ObservableCollection<ParametroEditItem> Parametros { get; } = new();
+
+    // Selección visual de tenders
+    public ObservableCollection<TenderCheckItem> TenderOptions { get; } = new();
 
     // ExtTender_Settings
     private string _salesTenderCods = string.Empty;
@@ -101,9 +106,10 @@ public class ParametrosViewModel : INotifyPropertyChanged
     public ICommand ShowParametrosSectionCommand { get; }
     public ICommand ShowTendersSectionCommand { get; }
 
-    public ParametrosViewModel(IParametrosService service, IDialogService dialog)
+    public ParametrosViewModel(IParametrosService service, IStoreConfigService storeConfig, IDialogService dialog)
     {
         _service = service;
+        _storeConfig = storeConfig;
         _dialog = dialog;
         Parametros.CollectionChanged += (_, _) =>
         {
@@ -184,6 +190,36 @@ public class ParametrosViewModel : INotifyPropertyChanged
                 NCPaymentCods = tender.NCPaymentCods;
                 NCPaymentChargeCode = tender.NCPaymentChargeCode;
             }
+
+            // Cargar lista de tenders con checkboxes
+            try
+            {
+                var allTenders = await _storeConfig.GetTendersAsync();
+                var salesIds = ParseIds(SalesTenderCods);
+                var payIds = ParseIds(PaymentsTenderCods);
+                var ncIds = ParseIds(NCTenderCods);
+                var ncPayIds = ParseIds(NCPaymentCods);
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    TenderOptions.Clear();
+                    foreach (var t in allTenders)
+                    {
+                        var item = new TenderCheckItem
+                        {
+                            ID = t.ID,
+                            Description = t.Description,
+                            IsForSales = salesIds.Contains(t.ID),
+                            IsForPayments = payIds.Contains(t.ID),
+                            IsForNC = ncIds.Contains(t.ID),
+                            IsForNCPayment = ncPayIds.Contains(t.ID)
+                        };
+                        item.CheckChanged = () => SyncTenderCods();
+                        TenderOptions.Add(item);
+                    }
+                });
+            }
+            catch { /* no crítico */ }
 
             if (parametros.Count > 0 && string.IsNullOrWhiteSpace(tenderError))
             {
@@ -273,6 +309,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
             var ok = await _service.SaveTenderSettingsAsync(model);
             if (ok)
             {
+                TenderSettingsChanged.Send();
                 StatusMessage = "Configuración de tenders guardada.";
                 await _dialog.AlertAsync("Tenders Actualizados",
                     "La configuración de formas de pago se guardó correctamente.", "Aceptar");
@@ -319,6 +356,67 @@ public class ParametrosViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsTendersSectionActive));
     }
 
+    private void SyncTenderCods()
+    {
+        SalesTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForSales).Select(t => t.ID));
+        PaymentsTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForPayments).Select(t => t.ID));
+        NCTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForNC).Select(t => t.ID));
+        NCPaymentCods = string.Join(",", TenderOptions.Where(t => t.IsForNCPayment).Select(t => t.ID));
+    }
+
+    private static HashSet<int> ParseIds(string? codes)
+    {
+        if (string.IsNullOrWhiteSpace(codes))
+            return [];
+        var set = new HashSet<int>();
+        foreach (var part in codes.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (int.TryParse(part, out var id))
+                set.Add(id);
+        }
+        return set;
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+public class TenderCheckItem : INotifyPropertyChanged
+{
+    private bool _isForSales;
+    private bool _isForPayments;
+    private bool _isForNC;
+    private bool _isForNCPayment;
+
+    public int ID { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public Action? CheckChanged { get; set; }
+
+    public bool IsForSales
+    {
+        get => _isForSales;
+        set { if (_isForSales != value) { _isForSales = value; OnPropertyChanged(); CheckChanged?.Invoke(); } }
+    }
+
+    public bool IsForPayments
+    {
+        get => _isForPayments;
+        set { if (_isForPayments != value) { _isForPayments = value; OnPropertyChanged(); CheckChanged?.Invoke(); } }
+    }
+
+    public bool IsForNC
+    {
+        get => _isForNC;
+        set { if (_isForNC != value) { _isForNC = value; OnPropertyChanged(); CheckChanged?.Invoke(); } }
+    }
+
+    public bool IsForNCPayment
+    {
+        get => _isForNCPayment;
+        set { if (_isForNCPayment != value) { _isForNCPayment = value; OnPropertyChanged(); CheckChanged?.Invoke(); } }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

@@ -1,4 +1,5 @@
 using NovaRetail.Data;
+using NovaRetail.Messages;
 using NovaRetail.Models;
 using NovaRetail.Services;
 using NovaRetail.State;
@@ -359,6 +360,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         SelectCustomerCommand = new Command<CustomerLookupModel>(c => _ = SelectCustomerAsync(c));
         ClearCustomerCommand = new Command(() => _ = ClearCustomerOverrideAsync());
+        TenderSettingsChanged.Notified += () => _ = LoadTendersAsync(null);
     }
 
     public async Task LoadAsync(InvoiceHistoryEntry entry)

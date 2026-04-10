@@ -301,131 +301,44 @@
                                     StrokeShape="RoundRectangle 14"
                                     Padding="14,12">
                                 <VerticalStackLayout Spacing="5">
-                                    <Label Text="Diseño orientado a operación"
+                                    <Label Text="Selección visual de tenders"
                                            FontSize="12"
                                            FontAttributes="Bold"
                                            TextColor="{DynamicResource AccentOrange}"/>
-                                    <Label Text="Agrupe los códigos separados por coma y guarde todos los tenders al final. Esta zona está pensada para revisión rápida y ajustes masivos."
+                                    <Label Text="Marque las casillas para asignar cada tender a Ventas, Pagos, NC o Pago NC. Los cambios se guardan al presionar el botón."
                                            FontSize="12"
                                            TextColor="{DynamicResource Gray500}"
                                            LineBreakMode="WordWrap"/>
                                 </VerticalStackLayout>
                             </Border>
 
+                            <!-- Header row -->
+                            <Grid ColumnDefinitions="*,70,70,70,70" ColumnSpacing="4" Padding="14,0">
+                                <Label Text="Tender" FontSize="11" FontAttributes="Bold" TextColor="{DynamicResource Gray500}"/>
+                                <Label Grid.Column="1" Text="Ventas" FontSize="11" FontAttributes="Bold" TextColor="{DynamicResource AccentBlue}" HorizontalTextAlignment="Center"/>
+                                <Label Grid.Column="2" Text="Pagos" FontSize="11" FontAttributes="Bold" TextColor="{DynamicResource AccentOrange}" HorizontalTextAlignment="Center"/>
+                                <Label Grid.Column="3" Text="NC" FontSize="11" FontAttributes="Bold" TextColor="#DC2626" HorizontalTextAlignment="Center"/>
+                                <Label Grid.Column="4" Text="Pago NC" FontSize="11" FontAttributes="Bold" TextColor="{DynamicResource SlateActive}" HorizontalTextAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Tender rows rendered in code-behind -->
+                            <VerticalStackLayout x:Name="TenderCheckHost" Spacing="6"/>
+
+                            <!-- Código Cargo NC (campo de texto) -->
                             <Border BackgroundColor="White"
                                     Stroke="{DynamicResource Gray200Brush}"
                                     StrokeThickness="1"
                                     StrokeShape="RoundRectangle 14"
                                     Padding="14,12">
                                 <VerticalStackLayout Spacing="4">
-                                    <Border BackgroundColor="#EFF6FF"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 999"
-                                            Padding="10,4"
-                                            HorizontalOptions="Start">
-                                        <Label Text="VENTAS"
-                                               FontSize="10"
-                                               FontAttributes="Bold"
-                                               TextColor="{DynamicResource AccentBlue}"/>
-                                    </Border>
-                                    <Label Text="Códigos Tender de Ventas" Style="{StaticResource FieldLabelDark}"/>
-                                    <Label Text="Códigos separados por coma (ej: 01_03)" Style="{StaticResource HelpText}"/>
+                                    <Label Text="Código Cargo NC" Style="{StaticResource FieldLabelDark}"/>
+                                    <Label Text="Cargo utilizado para diferenciar ajustes de notas de crédito." Style="{StaticResource HelpText}"/>
                                     <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                        <Entry Text="{Binding SalesTenderCods, Mode=TwoWay}"
+                                        <Entry Text="{Binding NCPaymentChargeCode, Mode=TwoWay}"
                                                FontSize="14"
                                                TextColor="{DynamicResource PanelNavy}"
-                                               Placeholder="01_03"/>
+                                               Placeholder="AJ01"/>
                                     </Border>
-                                </VerticalStackLayout>
-                            </Border>
-
-                            <Border BackgroundColor="White"
-                                    Stroke="{DynamicResource Gray200Brush}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    Padding="14,12">
-                                <VerticalStackLayout Spacing="4">
-                                    <Border BackgroundColor="#EFF6FF"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 999"
-                                            Padding="10,4"
-                                            HorizontalOptions="Start">
-                                        <Label Text="PAGOS"
-                                               FontSize="10"
-                                               FontAttributes="Bold"
-                                               TextColor="{DynamicResource AccentBlue}"/>
-                                    </Border>
-                                    <Label Text="Códigos Tender de Pagos" Style="{StaticResource FieldLabelDark}"/>
-                                    <Label Text="Incluya todos los códigos que deben interpretarse como pago." Style="{StaticResource HelpText}"/>
-                                    <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                        <Entry Text="{Binding PaymentsTenderCods, Mode=TwoWay}"
-                                               FontSize="14"
-                                               TextColor="{DynamicResource PanelNavy}"
-                                               Placeholder="04_01,99_10,04_04"/>
-                                    </Border>
-                                </VerticalStackLayout>
-                            </Border>
-
-                            <Border BackgroundColor="White"
-                                    Stroke="{DynamicResource Gray200Brush}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    Padding="14,12">
-                                <VerticalStackLayout Spacing="12">
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                                        <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                            <Border BackgroundColor="#FFF7ED"
-                                                    StrokeThickness="0"
-                                                    StrokeShape="RoundRectangle 999"
-                                                    Padding="10,4"
-                                                    HorizontalOptions="Start">
-                                                <Label Text="NC"
-                                                       FontSize="10"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{DynamicResource AccentOrange}"/>
-                                            </Border>
-                                            <Label Text="Códigos Tender de Notas de Crédito" Style="{StaticResource FieldLabelDark}"/>
-                                            <Label Text="Tenders válidos para registrar NC." Style="{StaticResource HelpText}"/>
-                                            <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                                <Entry Text="{Binding NCTenderCods, Mode=TwoWay}"
-                                                       FontSize="14"
-                                                       TextColor="{DynamicResource PanelNavy}"
-                                                       Placeholder="99_01,99_02,99_11"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-
-                                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                            <Border BackgroundColor="#F8FAFC"
-                                                    StrokeThickness="0"
-                                                    StrokeShape="RoundRectangle 999"
-                                                    Padding="10,4"
-                                                    HorizontalOptions="Start">
-                                                <Label Text="PAGO NC"
-                                                       FontSize="10"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{DynamicResource SlateActive}"/>
-                                            </Border>
-                                            <Label Text="Códigos Pago de NC" Style="{StaticResource FieldLabelDark}"/>
-                                            <Label Text="Métodos válidos al aplicar pagos de NC." Style="{StaticResource HelpText}"/>
-                                            <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                                <Entry Text="{Binding NCPaymentCods, Mode=TwoWay}"
-                                                       FontSize="14"
-                                                       TextColor="{DynamicResource PanelNavy}"
-                                                       Placeholder="01_05"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-                                    </Grid>
-
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label Text="Código Cargo NC" Style="{StaticResource FieldLabelDark}"/>
-                                        <Label Text="Cargo utilizado para diferenciar ajustes de notas de crédito." Style="{StaticResource HelpText}"/>
-                                        <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                            <Entry Text="{Binding NCPaymentChargeCode, Mode=TwoWay}"
-                                                   FontSize="14"
-                                                   TextColor="{DynamicResource PanelNavy}"
-                                                   Placeholder="AJ01"/>
-                                        </Border>
-                                    </VerticalStackLayout>
                                 </VerticalStackLayout>
                             </Border>
 

@@ -1,4 +1,5 @@
 using NovaRetail.Data;
+using NovaRetail.Messages;
 using NovaRetail.Models;
 using NovaRetail.Services;
 using NovaRetail.State;
@@ -817,6 +818,7 @@ namespace NovaRetail.ViewModels
             CustomerSearchVm.RequestSearch += async criteria => await SearchCustomersAsync(criteria);
             CustomerSearchVm.RequestSelect += OnCustomerSelected;
             RefreshCartItemsView();
+            TenderSettingsChanged.Notified += () => _ = ReloadTendersAsync();
             _ = InitializeAsync();
         }
 
@@ -825,6 +827,39 @@ namespace NovaRetail.ViewModels
             await LoadStoreConfigAsync();
             _ = LoadProductsAsync();
             _ = LoadProductCountAsync();
+        }
+
+        public async Task ReloadTendersAsync()
+        {
+            try
+            {
+                var tenders = await _storeConfigService.GetTendersAsync();
+                try
+                {
+                    var settings = await _parametrosService.GetTenderSettingsAsync();
+                    if (settings is not null && !string.IsNullOrWhiteSpace(settings.SalesTenderCods))
+                    {
+                        var allowed = new HashSet<int>();
+                        foreach (var code in settings.SalesTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            if (int.TryParse(code, out var id))
+                                allowed.Add(id);
+                        }
+                        if (allowed.Count > 0)
+                        {
+                            var filtered = tenders.Where(t => allowed.Contains(t.ID)).ToList();
+                            if (filtered.Count > 0)
+                                tenders = filtered;
+                        }
+                    }
+                }
+                catch { /* si falla, mostrar todos */ }
+
+                Tenders.Clear();
+                foreach (var t in tenders)
+                    Tenders.Add(t);
+            }
+            catch { }
         }
 
         private void OnAppStateChanged(AppState state)

@@ -12,6 +12,7 @@ public partial class ParametrosPage : ContentPage
         InitializeComponent();
         BindingContext = vm;
         vm.Parametros.CollectionChanged += OnParametrosChanged;
+        vm.TenderOptions.CollectionChanged += OnTenderOptionsChanged;
     }
 
     protected override async void OnAppearing()
@@ -21,16 +22,21 @@ public partial class ParametrosPage : ContentPage
         {
             vm.Parametros.CollectionChanged -= OnParametrosChanged;
             vm.Parametros.CollectionChanged += OnParametrosChanged;
+            vm.TenderOptions.CollectionChanged -= OnTenderOptionsChanged;
+            vm.TenderOptions.CollectionChanged += OnTenderOptionsChanged;
             await vm.LoadAsync();
             RenderParametros(vm);
+            RenderTenderChecks(vm);
         }
     }
 
     protected override void OnDisappearing()
     {
         if (BindingContext is ParametrosViewModel vm)
+        {
             vm.Parametros.CollectionChanged -= OnParametrosChanged;
-
+            vm.TenderOptions.CollectionChanged -= OnTenderOptionsChanged;
+        }
         base.OnDisappearing();
     }
 
@@ -38,6 +44,12 @@ public partial class ParametrosPage : ContentPage
     {
         if (BindingContext is ParametrosViewModel vm)
             MainThread.BeginInvokeOnMainThread(() => RenderParametros(vm));
+    }
+
+    private void OnTenderOptionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (BindingContext is ParametrosViewModel vm)
+            MainThread.BeginInvokeOnMainThread(() => RenderTenderChecks(vm));
     }
 
     private void RenderParametros(ParametrosViewModel vm)
@@ -320,5 +332,87 @@ public partial class ParametrosPage : ContentPage
         card.Triggers.Add(cardModifiedTrigger);
 
         return card;
+    }
+
+    private void RenderTenderChecks(ParametrosViewModel vm)
+    {
+        TenderCheckHost.Children.Clear();
+
+        foreach (var item in vm.TenderOptions)
+        {
+            var row = new Border
+            {
+                BackgroundColor = Colors.White,
+                Stroke = Color.FromArgb("#E2E8F0"),
+                StrokeThickness = 1,
+                StrokeShape = new RoundRectangle { CornerRadius = 12 },
+                Padding = new Thickness(14, 10)
+            };
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(new GridLength(70)),
+                    new ColumnDefinition(new GridLength(70)),
+                    new ColumnDefinition(new GridLength(70)),
+                    new ColumnDefinition(new GridLength(70))
+                },
+                ColumnSpacing = 4
+            };
+
+            // Tender name + ID badge
+            var nameStack = new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
+
+            var idBadge = new Border
+            {
+                BackgroundColor = Color.FromArgb("#F1F5F9"),
+                StrokeThickness = 0,
+                StrokeShape = new RoundRectangle { CornerRadius = 999 },
+                Padding = new Thickness(8, 3),
+                Content = new Label
+                {
+                    Text = item.ID.ToString(),
+                    FontSize = 10,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#64748B")
+                }
+            };
+
+            var nameLabel = new Label
+            {
+                Text = item.Description,
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = UiConfig.TextPrimary,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            nameStack.Children.Add(idBadge);
+            nameStack.Children.Add(nameLabel);
+
+            // Checkboxes
+            var cbSales = new CheckBox { IsChecked = item.IsForSales, Color = Color.FromArgb("#2563EB"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+            cbSales.CheckedChanged += (_, e) => item.IsForSales = e.Value;
+
+            var cbPayments = new CheckBox { IsChecked = item.IsForPayments, Color = Color.FromArgb("#EA580C"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+            cbPayments.CheckedChanged += (_, e) => item.IsForPayments = e.Value;
+
+            var cbNC = new CheckBox { IsChecked = item.IsForNC, Color = Color.FromArgb("#DC2626"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+            cbNC.CheckedChanged += (_, e) => item.IsForNC = e.Value;
+
+            var cbNCPay = new CheckBox { IsChecked = item.IsForNCPayment, Color = Color.FromArgb("#475569"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+            cbNCPay.CheckedChanged += (_, e) => item.IsForNCPayment = e.Value;
+
+            grid.Add(nameStack); Grid.SetColumn(nameStack, 0);
+            grid.Add(cbSales); Grid.SetColumn(cbSales, 1);
+            grid.Add(cbPayments); Grid.SetColumn(cbPayments, 2);
+            grid.Add(cbNC); Grid.SetColumn(cbNC, 3);
+            grid.Add(cbNCPay); Grid.SetColumn(cbNCPay, 4);
+
+            row.Content = grid;
+            TenderCheckHost.Children.Add(row);
+        }
     }
 }

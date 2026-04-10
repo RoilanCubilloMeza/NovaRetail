@@ -12,3 +12,9 @@ public class VolverAFacturarMessage
 {
     public string ClienteId { get; init; } = string.Empty;
 }
+
+public static class TenderSettingsChanged
+{
+    public static event Action? Notified;
+    public static void Send() => Notified?.Invoke();
+}
