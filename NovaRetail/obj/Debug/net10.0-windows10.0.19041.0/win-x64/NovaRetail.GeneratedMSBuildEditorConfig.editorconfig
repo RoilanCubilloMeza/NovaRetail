@@ -108,6 +108,26 @@ build_metadata.AdditionalFiles.NoWarn =
 build_metadata.AdditionalFiles.EnableDiagnostics = 
 build_metadata.AdditionalFiles.LineInfo = 
 
+[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/MantenimientosPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.MantenimientosPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\MantenimientosPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\MantenimientosPage.xaml
+build_metadata.AdditionalFiles.Inflator = SourceGen
+build_metadata.AdditionalFiles.NoWarn = 
+build_metadata.AdditionalFiles.EnableDiagnostics = 
+build_metadata.AdditionalFiles.LineInfo = 
+
+[C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Pages/ParametrosPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Pages.ParametrosPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\ParametrosPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\ParametrosPage.xaml
+build_metadata.AdditionalFiles.Inflator = SourceGen
+build_metadata.AdditionalFiles.NoWarn = 
+build_metadata.AdditionalFiles.EnableDiagnostics = 
+build_metadata.AdditionalFiles.LineInfo = 
+
 [C:/Users/developer01/Documents/NovaRetail/NovaRetail/NovaRetail/Resources/Styles/Colors.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = NovaRetail.Resources.Styles.Colors.xaml

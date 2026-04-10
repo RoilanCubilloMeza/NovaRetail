@@ -112,6 +112,12 @@
                                             SurfaceColor="#FFF7ED" StrokeColor="#FED7AA"
                                             IconColor="#EA580C" LabelColor="#9A3412" ArrowColor="#EA580C"/>
 
+                    <controls:ActionLinkRow Icon="&#x1F527;" Text="Mantenimientos"
+                                            Command="{Binding NavigateToMantenimientosCommand}"
+                                            IsVisible="{Binding CanAccessParametros}"
+                                            SurfaceColor="#FDF2F8" StrokeColor="#FBCFE8"
+                                            IconColor="#DB2777" LabelColor="#9D174D" ArrowColor="#DB2777"/>
+
                 </VerticalStackLayout>
 
             </VerticalStackLayout>

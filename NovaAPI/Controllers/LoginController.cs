@@ -34,6 +34,8 @@ namespace NovaAPI.Controllers
                     var idColumn = GetFirstExistingColumn(columns, "ID", "CashierID");
                     var nameColumn = GetFirstExistingColumn(columns, "Name", "FullName", "Description", "Login", "Number");
                     var storeColumn = GetFirstExistingColumn(columns, "StoreID", "ID_STORE", "Store");
+                    var securityLevelColumn = GetFirstExistingColumn(columns, "SecurityLevel");
+                    var privilegesColumn = GetFirstExistingColumn(columns, "Privileges");
 
                     if (string.IsNullOrWhiteSpace(loginColumn))
                         return null;
@@ -43,6 +45,8 @@ namespace NovaAPI.Controllers
                               BuildSelectColumn(loginColumn, "US_LOGIN", "''") + ", " +
                               BuildSelectColumn(nameColumn, "US_NOMBRE", "''") + ", " +
                               BuildSelectColumn(storeColumn, "US_ID_STORE", "0") + ", " +
+                              BuildSelectColumn(securityLevelColumn, "US_SECURITY_LEVEL", "0") + ", " +
+                              BuildSelectColumn(privilegesColumn, "US_PRIVILEGES", "0") + ", " +
                               (string.IsNullOrWhiteSpace(passwordColumn)
                                   ? "'' AS [US_PWD_STORED]"
                                   : "ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(500), [" + passwordColumn + "]))), '') AS [US_PWD_STORED]") +
@@ -63,15 +67,21 @@ namespace NovaAPI.Controllers
                             if (!PasswordMatches(inputPassword, storedPassword))
                                 return null;
 
-                            return new Cliente_App
+                            var clienteApp = new Cliente_App
                             {
                                 ID_CLIENTE = ReadInt(reader, "ID_CLIENTE", ID_CLIENTE),
                                 US_LOGIN = ReadString(reader, "US_LOGIN", LOGIN.Trim()),
                                 US_NOMBRE = ReadString(reader, "US_NOMBRE", LOGIN.Trim()),
                                 US_CLAVE = CLAVE,
                                 US_ID_STORE = ReadNullableInt(reader, "US_ID_STORE"),
-                                US_ESTADO = 1
+                                US_ESTADO = 1,
+                                US_SECURITY_LEVEL = (short)ReadInt(reader, "US_SECURITY_LEVEL", 0),
+                                US_PRIVILEGES = ReadInt(reader, "US_PRIVILEGES", 0)
                             };
+
+                            reader.Close();
+                            FillRoleInfo(connection, clienteApp.ID_CLIENTE, clienteApp);
+                            return clienteApp;
                         }
                     }
                 }
@@ -132,6 +142,39 @@ namespace NovaAPI.Controllers
 
             int parsed;
             return int.TryParse(Convert.ToString(value), out parsed) ? parsed : (int?)null;
+        }
+
+        static void FillRoleInfo(SqlConnection connection, int cashierId, Cliente_App cliente)
+        {
+            // Intenta PosRoleID primero, luego ManagerRoleID
+            const string sql =
+                "SELECT TOP 1 ar.Code, ar.Name, ar.Privileges " +
+                "FROM [RMH_LoginRole] lr " +
+                "INNER JOIN [RMH_ApplicationRole] ar " +
+                "    ON ar.ID = CASE WHEN lr.PosRoleID > 0 THEN lr.PosRoleID ELSE lr.ManagerRoleID END " +
+                "WHERE lr.CashierID = @cashierId";
+
+            try
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@cashierId", cashierId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            cliente.US_ROLE_CODE = ReadString(reader, "Code", string.Empty);
+                            cliente.US_ROLE_NAME = ReadString(reader, "Name", string.Empty);
+                            cliente.US_ROLE_PRIVILEGES = ReadString(reader, "Privileges", string.Empty);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Si las tablas de roles no existen, el login sigue funcionando sin rol asignado
+            }
         }
 
         static bool PasswordMatches(string inputPassword, string storedPassword)

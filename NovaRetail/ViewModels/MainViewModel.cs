@@ -342,6 +342,9 @@ namespace NovaRetail.ViewModels
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
         public ICommand NavigateToCategoryConfigCommand { get; }
+        public ICommand NavigateToMantenimientosCommand { get; }
+
+        public bool CanAccessParametros => _userSession.CurrentUser?.IsAdmin == true;
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -776,6 +779,7 @@ namespace NovaRetail.ViewModels
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
+            NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));

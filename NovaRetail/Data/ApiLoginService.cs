@@ -53,7 +53,12 @@ public sealed class ApiLoginService : ILoginService
                             ClientId = result.ID_CLIENTE,
                             UserName = result.US_LOGIN ?? login,
                             DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
-                            StoreId = result.US_ID_STORE ?? 0
+                            StoreId = result.US_ID_STORE ?? 0,
+                            RoleCode = result.US_ROLE_CODE ?? string.Empty,
+                            RoleName = result.US_ROLE_NAME ?? string.Empty,
+                            SecurityLevel = result.US_SECURITY_LEVEL,
+                            Privileges = result.US_PRIVILEGES,
+                            RolePrivileges = result.US_ROLE_PRIVILEGES ?? string.Empty
                         };
                     }
                 }
@@ -129,6 +134,11 @@ public sealed class ApiLoginService : ILoginService
         public string? US_LOGIN { get; set; }
         public string? US_NOMBRE { get; set; }
         public int? US_ID_STORE { get; set; }
+        public string? US_ROLE_CODE { get; set; }
+        public string? US_ROLE_NAME { get; set; }
+        public short US_SECURITY_LEVEL { get; set; }
+        public int US_PRIVILEGES { get; set; }
+        public string? US_ROLE_PRIVILEGES { get; set; }
     }
 
     private sealed class ApiConnectionInfoResponse

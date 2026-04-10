@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NovaRetail.ViewModels"
+             x:Class="NovaRetail.Pages.ParametrosPage"
+             x:Name="ParametrosPageRoot"
+             Title="Parámetros del Sistema"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *" Padding="20">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,10,0,16">
+            <Border Grid.Column="0"
+                    BackgroundColor="#F1F5F9"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    HorizontalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Volver" FontSize="14" FontAttributes="Bold" TextColor="#475569"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                <Label Text="⚙️ Parámetros del Sistema"
+                       FontSize="20" FontAttributes="Bold"
+                       TextColor="#1E293B" HorizontalTextAlignment="Center"/>
+                <Label Text="Configuración general y formas de pago"
+                       FontSize="12" TextColor="#64748B" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Status message -->
+            <Border Grid.Column="2"
+                    BackgroundColor="#DCFCE7"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="14,8"
+                    HorizontalOptions="End"
+                    IsVisible="{Binding HasStatus}">
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="12" FontAttributes="Bold"
+                       TextColor="#166534"/>
+            </Border>
+        </Grid>
+
+        <!-- Loading -->
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{DynamicResource AccentBlue}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"
+                           WidthRequest="40" HeightRequest="40"/>
+
+        <!-- Content: two panels side by side -->
+        <Grid Grid.Row="1" ColumnDefinitions="3*, 2*" ColumnSpacing="16"
+              IsVisible="{Binding IsBusy, Converter={StaticResource InvertBoolConverter}}">
+
+            <!-- Left: AVS_Parametros -->
+            <Border Grid.Column="0"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#1E293B"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Label Text="📋 Parámetros Generales"
+                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="4,4">
+                        <Label x:Name="ParametrosEmptyLabel"
+                               Text="No se encontraron parámetros."
+                               FontSize="13"
+                               TextColor="#94A3B8"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Margin="20"
+                               IsVisible="False"/>
+
+                        <ScrollView x:Name="ParametrosScrollView"
+                                    IsVisible="False">
+                            <VerticalStackLayout x:Name="ParametrosListHost"
+                                                 Spacing="6"
+                                                 Padding="6,6,6,10"/>
+                        </ScrollView>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Right: ExtTender_Settings -->
+            <Border Grid.Column="1"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#1E293B"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Label Text="💳 Formas de Pago (Tenders)"
+                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <ScrollView Grid.Row="1" Padding="16,12">
+                        <VerticalStackLayout Spacing="14">
+
+                            <!-- Sales Tender Codes -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Códigos Tender de Ventas" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Label Text="Códigos separados por coma (ej: 01_03)"
+                                       FontSize="11" TextColor="#94A3B8"/>
+                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
+                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                        Padding="8,4">
+                                    <Entry Text="{Binding SalesTenderCods, Mode=TwoWay}"
+                                           FontSize="13" BackgroundColor="Transparent"
+                                           Placeholder="01_03"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Payments Tender Codes -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Códigos Tender de Pagos" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Label Text="Códigos separados por coma"
+                                       FontSize="11" TextColor="#94A3B8"/>
+                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
+                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                        Padding="8,4">
+                                    <Entry Text="{Binding PaymentsTenderCods, Mode=TwoWay}"
+                                           FontSize="13" BackgroundColor="Transparent"
+                                           Placeholder="04_01,99_10,04_04"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- NC Tender Codes -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Códigos Tender de Notas de Crédito" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
+                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                        Padding="8,4">
+                                    <Entry Text="{Binding NCTenderCods, Mode=TwoWay}"
+                                           FontSize="13" BackgroundColor="Transparent"
+                                           Placeholder="99_01,99_02,99_11"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- NC Payment Codes -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Códigos Pago de NC" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
+                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                        Padding="8,4">
+                                    <Entry Text="{Binding NCPaymentCods, Mode=TwoWay}"
+                                           FontSize="13" BackgroundColor="Transparent"
+                                           Placeholder="01_05"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- NC Payment Charge Code -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Código Cargo NC" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
+                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                        Padding="8,4">
+                                    <Entry Text="{Binding NCPaymentChargeCode, Mode=TwoWay}"
+                                           FontSize="13" BackgroundColor="Transparent"
+                                           Placeholder="AJ01"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Save Tenders button -->
+                            <Border BackgroundColor="#2563EB"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    Padding="16,12"
+                                    HorizontalOptions="Fill"
+                                    Margin="0,8,0,0">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SaveTenderSettingsCommand}"/>
+                                </Border.GestureRecognizers>
+                                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                    <Label Text="💾" FontSize="16" VerticalOptions="Center"/>
+                                    <Label Text="Guardar Tenders" FontSize="14"
+                                           FontAttributes="Bold" TextColor="White"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                            </Border>
+
+                            <!-- Saving indicator -->
+                            <ActivityIndicator IsRunning="{Binding IsSaving}"
+                                               IsVisible="{Binding IsSaving}"
+                                               Color="{DynamicResource AccentBlue}"
+                                               WidthRequest="24" HeightRequest="24"
+                                               HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+
+</ContentPage>

@@ -84,5 +84,12 @@ namespace NovaAPI.Models
         public short? US_SYNC_FREC { get; set; }
         public string US_URL_CENTRAL { get; set; }
 
+        // Rol y autorización
+        public string US_ROLE_CODE { get; set; }
+        public string US_ROLE_NAME { get; set; }
+        public short US_SECURITY_LEVEL { get; set; }
+        public int US_PRIVILEGES { get; set; }
+        public string US_ROLE_PRIVILEGES { get; set; }
+
     }
 }

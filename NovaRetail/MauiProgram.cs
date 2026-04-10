@@ -38,6 +38,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
         builder.Services.AddSingleton<ISalesRepService, ApiSalesRepService>();
         builder.Services.AddSingleton<IInvoiceHistoryService, InvoiceHistoryService>();
+        builder.Services.AddSingleton<IParametrosService, ApiParametrosService>();
         builder.Services.AddSingleton<AppStore>();
         builder.Services.AddSingleton<UserSession>();
         builder.Services.AddSingleton<Utilities>();
@@ -71,6 +72,8 @@ public static class MauiProgram
         builder.Services.AddTransient<InvoiceHistoryViewModel>();
         builder.Services.AddTransient<CreditNoteViewModel>();
         builder.Services.AddTransient<CategoryConfigViewModel>();
+        builder.Services.AddTransient<ParametrosViewModel>();
+        builder.Services.AddTransient<MantenimientosViewModel>();
 
         // Pages
         builder.Services.AddSingleton<LoginPage>();
@@ -79,6 +82,8 @@ public static class MauiProgram
         builder.Services.AddTransient<InvoiceHistoryPage>();
         builder.Services.AddTransient<CreditNotePage>();
         builder.Services.AddTransient<CategoryConfigPage>();
+        builder.Services.AddTransient<ParametrosPage>();
+        builder.Services.AddTransient<MantenimientosPage>();
 
         // Shell
         builder.Services.AddSingleton<AppShell>();
