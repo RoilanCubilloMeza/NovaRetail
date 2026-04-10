@@ -96,14 +96,63 @@
                 </Grid>
             </Border>
 
-            <!-- Placeholder card: futuras opciones (puedes copiar el patrón) -->
-            <!--
-            <Border BackgroundColor="White" StrokeShape="RoundRectangle 16"
-                    Stroke="#E2E8F0" StrokeThickness="1" Padding="0"
-                    WidthRequest="280" HeightRequest="200" Margin="10" Opacity="0.5">
-                ...
+            <!-- Card: Usuarios -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 16"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0"
+                    WidthRequest="280"
+                    HeightRequest="200"
+                    Margin="10">
+                <Border.Shadow>
+                    <Shadow Brush="#20000000" Offset="0,4" Radius="12" Opacity="0.15"/>
+                </Border.Shadow>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NavigateToUsuariosCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid RowDefinitions="Auto, *, Auto" Padding="0">
+
+                    <!-- Card header gradient -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#0891B2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16,16,0,0"
+                            Padding="20,16">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="👤" FontSize="28" VerticalOptions="Center"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Usuarios" FontSize="17"
+                                       FontAttributes="Bold" TextColor="White"/>
+                                <Label Text="del Sistema" FontSize="12"
+                                       TextColor="#CFFAFE"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- Card body -->
+                    <VerticalStackLayout Grid.Row="1" Padding="20,12" Spacing="6"
+                                         VerticalOptions="Center">
+                        <Label Text="Gestión de usuarios, roles, permisos y estado de las cuentas."
+                               FontSize="12" TextColor="#64748B"
+                               LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+
+                    <!-- Card footer -->
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,16,16"
+                            Padding="20,10">
+                        <HorizontalStackLayout HorizontalOptions="End" Spacing="6">
+                            <Label Text="Abrir" FontSize="12" FontAttributes="Bold"
+                                   TextColor="#0891B2" VerticalOptions="Center"/>
+                            <Label Text="→" FontSize="14" TextColor="#0891B2"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
             </Border>
-            -->
 
         </FlexLayout>
     </Grid>

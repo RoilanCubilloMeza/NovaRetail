@@ -194,6 +194,7 @@
     <Compile Include="Controllers\TransactionController.cs" />
     <Compile Include="Controllers\UtilidadesController.cs" />
     <Compile Include="Controllers\ParametrosController.cs" />
+    <Compile Include="Controllers\UsuariosController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

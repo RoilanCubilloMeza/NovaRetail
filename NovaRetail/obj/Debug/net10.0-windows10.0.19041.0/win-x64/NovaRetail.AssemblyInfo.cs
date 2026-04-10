@@ -17,7 +17,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NovaRetail")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+55447849323944b6abe2fd23cac5e19b6c6c7d9a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+1048042049f75e311d00f9841fddb7ed91d804e7")]
 [assembly: System.Reflection.AssemblyProductAttribute("NovaRetail")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NovaRetail")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

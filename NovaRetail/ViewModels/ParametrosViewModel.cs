@@ -5,12 +5,14 @@ using System.Windows.Input;
 using Microsoft.Maui.ApplicationModel;
 using NovaRetail.Data;
 using NovaRetail.Models;
+using NovaRetail.Services;
 
 namespace NovaRetail.ViewModels;
 
 public class ParametrosViewModel : INotifyPropertyChanged
 {
     private readonly IParametrosService _service;
+    private readonly IDialogService _dialog;
 
     private bool _isBusy;
     private bool _isSaving;
@@ -82,9 +84,10 @@ public class ParametrosViewModel : INotifyPropertyChanged
     public ICommand SaveTenderSettingsCommand { get; }
     public ICommand GoBackCommand { get; }
 
-    public ParametrosViewModel(IParametrosService service)
+    public ParametrosViewModel(IParametrosService service, IDialogService dialog)
     {
         _service = service;
+        _dialog = dialog;
         Parametros.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasParametros));
 
         SaveParametroCommand = new Command<ParametroEditItem>(async item => await SaveParametroAsync(item));
@@ -207,10 +210,13 @@ public class ParametrosViewModel : INotifyPropertyChanged
                 item.OriginalValor = item.Valor;
                 item.NotifyChanged();
                 StatusMessage = $"Parámetro {item.Codigo} guardado.";
+                await _dialog.AlertAsync("✅ Parámetro Actualizado",
+                    $"Se actualizó el parámetro '{item.Codigo}' ({item.Descripcion}).\n\nNuevo valor: {item.Valor}", "Aceptar");
             }
             else
             {
                 StatusMessage = $"Error al guardar {item.Codigo}.";
+                await _dialog.AlertAsync("❌ Error", $"No se pudo guardar el parámetro '{item.Codigo}'.", "Aceptar");
             }
         }
         catch
@@ -241,9 +247,17 @@ public class ParametrosViewModel : INotifyPropertyChanged
             };
 
             var ok = await _service.SaveTenderSettingsAsync(model);
-            StatusMessage = ok
-                ? "Configuración de tenders guardada."
-                : "Error al guardar tenders.";
+            if (ok)
+            {
+                StatusMessage = "Configuración de tenders guardada.";
+                await _dialog.AlertAsync("✅ Tenders Actualizados",
+                    "Se guardó correctamente la configuración de formas de pago.", "Aceptar");
+            }
+            else
+            {
+                StatusMessage = "Error al guardar tenders.";
+                await _dialog.AlertAsync("❌ Error", "No se pudo guardar la configuración de tenders.", "Aceptar");
+            }
         }
         catch
         {

@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NovaRetail.ViewModels"
+             xmlns:m="clr-namespace:NovaRetail.Models"
+             x:Class="NovaRetail.Pages.UsuariosPage"
+             Title="Mantenimiento de Usuarios"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *" Padding="20">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,10,0,16">
+            <Border Grid.Column="0"
+                    BackgroundColor="#F1F5F9"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    HorizontalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Volver" FontSize="14" FontAttributes="Bold" TextColor="#475569"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                <Label Text="👤 Mantenimiento de Usuarios"
+                       FontSize="20" FontAttributes="Bold"
+                       TextColor="#1E293B" HorizontalTextAlignment="Center"/>
+                <Label Text="Usuarios del sistema (Cashier) y roles RMH"
+                       FontSize="12" TextColor="#64748B" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Status message -->
+            <Border Grid.Column="2"
+                    BackgroundColor="#DCFCE7"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="14,8"
+                    HorizontalOptions="End"
+                    IsVisible="{Binding HasStatus}">
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="12" FontAttributes="Bold"
+                       TextColor="#166534"/>
+            </Border>
+        </Grid>
+
+        <!-- Loading -->
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{DynamicResource AccentBlue}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"
+                           WidthRequest="40" HeightRequest="40"/>
+
+        <!-- Content: two panels side by side -->
+        <Grid Grid.Row="1" ColumnDefinitions="3*, 2*" ColumnSpacing="16"
+              IsVisible="{Binding IsBusy, Converter={StaticResource InvertBoolConverter}}">
+
+            <!-- Left: Lista de usuarios -->
+            <Border Grid.Column="0"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#1E293B"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Label Text="📋 Usuarios Registrados (Cashier)"
+                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <ScrollView Grid.Row="1">
+                        <VerticalStackLayout Spacing="6" Padding="10">
+
+                            <Label Text="No se encontraron usuarios."
+                                   FontSize="13" TextColor="#94A3B8"
+                                   HorizontalOptions="Center" Margin="20"
+                                   IsVisible="{Binding HasUsuarios, Converter={StaticResource InvertBoolConverter}}"/>
+
+                            <CollectionView ItemsSource="{Binding Usuarios}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:UsuarioEditItem">
+                                        <Border BackgroundColor="#F8FAFC"
+                                                StrokeShape="RoundRectangle 10"
+                                                Stroke="#E2E8F0"
+                                                StrokeThickness="1"
+                                                Padding="14,10"
+                                                Margin="0,3">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=EditCommand}"
+                                                                      CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                            <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="12">
+                                                <!-- ID badge -->
+                                                <Border Grid.Column="0" BackgroundColor="#EEF2FF" StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 8" Padding="10,6"
+                                                        VerticalOptions="Center">
+                                                    <Label Text="{Binding Id, StringFormat='#{0}'}" FontSize="13"
+                                                           FontAttributes="Bold" TextColor="#4F46E5"/>
+                                                </Border>
+
+                                                <!-- Info -->
+                                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                                    <HorizontalStackLayout Spacing="8">
+                                                        <Label FontSize="14" FontAttributes="Bold" TextColor="#1E293B">
+                                                            <Label.FormattedText>
+                                                                <FormattedString>
+                                                                    <Span Text="{Binding NombreCompleto}" />
+                                                                    <Span Text="  " />
+                                                                    <Span Text="{Binding NombreUsuario, StringFormat='({0})'}" FontSize="12" TextColor="#64748B"/>
+                                                                </FormattedString>
+                                                            </Label.FormattedText>
+                                                        </Label>
+                                                        <!-- Estado badge -->
+                                                        <Border BackgroundColor="{Binding EstadoColor}" StrokeThickness="0"
+                                                                StrokeShape="RoundRectangle 6" Padding="8,2"
+                                                                VerticalOptions="Center">
+                                                            <Label Text="{Binding EstadoTexto}" FontSize="10" TextColor="White" FontAttributes="Bold"/>
+                                                        </Border>
+                                                    </HorizontalStackLayout>
+                                                    <HorizontalStackLayout Spacing="14">
+                                                        <Label FontSize="12" TextColor="#4F46E5" FontAttributes="Bold">
+                                                            <Label.FormattedText>
+                                                                <FormattedString>
+                                                                    <Span Text="🔑 " />
+                                                                    <Span Text="{Binding RolDisplay}" />
+                                                                </FormattedString>
+                                                            </Label.FormattedText>
+                                                        </Label>
+                                                        <Label Text="{Binding SecurityDisplay}" FontSize="12" TextColor="#64748B"/>
+                                                        <Label Text="{Binding StoreID, StringFormat='Tienda: {0}'}" FontSize="12" TextColor="#94A3B8"/>
+                                                    </HorizontalStackLayout>
+                                                </VerticalStackLayout>
+
+                                                <!-- Desactivar/Activar -->
+                                                <Border Grid.Column="2" BackgroundColor="{Binding ToggleBgColor}" StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 6" Padding="10,6"
+                                                        VerticalOptions="Center">
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsuariosViewModel}}, Path=ToggleActivoCommand}"
+                                                                              CommandParameter="{Binding .}"/>
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="{Binding ToggleTexto}" FontSize="12" TextColor="{Binding ToggleTextColor}" FontAttributes="Bold"/>
+                                                </Border>
+
+                                                <!-- Edit hint -->
+                                                <Label Grid.Column="3" Text="✏️" FontSize="16" VerticalOptions="Center" TextColor="#94A3B8"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+
+            <!-- Right: Formulario de edición -->
+            <Border Grid.Column="1"
+                    BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Grid RowDefinitions="Auto, *, Auto">
+                    <Border Grid.Row="0"
+                            BackgroundColor="#4F46E5"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12,12,0,0"
+                            Padding="16,12">
+                        <Label Text="{Binding FormTitle}"
+                               FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <ScrollView Grid.Row="1" Padding="16,12">
+                        <VerticalStackLayout Spacing="14">
+
+                            <!-- Nombre de usuario (solo lectura) -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Login (Cashier Number)" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1"
+                                        Padding="10,8" BackgroundColor="#F1F5F9">
+                                    <Label Text="{Binding EditNombreUsuario}" FontSize="14" TextColor="#64748B"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Nombre completo -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Nombre Completo" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8">
+                                    <Entry Text="{Binding EditNombreCompleto}" Placeholder="Nombre del cajero"
+                                           FontSize="14" TextColor="#1E293B"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Rol -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Rol (RMH_ApplicationRole)" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="4,0">
+                                    <Picker Title="Seleccione un rol"
+                                            ItemsSource="{Binding RolesDisponibles}"
+                                            ItemDisplayBinding="{Binding Name}"
+                                            SelectedItem="{Binding EditSelectedRol}"
+                                            FontSize="14" TextColor="#1E293B"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Security Level -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Nivel de Seguridad" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8">
+                                    <Entry Text="{Binding EditSecurityLevel}" Placeholder="0-99"
+                                           Keyboard="Numeric" FontSize="14" TextColor="#1E293B"/>
+                                </Border>
+                                <Label Text="≥ 99 = Administrador" FontSize="11" TextColor="#94A3B8"/>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </ScrollView>
+
+                    <!-- Botones de acción -->
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,12,12"
+                            Padding="16,12">
+                        <HorizontalStackLayout Spacing="10" HorizontalOptions="End">
+                            <Border BackgroundColor="#F1F5F9" StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8" Padding="16,10"
+                                    IsVisible="{Binding IsEditing}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding CancelCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Cancelar" FontSize="13" FontAttributes="Bold" TextColor="#64748B"/>
+                            </Border>
+
+                            <Border BackgroundColor="#4F46E5" StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8" Padding="16,10"
+                                    IsVisible="{Binding IsEditing}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SaveCommand}"/>
+                                </Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="6">
+                                    <ActivityIndicator IsRunning="{Binding IsSaving}" IsVisible="{Binding IsSaving}"
+                                                       Color="White" WidthRequest="16" HeightRequest="16"/>
+                                    <Label Text="💾 Guardar" FontSize="13" FontAttributes="Bold" TextColor="White"/>
+                                </HorizontalStackLayout>
+                            </Border>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Grid>
+
+</ContentPage>

@@ -105,7 +105,7 @@
                     Padding="0">
                 <Grid RowDefinitions="Auto, *">
                     <Border Grid.Row="0"
-                            BackgroundColor="#1E293B"
+                            BackgroundColor="#4F46E5"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 12,12,0,0"
                             Padding="16,12">
@@ -118,75 +118,75 @@
 
                             <!-- Sales Tender Codes -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Códigos Tender de Ventas" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Label Text="Códigos Tender de Ventas" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#475569"/>
                                 <Label Text="Códigos separados por coma (ej: 01_03)"
                                        FontSize="11" TextColor="#94A3B8"/>
-                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
-                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
-                                        Padding="8,4">
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1"
+                                        StrokeThickness="1"
+                                        Padding="10,8">
                                     <Entry Text="{Binding SalesTenderCods, Mode=TwoWay}"
-                                           FontSize="13" BackgroundColor="Transparent"
+                                           FontSize="14" TextColor="#1E293B"
                                            Placeholder="01_03"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <!-- Payments Tender Codes -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Códigos Tender de Pagos" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#1E293B"/>
+                                <Label Text="Códigos Tender de Pagos" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#475569"/>
                                 <Label Text="Códigos separados por coma"
                                        FontSize="11" TextColor="#94A3B8"/>
-                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
-                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
-                                        Padding="8,4">
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1"
+                                        StrokeThickness="1"
+                                        Padding="10,8">
                                     <Entry Text="{Binding PaymentsTenderCods, Mode=TwoWay}"
-                                           FontSize="13" BackgroundColor="Transparent"
+                                           FontSize="14" TextColor="#1E293B"
                                            Placeholder="04_01,99_10,04_04"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <!-- NC Tender Codes -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Códigos Tender de Notas de Crédito" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#1E293B"/>
-                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
-                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
-                                        Padding="8,4">
+                                <Label Text="Códigos Tender de Notas de Crédito" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1"
+                                        StrokeThickness="1"
+                                        Padding="10,8">
                                     <Entry Text="{Binding NCTenderCods, Mode=TwoWay}"
-                                           FontSize="13" BackgroundColor="Transparent"
+                                           FontSize="14" TextColor="#1E293B"
                                            Placeholder="99_01,99_02,99_11"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <!-- NC Payment Codes -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Códigos Pago de NC" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#1E293B"/>
-                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
-                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
-                                        Padding="8,4">
+                                <Label Text="Códigos Pago de NC" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1"
+                                        StrokeThickness="1"
+                                        Padding="10,8">
                                     <Entry Text="{Binding NCPaymentCods, Mode=TwoWay}"
-                                           FontSize="13" BackgroundColor="Transparent"
+                                           FontSize="14" TextColor="#1E293B"
                                            Placeholder="01_05"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <!-- NC Payment Charge Code -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Código Cargo NC" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#1E293B"/>
-                                <Border BackgroundColor="#F8FAFC" Stroke="#CBD5E1"
-                                        StrokeThickness="1" StrokeShape="RoundRectangle 6"
-                                        Padding="8,4">
+                                <Label Text="Código Cargo NC" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#475569"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="#CBD5E1"
+                                        StrokeThickness="1"
+                                        Padding="10,8">
                                     <Entry Text="{Binding NCPaymentChargeCode, Mode=TwoWay}"
-                                           FontSize="13" BackgroundColor="Transparent"
+                                           FontSize="14" TextColor="#1E293B"
                                            Placeholder="AJ01"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <!-- Save Tenders button -->
-                            <Border BackgroundColor="#2563EB"
+                            <Border BackgroundColor="#4F46E5"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 8"
                                     Padding="16,12"
