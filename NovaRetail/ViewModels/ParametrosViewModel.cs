@@ -154,6 +154,10 @@ public class ParametrosViewModel : INotifyPropertyChanged
                     Parametros.Clear();
                     foreach (var p in parametros)
                     {
+                        // CAT-01 se maneja per-user en la config de categorías, no aquí
+                        if (string.Equals(p.Codigo, "CAT-01", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
                         Parametros.Add(new ParametroEditItem
                         {
                             Codigo = p.Codigo,
