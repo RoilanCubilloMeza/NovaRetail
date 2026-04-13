@@ -384,7 +384,6 @@ public partial class ParametrosPage : ContentPage
             pillsRow.Children.Add(BuildTenderPill("Ventas",          Color.FromArgb("#2563EB"), () => item.IsForSales,     v => item.IsForSales     = v));
             pillsRow.Children.Add(BuildTenderPill("Pagos",           Color.FromArgb("#EA580C"), () => item.IsForPayments,  v => item.IsForPayments  = v));
             pillsRow.Children.Add(BuildTenderPill("Nota de Crédito", Color.FromArgb("#DC2626"), () => item.IsForNC,        v => item.IsForNC        = v));
-            pillsRow.Children.Add(BuildTenderPill("Pago NC",         Color.FromArgb("#475569"), () => item.IsForNCPayment, v => item.IsForNCPayment = v));
 
             var card = new Border
             {

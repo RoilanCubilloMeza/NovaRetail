@@ -319,9 +319,6 @@
                                         <Border BackgroundColor="#DC2626" StrokeThickness="0" StrokeShape="RoundRectangle 999" Padding="12,6" Margin="0,0,8,0">
                                             <Label Text="● Nota de Crédito" FontSize="11" FontAttributes="Bold" TextColor="White"/>
                                         </Border>
-                                        <Border BackgroundColor="#475569" StrokeThickness="0" StrokeShape="RoundRectangle 999" Padding="12,6">
-                                            <Label Text="● Pago NC" FontSize="11" FontAttributes="Bold" TextColor="White"/>
-                                        </Border>
                                     </FlexLayout>
                                 </VerticalStackLayout>
                             </Border>
@@ -329,24 +326,7 @@
                             <!-- Tender rows rendered in code-behind -->
                             <VerticalStackLayout x:Name="TenderCheckHost" Spacing="6"/>
 
-                            <!-- Código Cargo NC (campo de texto) -->
-                            <Border BackgroundColor="White"
-                                    Stroke="{DynamicResource Gray200Brush}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    Padding="14,12">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="Código Cargo NC" Style="{StaticResource FieldLabelDark}"/>
-                                    <Label Text="Cargo utilizado para diferenciar ajustes de notas de crédito." Style="{StaticResource HelpText}"/>
-                                    <Border Style="{StaticResource InputBox}" HeightRequest="-1" Padding="10,8">
-                                        <Entry Text="{Binding NCPaymentChargeCode, Mode=TwoWay}"
-                                               FontSize="14"
-                                               TextColor="{DynamicResource PanelNavy}"
-                                               Placeholder="AJ01"/>
-                                    </Border>
-                                </VerticalStackLayout>
-                            </Border>
-
+                            <!-- Guardar tenders button -->
                             <Border BackgroundColor="{DynamicResource AccentBlue}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 12"

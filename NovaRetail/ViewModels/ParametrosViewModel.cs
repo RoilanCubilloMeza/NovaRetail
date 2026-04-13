@@ -65,7 +65,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
     public bool HasParametros => Parametros.Count > 0;
     public int ParametrosCount => Parametros.Count;
     public int TendersConfiguradosCount => CountConfiguredTenders();
-    public string DashboardResumen => $"{ParametrosCount} parámetros generales y {TendersConfiguradosCount}/5 grupos tender configurados.";
+    public string DashboardResumen => $"{ParametrosCount} parámetros generales y {TendersConfiguradosCount}/3 grupos tender configurados.";
     public string OperacionResumen => IsSaving ? "Guardando cambios..." : "Use una sección a la vez para trabajar con más espacio.";
     public bool IsParametrosSectionActive => _activeSection == "Parametros";
     public bool IsTendersSectionActive => _activeSection == "Tenders";
@@ -198,7 +198,6 @@ public class ParametrosViewModel : INotifyPropertyChanged
                 var salesIds = ParseIds(SalesTenderCods);
                 var payIds = ParseIds(PaymentsTenderCods);
                 var ncIds = ParseIds(NCTenderCods);
-                var ncPayIds = ParseIds(NCPaymentCods);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -211,8 +210,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
                             Description = t.Description,
                             IsForSales = salesIds.Contains(t.ID),
                             IsForPayments = payIds.Contains(t.ID),
-                            IsForNC = ncIds.Contains(t.ID),
-                            IsForNCPayment = ncPayIds.Contains(t.ID)
+                            IsForNC = ncIds.Contains(t.ID)
                         };
                         item.CheckChanged = () => SyncTenderCods();
                         TenderOptions.Add(item);
@@ -338,9 +336,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
         {
             SalesTenderCods,
             PaymentsTenderCods,
-            NCTenderCods,
-            NCPaymentCods,
-            NCPaymentChargeCode
+            NCTenderCods
         };
 
         return values.Count(value => !string.IsNullOrWhiteSpace(value));
@@ -361,7 +357,6 @@ public class ParametrosViewModel : INotifyPropertyChanged
         SalesTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForSales).Select(t => t.ID));
         PaymentsTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForPayments).Select(t => t.ID));
         NCTenderCods = string.Join(",", TenderOptions.Where(t => t.IsForNC).Select(t => t.ID));
-        NCPaymentCods = string.Join(",", TenderOptions.Where(t => t.IsForNCPayment).Select(t => t.ID));
     }
 
     private static HashSet<int> ParseIds(string? codes)
