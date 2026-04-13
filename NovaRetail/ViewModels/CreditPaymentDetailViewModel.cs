@@ -17,6 +17,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private TenderModel? _selectedTender;
     private bool _showPaymentTypeDialog;
     private bool _showPartialInput;
+    private bool _showConfirmDialog;
     private string _partialAmountText = string.Empty;
     private OpenLedgerEntryModel? _pendingEntry;
 
@@ -153,6 +154,22 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     public bool PartialAmountValid => PartialAmount > 0 && PendingEntry is not null && PartialAmount <= PendingEntry.Balance;
 
+    public bool ShowConfirmDialog
+    {
+        get => _showConfirmDialog;
+        private set { if (_showConfirmDialog != value) { _showConfirmDialog = value; OnPropertyChanged(); } }
+    }
+
+    /// <summary>Summary text for the confirm dialog: number of invoices and total.</summary>
+    public string ConfirmSummaryText
+    {
+        get
+        {
+            var count = OpenEntries.Count(e => e.IsSelected && e.AmountToApply > 0);
+            return $"{count} factura(s)  —  Total: ₡{TotalToApply:N2}";
+        }
+    }
+
     public string Referencia
     {
         get => _referencia;
@@ -185,13 +202,16 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         private set { if (_showSuccess != value) { _showSuccess = value; OnPropertyChanged(); } }
     }
 
-    public bool CanConfirm => !IsBusy && TotalToApply > 0 && SelectedTender is not null;
+    public bool CanConfirm => !IsBusy && TotalToApply > 0;
 
     public event Action? RequestClose;
     public event Action? RequestBack;
     public event Func<AbonoPaymentRequest, Task>? RequestConfirmAbono;
 
     public ICommand ConfirmCommand { get; }
+    public ICommand FinalConfirmCommand { get; }
+    public ICommand CancelConfirmDialogCommand { get; }
+    public ICommand SelectConfirmTenderCommand { get; }
     public ICommand CloseCommand { get; }
     public ICommand BackCommand { get; }
     public ICommand SelectTenderCommand { get; }
@@ -205,35 +225,47 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     public CreditPaymentDetailViewModel()
     {
-        ConfirmCommand = new Command(async () =>
+        ConfirmCommand = new Command(() =>
+        {
+            ErrorMessage = string.Empty;
+
+            var selected = OpenEntries.Where(e => e.IsSelected && e.AmountToApply > 0).ToList();
+            if (selected.Count == 0)
+            {
+                ErrorMessage = "Seleccione al menos una factura y monto a aplicar.";
+                return;
+            }
+
+            foreach (var entry in selected)
+            {
+                if (entry.AmountToApply > entry.Balance)
+                {
+                    ErrorMessage = $"El monto no puede ser mayor al balance ({entry.Reference}).";
+                    return;
+                }
+            }
+
+            // Show the confirmation dialog (where user must pick tender)
+            SelectedTender = null;
+            OnPropertyChanged(nameof(ConfirmSummaryText));
+            ShowConfirmDialog = true;
+        });
+
+        FinalConfirmCommand = new Command(async () =>
         {
             try
             {
                 if (IsBusy) return;
-
-                ErrorMessage = string.Empty;
-
-                var selected = OpenEntries.Where(e => e.IsSelected && e.AmountToApply > 0).ToList();
-                if (selected.Count == 0)
-                {
-                    ErrorMessage = "Seleccione al menos una factura y monto a aplicar.";
-                    return;
-                }
-
-                foreach (var entry in selected)
-                {
-                    if (entry.AmountToApply > entry.Balance)
-                    {
-                        ErrorMessage = $"El monto a aplicar no puede ser mayor al balance de la factura ({entry.Reference}).";
-                        return;
-                    }
-                }
 
                 if (SelectedTender is null)
                 {
                     ErrorMessage = "Seleccione un medio de pago.";
                     return;
                 }
+
+                ErrorMessage = string.Empty;
+
+                var selected = OpenEntries.Where(e => e.IsSelected && e.AmountToApply > 0).ToList();
 
                 var request = new AbonoPaymentRequest
                 {
@@ -250,6 +282,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
                     }).ToList()
                 };
 
+                ShowConfirmDialog = false;
+
                 if (RequestConfirmAbono is not null)
                     await RequestConfirmAbono.Invoke(request);
                 else
@@ -259,6 +293,17 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
             {
                 ErrorMessage = $"Error inesperado: {ex.Message}";
             }
+        });
+
+        CancelConfirmDialogCommand = new Command(() =>
+        {
+            ShowConfirmDialog = false;
+        });
+
+        SelectConfirmTenderCommand = new Command<TenderModel>(tender =>
+        {
+            if (tender is not null)
+                SelectedTender = tender;
         });
 
         CloseCommand = new Command(() => RequestClose?.Invoke());
@@ -399,6 +444,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         ShowSuccess = false;
         ShowPartialInput = false;
         ShowPaymentTypeDialog = false;
+        ShowConfirmDialog = false;
         PartialAmountText = string.Empty;
         PendingEntry = null;
         IsBusy = false;
