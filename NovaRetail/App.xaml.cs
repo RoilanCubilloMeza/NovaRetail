@@ -26,8 +26,11 @@ public partial class App : Application
         if (window is null)
             return;
 
-        window.Page = _services.GetRequiredService<AppShell>();
-        ConfigureMainWindow(window);
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            window.Page = _services.GetRequiredService<AppShell>();
+            ConfigureMainWindow(window);
+        });
     }
 
     partial void ConfigureLoginWindow(Window window);

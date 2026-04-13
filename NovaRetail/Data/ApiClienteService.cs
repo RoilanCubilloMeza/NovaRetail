@@ -134,6 +134,106 @@ namespace NovaRetail.Data
             return null;
         }
 
+        // ──────── Buscar clientes con crédito ────────
+
+        public async Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria)
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    string url;
+
+                    if (string.IsNullOrWhiteSpace(criteria))
+                        url = $"{baseUrl}/api/Customers/CreditCustomers";
+                    else
+                        url = $"{baseUrl}/api/Customers/CreditCustomers?criteria={Uri.EscapeDataString(criteria.Trim())}";
+
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<CustomerCreditInfo>>(json);
+                    return results ?? (IReadOnlyList<CustomerCreditInfo>)Array.Empty<CustomerCreditInfo>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al buscar clientes crédito desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<CustomerCreditInfo>();
+        }
+
+        // ──────── Obtener cuentas por cobrar abiertas ────────
+
+        public async Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber)
+        {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return Array.Empty<OpenLedgerEntryModel>();
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/OpenLedgerEntries?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<OpenLedgerEntryModel>>(json);
+                    return results ?? (IReadOnlyList<OpenLedgerEntryModel>)Array.Empty<OpenLedgerEntryModel>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener cuentas abiertas desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<OpenLedgerEntryModel>();
+        }
+
+        // ──────── Registrar abono a cuenta de crédito ────────
+
+        public async Task<bool> RegistrarAbonoAsync(AbonoPaymentRequest request)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.AccountNumber) || request.TotalAmount <= 0)
+                return false;
+
+            var apiRequest = new
+            {
+                AccountNumber = request.AccountNumber.Trim(),
+                Amount = request.TotalAmount,
+                CashierID = request.CashierId,
+                StoreID = request.StoreId,
+                TenderID = request.TenderId,
+                Comment = (request.Comment ?? string.Empty).Trim(),
+                Reference = (request.Reference ?? string.Empty).Trim(),
+                Applications = request.Applications.Select(a => new
+                {
+                    a.LedgerEntryID,
+                    a.Amount,
+                    a.EntryBalance
+                }).ToList()
+            };
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/CreditPayment";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var payload = JsonConvert.SerializeObject(apiRequest,
+                        new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+                    using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                    var response = await http.PostAsync(url, content);
+                    return response.IsSuccessStatusCode;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al registrar abono en {BaseUrl}", baseUrl);
+                }
+            }
+
+            return false;
+        }
+
         // ──────── Sincronizar con Hacienda / GoMeta (original) ────────
 
         public async Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId)

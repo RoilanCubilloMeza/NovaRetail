@@ -70,6 +70,18 @@
               IsVisible="{Binding IsCustomerSearchVisible}">
             <views:CustomerSearchPopup BindingContext="{Binding CustomerSearchVm}"/>
         </Grid>
+
+        <!-- Credit payment search overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCreditPaymentSearchVisible}">
+            <views:CreditPaymentSearchPopup BindingContext="{Binding CreditPaymentSearchVm}"/>
+        </Grid>
+
+        <!-- Credit payment detail overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCreditPaymentDetailVisible}">
+            <views:CreditPaymentDetailPopup BindingContext="{Binding CreditPaymentDetailVm}"/>
+        </Grid>
     </Grid>
 
 </ContentPage>

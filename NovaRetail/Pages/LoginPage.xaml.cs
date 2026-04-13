@@ -7,6 +7,8 @@ public partial class LoginPage : ContentPage
 {
     private readonly LoginViewModel _viewModel;
     private readonly UserSession _userSession;
+    private bool _statusLoaded;
+    private bool _navigatingToMain;
 
     public LoginPage(LoginViewModel viewModel, UserSession userSession)
     {
@@ -21,8 +23,13 @@ public partial class LoginPage : ContentPage
 
     private async void OnLoaded(object? sender, EventArgs e)
     {
+        _navigatingToMain = false;
         _viewModel.StartClock();
-        await _viewModel.LoadStatusAsync();
+        if (!_statusLoaded)
+        {
+            _statusLoaded = true;
+            await _viewModel.LoadStatusAsync();
+        }
     }
 
     private void OnUnloaded(object? sender, EventArgs e)
@@ -32,6 +39,9 @@ public partial class LoginPage : ContentPage
 
     private void OnLoginSucceeded(object? sender, Models.LoginUserModel e)
     {
+        if (_navigatingToMain) return;
+        _navigatingToMain = true;
+
         _userSession.CurrentUser = e;
         if (Application.Current is App app)
             app.ShowMainShell();

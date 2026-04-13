@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Layouts;
 using NovaRetail.ViewModels;
 
 namespace NovaRetail.Pages;
@@ -340,79 +341,116 @@ public partial class ParametrosPage : ContentPage
 
         foreach (var item in vm.TenderOptions)
         {
-            var row = new Border
-            {
-                BackgroundColor = Colors.White,
-                Stroke = Color.FromArgb("#E2E8F0"),
-                StrokeThickness = 1,
-                StrokeShape = new RoundRectangle { CornerRadius = 12 },
-                Padding = new Thickness(14, 10)
-            };
-
-            var grid = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(new GridLength(70)),
-                    new ColumnDefinition(new GridLength(70)),
-                    new ColumnDefinition(new GridLength(70)),
-                    new ColumnDefinition(new GridLength(70))
-                },
-                ColumnSpacing = 4
-            };
-
-            // Tender name + ID badge
-            var nameStack = new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
-
             var idBadge = new Border
             {
                 BackgroundColor = Color.FromArgb("#F1F5F9"),
                 StrokeThickness = 0,
                 StrokeShape = new RoundRectangle { CornerRadius = 999 },
-                Padding = new Thickness(8, 3),
+                Padding = new Thickness(10, 4),
+                VerticalOptions = LayoutOptions.Center,
                 Content = new Label
                 {
                     Text = item.ID.ToString(),
-                    FontSize = 10,
+                    FontSize = 11,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#64748B")
+                    TextColor = Color.FromArgb("#475569")
                 }
             };
 
             var nameLabel = new Label
             {
                 Text = item.Description,
-                FontSize = 13,
+                FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = UiConfig.TextPrimary,
                 VerticalOptions = LayoutOptions.Center
             };
 
-            nameStack.Children.Add(idBadge);
-            nameStack.Children.Add(nameLabel);
+            var nameRow = new HorizontalStackLayout
+            {
+                Spacing = 10,
+                VerticalOptions = LayoutOptions.Center,
+                Children = { idBadge, nameLabel }
+            };
 
-            // Checkboxes
-            var cbSales = new CheckBox { IsChecked = item.IsForSales, Color = Color.FromArgb("#2563EB"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
-            cbSales.CheckedChanged += (_, e) => item.IsForSales = e.Value;
+            var pillsRow = new FlexLayout
+            {
+                Wrap = FlexWrap.Wrap,
+                Direction = FlexDirection.Row,
+                JustifyContent = FlexJustify.Start,
+                AlignItems = FlexAlignItems.Center
+            };
 
-            var cbPayments = new CheckBox { IsChecked = item.IsForPayments, Color = Color.FromArgb("#EA580C"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
-            cbPayments.CheckedChanged += (_, e) => item.IsForPayments = e.Value;
+            pillsRow.Children.Add(BuildTenderPill("Ventas",          Color.FromArgb("#2563EB"), () => item.IsForSales,     v => item.IsForSales     = v));
+            pillsRow.Children.Add(BuildTenderPill("Pagos",           Color.FromArgb("#EA580C"), () => item.IsForPayments,  v => item.IsForPayments  = v));
+            pillsRow.Children.Add(BuildTenderPill("Nota de Crédito", Color.FromArgb("#DC2626"), () => item.IsForNC,        v => item.IsForNC        = v));
+            pillsRow.Children.Add(BuildTenderPill("Pago NC",         Color.FromArgb("#475569"), () => item.IsForNCPayment, v => item.IsForNCPayment = v));
 
-            var cbNC = new CheckBox { IsChecked = item.IsForNC, Color = Color.FromArgb("#DC2626"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
-            cbNC.CheckedChanged += (_, e) => item.IsForNC = e.Value;
+            var card = new Border
+            {
+                BackgroundColor = Colors.White,
+                Stroke = Color.FromArgb("#E2E8F0"),
+                StrokeThickness = 1,
+                StrokeShape = new RoundRectangle { CornerRadius = 14 },
+                Padding = new Thickness(16, 14),
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 12,
+                    Children = { nameRow, pillsRow }
+                }
+            };
 
-            var cbNCPay = new CheckBox { IsChecked = item.IsForNCPayment, Color = Color.FromArgb("#475569"), VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
-            cbNCPay.CheckedChanged += (_, e) => item.IsForNCPayment = e.Value;
-
-            grid.Add(nameStack); Grid.SetColumn(nameStack, 0);
-            grid.Add(cbSales); Grid.SetColumn(cbSales, 1);
-            grid.Add(cbPayments); Grid.SetColumn(cbPayments, 2);
-            grid.Add(cbNC); Grid.SetColumn(cbNC, 3);
-            grid.Add(cbNCPay); Grid.SetColumn(cbNCPay, 4);
-
-            row.Content = grid;
-            TenderCheckHost.Children.Add(row);
+            TenderCheckHost.Children.Add(card);
         }
+    }
+
+    private static View BuildTenderPill(string label, Color activeColor, Func<bool> getVal, Action<bool> setVal)
+    {
+        bool initial = getVal();
+
+        var iconLabel = new Label
+        {
+            Text = initial ? "✓" : "○",
+            FontSize = 12,
+            TextColor = initial ? Colors.White : Color.FromArgb("#94A3B8"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var textLabel = new Label
+        {
+            Text = label,
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = initial ? Colors.White : Color.FromArgb("#64748B"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var pill = new Border
+        {
+            BackgroundColor = initial ? activeColor : Color.FromArgb("#F1F5F9"),
+            Stroke = initial ? activeColor : Color.FromArgb("#E2E8F0"),
+            StrokeThickness = 1.5,
+            StrokeShape = new RoundRectangle { CornerRadius = 999 },
+            Padding = new Thickness(14, 9),
+            Margin = new Thickness(0, 0, 8, 8),
+            HorizontalOptions = LayoutOptions.Start,
+            Content = new HorizontalStackLayout { Spacing = 6, Children = { iconLabel, textLabel } }
+        };
+
+        pill.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(() =>
+            {
+                var newVal = !getVal();
+                setVal(newVal);
+                pill.BackgroundColor = newVal ? activeColor : Color.FromArgb("#F1F5F9");
+                pill.Stroke = newVal ? activeColor : Color.FromArgb("#E2E8F0");
+                iconLabel.Text = newVal ? "✓" : "○";
+                iconLabel.TextColor = newVal ? Colors.White : Color.FromArgb("#94A3B8");
+                textLabel.TextColor = newVal ? Colors.White : Color.FromArgb("#64748B");
+            })
+        });
+
+        return pill;
     }
 }

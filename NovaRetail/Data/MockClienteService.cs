@@ -125,4 +125,19 @@ public sealed class MockClienteService : IClienteService
     {
         return Task.FromResult<CustomerCreditInfo?>(null);
     }
+
+    public Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria)
+    {
+        return Task.FromResult<IReadOnlyList<CustomerCreditInfo>>(Array.Empty<CustomerCreditInfo>());
+    }
+
+    public Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber)
+    {
+        return Task.FromResult<IReadOnlyList<OpenLedgerEntryModel>>(Array.Empty<OpenLedgerEntryModel>());
+    }
+
+    public Task<bool> RegistrarAbonoAsync(AbonoPaymentRequest request)
+    {
+        return Task.FromResult(false);
+    }
 }

@@ -21,42 +21,68 @@ namespace NovaAPI.Controllers
                 var safePageSize = pageSize < 1 ? 200 : (pageSize > 500 ? 500 : pageSize);
                 var skip = (safePage - 1) * safePageSize;
 
-                var items = db.ExecuteQuery<spWS_GetProductsResult>("EXEC dbo.spWS_GetProducts {0}", storeid)
-                             .Skip(skip)
-                             .Take(safePageSize)
-                             .ToList();
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return new List<ProductSearchDto>();
 
-                var ids = items.Select(i => i.ID).ToList();
-                var itemTypes = GetItemTypesMap(ids);
-
-                return items.Select(item => new ProductSearchDto
+                var results = new List<ProductSearchDto>();
+                using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
                 {
-                    ID = item.ID,
-                    ItemLookupCode = item.ItemLookupCode,
-                    Description = item.Description,
-                    ExtendedDescription = item.ExtendedDescription,
-                    Quantity = item.Quantity ?? 0,
-                    DepartmentID = item.DepartmentID,
-                    CategoryID = item.CategoryID,
-                    PRICE = item.PRICE,
-                    PriceA = item.PriceA,
-                    PriceB = item.PriceB,
-                    PriceC = item.PriceC,
-                    TaxID = item.TaxID,
-                    Cost = item.Cost,
-                    SubDescription1 = item.SubDescription1,
-                    SubDescription2 = item.SubDescription2,
-                    SubDescription3 = item.SubDescription3,
-                    WebItem = item.WebItem,
-                    Percentage = item.Percentage,
-                    ItemType = itemTypes.TryGetValue(item.ID, out var it) ? it : 0
-                });
+                    cn.Open();
+                    using (var cmd = new System.Data.SqlClient.SqlCommand())
+                    {
+                        cmd.Connection = cn;
+                        cmd.CommandText = @"
+                            SELECT i.ID, i.ItemLookupCode, i.Description, i.ExtendedDescription,
+                                   i.Quantity, i.DepartmentID, i.CategoryID,
+                                   i.Price, i.PriceA, i.PriceB, i.PriceC,
+                                   i.TaxID, i.Cost,
+                                   i.SubDescription1, i.SubDescription2, i.SubDescription3,
+                                   i.WebItem, i.ItemType,
+                                   ISNULL(t.Percentage, 0) AS Percentage
+                            FROM dbo.Item i
+                            LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
+                            ORDER BY i.Description
+                            OFFSET @skip ROWS FETCH NEXT @pageSize ROWS ONLY";
+                        cmd.Parameters.AddWithValue("@skip", skip);
+                        cmd.Parameters.AddWithValue("@pageSize", safePageSize);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                results.Add(new ProductSearchDto
+                                {
+                                    ID = Convert.ToInt32(reader["ID"]),
+                                    ItemLookupCode = reader["ItemLookupCode"]?.ToString() ?? "",
+                                    Description = reader["Description"]?.ToString() ?? "",
+                                    ExtendedDescription = reader["ExtendedDescription"]?.ToString() ?? "",
+                                    Quantity = reader["Quantity"] != DBNull.Value ? Convert.ToDouble(reader["Quantity"]) : 0,
+                                    DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
+                                    CategoryID = Convert.ToInt32(reader["CategoryID"]),
+                                    PRICE = reader["Price"] != DBNull.Value ? Convert.ToDecimal(reader["Price"]) : 0,
+                                    PriceA = reader["PriceA"] != DBNull.Value ? Convert.ToDecimal(reader["PriceA"]) : 0,
+                                    PriceB = reader["PriceB"] != DBNull.Value ? Convert.ToDecimal(reader["PriceB"]) : 0,
+                                    PriceC = reader["PriceC"] != DBNull.Value ? Convert.ToDecimal(reader["PriceC"]) : 0,
+                                    TaxID = Convert.ToInt32(reader["TaxID"]),
+                                    Cost = reader["Cost"] != DBNull.Value ? Convert.ToDecimal(reader["Cost"]) : 0,
+                                    SubDescription1 = reader["SubDescription1"]?.ToString() ?? "",
+                                    SubDescription2 = reader["SubDescription2"]?.ToString() ?? "",
+                                    SubDescription3 = reader["SubDescription3"]?.ToString() ?? "",
+                                    WebItem = reader["WebItem"] != DBNull.Value && Convert.ToBoolean(reader["WebItem"]),
+                                    Percentage = reader["Percentage"] != DBNull.Value ? Convert.ToSingle(reader["Percentage"]) : 0f,
+                                    ItemType = reader["ItemType"] != DBNull.Value ? Convert.ToInt32(reader["ItemType"]) : 0
+                                });
+                            }
+                        }
+                    }
+                }
+                return results;
             }
             catch
             {
                 return new List<ProductSearchDto>();
             }
-
         }
 
 
@@ -66,9 +92,19 @@ namespace NovaAPI.Controllers
         {
             try
             {
-                var total = db.ExecuteQuery<spWS_GetProductsResult>("EXEC dbo.spWS_GetProducts {0}", storeid)
-                              .Count();
-                return Ok(new { Total = total });
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return Ok(new { Total = 0 });
+
+                using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT COUNT(*) FROM dbo.Item", cn))
+                    {
+                        var total = (int)cmd.ExecuteScalar();
+                        return Ok(new { Total = total });
+                    }
+                }
             }
             catch
             {
@@ -197,13 +233,15 @@ namespace NovaAPI.Controllers
                             s.ID, s.ItemLookupCode, s.Description, s.Quantity, s.QuantityCommitted,
                             s.DepartmentID, s.CategoryID, s.Price, s.PriceA, s.PriceB, s.PriceC,
                             s.TaxID, s.Cost, s.ExtendedDescription,
-                            s.SubDescription1, s.SubDescription2, s.SubDescription3, s.WebItem
+                            s.SubDescription1, s.SubDescription2, s.SubDescription3, s.WebItem,
+                            s.ItemType
                         FROM (
                             SELECT
                                 ID, ItemLookupCode, Description, Quantity, QuantityCommitted,
                                 DepartmentID, CategoryID, Price, PriceA, PriceB, PriceC,
                                 TaxID, Cost, ExtendedDescription,
                                 SubDescription1, SubDescription2, SubDescription3, WebItem,
+                                ItemType,
                                 {scoreExpr} AS MatchScore
                             FROM dbo.Item
                         ) s

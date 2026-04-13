@@ -4,6 +4,9 @@ namespace NovaRetail.Models;
 
 public sealed class CustomerCreditInfo
 {
+    [JsonProperty("id")]
+    public int ID { get; set; }
+
     [JsonProperty("accountNumber")]
     public string AccountNumber { get; set; } = string.Empty;
 
@@ -12,6 +15,9 @@ public sealed class CustomerCreditInfo
 
     [JsonProperty("lastName")]
     public string LastName { get; set; } = string.Empty;
+
+    [JsonProperty("accountTypeID")]
+    public int AccountTypeID { get; set; }
 
     [JsonProperty("creditDays")]
     public int? CreditDays { get; set; }
@@ -29,4 +35,6 @@ public sealed class CustomerCreditInfo
     public bool HasCredit { get; set; }
 
     public string FullName => $"{FirstName} {LastName}".Trim();
+
+    public bool IsEven { get; set; }
 }

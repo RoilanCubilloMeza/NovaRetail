@@ -105,6 +105,11 @@
                                             SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
                                             IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
 
+                    <controls:ActionLinkRow Icon="&#x1F4B3;" Text="Abonos"
+                                            Command="{Binding ShowCreditPaymentCommand}"
+                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
+                                            IconColor="#4F46E5" LabelColor="#3730A3" ArrowColor="#4F46E5"/>
+
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,8,0,8"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4C2;" Text="Categorías"

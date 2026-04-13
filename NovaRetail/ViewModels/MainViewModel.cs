@@ -170,6 +170,8 @@ namespace NovaRetail.ViewModels
 
         public SalesRepPickerViewModel SalesRepPickerVm { get; } = new();
         public CustomerSearchViewModel CustomerSearchVm { get; } = new();
+        public CreditPaymentSearchViewModel CreditPaymentSearchVm { get; } = new();
+        public CreditPaymentDetailViewModel CreditPaymentDetailVm { get; } = new();
 
         public bool IsManualExonerationVisible
         {
@@ -238,6 +240,26 @@ namespace NovaRetail.ViewModels
             {
                 if (IsCustomerSearchVisible != value)
                     _appStore.Dispatch(new SetCustomerSearchVisibleAction(value));
+            }
+        }
+
+        public bool IsCreditPaymentSearchVisible
+        {
+            get => _appStore.State.IsCreditPaymentSearchVisible;
+            private set
+            {
+                if (IsCreditPaymentSearchVisible != value)
+                    _appStore.Dispatch(new SetCreditPaymentSearchVisibleAction(value));
+            }
+        }
+
+        public bool IsCreditPaymentDetailVisible
+        {
+            get => _appStore.State.IsCreditPaymentDetailVisible;
+            private set
+            {
+                if (IsCreditPaymentDetailVisible != value)
+                    _appStore.Dispatch(new SetCreditPaymentDetailVisibleAction(value));
             }
         }
 
@@ -343,6 +365,7 @@ namespace NovaRetail.ViewModels
         public ICommand RecallHoldCommand { get; }
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
+        public ICommand ShowCreditPaymentCommand { get; private set; } = new Command(() => { });
         public ICommand NavigateToCategoryConfigCommand { get; }
         public ICommand NavigateToMantenimientosCommand { get; }
 
@@ -428,7 +451,8 @@ namespace NovaRetail.ViewModels
                     {
                         try
                         {
-                            await Task.Delay(300, cts.Token);
+                            await Task.Delay(400, cts.Token);
+                            if (_isSearchingByCode) return;
                             await SearchFromApiAsync(text, cts.Token);
                         }
                         catch (OperationCanceledException) { }
@@ -449,9 +473,9 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetSelectedTabAction(value));
 
                     if (value == TabKeys.Rapido || value == TabKeys.Promos)
-                        SelectedCategory = CategoryKeys.Todos;
-
-                    FilterProducts();
+                        SelectedCategory = CategoryKeys.Todos;  // This already filters + loads
+                    else
+                        FilterProducts();
                 }
             }
         }
@@ -480,12 +504,17 @@ namespace NovaRetail.ViewModels
                 if (SelectedCategory != value)
                 {
                     _appStore.Dispatch(new SetSelectedCategoryAction(value));
-                    FilterProducts();
+
+                    // Cancel any pending search when switching categories
+                    _searchCts.Cancel();
+                    _searchCts = new CancellationTokenSource();
 
                     if (value == CategoryKeys.Todos)
                         _ = LoadProductsAsync();
+                    else
+                        _ = LoadCategoryProductsAsync(value);
 
-                    _ = LoadCategoryProductsAsync(value);
+                    FilterProducts();
                 }
             }
         }
@@ -510,6 +539,7 @@ namespace NovaRetail.ViewModels
             if (_allProducts.Any(p => MatchesCategory(p.Category, category)))
                 return;
 
+            IsSearchingProducts = true;
             try
             {
                 var products = await _productService.SearchAsync(category, 300, _exchangeRate);
@@ -525,6 +555,10 @@ namespace NovaRetail.ViewModels
             }
             catch
             {
+            }
+            finally
+            {
+                IsSearchingProducts = false;
             }
         }
 
@@ -781,6 +815,7 @@ namespace NovaRetail.ViewModels
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
+            ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentSearchAsync());
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
             NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
@@ -817,6 +852,12 @@ namespace NovaRetail.ViewModels
             CustomerSearchVm.RequestClose += () => IsCustomerSearchVisible = false;
             CustomerSearchVm.RequestSearch += async criteria => await SearchCustomersAsync(criteria);
             CustomerSearchVm.RequestSelect += OnCustomerSelected;
+            CreditPaymentSearchVm.RequestClose += () => IsCreditPaymentSearchVisible = false;
+            CreditPaymentSearchVm.RequestSearch += async criteria => await SearchCreditCustomersAsync(criteria);
+            CreditPaymentSearchVm.RequestSelect += OnCreditCustomerSelected;
+            CreditPaymentDetailVm.RequestClose += () => { IsCreditPaymentDetailVisible = false; IsCreditPaymentSearchVisible = false; };
+            CreditPaymentDetailVm.RequestBack += () => { IsCreditPaymentDetailVisible = false; IsCreditPaymentSearchVisible = true; };
+            CreditPaymentDetailVm.RequestConfirmAbono += async request => await ProcessAbonoAsync(request);
             RefreshCartItemsView();
             TenderSettingsChanged.Notified += () => _ = ReloadTendersAsync();
             _ = InitializeAsync();
@@ -878,6 +919,8 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsQuoteReceiptVisible));
             OnPropertyChanged(nameof(IsSalesRepPickerVisible));
             OnPropertyChanged(nameof(IsCustomerSearchVisible));
+            OnPropertyChanged(nameof(IsCreditPaymentSearchVisible));
+            OnPropertyChanged(nameof(IsCreditPaymentDetailVisible));
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
@@ -1169,6 +1212,12 @@ namespace NovaRetail.ViewModels
         {
             if (_isSearchingByCode) return;
             _isSearchingByCode = true;
+            IsSearchingProducts = true;
+
+            // Cancel any pending debounced search to avoid duplicate API calls
+            _searchCts.Cancel();
+            _searchCts = new CancellationTokenSource();
+
             try
             {
                 var parsedInput = ParseCodeAndQuantity(ProductSearchText);
@@ -1203,6 +1252,18 @@ namespace NovaRetail.ViewModels
                             StampNonInventoryFlag(new[] { product });
                             _allProducts.Add(product);
                         }
+
+                        // If no exact match found, merge search results for display
+                        if (product is null && results.Count > 0)
+                        {
+                            StampNonInventoryFlag(results);
+                            _allProducts.Clear();
+                            _allProducts.AddRange(results);
+                            _loadedItemsPage = 0;
+                            _canLoadMoreFromApi = false;
+                            FilterProducts();
+                            return;
+                        }
                     }
                     catch
                     {
@@ -1216,9 +1277,6 @@ namespace NovaRetail.ViewModels
                     else
                         AddProduct(product, quantityToAdd);
                     ProductSearchText = string.Empty;
-
-                    // Restablecer catálogo normal después de agregar por código.
-                    await LoadProductsAsync();
                     return;
                 }
 
@@ -1227,6 +1285,7 @@ namespace NovaRetail.ViewModels
             finally
             {
                 _isSearchingByCode = false;
+                IsSearchingProducts = false;
             }
         }
 
@@ -1342,6 +1401,7 @@ namespace NovaRetail.ViewModels
                 return false;
 
             _isLoadingItems = true;
+            if (!loadMore) IsSearchingProducts = true;
             var nextPage = loadMore ? _loadedItemsPage + 1 : 1;
 
             try
@@ -1353,6 +1413,7 @@ namespace NovaRetail.ViewModels
                     _isLoadingItems = false;
                     if (!loadMore)
                     {
+                        IsSearchingProducts = false;
                         _allProducts.Clear();
                         _loadedItemsPage = 0;
                         _canLoadMoreFromApi = false;
@@ -1376,11 +1437,13 @@ namespace NovaRetail.ViewModels
 
                 RefreshProductCountText();
                 _isLoadingItems = false;
+                if (!loadMore) IsSearchingProducts = false;
                 return true;
             }
             catch
             {
                 _isLoadingItems = false;
+                IsSearchingProducts = false;
                 return false;
             }
         }
@@ -3636,6 +3699,116 @@ namespace NovaRetail.ViewModels
             // Resolve from the service provider via the Shell
             return Shell.Current.Handler?.MauiContext?.Services.GetService<IClienteService>()
                 ?? throw new InvalidOperationException("IClienteService not available.");
+        }
+
+        // ── Abonos a crédito ──
+
+        private async Task OpenCreditPaymentSearchAsync()
+        {
+            CreditPaymentSearchVm.Reset();
+            IsCreditPaymentSearchVisible = true;
+            await SearchCreditCustomersAsync(null);
+        }
+
+        private async Task SearchCreditCustomersAsync(string? criteria)
+        {
+            try
+            {
+                CreditPaymentSearchVm.SetBusy(true);
+                CreditPaymentSearchVm.SetCustomers([], "Buscando clientes con crédito...");
+                var clienteService = GetClienteService();
+                var results = await clienteService.BuscarClientesCreditoAsync(criteria);
+
+                if (results.Count == 0 && !string.IsNullOrWhiteSpace(criteria))
+                    CreditPaymentSearchVm.SetCustomers(results, $"No se encontraron clientes para \"{criteria}\".");
+                else
+                    CreditPaymentSearchVm.SetCustomers(results);
+            }
+            catch (Exception ex)
+            {
+                CreditPaymentSearchVm.SetError($"Error al buscar clientes con crédito: {ex.Message}");
+            }
+            finally
+            {
+                CreditPaymentSearchVm.SetBusy(false);
+            }
+        }
+
+        private async void OnCreditCustomerSelected(Models.CustomerCreditInfo customer)
+        {
+            IsCreditPaymentSearchVisible = false;
+            CreditPaymentDetailVm.LoadCustomer(customer);
+
+            // Load PaymentsTenderCods tenders into detail VM
+            try
+            {
+                var allTenders = await _storeConfigService.GetTendersAsync();
+                var settings = await _parametrosService.GetTenderSettingsAsync();
+                if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
+                {
+                    var allowed = new HashSet<int>();
+                    foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        if (int.TryParse(code, out var id))
+                            allowed.Add(id);
+                    }
+                    if (allowed.Count > 0)
+                        allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
+                }
+                CreditPaymentDetailVm.LoadTenders(allTenders);
+            }
+            catch { /* if tender load fails, continue without them */ }
+
+            // Load open ledger entries for this customer
+            try
+            {
+                var clienteService = GetClienteService();
+                var entries = await clienteService.ObtenerCuentasAbiertasAsync(customer.AccountNumber);
+                CreditPaymentDetailVm.LoadOpenEntries(entries);
+            }
+            catch { /* if entries load fails, show empty table */ }
+
+            IsCreditPaymentDetailVisible = true;
+        }
+
+        private async Task ProcessAbonoAsync(Models.AbonoPaymentRequest request)
+        {
+            try
+            {
+                CreditPaymentDetailVm.SetBusy(true);
+                var clienteService = GetClienteService();
+                var currentUser = _userSession.CurrentUser;
+                var cashierId = currentUser is not null ? ParseCashierId(currentUser) : 1;
+
+                request.CashierId = cashierId;
+                request.StoreId = _storeIdFromConfig;
+
+                var success = await clienteService.RegistrarAbonoAsync(request);
+
+                if (success)
+                {
+                    CreditPaymentDetailVm.SetSuccess();
+                    // Refresh credit info + open entries
+                    var updated = await clienteService.ObtenerCreditoAsync(request.AccountNumber);
+                    if (updated is not null)
+                        CreditPaymentDetailVm.RefreshCredit(updated);
+
+                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
+                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                }
+                else
+                {
+                    CreditPaymentDetailVm.SetError("No se pudo registrar el abono. Intente de nuevo.");
+                }
+            }
+            catch (Exception ex)
+            {
+                CreditPaymentDetailVm.SetError($"Error: {ex.Message}");
+            }
+            finally
+            {
+                CreditPaymentDetailVm.SetBusy(false);
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

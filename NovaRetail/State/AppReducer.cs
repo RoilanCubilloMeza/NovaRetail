@@ -19,6 +19,8 @@ public static class AppReducer
         SetQuoteReceiptVisibleAction a => state with { IsQuoteReceiptVisible = a.Value },
         SetSalesRepPickerVisibleAction a => state with { IsSalesRepPickerVisible = a.Value },
         SetCustomerSearchVisibleAction a => state with { IsCustomerSearchVisible = a.Value },
+        SetCreditPaymentSearchVisibleAction a => state with { IsCreditPaymentSearchVisible = a.Value },
+        SetCreditPaymentDetailVisibleAction a => state with { IsCreditPaymentDetailVisible = a.Value },
 
         // ── Cliente ──
         SetCurrentClientAction a => state with
