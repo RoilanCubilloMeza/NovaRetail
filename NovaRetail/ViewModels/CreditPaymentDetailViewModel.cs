@@ -16,6 +16,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private bool _showSuccess;
     private TenderModel? _selectedTender;
     private bool _showPaymentTypeDialog;
+    private bool _showPartialInput;
+    private string _partialAmountText = string.Empty;
     private OpenLedgerEntryModel? _pendingEntry;
 
     public ObservableCollection<TenderModel> PaymentTenders { get; } = new();
@@ -76,12 +78,80 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public OpenLedgerEntryModel? PendingEntry
     {
         get => _pendingEntry;
-        private set { _pendingEntry = value; OnPropertyChanged(); OnPropertyChanged(nameof(PendingEntryText)); }
+        private set { _pendingEntry = value; OnPropertyChanged(); OnPropertyChanged(nameof(PendingEntryText)); OnPropertyChanged(nameof(PendingEntryReference)); OnPropertyChanged(nameof(PendingEntryBalanceText)); }
     }
 
     public string PendingEntryText => PendingEntry is not null
         ? $"{PendingEntry.Reference}  —  Balance: ₡{PendingEntry.Balance:N2}"
         : string.Empty;
+
+    public string PendingEntryReference => PendingEntry?.Reference ?? string.Empty;
+    public string PendingEntryBalanceText => PendingEntry is not null
+        ? $"₡{PendingEntry.Balance:N2}"
+        : string.Empty;
+
+    public bool ShowPartialInput
+    {
+        get => _showPartialInput;
+        private set { if (_showPartialInput != value) { _showPartialInput = value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowPaymentOptions)); } }
+    }
+
+    /// <summary>True when showing the Total/Parcial choice (step 1), false when in partial input mode (step 2).</summary>
+    public bool ShowPaymentOptions => !ShowPartialInput;
+
+    public string PartialAmountText
+    {
+        get => _partialAmountText;
+        set
+        {
+            if (_partialAmountText != value)
+            {
+                _partialAmountText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PartialAmount));
+                OnPropertyChanged(nameof(RemainingBalanceText));
+                OnPropertyChanged(nameof(PartialAmountValid));
+            }
+        }
+    }
+
+    public decimal PartialAmount
+    {
+        get
+        {
+            var text = (_partialAmountText ?? string.Empty).Trim();
+            bool hasComma = text.Contains(',');
+            bool hasDot = text.Contains('.');
+            if (hasComma && hasDot)
+            {
+                int lastComma = text.LastIndexOf(',');
+                int lastDot = text.LastIndexOf('.');
+                if (lastComma > lastDot)
+                    text = text.Replace(".", "").Replace(",", ".");
+                else
+                    text = text.Replace(",", "");
+            }
+            else if (hasComma)
+            {
+                text = text.Replace(",", ".");
+            }
+            return decimal.TryParse(text, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var val) ? val : 0;
+        }
+    }
+
+    public string RemainingBalanceText
+    {
+        get
+        {
+            if (PendingEntry is null) return string.Empty;
+            var remaining = PendingEntry.Balance - PartialAmount;
+            if (remaining < 0) remaining = 0;
+            return $"₡{remaining:N2}";
+        }
+    }
+
+    public bool PartialAmountValid => PartialAmount > 0 && PendingEntry is not null && PartialAmount <= PendingEntry.Balance;
 
     public string Referencia
     {
@@ -129,6 +199,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public ICommand DeselectAllCommand { get; }
     public ICommand PayTotalCommand { get; }
     public ICommand PayPartialCommand { get; }
+    public ICommand ConfirmPartialCommand { get; }
+    public ICommand BackToPaymentOptionsCommand { get; }
     public ICommand CancelPaymentDialogCommand { get; }
 
     public CreditPaymentDetailViewModel()
@@ -224,13 +296,25 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         PayPartialCommand = new Command(() =>
         {
-            if (PendingEntry is not null)
+            // Switch to partial input mode (step 2)
+            PartialAmountText = string.Empty;
+            ShowPartialInput = true;
+        });
+
+        ConfirmPartialCommand = new Command(() =>
+        {
+            if (PendingEntry is not null && PartialAmountValid)
             {
-                // Clear the auto-filled amount so user can type manually
-                PendingEntry.AmountToApplyText = "";
+                PendingEntry.AmountToApplyText = PartialAmount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
             }
+            ShowPartialInput = false;
             ShowPaymentTypeDialog = false;
             PendingEntry = null;
+        });
+
+        BackToPaymentOptionsCommand = new Command(() =>
+        {
+            ShowPartialInput = false;
         });
 
         CancelPaymentDialogCommand = new Command(() =>
@@ -240,6 +324,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
                 // User cancelled — deselect the entry
                 PendingEntry.IsSelected = false;
             }
+            ShowPartialInput = false;
             ShowPaymentTypeDialog = false;
             PendingEntry = null;
         });
@@ -312,7 +397,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         Descripcion = string.Empty;
         ErrorMessage = string.Empty;
         ShowSuccess = false;
+        ShowPartialInput = false;
         ShowPaymentTypeDialog = false;
+        PartialAmountText = string.Empty;
         PendingEntry = null;
         IsBusy = false;
         SelectedTender = null;

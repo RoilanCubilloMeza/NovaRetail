@@ -415,55 +415,181 @@
         <Grid IsVisible="{Binding ShowPaymentTypeDialog}"
               InputTransparent="False"
               ZIndex="10">
-            <BoxView Color="#000000" Opacity="0.45"/>
+            <BoxView Color="#000000" Opacity="0.5"/>
             <Border BackgroundColor="White"
-                    StrokeShape="RoundRectangle 12"
+                    StrokeShape="RoundRectangle 14"
                     Stroke="#E2E8F0" StrokeThickness="1"
-                    MaximumWidthRequest="380" MaximumHeightRequest="220"
+                    MaximumWidthRequest="420"
                     HorizontalOptions="Center" VerticalOptions="Center"
-                    Padding="24,20"
+                    Padding="0"
                     Shadow="{x:Null}">
-                <VerticalStackLayout Spacing="14">
-                    <Label Text="Tipo de pago" FontSize="17" FontAttributes="Bold"
-                           TextColor="#1E293B" HorizontalTextAlignment="Center"/>
-                    <Label Text="{Binding PendingEntryText}"
-                           FontSize="12" TextColor="#475569"
-                           HorizontalTextAlignment="Center"/>
+                <VerticalStackLayout Spacing="0">
 
-                    <Grid ColumnDefinitions="*, 10, *" ColumnSpacing="0">
+                    <!-- Dialog header -->
+                    <Border BackgroundColor="#1E293B" StrokeThickness="0"
+                            StrokeShape="RoundRectangle 14,14,0,0"
+                            Padding="20,14">
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="&#x1F4B3;" FontSize="18" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="¿Cómo desea aplicar el pago?"
+                                   FontSize="16" FontAttributes="Bold" TextColor="White"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding ShowPaymentOptions}"/>
+                            <Label Grid.Column="1" Text="Pago Parcial"
+                                   FontSize="16" FontAttributes="Bold" TextColor="White"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding ShowPartialInput}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Entry info -->
+                    <Border BackgroundColor="#F8FAFC" StrokeThickness="0" Padding="16,12">
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                            <Label Grid.Column="0" Text="{Binding PendingEntryReference}"
+                                   FontSize="13" FontAttributes="Bold" TextColor="#334155"
+                                   VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="{Binding PendingEntryBalanceText}"
+                                   FontSize="16" FontAttributes="Bold" TextColor="#DC2626"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <BoxView HeightRequest="1" Color="#E2E8F0"/>
+
+                    <!-- ═══ STEP 1: Payment type options ═══ -->
+                    <VerticalStackLayout Spacing="10" Padding="20,16"
+                                         IsVisible="{Binding ShowPaymentOptions}">
+
                         <!-- Pago Total -->
-                        <Border Grid.Column="0"
-                                BackgroundColor="#16A34A" StrokeThickness="0"
-                                StrokeShape="RoundRectangle 8"
-                                HeightRequest="40" Padding="12,0">
+                        <Border BackgroundColor="#F0FDF4" Stroke="#86EFAC"
+                                StrokeThickness="1.5" StrokeShape="RoundRectangle 10"
+                                Padding="14,12">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding PayTotalCommand}"/>
                             </Border.GestureRecognizers>
-                            <Label Text="Pago Total" FontSize="13" FontAttributes="Bold"
-                                   TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="12">
+                                <Border Grid.Column="0" BackgroundColor="#16A34A" StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8" WidthRequest="40" HeightRequest="40">
+                                    <Label Text="&#x2705;" FontSize="18"
+                                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Pago Total" FontSize="14" FontAttributes="Bold"
+                                           TextColor="#15803D"/>
+                                    <Label Text="Aplicar el monto total del balance" FontSize="11"
+                                           TextColor="#64748B"/>
+                                </VerticalStackLayout>
+                            </Grid>
                         </Border>
 
                         <!-- Pago Parcial -->
-                        <Border Grid.Column="2"
-                                BackgroundColor="#2563EB" StrokeThickness="0"
-                                StrokeShape="RoundRectangle 8"
-                                HeightRequest="40" Padding="12,0">
+                        <Border BackgroundColor="#EFF6FF" Stroke="#93C5FD"
+                                StrokeThickness="1.5" StrokeShape="RoundRectangle 10"
+                                Padding="14,12">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding PayPartialCommand}"/>
                             </Border.GestureRecognizers>
-                            <Label Text="Pago Parcial" FontSize="13" FontAttributes="Bold"
-                                   TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="12">
+                                <Border Grid.Column="0" BackgroundColor="#2563EB" StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8" WidthRequest="40" HeightRequest="40">
+                                    <Label Text="&#x270F;" FontSize="18" TextColor="White"
+                                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Pago Parcial" FontSize="14" FontAttributes="Bold"
+                                           TextColor="#1D4ED8"/>
+                                    <Label Text="Ingresar el monto manualmente" FontSize="11"
+                                           TextColor="#64748B"/>
+                                </VerticalStackLayout>
+                            </Grid>
                         </Border>
-                    </Grid>
 
-                    <!-- Cancelar -->
-                    <Label Text="Cancelar" FontSize="12" TextColor="#64748B"
-                           FontAttributes="Bold" HorizontalTextAlignment="Center"
-                           TextDecorations="Underline">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding CancelPaymentDialogCommand}"/>
-                        </Label.GestureRecognizers>
-                    </Label>
+                    </VerticalStackLayout>
+
+                    <!-- ═══ STEP 2: Partial amount input ═══ -->
+                    <VerticalStackLayout Spacing="12" Padding="20,16"
+                                         IsVisible="{Binding ShowPartialInput}">
+
+                        <!-- Balance total de la factura -->
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                            <Label Grid.Column="0" Text="Balance de la factura:"
+                                   FontSize="13" TextColor="#475569" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="{Binding PendingEntryBalanceText}"
+                                   FontSize="15" FontAttributes="Bold" TextColor="#1E293B"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Monto a pagar input -->
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Monto a pagar:" FontSize="12" FontAttributes="Bold"
+                                   TextColor="#334155"/>
+                            <Border BackgroundColor="White" Stroke="#93C5FD"
+                                    StrokeThickness="2" StrokeShape="RoundRectangle 8"
+                                    HeightRequest="44" Padding="12,0">
+                                <Entry Text="{Binding PartialAmountText}"
+                                       Keyboard="Numeric" FontSize="16"
+                                       FontAttributes="Bold" TextColor="#0F172A"
+                                       BackgroundColor="Transparent"
+                                       Placeholder="0.00"
+                                       PlaceholderColor="#94A3B8"
+                                       HorizontalTextAlignment="End"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Remaining balance -->
+                        <Border BackgroundColor="#FEF2F2" Stroke="#FECACA"
+                                StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                                Padding="12,10">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                <Label Grid.Column="0" Text="Restante por pagar:"
+                                       FontSize="13" TextColor="#DC2626" VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="{Binding RemainingBalanceText}"
+                                       FontSize="16" FontAttributes="Bold" TextColor="#DC2626"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Buttons row -->
+                        <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10" Margin="0,4,0,0">
+                            <!-- Back -->
+                            <Border Grid.Column="0" BackgroundColor="#F1F5F9" Stroke="#CBD5E1"
+                                    StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                                    HeightRequest="38" Padding="14,0">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding BackToPaymentOptionsCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="&#x2190; Volver" FontSize="12" FontAttributes="Bold"
+                                       TextColor="#475569" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+                            <!-- Confirm partial -->
+                            <Border Grid.Column="2" StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    HeightRequest="38" Padding="14,0"
+                                    BackgroundColor="#2563EB">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ConfirmPartialCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Aplicar Monto" FontSize="12" FontAttributes="Bold"
+                                       TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+                        </Grid>
+
+                    </VerticalStackLayout>
+
+                    <!-- Cancel -->
+                    <Border BackgroundColor="#F8FAFC" StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,14,14"
+                            Padding="16,10">
+                        <Label Text="Cancelar" FontSize="12" TextColor="#64748B"
+                               FontAttributes="Bold" HorizontalTextAlignment="Center"
+                               TextDecorations="Underline">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CancelPaymentDialogCommand}"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </Border>
+
                 </VerticalStackLayout>
             </Border>
         </Grid>

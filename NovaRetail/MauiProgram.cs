@@ -47,7 +47,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient("NovaItems",
             c => c.Timeout = TimeSpan.FromSeconds(10));
         builder.Services.AddHttpClient("NovaCustomers",
-            c => c.Timeout = TimeSpan.FromSeconds(15));
+            c => c.Timeout = TimeSpan.FromSeconds(30));
         builder.Services.AddHttpClient("NovaReasonCodes",
             c => c.Timeout = TimeSpan.FromSeconds(8));
         builder.Services.AddHttpClient("NovaStoreConfig",

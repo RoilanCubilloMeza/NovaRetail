@@ -92,7 +92,25 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
     {
         get
         {
-            var text = (_amountToApplyText ?? string.Empty).Trim().Replace(",", ".");
+            // Remove thousands separators (comma or dot) leaving only the decimal dot
+            var text = (_amountToApplyText ?? string.Empty).Trim();
+            // If has both comma and dot, determine which is the decimal separator
+            bool hasComma = text.Contains(',');
+            bool hasDot = text.Contains('.');
+            if (hasComma && hasDot)
+            {
+                // "46,200.00" or "46.200,00" — last separator is decimal
+                int lastComma = text.LastIndexOf(',');
+                int lastDot = text.LastIndexOf('.');
+                if (lastComma > lastDot)
+                    text = text.Replace(".", "").Replace(",", "."); // 46.200,00 → 46200.00
+                else
+                    text = text.Replace(",", ""); // 46,200.00 → 46200.00
+            }
+            else if (hasComma)
+            {
+                text = text.Replace(",", "."); // "46200,00" → "46200.00"
+            }
             return decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)
                 ? Math.Min(val, Balance) : 0;
         }
