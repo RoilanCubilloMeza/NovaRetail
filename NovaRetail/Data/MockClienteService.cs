@@ -136,8 +136,8 @@ public sealed class MockClienteService : IClienteService
         return Task.FromResult<IReadOnlyList<OpenLedgerEntryModel>>(Array.Empty<OpenLedgerEntryModel>());
     }
 
-    public Task<bool> RegistrarAbonoAsync(AbonoPaymentRequest request)
+    public Task<(bool Success, string Message)> RegistrarAbonoAsync(AbonoPaymentRequest request)
     {
-        return Task.FromResult(false);
+        return Task.FromResult((false, "Mock: no implementado"));
     }
 }

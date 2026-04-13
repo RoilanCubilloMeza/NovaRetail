@@ -26,10 +26,6 @@ public sealed class ApiLoginService : ILoginService
         var login = userName?.Trim() ?? string.Empty;
         var clave = password?.Trim() ?? string.Empty;
 
-        var isDatabaseConnected = await IsDatabaseConnectedAsync();
-        if (!isDatabaseConnected)
-            return null;
-
         if (string.IsNullOrWhiteSpace(login))
             return null;
 
@@ -62,6 +58,16 @@ public sealed class ApiLoginService : ILoginService
                         };
                     }
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning(ex, "Error de conexión al autenticar desde {BaseUrl}", baseUrl);
+                throw;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Timeout al autenticar desde {BaseUrl}", baseUrl);
+                throw;
             }
             catch (Exception ex)
             {

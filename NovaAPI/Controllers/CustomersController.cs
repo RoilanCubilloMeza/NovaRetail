@@ -130,53 +130,33 @@ FROM Customer";
 
                 if (string.IsNullOrEmpty(term))
                 {
-                    // No criteria: return all customers with credit via direct SQL (fast, filtered at DB)
-                    var connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
-                    if (string.IsNullOrWhiteSpace(connectionString))
+                    var allCustomers = db.spWS_GetCustomers();
+                    if (allCustomers == null)
                         return Request.CreateResponse(HttpStatusCode.OK, new List<CustomerCreditInfoDto>());
 
-                    var list = new List<CustomerCreditInfoDto>();
-                    using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
-                    {
-                        cn.Open();
-                        using (var cmd = new System.Data.SqlClient.SqlCommand(@"
-                            SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
-                                   c.PriceLevel, a.CreditDays, a.ClosingBalance, a.CreditLimit,
-                                   (a.CreditLimit - a.ClosingBalance) AS Available
-                            FROM dbo.Customer c
-                            INNER JOIN dbo.AR_Account a ON a.CustomerID = c.ID
-                            WHERE a.CreditLimit > 0
-                            ORDER BY c.LastName, c.FirstName", cn))
+                    var list = allCustomers
+                        .Where(c => (c.CreditLimit ?? 0m) > 0)
+                        .OrderBy(c => c.LastName)
+                        .ThenBy(c => c.FirstName)
+                        .Select(c => new CustomerCreditInfoDto
                         {
-                            using (var reader = cmd.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    list.Add(new CustomerCreditInfoDto
-                                    {
-                                        ID = Convert.ToInt32(reader["ID"]),
-                                        AccountNumber = reader["AccountNumber"]?.ToString() ?? "",
-                                        FirstName = reader["FirstName"]?.ToString() ?? "",
-                                        LastName = reader["LastName"]?.ToString() ?? "",
-                                        AccountTypeID = (short)(reader["PriceLevel"] != DBNull.Value ? Convert.ToInt16(reader["PriceLevel"]) : 0),
-                                        CreditDays = reader["CreditDays"] != DBNull.Value ? Convert.ToInt32(reader["CreditDays"]) : (int?)null,
-                                        ClosingBalance = reader["ClosingBalance"] != DBNull.Value ? Convert.ToDecimal(reader["ClosingBalance"]) : 0m,
-                                        CreditLimit = reader["CreditLimit"] != DBNull.Value ? Convert.ToDecimal(reader["CreditLimit"]) : 0m,
-                                        Available = reader["Available"] != DBNull.Value ? Convert.ToDecimal(reader["Available"]) : 0m,
-                                        HasCredit = true
-                                    });
-                                }
-                            }
-                        }
-                    }
+                            ID = c.ID,
+                            AccountNumber = c.AccountNumber ?? string.Empty,
+                            FirstName = c.FirstName ?? string.Empty,
+                            LastName = c.LastName ?? string.Empty,
+                            AccountTypeID = c.PriceLevel,
+                            CreditDays = c.CreditDays,
+                            ClosingBalance = c.ClosingBalance ?? 0m,
+                            CreditLimit = c.CreditLimit ?? 0m,
+                            Available = c.Available ?? 0m,
+                            HasCredit = true
+                        }).ToList();
+
                     return Request.CreateResponse(HttpStatusCode.OK, list);
                 }
 
                 var results = db.spWS_GetCustomersbyCriteria(term);
-                if (results == null)
-                    return Request.CreateResponse(HttpStatusCode.OK, new List<CustomerCreditInfoDto>());
-
-                var filtered = results
+                var filtered = (results ?? Enumerable.Empty<spWS_GetCustomersbyCriteriaResult>())
                     .Where(c => (c.CreditLimit ?? 0m) > 0)
                     .Select(c => new CustomerCreditInfoDto
                     {
@@ -191,6 +171,34 @@ FROM Customer";
                         Available = c.Available ?? 0m,
                         HasCredit = true
                     }).ToList();
+
+                // Fallback: if SP returned no credit customers, search all credit customers locally
+                if (filtered.Count == 0)
+                {
+                    var termLower = term.ToLowerInvariant();
+                    var allCustomers = db.spWS_GetCustomers();
+                    if (allCustomers != null)
+                    {
+                        filtered = allCustomers
+                            .Where(c => (c.CreditLimit ?? 0m) > 0
+                                && ((c.AccountNumber ?? string.Empty).ToLowerInvariant().Contains(termLower)
+                                    || (c.FirstName ?? string.Empty).ToLowerInvariant().Contains(termLower)
+                                    || (c.LastName ?? string.Empty).ToLowerInvariant().Contains(termLower)))
+                            .Select(c => new CustomerCreditInfoDto
+                            {
+                                ID = c.ID,
+                                AccountNumber = c.AccountNumber ?? string.Empty,
+                                FirstName = c.FirstName ?? string.Empty,
+                                LastName = c.LastName ?? string.Empty,
+                                AccountTypeID = c.PriceLevel,
+                                CreditDays = c.CreditDays,
+                                ClosingBalance = c.ClosingBalance ?? 0m,
+                                CreditLimit = c.CreditLimit ?? 0m,
+                                Available = c.Available ?? 0m,
+                                HasCredit = true
+                            }).ToList();
+                    }
+                }
 
                 return Request.CreateResponse(HttpStatusCode.OK, filtered);
             }
@@ -457,13 +465,21 @@ ORDER BY le.PostingDate";
                     ? request.Reference.Trim()
                     : $"ABONO-{now:yyyyMMddHHmmss}";
 
-                // ── 1. Registrar Payment en AppCentral ──
+                // ── 1. Registrar Payment en AppCentral (opcional) ──
                 if (!string.IsNullOrWhiteSpace(appCentralCs))
                 {
-                    var dbAC = new AppCentralDataContext(appCentralCs);
-                    dbAC.spAVSCrea_Payment(0, request.CashierID, request.StoreID, accountNumber,
-                        now.ToString("yyyy-MM-dd HH:mm:ss"), request.Amount,
-                        (request.Comment ?? string.Empty).Trim(), reference);
+                    try
+                    {
+                        var dbAC = new AppCentralDataContext(appCentralCs);
+                        dbAC.spAVSCrea_Payment(0, request.CashierID, request.StoreID, accountNumber,
+                            now.ToString("yyyy-MM-dd HH:mm:ss"), request.Amount,
+                            (request.Comment ?? string.Empty).Trim(), reference);
+                    }
+                    catch (Exception exAC)
+                    {
+                        // AppCentral no disponible – continuar con RMHPOS
+                        System.Diagnostics.Debug.WriteLine("AppCentral spAVSCrea_Payment error (no crítico): " + exAC.Message);
+                    }
                 }
 
                 // ── 2. AR_LedgerEntry + AR_LedgerEntryDetail en RMS (RMHPOS) ──

@@ -3736,39 +3736,56 @@ namespace NovaRetail.ViewModels
 
         private async void OnCreditCustomerSelected(Models.CustomerCreditInfo customer)
         {
-            IsCreditPaymentSearchVisible = false;
-            CreditPaymentDetailVm.LoadCustomer(customer);
-
-            // Load PaymentsTenderCods tenders into detail VM
             try
             {
-                var allTenders = await _storeConfigService.GetTendersAsync();
-                var settings = await _parametrosService.GetTenderSettingsAsync();
-                if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Customer selected: {customer?.AccountNumber}");
+                IsCreditPaymentSearchVisible = false;
+                CreditPaymentDetailVm.LoadCustomer(customer);
+                IsCreditPaymentDetailVisible = true;
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Detail visible set to true");
+
+                // Load PaymentsTenderCods tenders into detail VM
+                try
                 {
-                    var allowed = new HashSet<int>();
-                    foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    var allTenders = await _storeConfigService.GetTendersAsync();
+                    var settings = await _parametrosService.GetTenderSettingsAsync();
+                    if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
                     {
-                        if (int.TryParse(code, out var id))
-                            allowed.Add(id);
+                        var allowed = new HashSet<int>();
+                        foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            if (int.TryParse(code, out var id))
+                                allowed.Add(id);
+                        }
+                        if (allowed.Count > 0)
+                            allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
                     }
-                    if (allowed.Count > 0)
-                        allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
+                    CreditPaymentDetailVm.LoadTenders(allTenders);
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tenders loaded: {allTenders.Count()}");
                 }
-                CreditPaymentDetailVm.LoadTenders(allTenders);
-            }
-            catch { /* if tender load fails, continue without them */ }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tender load error: {ex.Message}");
+                }
 
-            // Load open ledger entries for this customer
-            try
+                // Load open ledger entries for this customer
+                try
+                {
+                    var clienteService = GetClienteService();
+                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(customer.AccountNumber);
+                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries loaded: {entries.Count}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
             {
-                var clienteService = GetClienteService();
-                var entries = await clienteService.ObtenerCuentasAbiertasAsync(customer.AccountNumber);
-                CreditPaymentDetailVm.LoadOpenEntries(entries);
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] FATAL ERROR: {ex}");
+                IsCreditPaymentDetailVisible = true;
             }
-            catch { /* if entries load fails, show empty table */ }
-
-            IsCreditPaymentDetailVisible = true;
         }
 
         private async Task ProcessAbonoAsync(Models.AbonoPaymentRequest request)
@@ -3783,7 +3800,7 @@ namespace NovaRetail.ViewModels
                 request.CashierId = cashierId;
                 request.StoreId = _storeIdFromConfig;
 
-                var success = await clienteService.RegistrarAbonoAsync(request);
+                var (success, message) = await clienteService.RegistrarAbonoAsync(request);
 
                 if (success)
                 {
@@ -3798,7 +3815,7 @@ namespace NovaRetail.ViewModels
                 }
                 else
                 {
-                    CreditPaymentDetailVm.SetError("No se pudo registrar el abono. Intente de nuevo.");
+                    CreditPaymentDetailVm.SetError(message ?? "No se pudo registrar el abono. Intente de nuevo.");
                 }
             }
             catch (Exception ex)

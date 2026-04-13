@@ -191,10 +191,10 @@ namespace NovaRetail.Data
 
         // ──────── Registrar abono a cuenta de crédito ────────
 
-        public async Task<bool> RegistrarAbonoAsync(AbonoPaymentRequest request)
+        public async Task<(bool Success, string Message)> RegistrarAbonoAsync(AbonoPaymentRequest request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.AccountNumber) || request.TotalAmount <= 0)
-                return false;
+                return (false, "Datos de abono inválidos (cuenta o monto vacío).");
 
             var apiRequest = new
             {
@@ -213,6 +213,8 @@ namespace NovaRetail.Data
                 }).ToList()
             };
 
+            string lastError = "No se pudo conectar con el servidor.";
+
             foreach (var baseUrl in _baseUrls)
             {
                 try
@@ -223,15 +225,35 @@ namespace NovaRetail.Data
                         new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
                     using var content = new StringContent(payload, Encoding.UTF8, "application/json");
                     var response = await http.PostAsync(url, content);
-                    return response.IsSuccessStatusCode;
+
+                    var body = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return (true, "Abono registrado correctamente.");
+                    }
+
+                    // Try to extract server error message
+                    try
+                    {
+                        var errObj = JsonConvert.DeserializeAnonymousType(body, new { Ok = false, Message = "" });
+                        lastError = errObj?.Message ?? $"Error del servidor ({(int)response.StatusCode})";
+                    }
+                    catch
+                    {
+                        lastError = $"Error del servidor ({(int)response.StatusCode}): {body}";
+                    }
+                    _logger.LogWarning("CreditPayment failed on {BaseUrl}: {Status} - {Body}", baseUrl, (int)response.StatusCode, body);
+                    return (false, lastError);
                 }
                 catch (Exception ex)
                 {
+                    lastError = $"Error de conexión: {ex.Message}";
                     _logger.LogWarning(ex, "Error al registrar abono en {BaseUrl}", baseUrl);
                 }
             }
 
-            return false;
+            return (false, lastError);
         }
 
         // ──────── Sincronizar con Hacienda / GoMeta (original) ────────

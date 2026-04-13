@@ -15,6 +15,6 @@ public interface IClienteService
     Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria);
     Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber);
     Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber);
-    Task<bool> RegistrarAbonoAsync(AbonoPaymentRequest request);
+    Task<(bool Success, string Message)> RegistrarAbonoAsync(AbonoPaymentRequest request);
 }
 
