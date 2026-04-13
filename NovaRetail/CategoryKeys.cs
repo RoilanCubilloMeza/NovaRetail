@@ -2,7 +2,7 @@ using NovaRetail.Models;
 
 namespace NovaRetail;
 
-public sealed record CategoryOption(string Key, string Label, string Icon)
+public sealed record CategoryOption(string Key, string Label, string Icon, int DepartmentID = 0)
 {
     public string TabText => $"{Icon} {Label}";
 }
@@ -24,7 +24,16 @@ public static class CategoryKeys
     {
         get { lock (_lock) return _dynamicOptions.ToList(); }
     }
-
+    /// <summary>Obtiene el DepartmentID de una categoría por nombre.</summary>
+    public static int GetDepartmentID(string category)
+    {
+        lock (_lock)
+        {
+            var option = _dynamicOptions.FirstOrDefault(o =>
+                string.Equals(o.Key, category, StringComparison.OrdinalIgnoreCase));
+            return option?.DepartmentID ?? 0;
+        }
+    }
     /// <summary>
     /// Reemplaza las categorías dinámicas con las obtenidas del API.
     /// Debe llamarse una vez después de obtener las categorías de la DB.
@@ -38,7 +47,7 @@ public static class CategoryKeys
             if (string.IsNullOrWhiteSpace(cat.Name))
                 continue;
 
-            list.Add(new CategoryOption(cat.Name, cat.Name, "📂"));
+            list.Add(new CategoryOption(cat.Name, cat.Name, "\U0001f4c2", cat.ID));
         }
 
         lock (_lock)

@@ -536,13 +536,17 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(category) || category == CategoryKeys.Todos)
                 return;
 
-            if (_allProducts.Any(p => MatchesCategory(p.Category, category)))
-                return;
-
             IsSearchingProducts = true;
             try
             {
-                var products = await _productService.SearchAsync(category, 300, _exchangeRate);
+                List<ProductModel> products;
+
+                var deptId = CategoryKeys.GetDepartmentID(category);
+                if (deptId > 0)
+                    products = await _productService.SearchByDepartmentAsync(deptId, 300, _exchangeRate);
+                else
+                    products = await _productService.SearchAsync(category, 300, _exchangeRate);
+
                 if (products.Count == 0)
                     return;
 

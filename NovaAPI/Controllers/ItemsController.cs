@@ -337,6 +337,79 @@ namespace NovaAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("api/Items/ByDepartment")]
+        public IHttpActionResult ByDepartment(int departmentId, int top = 300)
+        {
+            try
+            {
+                var safeTop = top < 1 ? 100 : (top > 1000 ? 1000 : top);
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return Ok(new List<ProductSearchDto>());
+
+                var results = new List<ProductSearchDto>();
+                using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    using (var cmd = new System.Data.SqlClient.SqlCommand())
+                    {
+                        cmd.Connection = cn;
+                        cmd.CommandText = @"
+                            SELECT TOP (@top)
+                                i.ID, i.ItemLookupCode, i.Description, i.ExtendedDescription,
+                                i.Quantity, i.DepartmentID, i.CategoryID,
+                                i.Price, i.PriceA, i.PriceB, i.PriceC,
+                                i.TaxID, i.Cost,
+                                i.SubDescription1, i.SubDescription2, i.SubDescription3,
+                                i.WebItem, i.ItemType,
+                                ISNULL(t.Percentage, 0) AS Percentage
+                            FROM dbo.Item i
+                            LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
+                            WHERE i.DepartmentID = @deptId
+                            ORDER BY i.Quantity DESC, i.Description";
+                        cmd.Parameters.AddWithValue("@top", safeTop);
+                        cmd.Parameters.AddWithValue("@deptId", departmentId);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                results.Add(new ProductSearchDto
+                                {
+                                    ID = Convert.ToInt32(reader["ID"]),
+                                    ItemLookupCode = reader["ItemLookupCode"]?.ToString() ?? "",
+                                    Description = reader["Description"]?.ToString() ?? "",
+                                    ExtendedDescription = reader["ExtendedDescription"]?.ToString() ?? "",
+                                    Quantity = reader["Quantity"] != DBNull.Value ? Convert.ToDouble(reader["Quantity"]) : 0,
+                                    DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
+                                    CategoryID = Convert.ToInt32(reader["CategoryID"]),
+                                    PRICE = reader["Price"] != DBNull.Value ? Convert.ToDecimal(reader["Price"]) : 0,
+                                    PriceA = reader["PriceA"] != DBNull.Value ? Convert.ToDecimal(reader["PriceA"]) : 0,
+                                    PriceB = reader["PriceB"] != DBNull.Value ? Convert.ToDecimal(reader["PriceB"]) : 0,
+                                    PriceC = reader["PriceC"] != DBNull.Value ? Convert.ToDecimal(reader["PriceC"]) : 0,
+                                    TaxID = Convert.ToInt32(reader["TaxID"]),
+                                    Cost = reader["Cost"] != DBNull.Value ? Convert.ToDecimal(reader["Cost"]) : 0,
+                                    SubDescription1 = reader["SubDescription1"]?.ToString() ?? "",
+                                    SubDescription2 = reader["SubDescription2"]?.ToString() ?? "",
+                                    SubDescription3 = reader["SubDescription3"]?.ToString() ?? "",
+                                    WebItem = reader["WebItem"] != DBNull.Value && Convert.ToBoolean(reader["WebItem"]),
+                                    Percentage = reader["Percentage"] != DBNull.Value ? Convert.ToSingle(reader["Percentage"]) : 0f,
+                                    ItemType = reader["ItemType"] != DBNull.Value ? Convert.ToInt32(reader["ItemType"]) : 0
+                                });
+                            }
+                        }
+                    }
+                }
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
     }
 
     public class ProductSearchDto

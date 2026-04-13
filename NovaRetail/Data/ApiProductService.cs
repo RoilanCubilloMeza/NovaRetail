@@ -77,6 +77,33 @@ public sealed class ApiProductService : IProductService
         return [];
     }
 
+    public async Task<List<ProductModel>> SearchByDepartmentAsync(int departmentId, int top, decimal exchangeRate)
+    {
+        var safeTop = Math.Clamp(top, 1, 1000);
+        var deptMap = await GetDepartmentMapAsync();
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ItemsClientName);
+                var url = $"{baseUrl}/api/Items/ByDepartment?departmentId={departmentId}&top={safeTop}";
+                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+
+                if (apiItems is null || apiItems.Count == 0)
+                    continue;
+
+                return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al buscar productos por departamento desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return [];
+    }
+
     public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)
     {
         foreach (var baseUrl in _baseUrls)
@@ -197,7 +224,7 @@ public sealed class ApiProductService : IProductService
             try
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
-                var categories = await http.GetFromJsonAsync<List<DepartmentEntry>>($"{baseUrl}/api/Categories");
+                var categories = await http.GetFromJsonAsync<List<DepartmentEntry>>($"{baseUrl}/api/Categories/All");
                 if (categories is not null && categories.Count > 0)
                 {
                     _departmentMap = categories.ToDictionary(c => c.ID, c => c.Name);
