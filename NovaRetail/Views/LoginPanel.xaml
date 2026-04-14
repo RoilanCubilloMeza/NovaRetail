@@ -25,7 +25,7 @@
             <BoxView Style="{StaticResource FormDivider}" Margin="0,0,0,0"/>
 
             <VerticalStackLayout Spacing="6">
-                <Label Text="Inicio Sesión"
+                <Label Text="Inicio de Sesión"
                        Style="{StaticResource LoginTitle}"/>
                 <Label Text="Acceso seguro al sistema Nova Retail"
                        Style="{StaticResource LoginSubtitle}"/>

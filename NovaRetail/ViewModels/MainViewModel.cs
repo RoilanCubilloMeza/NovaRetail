@@ -30,7 +30,7 @@ namespace NovaRetail.ViewModels
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly List<ReasonCodeModel> _cachedExonerationCodes = new();
         private readonly List<SalesRepModel> _cachedSalesReps = new();
-        private readonly string[] _cartSortFields = { "Nombre", "CÃ³digo", "Precio", "Unidades" };
+        private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private const int OrderReferenceNumberMaxLength = 50;
         private const int ProductsPageSize = 500;
         private int _loadedItemsPage;
@@ -85,7 +85,7 @@ namespace NovaRetail.ViewModels
             get => _quoteDays;
             private set { if (_quoteDays != value) { _quoteDays = value; OnPropertyChanged(); OnPropertyChanged(nameof(QuoteDaysText)); } }
         }
-        public string QuoteDaysText => _quoteDays > 0 ? $"{_quoteDays} dÃ­as" : "â€”";
+        public string QuoteDaysText => _quoteDays > 0 ? $"{_quoteDays} días" : "—";
 
         private int _defaultTenderID;
         private int _priceOverridePriceSource = 1;
@@ -159,7 +159,7 @@ namespace NovaRetail.ViewModels
         }
 
         public bool HasSelectedItems => CartItems.Any(c => c.IsSelected);
-        public string SelectedCountText => $"{CartItems.Count(c => c.IsSelected)} artÃ­culo(s) seleccionado(s)";
+        public string SelectedCountText => $"{CartItems.Count(c => c.IsSelected)} artículo(s) seleccionado(s)";
 
         public ItemActionViewModel ItemActionVm { get; } = new();
         public DiscountEntryViewModel DiscountVm { get; } = new();
@@ -276,14 +276,14 @@ namespace NovaRetail.ViewModels
         public bool HasClient => !string.IsNullOrWhiteSpace(CurrentClientId);
         public string ClientDisplayId => HasClient ? CurrentClientId : "Sin cliente";
         public string ClientDisplayName => HasClient
-            ? (string.IsNullOrWhiteSpace(CurrentClientName) ? "â€”" : CurrentClientName)
+            ? (string.IsNullOrWhiteSpace(CurrentClientName) ? "—" : CurrentClientName)
             : "Seleccione un cliente";
 
         public bool IsCurrentClientReceiver => _appStore.State.IsCurrentClientReceiver;
         public string CurrentClientCustomerType => _appStore.State.CurrentClientCustomerType;
-        public bool CurrentClientHasCredit => string.Equals(CurrentClientCustomerType, "CrÃ©dito", StringComparison.OrdinalIgnoreCase)
+        public bool CurrentClientHasCredit => string.Equals(CurrentClientCustomerType, "Crédito", StringComparison.OrdinalIgnoreCase)
             || string.Equals(CurrentClientCustomerType, "Gobierno", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(CurrentClientCustomerType, "ExportaciÃ³n", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(CurrentClientCustomerType, "Exportación", StringComparison.OrdinalIgnoreCase);
 
         public void SetCliente(string clientId, string name, bool isReceiver = false, string customerType = "")
         {
@@ -324,17 +324,17 @@ namespace NovaRetail.ViewModels
 
         public string CartSortText => string.IsNullOrWhiteSpace(SelectedCartSortField)
             ? "Orden manual"
-            : $"Ordenado por {SelectedCartSortField.ToLowerInvariant()} {(IsCartSortDescending ? "â†“" : "â†‘")}";
+            : $"Ordenado por {SelectedCartSortField.ToLowerInvariant()} {(IsCartSortDescending ? "↓" : "↑")}";
         public bool IsCartSortByName => SelectedCartSortField == "Nombre";
-        public bool IsCartSortByCode => SelectedCartSortField == "CÃ³digo";
+        public bool IsCartSortByCode => SelectedCartSortField == "Código";
         public bool IsCartSortByPrice => SelectedCartSortField == "Precio";
         public bool IsCartSortByUnits => SelectedCartSortField == "Unidades";
-        public string NameHeaderText => GetCartSortHeaderText("DescripciÃ³n Producto", IsCartSortByName);
-        public string CodeHeaderText => GetCartSortHeaderText("CÃ³digo", IsCartSortByCode);
+        public string NameHeaderText => GetCartSortHeaderText("Descripción Producto", IsCartSortByName);
+        public string CodeHeaderText => GetCartSortHeaderText("Código", IsCartSortByCode);
         public string QuantityHeaderText => GetCartSortHeaderText("Cant.", IsCartSortByUnits);
         public string PriceHeaderText => GetCartSortHeaderText("Precio", IsCartSortByPrice);
-        public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.##} artÃ­culo(s) Â· {CartItems.Count} lÃ­nea(s)";
-        public string CartEmptyText => "Carrito vacÃ­o";
+        public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.##} artículo(s) · {CartItems.Count} línea(s)";
+        public string CartEmptyText => "Carrito vacío";
 
         public ICommand AddProductCommand { get; }
         public ICommand IncrementCommand { get; }
@@ -462,7 +462,7 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        // â”€â”€ Tab del panel izquierdo: RÃ¡pido / CategorÃ­as / Promos â”€â”€
+        // ── Tab del panel izquierdo: Rápido / Categorías / Promos ──
 
         public string SelectedTab
         {
@@ -495,7 +495,7 @@ namespace NovaRetail.ViewModels
                 MatchesCategory(option.Key, SelectedCategory)))
             .ToArray();
 
-        // â”€â”€ CategorÃ­a del panel central â”€â”€
+        // ── Categoría del panel central ──
 
         public string SelectedCategory
         {
@@ -532,7 +532,7 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        // â”€â”€ Descuento â”€â”€
+        // ── Descuento ──
 
         public int DiscountPercent
         {
@@ -554,7 +554,7 @@ namespace NovaRetail.ViewModels
         private bool HasItemDiscounts => CartItems.Any(c => c.DiscountPercent > 0);
         public string DiscountText => DiscountPercent > 0
             ? (HasItemDiscounts ? $"Art. + {DiscountPercent} %" : $"{DiscountPercent} %")
-            : (HasItemDiscounts ? "ArtÃ­culos" : "0 %");
+            : (HasItemDiscounts ? "Artículos" : "0 %");
         public string DiscountAmountText => $"-{DiscountAmount:F2}";
         public string DiscountColonesText => DiscountAmount > 0
             ? $"-{UiConfig.CurrencySymbol}{Math.Round(_discountColones, 2):N2}"
@@ -566,9 +566,9 @@ namespace NovaRetail.ViewModels
         public bool HasExonerationAmount => ExonerationAmount > 0;
         public string TaxText => $"${Tax:F2}";
         public string TotalText => $"${Total:F2}";
-        public string CartCountText => $"{CartItems.Count} â†‘";
+        public string CartCountText => $"{CartItems.Count} ↑";
 
-        // â”€â”€ Panel de productos: visible / ancho â”€â”€
+        // ── Panel de productos: visible / ancho ──
 
         public bool IsProductsPanelVisible
         {
@@ -579,9 +579,9 @@ namespace NovaRetail.ViewModels
                     _appStore.Dispatch(new SetProductsPanelVisibleAction(value));
             }
         }
-        public string ProductsPanelVisibilityText => IsProductsPanelVisible ? "â—€  Ocultar panel" : "Mostrar panel  â–¶";
+        public string ProductsPanelVisibilityText => IsProductsPanelVisible ? "◀  Ocultar panel" : "Mostrar panel  ▶";
 
-        // â”€â”€ Columnas del panel de productos (preferencia del usuario) â”€â”€
+        // ── Columnas del panel de productos (preferencia del usuario) ──
 
         private int _preferredSpan = 2;
         public int PreferredSpan
@@ -675,7 +675,7 @@ namespace NovaRetail.ViewModels
             ? Math.Min(1.0, (double)LoadedProductCount / TotalApiProducts)
             : 0.0;
 
-        // â”€â”€ Tipo de cambio â”€â”€
+        // ── Tipo de cambio ──
 
         private decimal _exchangeRate;
         public decimal ExchangeRate
@@ -694,7 +694,7 @@ namespace NovaRetail.ViewModels
         }
         public string ExchangeRateText => $"{UiConfig.CurrencySymbol}{ExchangeRate:F2}";
 
-        // â”€â”€ Totales en colones â”€â”€
+        // ── Totales en colones ──
 
         public string SubtotalText => $"${Subtotal:F2}";
         public string SubtotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_subtotalColones, 2):N2}";
@@ -750,7 +750,7 @@ namespace NovaRetail.ViewModels
             NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
-            RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar CotizaciÃ³n"));
+            RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
             RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(2, "Recuperar Factura en Espera"));
             AssignSalesRepCommand = new Command(async () => await ShowSalesRepPickerForItemsAsync());
             ItemActionVm.RequestOk += OnItemActionOk;
@@ -835,7 +835,7 @@ namespace NovaRetail.ViewModels
 
         private void OnAppStateChanged(AppState state)
         {
-            // â”€â”€ UI overlays â”€â”€
+            // ── UI overlays ──
             OnPropertyChanged(nameof(IsItemActionVisible));
             OnPropertyChanged(nameof(IsPriceJustVisible));
             OnPropertyChanged(nameof(IsDiscountPopupVisible));
@@ -852,7 +852,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsCreditPaymentSearchVisible));
             OnPropertyChanged(nameof(IsCreditPaymentDetailVisible));
 
-            // â”€â”€ Cliente â”€â”€
+            // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
             OnPropertyChanged(nameof(CurrentClientName));
             OnPropertyChanged(nameof(HasClient));
@@ -861,7 +861,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(CurrentClientCustomerType));
             OnPropertyChanged(nameof(CurrentClientHasCredit));
 
-            // â”€â”€ Carrito: ordenamiento â”€â”€
+            // ── Carrito: ordenamiento ──
             OnPropertyChanged(nameof(SelectedCartSortField));
             OnPropertyChanged(nameof(IsCartSortDescending));
             OnPropertyChanged(nameof(CartSortText));
@@ -874,7 +874,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(QuantityHeaderText));
             OnPropertyChanged(nameof(PriceHeaderText));
 
-            // â”€â”€ BÃºsqueda de productos â”€â”€
+            // ── Búsqueda de productos ──
             OnPropertyChanged(nameof(ProductSearchText));
             OnPropertyChanged(nameof(SelectedTab));
             OnPropertyChanged(nameof(IsTabRapido));
@@ -886,7 +886,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(SelectedCategory));
             OnPropertyChanged(nameof(BreadcrumbText));
 
-            // â”€â”€ Descuento del ticket â”€â”€
+            // ── Descuento del ticket ──
             OnPropertyChanged(nameof(DiscountPercent));
             OnPropertyChanged(nameof(DiscountText));
             OnPropertyChanged(nameof(DiscountAmountText));
@@ -925,7 +925,7 @@ namespace NovaRetail.ViewModels
 
                 var tenders = await _storeConfigService.GetTendersAsync();
 
-                // Filtrar tenders segÃºn SalesTenderCods (IDs de tender)
+                // Filtrar tenders según SalesTenderCods (IDs de tender)
                 try
                 {
                     var settings = await _parametrosService.GetTenderSettingsAsync();
@@ -951,7 +951,7 @@ namespace NovaRetail.ViewModels
                 foreach (var t in tenders)
                     Tenders.Add(t);
 
-                // Cargar categorÃ­as desde la DB
+                // Cargar categorías desde la DB
                 var userName = _userSession.CurrentUser?.UserName;
                 var categories = await _storeConfigService.GetCategoriesAsync(userName);
                 if (categories.Count > 0)
@@ -1004,7 +1004,7 @@ namespace NovaRetail.ViewModels
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
-        // SinÃ³nimos, stop words y lÃ³gica de expansiÃ³n â†’ ver Services/SearchSynonyms.cs
+        // Sinónimos, stop words y lógica de expansión → ver Services/SearchSynonyms.cs
 
         private void SelectTab(string? tab)
         {
