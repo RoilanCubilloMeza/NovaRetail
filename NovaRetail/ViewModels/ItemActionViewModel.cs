@@ -24,6 +24,8 @@ namespace NovaRetail.ViewModels
         private string _itemName = string.Empty;
         private string _itemCode = string.Empty;
         private string _precioText = string.Empty;
+        private string _priceWithoutTaxText = string.Empty;
+        private string _taxAmountText = string.Empty;
         private string _disponibleText = "N/D";
         private string _comprometidoText = "0";
         private string _taxText = string.Empty;
@@ -55,6 +57,16 @@ namespace NovaRetail.ViewModels
         {
             get => _precioText;
             private set { _precioText = value; OnPropertyChanged(); }
+        }
+        public string PriceWithoutTaxText
+        {
+            get => _priceWithoutTaxText;
+            private set { _priceWithoutTaxText = value; OnPropertyChanged(); }
+        }
+        public string TaxAmountText
+        {
+            get => _taxAmountText;
+            private set { _taxAmountText = value; OnPropertyChanged(); }
         }
         public string DisponibleText
         {
@@ -218,7 +230,7 @@ namespace NovaRetail.ViewModels
             AssignSalesRepCommand = new Command(() => RequestAssignSalesRep?.Invoke());
         }
 
-        public void LoadItem(CartItemModel item, IEnumerable<ReasonCodeModel> discountCodes)
+        public void LoadItem(CartItemModel item, IEnumerable<ReasonCodeModel> discountCodes, bool isTaxIncluded = false)
         {
             _item = item;
             _originalPrice = item.EffectivePriceColones;
@@ -231,7 +243,7 @@ namespace NovaRetail.ViewModels
             PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
             DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
             ComprometidoText = "0";
-            TaxText = item.TaxPercentage > 0 ? $"{item.TaxPercentage:0.##}%" : "Exento";
+            UpdatePriceBreakdown(ep, item.EffectiveTaxPercentage, isTaxIncluded);
 
             _tempQty = item.Quantity.ToString("0.##", CultureInfo.InvariantCulture);
             _tempPrice = ep.ToString("0.##", CultureInfo.InvariantCulture);
@@ -261,7 +273,7 @@ namespace NovaRetail.ViewModels
         /// are shown. <paramref name="prefillPrice"/> pre-populates the field when
         /// the product already has a known price.
         /// </summary>
-        public void LoadServiceItem(ProductModel product, decimal prefillPrice = 0m)
+        public void LoadServiceItem(ProductModel product, decimal prefillPrice = 0m, bool isTaxIncluded = false)
         {
             _item = null;
             _originalPrice = 0m;
@@ -272,7 +284,7 @@ namespace NovaRetail.ViewModels
             PrecioText = prefillPrice > 0 ? $"{UiConfig.CurrencySymbol}{prefillPrice:N2}" : "Precio variable";
             DisponibleText = "∞";
             ComprometidoText = "0";
-            TaxText = product.TaxPercentage > 0 ? $"{product.TaxPercentage:0.##}%" : "Exento";
+            UpdatePriceBreakdown(prefillPrice, product.TaxPercentage, isTaxIncluded);
 
             _tempQty = "1";
             _tempPrice = prefillPrice > 0 ? prefillPrice.ToString("0.##", CultureInfo.InvariantCulture) : string.Empty;
@@ -314,6 +326,36 @@ namespace NovaRetail.ViewModels
             }
             OnPropertyChanged(nameof(SalesRepText));
             OnPropertyChanged(nameof(HasSalesRep));
+        }
+
+        private void UpdatePriceBreakdown(decimal priceColones, decimal taxPercentage, bool isTaxIncluded)
+        {
+            var safePrice = Math.Max(0m, priceColones);
+            var safeTaxPercentage = Math.Max(0m, taxPercentage);
+
+            if (safePrice <= 0m)
+            {
+                PriceWithoutTaxText = "—";
+                TaxAmountText = "—";
+                TaxText = safeTaxPercentage > 0 ? $"{safeTaxPercentage:0.##}%" : "Exento";
+                return;
+            }
+
+            var baseForTax = isTaxIncluded && safeTaxPercentage > 0
+                ? safePrice / (1m + (safeTaxPercentage / 100m))
+                : safePrice;
+
+            var taxAmount = safeTaxPercentage > 0
+                ? Math.Round(baseForTax * (safeTaxPercentage / 100m), 2)
+                : 0m;
+
+            var priceWithoutTax = isTaxIncluded
+                ? Math.Round(safePrice - taxAmount, 2)
+                : Math.Round(safePrice, 2);
+
+            PriceWithoutTaxText = $"{UiConfig.CurrencySymbol}{priceWithoutTax:N2}";
+            TaxAmountText = $"{UiConfig.CurrencySymbol}{taxAmount:N2}";
+            TaxText = safeTaxPercentage > 0 ? $"{safeTaxPercentage:0.##}%" : "Exento";
         }
 
         // ── Discount panel ──

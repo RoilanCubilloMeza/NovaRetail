@@ -46,28 +46,35 @@
                                 StrokeThickness="1"
                                 StrokeShape="RoundRectangle 8"
                                 Padding="12,8">
-                            <Grid RowDefinitions="Auto, Auto" RowSpacing="3">
+                            <Grid RowDefinitions="Auto, Auto, Auto" RowSpacing="3">
                                 <Label Grid.Row="0"
                                        Text="{Binding ItemName}"
                                        FontSize="14" FontAttributes="Bold"
                                        TextColor="#1E293B"
                                        LineBreakMode="WordWrap"/>
-                                <HorizontalStackLayout Grid.Row="1" Spacing="14">
-                                    <Label Text="{Binding ItemCode}"
-                                           FontSize="12" TextColor="#64748B"/>
-                                    <Label FontSize="12" TextColor="#64748B">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="Precio: " TextColor="#64748B"/>
-                                                <Span Text="{Binding PrecioText}" FontAttributes="Bold" TextColor="#1E293B"/>
-                                                <Span Text="   Disp: " TextColor="#64748B"/>
-                                                <Span Text="{Binding DisponibleText}" FontAttributes="Bold" TextColor="#1E293B"/>
-                                                <Span Text="   Imp: " TextColor="#64748B"/>
-                                                <Span Text="{Binding TaxText}" FontAttributes="Bold" TextColor="#1E293B"/>
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
-                                </HorizontalStackLayout>
+                                <Label Grid.Row="1"
+                                       Text="{Binding ItemCode}"
+                                       FontSize="12"
+                                       TextColor="#64748B"/>
+                                <Label Grid.Row="2"
+                                       FontSize="12"
+                                       TextColor="#64748B"
+                                       LineBreakMode="WordWrap">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="Precio: " TextColor="#64748B"/>
+                                            <Span Text="{Binding PrecioText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                            <Span Text="   Sin IVA: " TextColor="#64748B"/>
+                                            <Span Text="{Binding PriceWithoutTaxText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                            <Span Text="   IVA: " TextColor="#64748B"/>
+                                            <Span Text="{Binding TaxAmountText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                            <Span Text="   Disp: " TextColor="#64748B"/>
+                                            <Span Text="{Binding DisponibleText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                            <Span Text="   Imp: " TextColor="#64748B"/>
+                                            <Span Text="{Binding TaxText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
                             </Grid>
                         </Border>
 

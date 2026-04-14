@@ -11,7 +11,7 @@ namespace NovaRetail.ViewModels
             if (_cachedDiscountCodes.Count == 0)
                 await LoadDiscountCodesAsync();
 
-            ItemActionVm.LoadItem(item, _cachedDiscountCodes);
+            ItemActionVm.LoadItem(item, _cachedDiscountCodes, IsTaxIncluded);
             IsItemActionVisible = true;
         }
 

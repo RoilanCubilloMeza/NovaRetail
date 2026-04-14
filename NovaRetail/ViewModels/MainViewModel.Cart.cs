@@ -36,7 +36,7 @@ namespace NovaRetail.ViewModels
             var prefillPrice = existing?.UnitPriceColones ??
                                (product.PriceColonesValue > 0 ? product.PriceColonesValue : 0m);
 
-            ItemActionVm.LoadServiceItem(product, prefillPrice);
+            ItemActionVm.LoadServiceItem(product, prefillPrice, IsTaxIncluded);
             IsItemActionVisible = true;
         }
 
