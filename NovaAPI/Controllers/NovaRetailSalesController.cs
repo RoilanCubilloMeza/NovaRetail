@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -19,7 +19,7 @@ namespace NovaAPI.Controllers
 
         private static string GetConnectionString()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 throw new ConfigurationErrorsException("No se encontró la cadena de conexión RMHPOS para registrar ventas.");
 
@@ -1231,20 +1231,26 @@ ORDER BY te.ID";
             var itemIds = request.Items.Select(i => i.ItemID).Distinct().ToList();
             if (itemIds.Count > 0)
             {
-                var idList = string.Join(",", itemIds);
+                var parameters = itemIds.Select((id, i) => $"@id{i}").ToList();
+                var idList = string.Join(",", parameters);
                 try
                 {
                     using (var cmd = new SqlCommand(
                         $"SELECT ID, ISNULL(CAST(ExtendedDescription AS NVARCHAR(20)),'') AS Cabys, ISNULL(ItemLookupCode,'') AS Code, ISNULL(Description,'') AS Desc1 FROM dbo.Item WHERE ID IN ({idList})", cn))
-                    using (var r = cmd.ExecuteReader())
                     {
-                        while (r.Read())
+                        for (int pi = 0; pi < itemIds.Count; pi++)
+                            cmd.Parameters.AddWithValue($"@id{pi}", itemIds[pi]);
+
+                        using (var r = cmd.ExecuteReader())
                         {
-                            var id = Convert.ToInt32(r["ID"]);
-                            var cabys = r["Cabys"]?.ToString() ?? string.Empty;
-                            var code = r["Code"]?.ToString() ?? string.Empty;
-                            var desc = r["Desc1"]?.ToString() ?? string.Empty;
-                            itemInfoMap[id] = (cabys, code, desc);
+                            while (r.Read())
+                            {
+                                var id = Convert.ToInt32(r["ID"]);
+                                var cabys = r["Cabys"]?.ToString() ?? string.Empty;
+                                var code = r["Code"]?.ToString() ?? string.Empty;
+                                var desc = r["Desc1"]?.ToString() ?? string.Empty;
+                                itemInfoMap[id] = (cabys, code, desc);
+                            }
                         }
                     }
                 }

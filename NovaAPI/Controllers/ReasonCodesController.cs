@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Web.Http;
@@ -7,7 +7,7 @@ namespace NovaAPI.Controllers
 {
     public class ReasonCodesController : ApiController
     {
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+        readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));
 
         /// <summary>
         /// GET api/ReasonCodes?type=4   → Descuentos

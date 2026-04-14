@@ -15,9 +15,9 @@ namespace NovaAPI.Controllers
 
     public class CustomersController : ApiController
     {
-        //string cs = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
+        //string cs = AppConfig.ConnectionString("RMHPOS");
         //readonly LINQDataContext db = new LINQDataContext();
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);//test
+        readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));//test
 
         private static string Safe(string value, int maxLength)
         {
@@ -127,7 +127,7 @@ FROM Customer";
             try
             {
                 var term = (criteria ?? string.Empty).Trim();
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(connectionString))
                     return Request.CreateResponse(HttpStatusCode.OK, new List<CustomerCreditInfoDto>());
 
@@ -221,7 +221,7 @@ ORDER BY c.LastName, c.FirstName";
                 if (string.IsNullOrEmpty(term))
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "accountNumber es requerido.");
 
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(connectionString))
                     return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto { AccountNumber = term, HasCredit = false });
 
@@ -353,7 +353,7 @@ WHERE AccountNumber LIKE {0}
             if (string.IsNullOrWhiteSpace(accountNumber))
                 return Request.CreateResponse(HttpStatusCode.BadRequest, "accountNumber es requerido.");
 
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, "No se encontró la cadena de conexión.");
 
@@ -477,7 +477,7 @@ ORDER BY le.PostingDate";
                     Message = "Datos de abono inválidos."
                 });
 
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new CreditPaymentResponse
                 {
@@ -485,7 +485,7 @@ ORDER BY le.PostingDate";
                     Message = "No se encontró la cadena de conexión."
                 });
 
-            var appCentralCs = ConfigurationManager.ConnectionStrings["AppCentralConnectionString"]?.ConnectionString;
+            var appCentralCs = AppConfig.ConnectionString("AppCentralConnectionString");
 
             try
             {

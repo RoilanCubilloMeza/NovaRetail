@@ -11,7 +11,7 @@ namespace NovaAPI.Controllers
 {
     public class LocationController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
         [HttpGet]
         public IEnumerable<spAVSGetLocationsbyCriteriaResult> Get(int cashierid)
@@ -51,6 +51,10 @@ namespace NovaAPI.Controllers
             string registroActual = "";
             try
             {
+                if (db.Connection.State != System.Data.ConnectionState.Open)
+                    db.Connection.Open();
+                db.Transaction = db.Connection.BeginTransaction();
+
                 for (int i = 0; i <= routes.Count() - 1; i++)
                 {
                     db.spAVSCreaRoute(routes[i].StoreID, routes[i].ReferenceNumber, routes[i].Nombre, routes[i].CashierID);
@@ -60,11 +64,13 @@ namespace NovaAPI.Controllers
                 {
                     db.spAVSCreaLocation(locations[j].RutaID, locations[j].CustomerID, locations[j].Nombre, locations[j].Descripcion, locations[j].Latitud, locations[j].Longitud, locations[j].Tipo);
                 }
-                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
 
+                db.Transaction.Commit();
+                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
             catch (Exception ex)
             {
+                try { db.Transaction?.Rollback(); } catch { }
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
             }
 

@@ -8,6 +8,7 @@ using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
 using System.Web.Http.Results;
 using Newtonsoft.Json;
+using NovaAPI.Security;
 
 namespace NovaAPI
 {
@@ -17,6 +18,9 @@ namespace NovaAPI
         {
             // Global exception logger — escribe a archivo antes de que Web API devuelva 500
             config.Services.Add(typeof(IExceptionLogger), new FileExceptionLogger());
+
+            // API key authentication handler
+            config.MessageHandlers.Add(new ApiKeyHandler());
 
             // Web API configuration and services
 

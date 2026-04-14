@@ -14,7 +14,7 @@ namespace NovaAPI.Controllers
 {
     public class LoginController : ApiController
     {
-        readonly string rmhConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
+        readonly string rmhConnectionString = AppConfig.ConnectionString("RMHPOS");
      
 
         [HttpGet]

@@ -790,14 +790,14 @@ namespace NovaRetail.ViewModels
             CreditPaymentDetailVm.RequestConfirmAbono += async request => await ProcessAbonoAsync(request);
             RefreshCartItemsView();
             TenderSettingsChanged.Notified += () => _ = ReloadTendersAsync();
+            ParametrosChanged.Notified += () => _ = LoadStoreConfigAsync();
             _ = InitializeAsync();
         }
 
         private async Task InitializeAsync()
         {
             await LoadStoreConfigAsync();
-            _ = LoadProductsAsync();
-            _ = LoadProductCountAsync();
+            await Task.WhenAll(LoadProductsAsync(), LoadProductCountAsync());
         }
 
         public async Task ReloadTendersAsync()

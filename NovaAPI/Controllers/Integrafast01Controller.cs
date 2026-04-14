@@ -8,7 +8,7 @@ namespace NovaAPI.Controllers
 {
     public class Integrafast01Controller : ApiController
     {
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+        readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));
 
         [HttpGet]
         public IEnumerable<spAVS_GETPAYMENTS_RMHResult> Get(int storeid, int salesrep_id)

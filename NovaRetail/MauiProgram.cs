@@ -44,27 +44,29 @@ public static class MauiProgram
         builder.Services.AddSingleton<UserSession>();
         builder.Services.AddSingleton<Utilities>();
 
-        // Named HttpClients
+        // Named HttpClients — all include ApiKeyDelegatingHandler for auth
+        builder.Services.AddTransient<ApiKeyDelegatingHandler>();
+
         builder.Services.AddHttpClient("NovaItems",
-            c => c.Timeout = TimeSpan.FromSeconds(10));
+            c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaCustomers",
-            c => c.Timeout = TimeSpan.FromSeconds(30));
+            c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaReasonCodes",
-            c => c.Timeout = TimeSpan.FromSeconds(8));
+            c => c.Timeout = TimeSpan.FromSeconds(8)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaStoreConfig",
-            c => c.Timeout = TimeSpan.FromSeconds(8));
+            c => c.Timeout = TimeSpan.FromSeconds(8)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaExoneration",
-            c => c.Timeout = TimeSpan.FromSeconds(15));
+            c => c.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaAuth",
-            c => c.Timeout = TimeSpan.FromSeconds(10));
+            c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaSales",
-            c => c.Timeout = TimeSpan.FromSeconds(30));
+            c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaQuotes",
-            c => c.Timeout = TimeSpan.FromSeconds(30));
+            c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaExternal",
-            c => c.Timeout = TimeSpan.FromSeconds(20));
+            c => c.Timeout = TimeSpan.FromSeconds(20)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaSalesRep",
-            c => c.Timeout = TimeSpan.FromSeconds(10));
+            c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
 
         // ViewModels
         builder.Services.AddSingleton<LoginViewModel>();

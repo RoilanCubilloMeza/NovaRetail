@@ -10,7 +10,7 @@ namespace NovaAPI.Controllers
     public class ItemsController : ApiController
     {
         //readonly LINQDataContext db = new LINQDataContext();
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+        readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));
 
         [HttpGet]
         public IEnumerable<ProductSearchDto> Get(int storeid, int tipo, int page = 1, int pageSize = 200)
@@ -21,7 +21,7 @@ namespace NovaAPI.Controllers
                 var safePageSize = pageSize < 1 ? 200 : (pageSize > 500 ? 500 : pageSize);
                 var skip = (safePage - 1) * safePageSize;
 
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(connectionString))
                     return new List<ProductSearchDto>();
 
@@ -92,7 +92,7 @@ namespace NovaAPI.Controllers
         {
             try
             {
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(connectionString))
                     return Ok(new { Total = 0 });
 
@@ -132,36 +132,7 @@ namespace NovaAPI.Controllers
             try
             {
                 var safeTop = top < 1 ? 100 : (top > 1000 ? 1000 : top);
-                var taxes = db.ExecuteQuery<TaxDto>("SELECT ID, Percentage FROM Tax")
-                    .ToDictionary(t => t.ID, t => t.Percentage);
-
-                var items = SmartSearch(criteria, safeTop);
-
-                var ids = items.Select(i => i.ID).ToList();
-                var itemTypes = GetItemTypesMap(ids);
-
-                return items.Select(item => new ProductSearchDto
-                    {
-                        ID = item.ID,
-                        ItemLookupCode = item.ItemLookupCode,
-                        Description = item.Description,
-                        ExtendedDescription = item.ExtendedDescription,
-                        Quantity = item.Quantity,
-                        DepartmentID = item.DepartmentID,
-                        CategoryID = item.CategoryID,
-                        PRICE = item.Price,
-                        PriceA = item.PriceA,
-                        PriceB = item.PriceB,
-                        PriceC = item.PriceC,
-                        TaxID = item.TaxID,
-                        Cost = item.Cost,
-                        SubDescription1 = item.SubDescription1,
-                        SubDescription2 = item.SubDescription2,
-                        SubDescription3 = item.SubDescription3,
-                        WebItem = item.WebItem,
-                        Percentage = taxes.TryGetValue(item.TaxID, out var percentage) ? percentage : 0f,
-                        ItemType = itemTypes.TryGetValue(item.ID, out var it) ? it : 0
-                    });
+                return SmartSearch(criteria, safeTop);
             }
             catch
             {
@@ -172,31 +143,31 @@ namespace NovaAPI.Controllers
         // Palabras vacías que no aportan al filtrado de productos.
         // Sinónimos, stop words y lógica de expansión → ver SearchSynonyms.cs
 
-        private List<spWS_GetProductsbyCriteriaResult> SmartSearch(string criteria, int top)
+        private List<ProductSearchDto> SmartSearch(string criteria, int top)
         {
             if (string.IsNullOrWhiteSpace(criteria))
-                return new List<spWS_GetProductsbyCriteriaResult>();
+                return new List<ProductSearchDto>();
 
             var words = criteria.Trim()
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (words.Length == 0)
-                return new List<spWS_GetProductsbyCriteriaResult>();
+                return new List<ProductSearchDto>();
 
             // Filtrar stop words, pero conservar todas si al hacerlo quedaría vacío
             var filtered = SearchSynonyms.RemoveStopWords(words);
             if (filtered.Length == 0) filtered = words;
 
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
-                return db.spWS_GetProductsbyCriteria(criteria).Take(top).ToList();
+                return SpFallbackSearch(criteria, top);
 
             // Expandir cada palabra con sinónimos de unidad y separación número+unidad
             var wordGroups = SearchSynonyms.ExpandSearchWords(filtered);
 
-            var results = new List<spWS_GetProductsbyCriteriaResult>();
-            var searchFields = new[] { "Description", "ItemLookupCode", "ExtendedDescription",
-                                       "SubDescription1", "SubDescription2", "SubDescription3" };
+            var results = new List<ProductSearchDto>();
+            var searchFields = new[] { "i.Description", "i.ItemLookupCode", "i.ExtendedDescription",
+                                       "i.SubDescription1", "i.SubDescription2", "i.SubDescription3" };
 
             // Para queries de 3+ conceptos se permite 1 sin match (e.g. "coca cola 3 litros"
             // encuentra "COCA COLA 3L" aunque "litros" no aparezca literalmente).
@@ -230,20 +201,21 @@ namespace NovaAPI.Controllers
 
                     cmd.CommandText = $@"
                         SELECT TOP (@top)
-                            s.ID, s.ItemLookupCode, s.Description, s.Quantity, s.QuantityCommitted,
+                            s.ID, s.ItemLookupCode, s.Description, s.Quantity,
                             s.DepartmentID, s.CategoryID, s.Price, s.PriceA, s.PriceB, s.PriceC,
                             s.TaxID, s.Cost, s.ExtendedDescription,
                             s.SubDescription1, s.SubDescription2, s.SubDescription3, s.WebItem,
-                            s.ItemType
+                            s.ItemType, s.Percentage
                         FROM (
                             SELECT
-                                ID, ItemLookupCode, Description, Quantity, QuantityCommitted,
-                                DepartmentID, CategoryID, Price, PriceA, PriceB, PriceC,
-                                TaxID, Cost, ExtendedDescription,
-                                SubDescription1, SubDescription2, SubDescription3, WebItem,
-                                ItemType,
+                                i.ID, i.ItemLookupCode, i.Description, i.Quantity,
+                                i.DepartmentID, i.CategoryID, i.Price, i.PriceA, i.PriceB, i.PriceC,
+                                i.TaxID, i.Cost, i.ExtendedDescription,
+                                i.SubDescription1, i.SubDescription2, i.SubDescription3, i.WebItem,
+                                i.ItemType, ISNULL(t.Percentage, 0) AS Percentage,
                                 {scoreExpr} AS MatchScore
-                            FROM dbo.Item
+                            FROM dbo.Item i
+                            LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
                         ) s
                         WHERE s.MatchScore >= @minMatch
                         ORDER BY s.MatchScore DESC, s.Quantity DESC, s.Description";
@@ -255,26 +227,27 @@ namespace NovaAPI.Controllers
                     {
                         while (reader.Read())
                         {
-                            results.Add(new spWS_GetProductsbyCriteriaResult
+                            results.Add(new ProductSearchDto
                             {
                                 ID = Convert.ToInt32(reader["ID"]),
                                 ItemLookupCode = reader["ItemLookupCode"]?.ToString() ?? "",
                                 Description = reader["Description"]?.ToString() ?? "",
+                                ExtendedDescription = reader["ExtendedDescription"]?.ToString() ?? "",
                                 Quantity = reader["Quantity"] != DBNull.Value ? Convert.ToDouble(reader["Quantity"]) : 0,
-                                QuantityCommitted = reader["QuantityCommitted"] != DBNull.Value ? Convert.ToDouble(reader["QuantityCommitted"]) : 0,
                                 DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
                                 CategoryID = Convert.ToInt32(reader["CategoryID"]),
-                                Price = reader["Price"] != DBNull.Value ? Convert.ToDecimal(reader["Price"]) : 0,
+                                PRICE = reader["Price"] != DBNull.Value ? Convert.ToDecimal(reader["Price"]) : 0,
                                 PriceA = reader["PriceA"] != DBNull.Value ? Convert.ToDecimal(reader["PriceA"]) : 0,
                                 PriceB = reader["PriceB"] != DBNull.Value ? Convert.ToDecimal(reader["PriceB"]) : 0,
                                 PriceC = reader["PriceC"] != DBNull.Value ? Convert.ToDecimal(reader["PriceC"]) : 0,
                                 TaxID = Convert.ToInt32(reader["TaxID"]),
                                 Cost = reader["Cost"] != DBNull.Value ? Convert.ToDecimal(reader["Cost"]) : 0,
-                                ExtendedDescription = reader["ExtendedDescription"]?.ToString() ?? "",
                                 SubDescription1 = reader["SubDescription1"]?.ToString() ?? "",
                                 SubDescription2 = reader["SubDescription2"]?.ToString() ?? "",
                                 SubDescription3 = reader["SubDescription3"]?.ToString() ?? "",
-                                WebItem = reader["WebItem"] != DBNull.Value && Convert.ToBoolean(reader["WebItem"])
+                                WebItem = reader["WebItem"] != DBNull.Value && Convert.ToBoolean(reader["WebItem"]),
+                                Percentage = reader["Percentage"] != DBNull.Value ? Convert.ToSingle(reader["Percentage"]) : 0f,
+                                ItemType = reader["ItemType"] != DBNull.Value ? Convert.ToInt32(reader["ItemType"]) : 0
                             });
                         }
                     }
@@ -284,56 +257,43 @@ namespace NovaAPI.Controllers
             // Fallback: si la consulta expandida no trajo nada y hay 1 sola palabra,
             // intentar con el stored procedure original por compatibilidad.
             if (results.Count == 0 && words.Length == 1)
-            {
-                try { return db.spWS_GetProductsbyCriteria(criteria).Take(top).ToList(); }
-                catch { /* ignorar */ }
-            }
+                return SpFallbackSearch(criteria, top);
 
             return results;
         }
 
-        private Dictionary<int, int> GetItemTypesMap(List<int> ids)
+        private List<ProductSearchDto> SpFallbackSearch(string criteria, int top)
         {
-            if (ids == null || ids.Count == 0)
-                return new Dictionary<int, int>();
-
             try
             {
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
-                if (string.IsNullOrWhiteSpace(connectionString))
-                    return new Dictionary<int, int>();
+                var taxes = db.ExecuteQuery<TaxDto>("SELECT ID, Percentage FROM Tax")
+                    .ToDictionary(t => t.ID, t => t.Percentage);
 
-                var map = new Dictionary<int, int>();
-                using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
+                return db.spWS_GetProductsbyCriteria(criteria).Take(top).Select(item => new ProductSearchDto
                 {
-                    cn.Open();
-                    // Build parameterized IN clause
-                    var parameters = new List<string>();
-                    var cmd = new System.Data.SqlClient.SqlCommand();
-                    cmd.Connection = cn;
-                    for (int i = 0; i < ids.Count; i++)
-                    {
-                        var paramName = "@id" + i;
-                        parameters.Add(paramName);
-                        cmd.Parameters.AddWithValue(paramName, ids[i]);
-                    }
-                    cmd.CommandText = "SELECT ID, ItemType FROM dbo.Item WHERE ID IN (" + string.Join(",", parameters) + ")";
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var id = Convert.ToInt32(reader["ID"]);
-                            var itemType = reader["ItemType"] != DBNull.Value ? Convert.ToInt32(reader["ItemType"]) : 0;
-                            map[id] = itemType;
-                        }
-                    }
-                }
-                return map;
+                    ID = item.ID,
+                    ItemLookupCode = item.ItemLookupCode,
+                    Description = item.Description,
+                    ExtendedDescription = item.ExtendedDescription,
+                    Quantity = item.Quantity,
+                    DepartmentID = item.DepartmentID,
+                    CategoryID = item.CategoryID,
+                    PRICE = item.Price,
+                    PriceA = item.PriceA,
+                    PriceB = item.PriceB,
+                    PriceC = item.PriceC,
+                    TaxID = item.TaxID,
+                    Cost = item.Cost,
+                    SubDescription1 = item.SubDescription1,
+                    SubDescription2 = item.SubDescription2,
+                    SubDescription3 = item.SubDescription3,
+                    WebItem = item.WebItem,
+                    Percentage = taxes.TryGetValue(item.TaxID, out var pct) ? pct : 0f
+                }).ToList();
             }
             catch
             {
-                return new Dictionary<int, int>();
+                return new List<ProductSearchDto>();
             }
         }
 
@@ -344,7 +304,7 @@ namespace NovaAPI.Controllers
             try
             {
                 var safeTop = top < 1 ? 100 : (top > 1000 ? 1000 : top);
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(connectionString))
                     return Ok(new List<ProductSearchDto>());
 

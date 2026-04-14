@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -19,7 +19,7 @@ namespace NovaAPI.Controllers
     public class IntegraFastController : ApiController
     {
         private static string ConnString =>
-            ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString
+            AppConfig.ConnectionString("RMHPOS")
             ?? throw new ConfigurationErrorsException("Connection string RMHPOS not configured.");
 
         // ── WS client ─────────────────────────────────────────────────────────
@@ -274,14 +274,23 @@ namespace NovaAPI.Controllers
 
         private static void LoadDetalle(SqlConnection cn, EncFactura f)
         {
-            var sql = f.CondicionVenta == "04"
-                ? $"SELECT * FROM [dbo].[fxAVS_GetLineaDetalleApartado] ({f.ConsecutivoPos})"
-                : $"SELECT * FROM [dbo].[fxAVS_GetLineaDetalle] ({f.ConsecutivoPos},'{f.TipoDocumento}')";
+            SqlCommand cmd;
+            if (f.CondicionVenta == "04")
+            {
+                cmd = new SqlCommand("SELECT * FROM [dbo].[fxAVS_GetLineaDetalleApartado] (@ConsecutivoPos)", cn);
+                cmd.Parameters.AddWithValue("@ConsecutivoPos", f.ConsecutivoPos);
+            }
+            else
+            {
+                cmd = new SqlCommand("SELECT * FROM [dbo].[fxAVS_GetLineaDetalle] (@ConsecutivoPos, @TipoDocumento)", cn);
+                cmd.Parameters.AddWithValue("@ConsecutivoPos", f.ConsecutivoPos);
+                cmd.Parameters.AddWithValue("@TipoDocumento", f.TipoDocumento ?? (object)DBNull.Value);
+            }
 
             var detalles = new List<DetFactura>();
             int linea = 0;
 
-            using (var cmd = new SqlCommand(sql, cn))
+            using (cmd)
             using (var rs2 = cmd.ExecuteReader())
             {
                 while (rs2.Read())
@@ -330,11 +339,20 @@ namespace NovaAPI.Controllers
 
         private static void LoadTotales(SqlConnection cn, EncFactura f)
         {
-            var sql = f.CondicionVenta == "04"
-                ? $"EXEC spAVS_GetTotalesApartado {f.ConsecutivoPos}"
-                : $"EXEC spAVS_GetTotales {f.ConsecutivoPos},'{f.TipoDocumento}'";
+            SqlCommand cmd;
+            if (f.CondicionVenta == "04")
+            {
+                cmd = new SqlCommand("spAVS_GetTotalesApartado", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@ConsecutivoPos", f.ConsecutivoPos);
+            }
+            else
+            {
+                cmd = new SqlCommand("spAVS_GetTotales", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@ConsecutivoPos", f.ConsecutivoPos);
+                cmd.Parameters.AddWithValue("@TipoDocumento", f.TipoDocumento ?? (object)DBNull.Value);
+            }
 
-            using (var cmd = new SqlCommand(sql, cn))
+            using (cmd)
             using (var rs3 = cmd.ExecuteReader())
             {
                 if (rs3.Read())

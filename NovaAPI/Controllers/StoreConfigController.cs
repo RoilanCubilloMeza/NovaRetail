@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -14,7 +14,7 @@ namespace NovaAPI.Controllers
     public class StoreConfigController : ApiController
     {
         readonly RMHCDataContext db = new RMHCDataContext(
-            ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+            AppConfig.ConnectionString("RMHPOS"));
 
         [HttpGet]
         public StoreConfigDto Get()
@@ -23,7 +23,7 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new SqlConnection(posConnectionString))
@@ -46,7 +46,7 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -74,7 +74,7 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString) && dto.StoreID > 0)
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -105,7 +105,7 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -124,7 +124,7 @@ namespace NovaAPI.Controllers
             // VE-01: PedirVendedor / VE-02: RequiereVendedor / TC-01: TipoCambio / CL-01: ClienteContadoID / CL-02: ClienteContadoNombre / TX-01: IVA Incluido/Excluido
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -166,7 +166,7 @@ namespace NovaAPI.Controllers
             // IT-01: Tipos de artículo no inventariables (IDs separados por coma, ej: "7,5,9")
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -185,7 +185,7 @@ namespace NovaAPI.Controllers
             // Impuesto por defecto: porcentaje del Tax más común
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (!string.IsNullOrWhiteSpace(posConnectionString))
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
@@ -208,7 +208,7 @@ namespace NovaAPI.Controllers
         [Route("api/StoreConfig/Tenders")]
         public IHttpActionResult GetTenders()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Ok(new List<TenderDto>());
 
@@ -264,7 +264,7 @@ namespace NovaAPI.Controllers
 
             try
             {
-                var posConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                var posConnectionString = AppConfig.ConnectionString("RMHPOS");
                 if (string.IsNullOrWhiteSpace(posConnectionString))
                     return InternalServerError(new Exception("No connection string found."));
 
@@ -305,7 +305,7 @@ namespace NovaAPI.Controllers
         {
             try
             {
-                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString ?? string.Empty;
+                var connectionString = AppConfig.ConnectionString("RMHPOS") ?? string.Empty;
                 var builder = new SqlConnectionStringBuilder(connectionString);
 
                 return new ConnectionInfoDto

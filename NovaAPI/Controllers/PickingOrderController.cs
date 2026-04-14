@@ -11,8 +11,8 @@ namespace NovaAPI.Controllers
 {
     public class PickingOrderController : ApiController
     {
-        readonly RMHCDataContext db = new RMHCDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
-        readonly AppCentralDataContext dbApp = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));
+        readonly AppCentralDataContext dbApp = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
         [HttpGet]
         [Route("api/PickingOrder/GetOrders")]

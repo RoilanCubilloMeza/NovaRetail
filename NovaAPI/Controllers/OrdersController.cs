@@ -12,7 +12,7 @@ namespace NovaAPI.Controllers
     public class OrdersController : ApiController
     {
         //readonly LINQDataContext db = new LINQDataContext();
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
         [HttpGet]
         public HttpResponseMessage Get()
@@ -70,6 +70,10 @@ namespace NovaAPI.Controllers
             string registroActual = "";
             try
             {
+                if (db.Connection.State != System.Data.ConnectionState.Open)
+                    db.Connection.Open();
+                db.Transaction = db.Connection.BeginTransaction();
+
                 for (int i = 0; i <= order.Count() - 1; i++)
                 {
                     db.spAVSCreaOrden(order[i].ID, order[i].StoreID, order[i].Time, order[i].Tax, order[i].Total, order[i].LastUpdated,
@@ -83,11 +87,15 @@ namespace NovaAPI.Controllers
                             EntriesByOrderID[j].PriceSource, EntriesByOrderID[j].Price, Convert.ToDouble(EntriesByOrderID[j].QuantityOnOrder), EntriesByOrderID[j].SalesRepID, EntriesByOrderID[j].Taxable, EntriesByOrderID[j].DetailID,
                             EntriesByOrderID[j].Description, Convert.ToDouble(EntriesByOrderID[j].QuantityRTD), EntriesByOrderID[j].LastUpdated, EntriesByOrderID[j].Comment, EntriesByOrderID[j].TransactionTime, EntriesByOrderID[j].IsBonificado);//, EntriesByOrderID[j].IsBonificado
                     }
-                    msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
+                    registroActual = "Registro " + i.ToString();
                 }
+
+                db.Transaction.Commit();
+                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
             catch (Exception ex)
             {
+                try { db.Transaction?.Rollback(); } catch { }
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
             }
 

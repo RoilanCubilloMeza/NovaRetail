@@ -11,7 +11,7 @@ namespace NovaAPI.Controllers
 {
     public class OrderEntrysController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("RMHPOS"));
         /*
         [HttpGet]
         public IEnumerable<spWS_GetCustomersResult> Get()

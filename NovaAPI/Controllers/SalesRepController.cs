@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Web.Http;
+using NovaAPI;
 
 public class SalesRepController : ApiController
 {
@@ -12,7 +13,7 @@ public class SalesRepController : ApiController
     [Route("api/SalesRep/Get")]
     public IHttpActionResult Get()
     {
-        var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+        var connectionString = AppConfig.ConnectionString("RMHPOS");
         if (string.IsNullOrWhiteSpace(connectionString))
             return Content(HttpStatusCode.InternalServerError, "Connection string RMHPOS not configured.");
 

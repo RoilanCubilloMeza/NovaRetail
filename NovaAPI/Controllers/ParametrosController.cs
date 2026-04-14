@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -14,7 +14,7 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class ParametrosController : ApiController
     {
-        private readonly string _cs = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
+        private readonly string _cs = AppConfig.ConnectionString("RMHPOS");
 
         // ───── AVS_Parametros ─────
 

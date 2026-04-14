@@ -14,6 +14,9 @@ public sealed class ApiProductService : IProductService
     private readonly ILogger<ApiProductService> _logger;
     private readonly string[] _baseUrls;
 
+    private int _cachedProductCount;
+    private DateTime _countCacheExpiry;
+
     public ApiProductService(IHttpClientFactory httpClientFactory, ILogger<ApiProductService> logger, ApiSettings settings)
     {
         _httpClientFactory = httpClientFactory;
@@ -153,6 +156,9 @@ public sealed class ApiProductService : IProductService
 
     public async Task<int> GetProductCountAsync(int storeId = 1)
     {
+        if (_cachedProductCount > 0 && DateTime.UtcNow < _countCacheExpiry)
+            return _cachedProductCount;
+
         var safeStoreId = storeId > 0 ? storeId : 1;
         foreach (var baseUrl in _baseUrls)
         {
@@ -162,7 +168,11 @@ public sealed class ApiProductService : IProductService
                 var url = $"{baseUrl}/api/Items/Count?storeid={safeStoreId}&tipo=1";
                 var result = await http.GetFromJsonAsync<ProductCountResult>(url);
                 if (result is not null && result.Total > 0)
+                {
+                    _cachedProductCount = result.Total;
+                    _countCacheExpiry = DateTime.UtcNow.AddMinutes(5);
                     return result.Total;
+                }
             }
             catch (Exception ex)
             {
@@ -170,7 +180,7 @@ public sealed class ApiProductService : IProductService
             }
         }
 
-        return 0;
+        return _cachedProductCount > 0 ? _cachedProductCount : 0;
     }
 
     private static ProductModel MapToProduct(ApiItem item, decimal exchangeRate, IReadOnlyDictionary<int, string>? departmentMap = null)

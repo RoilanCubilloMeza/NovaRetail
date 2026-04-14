@@ -323,7 +323,7 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private void FilterProducts()
+        private void FilterProducts(bool skipSearchFilter = false)
         {
             var query = _allProducts.AsEnumerable();
 
@@ -333,7 +333,7 @@ namespace NovaRetail.ViewModels
                 query = query.Where(p => MatchesCategory(p.Category, SelectedCategory));
             }
 
-            if (!string.IsNullOrWhiteSpace(ProductSearchText))
+            if (!skipSearchFilter && !string.IsNullOrWhiteSpace(ProductSearchText))
             {
                 var words = NormalizeText(ProductSearchText)
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -427,7 +427,7 @@ namespace NovaRetail.ViewModels
                 _loadedItemsPage = 0;
                 _canLoadMoreFromApi = false;
 
-                await MainThread.InvokeOnMainThreadAsync(FilterProducts);
+                await MainThread.InvokeOnMainThreadAsync(() => FilterProducts(skipSearchFilter: true));
             }
             catch (OperationCanceledException) { }
             catch

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -27,7 +27,7 @@ namespace NovaAPI.Controllers
         [Route("")]
         public IHttpActionResult Get(string userName = null)
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Ok(new List<CategoryDto>());
 
@@ -148,7 +148,7 @@ namespace NovaAPI.Controllers
         [Route("All")]
         public IHttpActionResult GetAll()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Ok(new List<CategoryDto>());
 
@@ -212,7 +212,7 @@ namespace NovaAPI.Controllers
         [Route("Config")]
         public IHttpActionResult GetConfig(string userName = null)
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return Ok(new CategoryConfigDto());
 
@@ -259,7 +259,7 @@ namespace NovaAPI.Controllers
         [Route("Config")]
         public IHttpActionResult PutConfig([FromBody] CategoryConfigDto dto)
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
                 return BadRequest("No hay cadena de conexión configurada.");
 

@@ -11,7 +11,7 @@ namespace NovaAPI.Controllers
 {
     public class AR_TransactionController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
         [HttpPost]
         public HttpResponseMessage Post(List<AR_Transaction> ARTransactions)

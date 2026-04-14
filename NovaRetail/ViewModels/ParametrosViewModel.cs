@@ -272,6 +272,7 @@ public class ParametrosViewModel : INotifyPropertyChanged
                 item.OriginalValor = item.Valor;
                 item.NotifyChanged();
                 StatusMessage = $"Parámetro {item.Codigo} guardado.";
+                ParametrosChanged.Send();
                 await _dialog.AlertAsync("Parámetro Actualizado",
                     $"El parámetro {item.Codigo} ({item.Descripcion}) se guardó correctamente.\n\nNuevo valor: {item.Valor}", "Aceptar");
             }

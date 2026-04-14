@@ -11,7 +11,7 @@ namespace NovaAPI.Controllers
 {
     public class TransactionController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
         [HttpPost]
         public HttpResponseMessage Post(SyncTransaction syncTransactions)
         {
@@ -21,6 +21,10 @@ namespace NovaAPI.Controllers
             string registroActual = "";
             try
             {
+                if (db.Connection.State != System.Data.ConnectionState.Open)
+                    db.Connection.Open();
+                db.Transaction = db.Connection.BeginTransaction();
+
                 for (int i = 0; i <= transactions.Count() - 1; i++)
                 {
                     db.spAVSCreaTransaction(transactions[i].ShipToID, transactions[i].StoreID, transactions[i].TransactionNumber, transactions[i].BatchNumber, transactions[i].Time,
@@ -36,11 +40,15 @@ namespace NovaAPI.Controllers
                             Convert.ToDecimal(EntriesByTransactionID[j].SalesTax), EntriesByTransactionID[j].QuantityDiscountID, EntriesByTransactionID[j].ItemType, EntriesByTransactionID[j].ComputedQuantity, EntriesByTransactionID[j].TransactionTime,
                             Convert.ToBoolean(EntriesByTransactionID[j].IsAddMoney), EntriesByTransactionID[j].VoucherID, EntriesByTransactionID[j].PrecioEditado);
                     }
-                    msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
+                    registroActual = "Registro " + i.ToString();
                 }
+
+                db.Transaction.Commit();
+                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
             catch (Exception ex)
             {
+                try { db.Transaction?.Rollback(); } catch { }
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
             }
 

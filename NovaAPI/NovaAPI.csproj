@@ -151,6 +151,8 @@
     <Compile Include="AppCentral.cs">
       <DependentUpon>AppCentral.dbml</DependentUpon>
     </Compile>
+    <Compile Include="AppConfig.cs" />
+    <Compile Include="Security\ApiKeyHandler.cs" />
     <Compile Include="SearchSynonyms.cs" />
     <Compile Include="AppCentral.designer.cs">
       <AutoGen>True</AutoGen>
