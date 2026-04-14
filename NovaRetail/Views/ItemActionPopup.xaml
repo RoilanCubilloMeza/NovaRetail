@@ -62,6 +62,8 @@
                                                 <Span Text="{Binding PrecioText}" FontAttributes="Bold" TextColor="#1E293B"/>
                                                 <Span Text="   Disp: " TextColor="#64748B"/>
                                                 <Span Text="{Binding DisponibleText}" FontAttributes="Bold" TextColor="#1E293B"/>
+                                                <Span Text="   Imp: " TextColor="#64748B"/>
+                                                <Span Text="{Binding TaxText}" FontAttributes="Bold" TextColor="#1E293B"/>
                                             </FormattedString>
                                         </Label.FormattedText>
                                     </Label>

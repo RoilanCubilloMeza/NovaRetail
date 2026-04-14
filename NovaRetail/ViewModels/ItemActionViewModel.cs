@@ -26,6 +26,7 @@ namespace NovaRetail.ViewModels
         private string _precioText = string.Empty;
         private string _disponibleText = "N/D";
         private string _comprometidoText = "0";
+        private string _taxText = string.Empty;
 
         private bool _isDiscountVisible;
         private bool _isDiscountConfirmVisible;
@@ -64,6 +65,11 @@ namespace NovaRetail.ViewModels
         {
             get => _comprometidoText;
             private set { _comprometidoText = value; OnPropertyChanged(); }
+        }
+        public string TaxText
+        {
+            get => _taxText;
+            private set { _taxText = value; OnPropertyChanged(); }
         }
 
         // ── Editable field texts ──
@@ -225,6 +231,7 @@ namespace NovaRetail.ViewModels
             PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
             DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
             ComprometidoText = "0";
+            TaxText = item.TaxPercentage > 0 ? $"{item.TaxPercentage:0.##}%" : "Exento";
 
             _tempQty = item.Quantity.ToString("0.##", CultureInfo.InvariantCulture);
             _tempPrice = ep.ToString("0.##", CultureInfo.InvariantCulture);
@@ -265,6 +272,7 @@ namespace NovaRetail.ViewModels
             PrecioText = prefillPrice > 0 ? $"{UiConfig.CurrencySymbol}{prefillPrice:N2}" : "Precio variable";
             DisponibleText = "∞";
             ComprometidoText = "0";
+            TaxText = product.TaxPercentage > 0 ? $"{product.TaxPercentage:0.##}%" : "Exento";
 
             _tempQty = "1";
             _tempPrice = prefillPrice > 0 ? prefillPrice.ToString("0.##", CultureInfo.InvariantCulture) : string.Empty;
