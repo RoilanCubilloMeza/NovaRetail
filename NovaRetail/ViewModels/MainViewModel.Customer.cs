@@ -1,0 +1,184 @@
+using NovaRetail.Data;
+using NovaRetail.Models;
+using NovaRetail.Services;
+
+namespace NovaRetail.ViewModels
+{
+    public partial class MainViewModel
+    {
+        // ── Búsqueda de clientes ──
+
+        private async Task OpenCustomerSearchAsync()
+        {
+            CustomerSearchVm.Reset();
+            IsCustomerSearchVisible = true;
+            await SearchCustomersAsync(null);
+        }
+
+        private async Task SearchCustomersAsync(string? criteria)
+        {
+            try
+            {
+                CustomerSearchVm.SetBusy(true);
+                var clienteService = GetClienteService();
+                var results = await clienteService.BuscarClientesAsync(criteria);
+                CustomerSearchVm.SetCustomers(results);
+            }
+            catch (Exception ex)
+            {
+                CustomerSearchVm.SetError($"Error al buscar clientes: {ex.Message}");
+            }
+            finally
+            {
+                CustomerSearchVm.SetBusy(false);
+            }
+        }
+
+        private void OnCustomerSelected(Models.CustomerLookupModel customer)
+        {
+            IsCustomerSearchVisible = false;
+            var customerType = customer.AccountTypeID switch
+            {
+                2 => "Cr\u00e9dito",
+                3 => "Gobierno",
+                4 => "Exportaci\u00f3n",
+                _ => "Contado"
+            };
+            SetCliente(customer.AccountNumber, customer.FullName, customerType: customerType);
+        }
+
+        private IClienteService GetClienteService()
+        {
+            // Resolve from the service provider via the Shell
+            return Shell.Current.Handler?.MauiContext?.Services.GetService<IClienteService>()
+                ?? throw new InvalidOperationException("IClienteService not available.");
+        }
+
+        // ── Abonos a crédito ──
+
+        private async Task OpenCreditPaymentSearchAsync()
+        {
+            CreditPaymentSearchVm.Reset();
+            IsCreditPaymentSearchVisible = true;
+            await SearchCreditCustomersAsync(null);
+        }
+
+        private async Task SearchCreditCustomersAsync(string? criteria)
+        {
+            try
+            {
+                CreditPaymentSearchVm.SetBusy(true);
+                CreditPaymentSearchVm.SetCustomers([], "Buscando clientes con crédito...");
+                var clienteService = GetClienteService();
+                var results = await clienteService.BuscarClientesCreditoAsync(criteria);
+
+                if (results.Count == 0 && !string.IsNullOrWhiteSpace(criteria))
+                    CreditPaymentSearchVm.SetCustomers(results, $"No se encontraron clientes para \"{criteria}\".");
+                else
+                    CreditPaymentSearchVm.SetCustomers(results);
+            }
+            catch (Exception ex)
+            {
+                CreditPaymentSearchVm.SetError($"Error al buscar clientes con crédito: {ex.Message}");
+            }
+            finally
+            {
+                CreditPaymentSearchVm.SetBusy(false);
+            }
+        }
+
+        private async void OnCreditCustomerSelected(Models.CustomerCreditInfo customer)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Customer selected: {customer?.AccountNumber}");
+                IsCreditPaymentSearchVisible = false;
+                CreditPaymentDetailVm.LoadCustomer(customer);
+                IsCreditPaymentDetailVisible = true;
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Detail visible set to true");
+
+                // Load PaymentsTenderCods tenders into detail VM
+                try
+                {
+                    var allTenders = await _storeConfigService.GetTendersAsync();
+                    var settings = await _parametrosService.GetTenderSettingsAsync();
+                    if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
+                    {
+                        var allowed = new HashSet<int>();
+                        foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            if (int.TryParse(code, out var id))
+                                allowed.Add(id);
+                        }
+                        if (allowed.Count > 0)
+                            allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
+                    }
+                    CreditPaymentDetailVm.LoadTenders(allTenders);
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tenders loaded: {allTenders.Count()}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tender load error: {ex.Message}");
+                }
+
+                // Load open ledger entries for this customer
+                try
+                {
+                    var clienteService = GetClienteService();
+                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(customer.AccountNumber);
+                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries loaded: {entries.Count}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] FATAL ERROR: {ex}");
+                IsCreditPaymentDetailVisible = true;
+            }
+        }
+
+        private async Task ProcessAbonoAsync(Models.AbonoPaymentRequest request)
+        {
+            try
+            {
+                CreditPaymentDetailVm.SetBusy(true);
+                var clienteService = GetClienteService();
+                var currentUser = _userSession.CurrentUser;
+                var cashierId = currentUser is not null ? ParseCashierId(currentUser) : 1;
+
+                request.CashierId = cashierId;
+                request.StoreId = _storeIdFromConfig;
+
+                var (success, message) = await clienteService.RegistrarAbonoAsync(request);
+
+                if (success)
+                {
+                    CreditPaymentDetailVm.SetSuccess();
+                    // Refresh credit info + open entries
+                    var updated = await clienteService.ObtenerCreditoAsync(request.AccountNumber);
+                    if (updated is not null)
+                        CreditPaymentDetailVm.RefreshCredit(updated);
+
+                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
+                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                }
+                else
+                {
+                    CreditPaymentDetailVm.SetError(message ?? "No se pudo registrar el abono. Intente de nuevo.");
+                }
+            }
+            catch (Exception ex)
+            {
+                CreditPaymentDetailVm.SetError($"Error: {ex.Message}");
+            }
+            finally
+            {
+                CreditPaymentDetailVm.SetBusy(false);
+            }
+        }
+    }
+}

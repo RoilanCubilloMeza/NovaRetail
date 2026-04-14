@@ -15,6 +15,8 @@ namespace NovaAPI.Controllers
     [RoutePrefix("api/NovaRetailSales")]
     public class NovaRetailSalesController : ApiController
     {
+        private const int ReferenceNumberMaxLength = 50;
+
         private static string GetConnectionString()
         {
             var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
@@ -35,6 +37,17 @@ namespace NovaAPI.Controllers
             {
                 return "RMHPOS";
             }
+        }
+
+        private static string SanitizeReferenceNumber(string referenceNumber)
+        {
+            if (string.IsNullOrWhiteSpace(referenceNumber))
+                return string.Empty;
+
+            var value = referenceNumber.Trim();
+            return value.Length <= ReferenceNumberMaxLength
+                ? value
+                : value.Substring(0, ReferenceNumberMaxLength).TrimEnd();
         }
 
         [HttpPost]
@@ -117,7 +130,7 @@ namespace NovaAPI.Controllers
                         cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
                         cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
                         cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                         cmd.Parameters.AddWithValue("@Status", request.Status);
                         cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
                         cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
@@ -1658,7 +1671,7 @@ ORDER BY te.ID";
                                 cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
                                 cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
                                 cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                                 cmd.Parameters.AddWithValue("@ShippingChargeOnOrder", 0m);
                                 cmd.Parameters.AddWithValue("@ShippingChargeOverride", false);
                                 cmd.Parameters.AddWithValue("@ShippingServiceID", 0);
@@ -1825,7 +1838,7 @@ ORDER BY te.ID";
                                 cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
                                 cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
                                 cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                                 cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
                                 cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
                                 cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
@@ -1992,7 +2005,7 @@ ORDER BY te.ID";
                                 cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
                                 cmd.Parameters.AddWithValue("@Time", now);
                                 cmd.Parameters.AddWithValue("@Expiration", expiration);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                                 cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
                                 cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
                                 cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
@@ -2112,7 +2125,7 @@ ORDER BY te.ID";
                                 cmd.CommandTimeout = 60;
                                 cmd.Parameters.AddWithValue("@HoldID", request.OrderID);
                                 cmd.Parameters.AddWithValue("@HoldComment", request.Comment ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                                cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                                 cmd.Parameters.AddWithValue("@Expiration", expiration);
                                 var rows = cmd.ExecuteNonQuery();
                                 if (rows == 0)
