@@ -127,80 +127,82 @@ FROM Customer";
             try
             {
                 var term = (criteria ?? string.Empty).Trim();
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return Request.CreateResponse(HttpStatusCode.OK, new List<CustomerCreditInfoDto>());
 
-                if (string.IsNullOrEmpty(term))
+                var list = new List<CustomerCreditInfoDto>();
+
+                using (var cn = new SqlConnection(connectionString))
                 {
-                    var allCustomers = db.spWS_GetCustomers();
-                    if (allCustomers == null)
-                        return Request.CreateResponse(HttpStatusCode.OK, new List<CustomerCreditInfoDto>());
+                    cn.Open();
 
-                    var list = allCustomers
-                        .Where(c => (c.CreditLimit ?? 0m) > 0)
-                        .OrderBy(c => c.LastName)
-                        .ThenBy(c => c.FirstName)
-                        .Select(c => new CustomerCreditInfoDto
+                    string sql;
+                    SqlCommand cmd;
+
+                    if (string.IsNullOrEmpty(term))
+                    {
+                        sql = @"
+SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
+       CAST(c.PriceLevel AS INT) AS PriceLevel,
+       CASE WHEN ISNULL(c.CustomText5, '0') = '0' THEN 0 ELSE 0 END AS CreditDays,
+       ISNULL(bl.Amount, 0) AS ClosingBalance,
+       ISNULL(a.CreditLimit, 0) AS CreditLimit,
+       ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
+FROM dbo.Customer c
+INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
+LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
+WHERE ISNULL(a.CreditLimit, 0) > 0
+ORDER BY c.LastName, c.FirstName";
+                        cmd = new SqlCommand(sql, cn);
+                    }
+                    else
+                    {
+                        var like = "%" + term + "%";
+                        sql = @"
+SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
+       CAST(c.PriceLevel AS INT) AS PriceLevel,
+       CASE WHEN ISNULL(c.CustomText5, '0') = '0' THEN 0 ELSE 0 END AS CreditDays,
+       ISNULL(bl.Amount, 0) AS ClosingBalance,
+       ISNULL(a.CreditLimit, 0) AS CreditLimit,
+       ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
+FROM dbo.Customer c
+INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
+LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
+WHERE ISNULL(a.CreditLimit, 0) > 0
+  AND (c.AccountNumber LIKE @term
+    OR c.FirstName LIKE @term
+    OR c.LastName LIKE @term
+    OR c.PhoneNumber LIKE @term)
+ORDER BY c.LastName, c.FirstName";
+                        cmd = new SqlCommand(sql, cn);
+                        cmd.Parameters.AddWithValue("@term", like);
+                    }
+
+                    cmd.CommandTimeout = 30;
+                    using (cmd)
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
                         {
-                            ID = c.ID,
-                            AccountNumber = c.AccountNumber ?? string.Empty,
-                            FirstName = c.FirstName ?? string.Empty,
-                            LastName = c.LastName ?? string.Empty,
-                            AccountTypeID = c.PriceLevel,
-                            CreditDays = c.CreditDays,
-                            ClosingBalance = c.ClosingBalance ?? 0m,
-                            CreditLimit = c.CreditLimit ?? 0m,
-                            Available = c.Available ?? 0m,
-                            HasCredit = true
-                        }).ToList();
-
-                    return Request.CreateResponse(HttpStatusCode.OK, list);
-                }
-
-                var results = db.spWS_GetCustomersbyCriteria(term);
-                var filtered = (results ?? Enumerable.Empty<spWS_GetCustomersbyCriteriaResult>())
-                    .Where(c => (c.CreditLimit ?? 0m) > 0)
-                    .Select(c => new CustomerCreditInfoDto
-                    {
-                        ID = c.ID,
-                        AccountNumber = c.AccountNumber ?? string.Empty,
-                        FirstName = c.FirstName ?? string.Empty,
-                        LastName = c.LastName ?? string.Empty,
-                        AccountTypeID = c.PriceLevel,
-                        CreditDays = c.CreditDays,
-                        ClosingBalance = c.ClosingBalance ?? 0m,
-                        CreditLimit = c.CreditLimit ?? 0m,
-                        Available = c.Available ?? 0m,
-                        HasCredit = true
-                    }).ToList();
-
-                // Fallback: if SP returned no credit customers, search all credit customers locally
-                if (filtered.Count == 0)
-                {
-                    var termLower = term.ToLowerInvariant();
-                    var allCustomers = db.spWS_GetCustomers();
-                    if (allCustomers != null)
-                    {
-                        filtered = allCustomers
-                            .Where(c => (c.CreditLimit ?? 0m) > 0
-                                && ((c.AccountNumber ?? string.Empty).ToLowerInvariant().Contains(termLower)
-                                    || (c.FirstName ?? string.Empty).ToLowerInvariant().Contains(termLower)
-                                    || (c.LastName ?? string.Empty).ToLowerInvariant().Contains(termLower)))
-                            .Select(c => new CustomerCreditInfoDto
+                            list.Add(new CustomerCreditInfoDto
                             {
-                                ID = c.ID,
-                                AccountNumber = c.AccountNumber ?? string.Empty,
-                                FirstName = c.FirstName ?? string.Empty,
-                                LastName = c.LastName ?? string.Empty,
-                                AccountTypeID = c.PriceLevel,
-                                CreditDays = c.CreditDays,
-                                ClosingBalance = c.ClosingBalance ?? 0m,
-                                CreditLimit = c.CreditLimit ?? 0m,
-                                Available = c.Available ?? 0m,
+                                ID = Convert.ToInt32(reader["ID"]),
+                                AccountNumber = (reader["AccountNumber"]?.ToString() ?? string.Empty).Trim(),
+                                FirstName = (reader["FirstName"]?.ToString() ?? string.Empty).Trim(),
+                                LastName = (reader["LastName"]?.ToString() ?? string.Empty).Trim(),
+                                AccountTypeID = Convert.ToInt32(reader["PriceLevel"]),
+                                CreditDays = reader["CreditDays"] != DBNull.Value ? Convert.ToInt32(reader["CreditDays"]) : 0,
+                                ClosingBalance = Convert.ToDecimal(reader["ClosingBalance"]),
+                                CreditLimit = Convert.ToDecimal(reader["CreditLimit"]),
+                                Available = Convert.ToDecimal(reader["Available"]),
                                 HasCredit = true
-                            }).ToList();
+                            });
+                        }
                     }
                 }
 
-                return Request.CreateResponse(HttpStatusCode.OK, filtered);
+                return Request.CreateResponse(HttpStatusCode.OK, list);
             }
             catch (Exception ex)
             {
@@ -219,34 +221,58 @@ FROM Customer";
                 if (string.IsNullOrEmpty(term))
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "accountNumber es requerido.");
 
-                var results = db.spWS_GetCustomers();
-                var match = results?.FirstOrDefault(c =>
-                    string.Equals((c.AccountNumber ?? string.Empty).Trim(), term, StringComparison.OrdinalIgnoreCase));
+                var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto { AccountNumber = term, HasCredit = false });
 
-                if (match == null)
+                using (var cn = new SqlConnection(connectionString))
                 {
-                    return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto
-                    {
-                        AccountNumber = term,
-                        HasCredit = false
-                    });
-                }
+                    cn.Open();
 
-                var creditLimit = match.CreditLimit ?? 0m;
-                var hasCredit = creditLimit > 0;
+                    var sql = @"
+SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
+       CAST(c.PriceLevel AS INT) AS PriceLevel,
+       CASE WHEN ISNULL(c.CustomText5, '0') = '0' THEN 0 ELSE 0 END AS CreditDays,
+       ISNULL(bl.Amount, 0) AS ClosingBalance,
+       ISNULL(a.CreditLimit, 0) AS CreditLimit,
+       ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
+FROM dbo.Customer c
+INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
+LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
+WHERE c.AccountNumber = @Acct";
+
+                    using (var cmd = new SqlCommand(sql, cn))
+                    {
+                        cmd.Parameters.AddWithValue("@Acct", term);
+                        cmd.CommandTimeout = 15;
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var creditLimit = Convert.ToDecimal(reader["CreditLimit"]);
+                                return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto
+                                {
+                                    ID = Convert.ToInt32(reader["ID"]),
+                                    AccountNumber = (reader["AccountNumber"]?.ToString() ?? term).Trim(),
+                                    FirstName = (reader["FirstName"]?.ToString() ?? string.Empty).Trim(),
+                                    LastName = (reader["LastName"]?.ToString() ?? string.Empty).Trim(),
+                                    AccountTypeID = Convert.ToInt32(reader["PriceLevel"]),
+                                    CreditDays = reader["CreditDays"] != DBNull.Value ? Convert.ToInt32(reader["CreditDays"]) : 0,
+                                    ClosingBalance = Convert.ToDecimal(reader["ClosingBalance"]),
+                                    CreditLimit = creditLimit,
+                                    Available = Convert.ToDecimal(reader["Available"]),
+                                    HasCredit = creditLimit > 0
+                                });
+                            }
+                        }
+                    }
+                }
 
                 return Request.CreateResponse(HttpStatusCode.OK, new CustomerCreditInfoDto
                 {
-                    ID = match.ID,
-                    AccountNumber = match.AccountNumber ?? term,
-                    FirstName = match.FirstName ?? string.Empty,
-                    LastName = match.LastName ?? string.Empty,
-                    AccountTypeID = match.PriceLevel,
-                    CreditDays = match.CreditDays,
-                    ClosingBalance = match.ClosingBalance ?? 0m,
-                    CreditLimit = creditLimit,
-                    Available = match.Available ?? 0m,
-                    HasCredit = hasCredit
+                    AccountNumber = term,
+                    HasCredit = false
                 });
             }
             catch (Exception ex)
@@ -365,10 +391,14 @@ FROM dbo.AR_LedgerEntry le
 LEFT JOIN dbo.AR_LedgerEntryDetail d
     ON d.LedgerEntryID = le.ID AND d.AppliedEntryID = 0
 LEFT JOIN (
-    SELECT AppliedEntryID, SUM(AppliedAmount) as TotalApplied
-    FROM dbo.AR_LedgerEntryDetail
-    WHERE AppliedEntryID > 0
-    GROUP BY AppliedEntryID
+    SELECT det.AppliedEntryID, SUM(det.AppliedAmount) as TotalApplied
+    FROM dbo.AR_LedgerEntryDetail det
+    INNER JOIN dbo.AR_LedgerEntry le2
+        ON le2.ID = det.AppliedEntryID
+    WHERE det.AppliedEntryID > 0
+      AND le2.[Open] = 1
+      AND le2.AccountID = @AccountID
+    GROUP BY det.AppliedEntryID
 ) applied ON applied.AppliedEntryID = le.ID
 WHERE le.[Open] = 1
   AND le.AccountID = @AccountID
@@ -486,10 +516,14 @@ ORDER BY le.PostingDate";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    using (var tx = cn.BeginTransaction())
+                    {
+                    try
+                    {
 
                     // Resolve AR_Account.ID
                     int accountID = 0;
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
+                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn, tx))
                     {
                         cmd.Parameters.AddWithValue("@Number", accountNumber);
                         var result = cmd.ExecuteScalar();
@@ -499,7 +533,7 @@ ORDER BY le.PostingDate";
 
                     // Resolve Customer.ID
                     int customerID = 0;
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn))
+                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn, tx))
                     {
                         cmd.Parameters.AddWithValue("@Acct", accountNumber);
                         var result = cmd.ExecuteScalar();
@@ -516,7 +550,7 @@ ORDER BY le.PostingDate";
 
                         // Insert AR_LedgerEntry
                         int ledgerEntryID = 0;
-                        using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn))
+                        using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn, tx))
                         {
                             cmd.CommandType = CommandType.StoredProcedure;
                             cmd.CommandTimeout = 60;
@@ -557,7 +591,7 @@ ORDER BY le.PostingDate";
                         // Insert AR_LedgerEntryDetail
                         if (ledgerEntryID > 0)
                         {
-                            using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn))
+                            using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
                             {
                                 cmd.CommandType = CommandType.StoredProcedure;
                                 cmd.CommandTimeout = 60;
@@ -591,7 +625,7 @@ ORDER BY le.PostingDate";
 
                                     bool isClosing = app.Amount >= app.EntryBalance;
 
-                                    using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn))
+                                    using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
                                     {
                                         appCmd.CommandType = CommandType.StoredProcedure;
                                         appCmd.CommandTimeout = 60;
@@ -618,6 +652,15 @@ ORDER BY le.PostingDate";
                                 }
                             }
                         }
+                    }
+
+                    tx.Commit();
+                    }
+                    catch
+                    {
+                        tx.Rollback();
+                        throw;
+                    }
                     }
                 }
 

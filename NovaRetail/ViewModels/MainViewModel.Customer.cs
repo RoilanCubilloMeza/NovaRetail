@@ -91,53 +91,58 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Customer selected: {customer?.AccountNumber}");
                 IsCreditPaymentSearchVisible = false;
                 CreditPaymentDetailVm.LoadCustomer(customer);
                 IsCreditPaymentDetailVisible = true;
-                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Detail visible set to true");
 
-                // Load PaymentsTenderCods tenders into detail VM
-                try
-                {
-                    var allTenders = await _storeConfigService.GetTendersAsync();
-                    var settings = await _parametrosService.GetTenderSettingsAsync();
-                    if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
-                    {
-                        var allowed = new HashSet<int>();
-                        foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                        {
-                            if (int.TryParse(code, out var id))
-                                allowed.Add(id);
-                        }
-                        if (allowed.Count > 0)
-                            allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
-                    }
-                    CreditPaymentDetailVm.LoadTenders(allTenders);
-                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tenders loaded: {allTenders.Count()}");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tender load error: {ex.Message}");
-                }
-
-                // Load open ledger entries for this customer
-                try
-                {
-                    var clienteService = GetClienteService();
-                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(customer.AccountNumber);
-                    CreditPaymentDetailVm.LoadOpenEntries(entries);
-                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries loaded: {entries.Count}");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
-                }
+                // Load tenders and open entries in parallel
+                var tendersTask = LoadCreditTendersAsync();
+                var entriesTask = LoadCreditEntriesAsync(customer.AccountNumber);
+                await Task.WhenAll(tendersTask, entriesTask);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CreditSelect] FATAL ERROR: {ex}");
                 IsCreditPaymentDetailVisible = true;
+            }
+        }
+
+        private async Task LoadCreditTendersAsync()
+        {
+            try
+            {
+                var allTenders = await _storeConfigService.GetTendersAsync();
+                var settings = await _parametrosService.GetTenderSettingsAsync();
+                if (settings is not null && !string.IsNullOrWhiteSpace(settings.PaymentsTenderCods))
+                {
+                    var allowed = new HashSet<int>();
+                    foreach (var code in settings.PaymentsTenderCods.Split(new[] { ',', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        if (int.TryParse(code, out var id))
+                            allowed.Add(id);
+                    }
+                    if (allowed.Count > 0)
+                        allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
+                }
+                CreditPaymentDetailVm.LoadTenders(allTenders);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Tender load error: {ex.Message}");
+            }
+        }
+
+        private async Task LoadCreditEntriesAsync(string accountNumber)
+        {
+            try
+            {
+                var clienteService = GetClienteService();
+                var entries = await clienteService.ObtenerCuentasAbiertasAsync(accountNumber);
+                CreditPaymentDetailVm.LoadOpenEntries(entries);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
             }
         }
 
@@ -158,13 +163,16 @@ namespace NovaRetail.ViewModels
                 if (success)
                 {
                     CreditPaymentDetailVm.SetSuccess();
-                    // Refresh credit info + open entries
-                    var updated = await clienteService.ObtenerCreditoAsync(request.AccountNumber);
+                    // Refresh credit info + open entries in parallel
+                    var creditTask = clienteService.ObtenerCreditoAsync(request.AccountNumber);
+                    var entriesTask = clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
+                    await Task.WhenAll(creditTask, entriesTask);
+
+                    var updated = await creditTask;
                     if (updated is not null)
                         CreditPaymentDetailVm.RefreshCredit(updated);
 
-                    var entries = await clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
-                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                    CreditPaymentDetailVm.LoadOpenEntries(await entriesTask);
                 }
                 else
                 {
