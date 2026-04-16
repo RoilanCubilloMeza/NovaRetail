@@ -207,7 +207,7 @@ namespace NovaRetail.ViewModels
                     if (allowed.Count > 0)
                         allTenders = allTenders.Where(t => allowed.Contains(t.ID)).ToList();
                 }
-                CreditPaymentDetailVm.LoadTenders(allTenders);
+                await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.LoadTenders(allTenders));
             }
             catch (Exception ex)
             {
@@ -221,11 +221,13 @@ namespace NovaRetail.ViewModels
             {
                 var clienteService = GetClienteService();
                 var entries = await clienteService.ObtenerCuentasAbiertasAsync(accountNumber);
-                CreditPaymentDetailVm.LoadOpenEntries(entries);
+                await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.LoadOpenEntries(entries));
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    CreditPaymentDetailVm.SetError($"Error al cargar cuentas abiertas: {ex.Message}"));
             }
         }
 
@@ -245,30 +247,37 @@ namespace NovaRetail.ViewModels
 
                 if (success)
                 {
-                    CreditPaymentDetailVm.SetSuccess();
+                    await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.SetSuccess());
                     // Refresh credit info + open entries in parallel
                     var creditTask = clienteService.ObtenerCreditoAsync(request.AccountNumber);
                     var entriesTask = clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
                     await Task.WhenAll(creditTask, entriesTask);
 
                     var updated = await creditTask;
-                    if (updated is not null)
-                        CreditPaymentDetailVm.RefreshCredit(updated);
+                    var refreshedEntries = await entriesTask;
 
-                    CreditPaymentDetailVm.LoadOpenEntries(await entriesTask);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        if (updated is not null)
+                            CreditPaymentDetailVm.RefreshCredit(updated);
+
+                        CreditPaymentDetailVm.LoadOpenEntries(refreshedEntries);
+                    });
                 }
                 else
                 {
-                    CreditPaymentDetailVm.SetError(message ?? "No se pudo registrar el abono. Intente de nuevo.");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                        CreditPaymentDetailVm.SetError(message ?? "No se pudo registrar el abono. Intente de nuevo."));
                 }
             }
             catch (Exception ex)
             {
-                CreditPaymentDetailVm.SetError($"Error: {ex.Message}");
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    CreditPaymentDetailVm.SetError($"Error: {ex.Message}"));
             }
             finally
             {
-                CreditPaymentDetailVm.SetBusy(false);
+                await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.SetBusy(false));
             }
         }
     }
