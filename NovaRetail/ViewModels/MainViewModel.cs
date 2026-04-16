@@ -64,6 +64,8 @@ namespace NovaRetail.ViewModels
         private bool _isProcessingCheckout;
         private int _editingOrderId;
         private int _editingHoldId;
+        private NovaRetailOrderSummary? _editingHoldSummary;
+        private bool _isCancellingRecoveredHold;
         private bool _askForSalesRep;
         private bool _requireSalesRep;
         private SalesRepModel? _activeSalesRep;
@@ -718,7 +720,7 @@ namespace NovaRetail.ViewModels
             AddProductCommand = new Command<ProductModel>(p => _ = AddProductAsync(p));
             IncrementCommand = new Command<CartItemModel>(Increment);
             DecrementCommand = new Command<CartItemModel>(Decrement);
-            ClearCartCommand = new Command(ClearCart);
+            ClearCartCommand = new Command(async () => await ClearCartAsync());
             InvoiceCommand = new Command(async () => await InvoiceAsync());
             SearchProductCommand = new Command(async () => await SearchOrAddProductByCodeAsync());
             SelectCategoryCommand = new Command<string>(SelectCategory);

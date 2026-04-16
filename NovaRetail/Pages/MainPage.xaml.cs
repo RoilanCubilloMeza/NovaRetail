@@ -12,8 +12,19 @@ public partial class MainPage : ContentPage
         _vm = vm;
         BindingContext = _vm;
         InitializeComponent();
+        Loaded += OnPageLoaded;
+        Unloaded += OnPageUnloaded;
         _vm.PropertyChanged += OnViewModelPropertyChanged;
     }
+
+    partial void RegisterPlatformKeyboardHooks();
+    partial void UnregisterPlatformKeyboardHooks();
+
+    private void OnPageLoaded(object? sender, EventArgs e)
+        => RegisterPlatformKeyboardHooks();
+
+    private void OnPageUnloaded(object? sender, EventArgs e)
+        => UnregisterPlatformKeyboardHooks();
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

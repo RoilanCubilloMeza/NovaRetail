@@ -299,10 +299,19 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
         }
 
+        private async Task ClearCartAsync()
+        {
+            if (await TryCancelRecoveredHoldAsync())
+                return;
+
+            ClearCart();
+        }
+
         private void ClearCart()
         {
             _editingOrderId = 0;
             _editingHoldId = 0;
+            _editingHoldSummary = null;
             ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;

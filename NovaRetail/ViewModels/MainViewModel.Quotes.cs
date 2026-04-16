@@ -1,4 +1,5 @@
 using NovaRetail.Models;
+using NovaRetail.State;
 
 namespace NovaRetail.ViewModels
 {
@@ -239,6 +240,94 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        public async Task<bool> TryCancelRecoveredHoldAsync()
+        {
+            if (_editingHoldId <= 0 || CartItems.Count == 0 || _isCancellingRecoveredHold || HasBlockingOverlayVisible())
+                return false;
+
+            _isCancellingRecoveredHold = true;
+            var holdId = _editingHoldId;
+
+            try
+            {
+                var confirm = await _dialogService.ConfirmAsync(
+                    "Cancelar factura en espera recuperada",
+                    BuildRecoveredHoldDeleteMessage(holdId),
+                    "Sí",
+                    "No");
+
+                if (!confirm)
+                    return true;
+
+                var result = await _quoteService.DeleteHoldAsync(holdId);
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? $"No fue posible eliminar la factura en espera #{holdId}."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Fac. Espera", message, "OK");
+                    return true;
+                }
+
+                ClearCart();
+                _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
+                await ResetCatalogAfterCheckoutAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Fac. Espera", ex.Message, "OK");
+                return true;
+            }
+            finally
+            {
+                _isCancellingRecoveredHold = false;
+            }
+        }
+
+        private string BuildRecoveredHoldDeleteMessage(int holdId)
+        {
+            var holdDescription = string.IsNullOrWhiteSpace(_editingHoldSummary?.Comment)
+                ? "Sin descripción"
+                : _editingHoldSummary.Comment.Trim();
+
+            var holdDate = _editingHoldSummary?.Time;
+            var holdDateText = holdDate.HasValue
+                ? holdDate.Value.ToString("dd/MM/yyyy HH:mm")
+                : "No disponible";
+
+            var lines = new List<string>
+            {
+                $"Factura en espera: #{holdId}",
+                $"Descripción: {holdDescription}",
+                $"Fecha: {holdDateText}"
+            };
+
+            lines.Add(string.Empty);
+            lines.Add("Si continúa:");
+            lines.Add("- La factura se eliminará de la lista de facturas en espera.");
+            lines.Add("- El carrito actual se vaciará.");
+            lines.Add(string.Empty);
+            lines.Add("Esta acción no se puede deshacer.");
+            lines.Add("¿Desea continuar?");
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private bool HasBlockingOverlayVisible()
+            => IsItemActionVisible
+                || IsDiscountPopupVisible
+                || IsPriceJustVisible
+                || IsCheckoutVisible
+                || IsReceiptVisible
+                || IsManualExonerationVisible
+                || IsOrderSearchVisible
+                || IsQuoteReceiptVisible
+                || IsSalesRepPickerVisible
+                || IsCustomerSearchVisible
+                || IsCreditPaymentSearchVisible
+                || IsCreditPaymentDetailVisible;
+
         private async Task OpenOrderSearchAsync(int orderType, string title)
         {
             OrderSearchVm.Load(orderType, title);
@@ -336,9 +425,15 @@ namespace NovaRetail.ViewModels
                 RefreshCartItemsView();
 
                 if (order.Type == 2)
+                {
                     _editingHoldId = order.OrderID;
+                    _editingHoldSummary = order;
+                }
                 else
+                {
                     _editingOrderId = order.OrderID;
+                    _editingHoldSummary = null;
+                }
 
                 // Restaurar datos del cliente desde la cotización
                 var savedClientId = order.ParseClientId();
