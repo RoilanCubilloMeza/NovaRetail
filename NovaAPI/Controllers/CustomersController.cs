@@ -78,7 +78,9 @@ VALUES
         }
 
         private const string BaseSelectSql = @"
-SELECT AccountNumber, FirstName, LastName,
+    SELECT ID, AccountNumber,
+           ISNULL(TaxNumber, '') AS TaxNumber,
+           FirstName, LastName,
        PhoneNumber  AS PhoneNumber1,
        FaxNumber    AS PhoneNumber2,
        EmailAddress,
@@ -294,6 +296,7 @@ WHERE c.AccountNumber = @Acct";
                 var like = "%" + term + "%";
                 var sql = BaseSelectSql + @"
 WHERE AccountNumber LIKE {0}
+    OR TaxNumber     LIKE {0}
    OR FirstName     LIKE {0}
    OR LastName      LIKE {0}
    OR PhoneNumber   LIKE {0}

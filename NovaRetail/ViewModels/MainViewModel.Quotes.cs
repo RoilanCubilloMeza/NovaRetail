@@ -43,7 +43,7 @@ namespace NovaRetail.ViewModels
                 {
                     OrderID = _editingOrderId,
                     StoreID = storeId,
-                    CustomerID = 0,
+                    CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
                     Comment = string.Empty,
                     ReferenceNumber = clientRef,
@@ -195,7 +195,7 @@ namespace NovaRetail.ViewModels
                     OrderID = _editingHoldId,
                     StoreID = storeId,
                     Type = 2,
-                    CustomerID = 0,
+                    CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
                     Comment = comment.Trim(),
                     ReferenceNumber = clientRef,
@@ -606,7 +606,7 @@ namespace NovaRetail.ViewModels
                 var savedClientId = order.ParseClientId();
                 var savedClientName = order.ParseClientName();
                 if (!string.IsNullOrWhiteSpace(savedClientId))
-                    SetCliente(savedClientId, savedClientName);
+                    SetCliente(savedClientId, savedClientName, accountNumber: savedClientId, customerId: order.CustomerID);
 
                 var typeName = order.Type == 2 ? "Factura en espera" : "Cotización";
                 await _dialogService.AlertAsync("Orden recuperada",

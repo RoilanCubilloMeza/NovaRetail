@@ -108,7 +108,7 @@ namespace NovaRetail.ViewModels
                 try
                 {
                     var clienteService = GetClienteService();
-                    creditInfo = await clienteService.ObtenerCreditoAsync(CurrentClientId);
+                    creditInfo = await clienteService.ObtenerCreditoAsync(CurrentClientCreditLookupId);
                 }
                 catch { /* non-critical */ }
             }
@@ -400,7 +400,7 @@ namespace NovaRetail.ViewModels
                         : 1,
                 RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                 CashierID = ParseCashierId(currentUser),
-                CustomerID = 0,
+                CustomerID = HasClient ? CurrentClientCustomerId : 0,
                 ShipToID = 0,
                 Comment = string.Empty,
                 ReferenceNumber = string.Empty,

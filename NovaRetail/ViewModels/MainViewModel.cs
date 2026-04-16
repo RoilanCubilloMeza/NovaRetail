@@ -277,10 +277,17 @@ namespace NovaRetail.ViewModels
         public QuoteReceiptViewModel QuoteReceiptVm { get; } = new();
 
         public string CurrentClientId => _appStore.State.CurrentClientId;
+        public string CurrentClientAccountNumber => _appStore.State.CurrentClientAccountNumber;
+        public int CurrentClientCustomerId => _appStore.State.CurrentClientCustomerId;
         public string CurrentClientName => _appStore.State.CurrentClientName;
+        private string CurrentClientCreditLookupId => !string.IsNullOrWhiteSpace(CurrentClientAccountNumber)
+            ? CurrentClientAccountNumber
+            : CurrentClientId;
 
         public bool HasClient => !string.IsNullOrWhiteSpace(CurrentClientId);
-        public string ClientDisplayId => HasClient ? CurrentClientId : "Sin cliente";
+        public string ClientDisplayId => HasClient
+            ? (!string.IsNullOrWhiteSpace(CurrentClientAccountNumber) ? CurrentClientAccountNumber : CurrentClientId)
+            : "Sin cliente";
         public string ClientDisplayName => HasClient
             ? (string.IsNullOrWhiteSpace(CurrentClientName) ? "—" : CurrentClientName)
             : "Seleccione un cliente";
@@ -291,10 +298,22 @@ namespace NovaRetail.ViewModels
             || string.Equals(CurrentClientCustomerType, "Gobierno", StringComparison.OrdinalIgnoreCase)
             || string.Equals(CurrentClientCustomerType, "Exportación", StringComparison.OrdinalIgnoreCase);
 
-        public void SetCliente(string clientId, string name, bool isReceiver = false, string customerType = "")
+        public void SetCliente(string clientId, string name, bool isReceiver = false, string customerType = "", string? accountNumber = null, int customerId = 0)
         {
             if (string.IsNullOrWhiteSpace(clientId)) return;
-            _appStore.Dispatch(new SetCurrentClientAction(clientId.Trim(), (name ?? string.Empty).Trim(), isReceiver, customerType));
+
+            var normalizedClientId = clientId.Trim();
+            var normalizedAccountNumber = string.IsNullOrWhiteSpace(accountNumber)
+                ? normalizedClientId
+                : accountNumber.Trim();
+
+            _appStore.Dispatch(new SetCurrentClientAction(
+                normalizedClientId,
+                (name ?? string.Empty).Trim(),
+                isReceiver,
+                customerType,
+                normalizedAccountNumber,
+                customerId));
         }
 
         public ObservableCollection<ProductModel> Products { get; } = new();
@@ -861,10 +880,13 @@ namespace NovaRetail.ViewModels
 
             // ── Cliente ──
             OnPropertyChanged(nameof(CurrentClientId));
+            OnPropertyChanged(nameof(CurrentClientAccountNumber));
+            OnPropertyChanged(nameof(CurrentClientCustomerId));
             OnPropertyChanged(nameof(CurrentClientName));
             OnPropertyChanged(nameof(HasClient));
             OnPropertyChanged(nameof(ClientDisplayId));
             OnPropertyChanged(nameof(ClientDisplayName));
+            OnPropertyChanged(nameof(IsCurrentClientReceiver));
             OnPropertyChanged(nameof(CurrentClientCustomerType));
             OnPropertyChanged(nameof(CurrentClientHasCredit));
 

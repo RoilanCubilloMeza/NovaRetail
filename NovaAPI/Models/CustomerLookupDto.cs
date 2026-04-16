@@ -2,7 +2,9 @@ namespace NovaAPI.Models
 {
     public class CustomerLookupDto
     {
+        public int ID { get; set; }
         public string AccountNumber { get; set; }
+        public string TaxNumber { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string PhoneNumber1 { get; set; }

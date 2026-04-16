@@ -87,7 +87,9 @@ namespace NovaRetail.Data
 
                     return results.Select(c => new CustomerLookupModel
                     {
+                        CustomerId = c.ID,
                         AccountNumber = c.AccountNumber ?? string.Empty,
+                        TaxNumber = c.TaxNumber ?? string.Empty,
                         FirstName = c.FirstName ?? string.Empty,
                         LastName = c.LastName ?? string.Empty,
                         Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
@@ -96,7 +98,7 @@ namespace NovaRetail.Data
                         City = FirstNonEmpty(c.City, c.CITY) ?? string.Empty,
                         State = FirstNonEmpty(c.State, c.STATE) ?? string.Empty,
                         Zip = FirstNonEmpty(c.Zip, c.ZIP) ?? string.Empty,
-                        AccountTypeID = c.AccountTypeID
+                        AccountTypeID = c.AccountTypeID > 0 ? c.AccountTypeID : c.PriceLevel
                     }).ToList();
                 }
                 catch (Exception ex)
@@ -445,7 +447,10 @@ namespace NovaRetail.Data
 
             return new ClienteModel
             {
+                CustomerId = c.ID,
                 ClientId = c.AccountNumber ?? string.Empty,
+                AccountNumber = c.AccountNumber ?? string.Empty,
+                TaxNumber = c.TaxNumber ?? string.Empty,
                 IdType = ResolveIdType(null, c.AccountNumber),
                 Name = name,
                 Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
@@ -573,6 +578,9 @@ namespace NovaRetail.Data
 
             [JsonProperty("AccountNumber")]
             public string? AccountNumber { get; set; }
+
+            [JsonProperty("TaxNumber")]
+            public string? TaxNumber { get; set; }
 
             [JsonProperty("FirstName")]
             public string? FirstName { get; set; }

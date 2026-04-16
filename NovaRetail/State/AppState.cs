@@ -21,6 +21,8 @@ public sealed record AppState(
 
     // ── Cliente ──
     string CurrentClientId = "",
+    string CurrentClientAccountNumber = "",
+    int CurrentClientCustomerId = 0,
     string CurrentClientName = "",
     bool IsCurrentClientReceiver = false,
     string CurrentClientCustomerType = "",

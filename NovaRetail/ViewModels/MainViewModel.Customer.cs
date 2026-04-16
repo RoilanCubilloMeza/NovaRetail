@@ -1,12 +1,45 @@
 using NovaRetail.Data;
 using NovaRetail.Models;
 using NovaRetail.Services;
+using System.Linq;
 
 namespace NovaRetail.ViewModels
 {
     public partial class MainViewModel
     {
         // ── Búsqueda de clientes ──
+
+        private bool AreClientShortcutsBlocked()
+            => IsItemActionVisible
+               || IsPriceJustVisible
+               || IsDiscountPopupVisible
+               || IsCheckoutVisible
+               || IsReceiptVisible
+               || IsManualExonerationVisible
+               || IsOrderSearchVisible
+               || IsQuoteReceiptVisible
+               || IsSalesRepPickerVisible
+               || IsCustomerSearchVisible
+               || IsCreditPaymentSearchVisible
+               || IsCreditPaymentDetailVisible;
+
+        public async Task<bool> TryOpenClienteShortcutAsync()
+        {
+            if (AreClientShortcutsBlocked() || Shell.Current is null)
+                return false;
+
+            await Shell.Current.GoToAsync("ClientePage");
+            return true;
+        }
+
+        public async Task<bool> TryOpenCustomerSearchShortcutAsync()
+        {
+            if (AreClientShortcutsBlocked())
+                return false;
+
+            await OpenCustomerSearchAsync();
+            return true;
+        }
 
         private async Task OpenCustomerSearchAsync()
         {
@@ -34,17 +67,67 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private void OnCustomerSelected(Models.CustomerLookupModel customer)
+        private async void OnCustomerSelected(Models.CustomerLookupModel customer)
         {
+            if (customer is null)
+                return;
+
+            CustomerLookupModel resolvedCustomer = customer;
+
+            try
+            {
+                CustomerSearchVm.SetBusy(true);
+                resolvedCustomer = await ResolveSelectedCustomerAsync(customer);
+            }
+            catch
+            {
+                resolvedCustomer = customer;
+            }
+            finally
+            {
+                CustomerSearchVm.SetBusy(false);
+            }
+
             IsCustomerSearchVisible = false;
-            var customerType = customer.AccountTypeID switch
+            var customerType = resolvedCustomer.AccountTypeID switch
             {
                 2 => "Cr\u00e9dito",
                 3 => "Gobierno",
                 4 => "Exportaci\u00f3n",
                 _ => "Contado"
             };
-            SetCliente(customer.AccountNumber, customer.FullName, customerType: customerType);
+            var isReceiver = !string.IsNullOrWhiteSpace(resolvedCustomer.Email);
+            SetCliente(
+                resolvedCustomer.ResolvedClientId,
+                resolvedCustomer.FullName,
+                isReceiver: isReceiver,
+                customerType: customerType,
+                accountNumber: resolvedCustomer.AccountNumber,
+                customerId: resolvedCustomer.CustomerId);
+        }
+
+        private async Task<CustomerLookupModel> ResolveSelectedCustomerAsync(CustomerLookupModel customer)
+        {
+            if (customer.CustomerId > 0 && !string.IsNullOrWhiteSpace(customer.TaxNumber))
+                return customer;
+
+            var lookup = !string.IsNullOrWhiteSpace(customer.AccountNumber)
+                ? customer.AccountNumber
+                : customer.ResolvedClientId;
+
+            if (string.IsNullOrWhiteSpace(lookup))
+                return customer;
+
+            var clienteService = GetClienteService();
+            var refreshed = await clienteService.BuscarClientesAsync(lookup);
+
+            return refreshed.FirstOrDefault(c =>
+                       !string.IsNullOrWhiteSpace(customer.AccountNumber) &&
+                       string.Equals(c.AccountNumber?.Trim(), customer.AccountNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                   ?? refreshed.FirstOrDefault(c =>
+                       !string.IsNullOrWhiteSpace(customer.ResolvedClientId) &&
+                       string.Equals(c.ResolvedClientId?.Trim(), customer.ResolvedClientId.Trim(), StringComparison.OrdinalIgnoreCase))
+                   ?? customer;
         }
 
         private IClienteService GetClienteService()

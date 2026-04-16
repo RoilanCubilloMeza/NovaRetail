@@ -1699,11 +1699,26 @@ ORDER BY te.ID";
             {
                 cn.Open();
 
+                var customerAccountNumber = request.CodCliente;
+                if (request.CustomerID > 0)
+                {
+                    using (var cmd = new SqlCommand("SELECT TOP 1 AccountNumber FROM dbo.Customer WHERE ID = @CustomerID", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(result)))
+                            customerAccountNumber = Convert.ToString(result);
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(customerAccountNumber))
+                    return;
+
                 // Resolve AR_Account.ID for the customer
                 int accountID = 0;
                 using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
                 {
-                    cmd.Parameters.AddWithValue("@Number", request.CodCliente);
+                    cmd.Parameters.AddWithValue("@Number", customerAccountNumber);
                     var result = cmd.ExecuteScalar();
                     if (result != null && result != DBNull.Value)
                         accountID = Convert.ToInt32(result);
@@ -1713,13 +1728,16 @@ ORDER BY te.ID";
                     return;
 
                 // Resolve Customer.ID
-                int customerID = 0;
-                using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn))
+                int customerID = request.CustomerID;
+                if (customerID <= 0)
                 {
-                    cmd.Parameters.AddWithValue("@Acct", request.CodCliente);
-                    var result = cmd.ExecuteScalar();
-                    if (result != null && result != DBNull.Value)
-                        customerID = Convert.ToInt32(result);
+                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@Acct", customerAccountNumber);
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                            customerID = Convert.ToInt32(result);
+                    }
                 }
 
                 var now = DateTime.Now;

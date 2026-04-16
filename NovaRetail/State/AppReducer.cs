@@ -26,6 +26,8 @@ public static class AppReducer
         SetCurrentClientAction a => state with
         {
             CurrentClientId = a.ClientId ?? string.Empty,
+            CurrentClientAccountNumber = a.AccountNumber ?? string.Empty,
+            CurrentClientCustomerId = a.CustomerId,
             CurrentClientName = a.ClientName ?? string.Empty,
             IsCurrentClientReceiver = a.IsReceiver,
             CurrentClientCustomerType = a.CustomerType ?? string.Empty

@@ -43,6 +43,9 @@ namespace NovaRetail.ViewModels
         private FormMessageKind _validationMessageKind = FormMessageKind.None;
         private string _lastSyncedClientId = string.Empty;
         private string _lastAutoSyncedClientId = string.Empty;
+        private string _selectedAccountNumber = string.Empty;
+        private string _selectedTaxNumber = string.Empty;
+        private int _selectedCustomerId;
         private bool _isAutoSyncInProgress;
         private bool _isExistingCustomer;
         private bool _existingCustomerUpdateConfirmed;
@@ -68,6 +71,7 @@ namespace NovaRetail.ViewModels
                 {
                     IsExistingCustomer = false;
                     _existingCustomerUpdateConfirmed = false;
+                    ResetSelectedClientIdentity();
                 }
 
                 if (ShouldAutoSyncClientId(_clientId))
@@ -778,7 +782,10 @@ namespace NovaRetail.ViewModels
 
         private ClienteModel ToModel() => new()
         {
+            CustomerId          = _selectedCustomerId,
             ClientId            = ClientId,
+            AccountNumber       = string.IsNullOrWhiteSpace(_selectedAccountNumber) ? ClientId : _selectedAccountNumber,
+            TaxNumber           = string.IsNullOrWhiteSpace(_selectedTaxNumber) ? ClientId : _selectedTaxNumber,
             IdType              = IdType,
             Name                = Name,
             IsReceiver          = IsReceiver,
@@ -801,12 +808,38 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(ClientId))
                 return;
 
-            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim(), IsReceiver, SelectedCustomerType ?? string.Empty));
+            var selectedClientId = !string.IsNullOrWhiteSpace(_selectedTaxNumber)
+                ? _selectedTaxNumber.Trim()
+                : ClientId.Trim();
+
+            var selectedAccountNumber = !string.IsNullOrWhiteSpace(_selectedAccountNumber)
+                ? _selectedAccountNumber.Trim()
+                : ClientId.Trim();
+
+            _appStore.Dispatch(new SetCurrentClientAction(
+                selectedClientId,
+                (Name ?? string.Empty).Trim(),
+                IsReceiver,
+                SelectedCustomerType ?? string.Empty,
+                selectedAccountNumber,
+                _selectedCustomerId));
+        }
+
+        public void ApplyCurrentClientSelection()
+        {
+            SelectCurrentClient();
         }
 
         private void LoadFromModel(ClienteModel model)
         {
             ClientId = model.ClientId;
+            _selectedCustomerId = model.CustomerId;
+            _selectedAccountNumber = !string.IsNullOrWhiteSpace(model.AccountNumber)
+                ? model.AccountNumber
+                : model.ClientId;
+            _selectedTaxNumber = !string.IsNullOrWhiteSpace(model.TaxNumber)
+                ? model.TaxNumber
+                : string.Empty;
             IdType = ResolveLoadedIdType(model);
             Name = model.Name;
             IsReceiver = model.IsReceiver;
@@ -838,6 +871,15 @@ namespace NovaRetail.ViewModels
 
         private void MergeRemoteTaxData(ClienteModel model)
         {
+            if (_selectedCustomerId <= 0 && model.CustomerId > 0)
+                _selectedCustomerId = model.CustomerId;
+
+            if (string.IsNullOrWhiteSpace(_selectedTaxNumber) && !string.IsNullOrWhiteSpace(model.TaxNumber))
+                _selectedTaxNumber = model.TaxNumber;
+
+            if (string.IsNullOrWhiteSpace(_selectedAccountNumber) && !string.IsNullOrWhiteSpace(model.AccountNumber))
+                _selectedAccountNumber = model.AccountNumber;
+
             var remoteIdType = ResolveLoadedIdType(model);
             if (!string.Equals(IdType, remoteIdType, StringComparison.Ordinal))
                 IdType = remoteIdType;
@@ -883,6 +925,13 @@ namespace NovaRetail.ViewModels
                 12 => "DIMEX",
                 _ => string.IsNullOrWhiteSpace(model.IdType) ? "Cédula Física" : model.IdType
             };
+        }
+
+        private void ResetSelectedClientIdentity()
+        {
+            _selectedCustomerId = 0;
+            _selectedAccountNumber = string.Empty;
+            _selectedTaxNumber = string.Empty;
         }
 
         private static string BuildLocationSummary(string? province, string? canton, string? district, string? barrio, string? address)

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "caz92j38vk0=",
+  "dgSpecHash": "UQIm+SuGimE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
+  "projectFilePath": "c:\\Users\\developer01\\Documents\\NovaRetail\\NovaRetail\\NovaRetail\\NovaRetail.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\developer01\\.nuget\\packages\\microsoft.extensions.configuration\\10.0.4\\microsoft.extensions.configuration.10.0.4.nupkg.sha512",
     "C:\\Users\\developer01\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.4\\microsoft.extensions.configuration.abstractions.10.0.4.nupkg.sha512",

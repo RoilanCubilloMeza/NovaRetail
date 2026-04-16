@@ -19,7 +19,13 @@ public sealed record SetCreditPaymentSearchVisibleAction(bool Value) : IAppActio
 public sealed record SetCreditPaymentDetailVisibleAction(bool Value) : IAppAction;
 
 // ── Cliente ──
-public sealed record SetCurrentClientAction(string ClientId, string ClientName, bool IsReceiver = false, string CustomerType = "") : IAppAction;
+public sealed record SetCurrentClientAction(
+	string ClientId,
+	string ClientName,
+	bool IsReceiver = false,
+	string CustomerType = "",
+	string AccountNumber = "",
+	int CustomerId = 0) : IAppAction;
 
 // ── Carrito: ordenamiento ──
 public sealed record SetCartSortFieldAction(string Field) : IAppAction;

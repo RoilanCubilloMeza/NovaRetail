@@ -2,7 +2,9 @@ namespace NovaRetail.Models;
 
 public class CustomerLookupModel
 {
+    public int CustomerId { get; set; }
     public string AccountNumber { get; set; } = string.Empty;
+    public string TaxNumber { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
@@ -13,6 +15,10 @@ public class CustomerLookupModel
     public string Zip { get; set; } = string.Empty;
     public int AccountTypeID { get; set; }
     public bool IsEven { get; set; }
+
+    public string ResolvedClientId => !string.IsNullOrWhiteSpace(TaxNumber)
+        ? TaxNumber.Trim()
+        : AccountNumber.Trim();
 
     public string FullName => string.Join(" ",
         new[] { FirstName, LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
