@@ -50,6 +50,7 @@ namespace NovaRetail.ViewModels
                     OnPropertyChanged(nameof(SelectedTenderName));
                     OnPropertyChanged(nameof(TenderedSectionTitle));
                     NotifyCreditPreview();
+                    RefreshDerivedAmounts();
                     OnPropertyChanged(nameof(CanConfirm));
                     ((Command)ConfirmCommand).ChangeCanExecute();
                     ((Command)SelectTenderCommand).ChangeCanExecute();
@@ -61,6 +62,14 @@ namespace NovaRetail.ViewModels
             => SelectedTender is null
                 ? "Seleccione una forma de pago."
                 : $"Pago seleccionado: {SelectedTender.Description}";
+
+        public bool PrimaryTenderAllowsChange => SupportsCashChange(SelectedTender);
+
+        public string PrimaryAmountSummaryTitle => HasSecondTender
+            ? "Monto que cubre el primer pago"
+            : "Monto total a cobrar";
+
+        public string AmountDueForPrimaryText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount:N2}";
 
         // ── Monto entregado y cambio ─────────────────────────────────────
         public string TenderedText
@@ -78,19 +87,45 @@ namespace NovaRetail.ViewModels
         }
 
         public string TenderedSectionTitle => SelectedTender is not null
-            ? $"MONTO ENTREGADO — {SelectedTender.Description.ToUpper()}"
-            : "MONTO ENTREGADO";
+            ? PrimaryTenderAllowsChange
+                ? $"EFECTIVO RECIBIDO — {SelectedTender.Description.ToUpper()}"
+                : $"MONTO DEL PRIMER PAGO — {SelectedTender.Description.ToUpper()}"
+            : "MONTO DEL PAGO";
 
-        public string TenderedSectionHint => HasSecondTender
-            ? "Ingrese lo que el cliente entrega por el PRIMER pago. Deje vacío si es monto exacto."
-            : "Si paga exacto déjelo vacío.";
+        public string TenderedSectionHint
+        {
+            get
+            {
+                if (HasSecondTender)
+                {
+                    return PrimaryTenderAllowsChange
+                        ? "Ingrese lo recibido para el primer pago. El cambio se calcula solo sobre ese monto en efectivo."
+                        : "Ingrese cuánto cubrirá el primer pago. Si necesita dar cambio, use efectivo como primer medio.";
+                }
+
+                return PrimaryTenderAllowsChange
+                    ? "Ingrese lo recibido en efectivo. Si paga exacto puede dejarlo vacío."
+                    : "Puede dejarlo vacío si el cobro es exacto. El cambio solo aplica en efectivo.";
+            }
+        }
+
+        public string TenderedPlaceholderText => PrimaryTenderAllowsChange
+            ? "Ej. 5000"
+            : $"Exacto: {AmountDueForPrimaryText}";
 
         public decimal TenderedColones => TryParseColones(_tenderedText);
         public decimal FirstTenderAmount => Math.Max(0m, _totalColonesValue - (HasSecondTender ? SecondAmount : 0m));
         public string FirstTenderAmountText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount:N2}";
-        public decimal ChangeColones => TenderedColones > 0m ? Math.Max(0m, TenderedColones - FirstTenderAmount) : 0m;
+        public string TenderedAmountText => $"{UiConfig.CurrencySymbol}{TenderedColones:N2}";
+        public decimal RemainingColones => TenderedColones > 0m ? Math.Max(0m, FirstTenderAmount - TenderedColones) : 0m;
+        public string RemainingText => $"{UiConfig.CurrencySymbol}{RemainingColones:N2}";
+        public bool HasTenderedAmount => TenderedColones > 0m;
+        public bool HasRemainingAmount => HasTenderedAmount && RemainingColones > 0m;
+        public bool HasExactAmount => HasTenderedAmount && RemainingColones == 0m && ChangeColones == 0m;
+        public decimal ChangeColones => PrimaryTenderAllowsChange && TenderedColones > 0m ? Math.Max(0m, TenderedColones - FirstTenderAmount) : 0m;
         public bool HasChange => ChangeColones > 0m;
         public string ChangeText => $"{UiConfig.CurrencySymbol}{ChangeColones:N2}";
+        public bool ShowCashChangeGuidance => HasTenderedAmount && !PrimaryTenderAllowsChange;
 
         // ── Segundo medio de pago ────────────────────────────────────────
         public bool HasSecondTender
@@ -491,12 +526,25 @@ namespace NovaRetail.ViewModels
 
         private void RefreshDerivedAmounts()
         {
+            OnPropertyChanged(nameof(PrimaryTenderAllowsChange));
+            OnPropertyChanged(nameof(PrimaryAmountSummaryTitle));
+            OnPropertyChanged(nameof(AmountDueForPrimaryText));
+            OnPropertyChanged(nameof(TenderedSectionTitle));
+            OnPropertyChanged(nameof(TenderedSectionHint));
+            OnPropertyChanged(nameof(TenderedPlaceholderText));
             OnPropertyChanged(nameof(TenderedColones));
+            OnPropertyChanged(nameof(TenderedAmountText));
+            OnPropertyChanged(nameof(HasTenderedAmount));
             OnPropertyChanged(nameof(FirstTenderAmount));
             OnPropertyChanged(nameof(FirstTenderAmountText));
+            OnPropertyChanged(nameof(RemainingColones));
+            OnPropertyChanged(nameof(RemainingText));
+            OnPropertyChanged(nameof(HasRemainingAmount));
+            OnPropertyChanged(nameof(HasExactAmount));
             OnPropertyChanged(nameof(ChangeColones));
             OnPropertyChanged(nameof(ChangeText));
             OnPropertyChanged(nameof(HasChange));
+            OnPropertyChanged(nameof(ShowCashChangeGuidance));
             OnPropertyChanged(nameof(SplitSummaryText));
             OnPropertyChanged(nameof(SelectedTenderName));
             OnPropertyChanged(nameof(SecondAmountFormattedText));
@@ -511,6 +559,21 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(text)) return 0m;
             var cleaned = text.Replace(UiConfig.CurrencySymbol, string.Empty).Replace(",", string.Empty).Trim();
             return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+        }
+
+        private static bool SupportsCashChange(TenderModel? tender)
+        {
+            if (tender is null)
+                return false;
+
+            var medioPago = (tender.MedioPagoCodigo ?? string.Empty).Trim();
+            if (string.Equals(medioPago, "01", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var description = (tender.Description ?? string.Empty).Trim();
+            return description.Contains("efectivo", StringComparison.OrdinalIgnoreCase)
+                || description.Contains("contado", StringComparison.OrdinalIgnoreCase)
+                || description.Contains("cash", StringComparison.OrdinalIgnoreCase);
         }
 
         public void SetCreditInfo(CustomerCreditInfo? credit)

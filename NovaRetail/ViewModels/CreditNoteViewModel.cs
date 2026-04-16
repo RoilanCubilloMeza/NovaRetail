@@ -416,10 +416,14 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 _storeName = config.StoreName ?? string.Empty;
             }
 
-            // Fetch customer credit information
-            if (!string.IsNullOrWhiteSpace(entry.ClientId))
+            // Fetch customer credit information — prefer CreditAccountNumber (the account
+            // that was used for credit payment) over ClientId (billing cédula).
+            var creditLookupId = !string.IsNullOrWhiteSpace(entry.CreditAccountNumber)
+                ? entry.CreditAccountNumber
+                : entry.ClientId;
+            if (!string.IsNullOrWhiteSpace(creditLookupId))
             {
-                _creditInfo = await _clienteService.ObtenerCreditoAsync(entry.ClientId);
+                _creditInfo = await _clienteService.ObtenerCreditoAsync(creditLookupId);
             }
             _creditLoaded = true;
 
@@ -756,6 +760,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     || t.Description.Contains(sourceTenderDescription, StringComparison.OrdinalIgnoreCase));
             }
 
+            // If matched tender is credit but client has no credit, skip it
+            if (matchedTender is not null && matchedTender.IsCredit && (_creditInfo is null || !_creditInfo.HasCredit))
+                matchedTender = null;
+
             var defaultTender = matchedTender
                                 ?? AvailableTenders.FirstOrDefault(t => !t.IsCredit)
                                 ?? AvailableTenders.FirstOrDefault();
@@ -907,6 +915,12 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             var clientId = EffectiveClientId;
             var clientName = EffectiveClientName;
 
+            // For credit-mode NC, CodCliente must be the AccountNumber used for the
+            // original credit sale so the API can locate the AR_Account to reverse.
+            var codCliente = clientId;
+            if (_isCreditMode && _sourceEntry is not null && !string.IsNullOrWhiteSpace(_sourceEntry.CreditAccountNumber))
+                codCliente = _sourceEntry.CreditAccountNumber;
+
             var request = new NovaRetailCreateSaleRequest
             {
                 StoreID = currentUser.StoreId > 0 ? currentUser.StoreId : _storeId > 0 ? _storeId : 1,
@@ -921,7 +935,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 CurrencyCode = "CRC",
                 TipoCambio = "1",
                 CondicionVenta = "01",
-                CodCliente = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
+                CodCliente = !string.IsNullOrWhiteSpace(codCliente) ? codCliente : string.Empty,
                 NombreCliente = !string.IsNullOrWhiteSpace(clientName) ? clientName : string.Empty,
                 CedulaTributaria = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
                 InsertarTiqueteEspera = true,

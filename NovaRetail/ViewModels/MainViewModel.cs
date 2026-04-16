@@ -580,7 +580,7 @@ namespace NovaRetail.ViewModels
         public string DiscountText => DiscountPercent > 0
             ? (HasItemDiscounts ? $"Art. + {DiscountPercent} %" : $"{DiscountPercent} %")
             : (HasItemDiscounts ? "Artículos" : "0 %");
-        public string DiscountAmountText => $"-{DiscountAmount:F2}";
+        public string DiscountAmountText => $"-{UiConfig.CurrencySymbol}{DiscountAmount:F2}";
         public string DiscountColonesText => DiscountAmount > 0
             ? $"-{UiConfig.CurrencySymbol}{Math.Round(_discountColones, 2):N2}"
             : $"{UiConfig.CurrencySymbol}0.00";
@@ -589,8 +589,8 @@ namespace NovaRetail.ViewModels
             ? $"-{UiConfig.CurrencySymbol}{Math.Round(_exonerationColones, 2):N2}"
             : $"{UiConfig.CurrencySymbol}0.00";
         public bool HasExonerationAmount => ExonerationAmount > 0;
-        public string TaxText => $"${Tax:F2}";
-        public string TotalText => $"${Total:F2}";
+        public string TaxText => $"{UiConfig.CurrencySymbol}{Tax:F2}";
+        public string TotalText => $"{UiConfig.CurrencySymbol}{Total:F2}";
         public string CartCountText => $"{CartItems.Count} ↑";
 
         // ── Panel de productos: visible / ancho ──
@@ -721,7 +721,7 @@ namespace NovaRetail.ViewModels
 
         // ── Totales en colones ──
 
-        public string SubtotalText => $"${Subtotal:F2}";
+        public string SubtotalText => $"{UiConfig.CurrencySymbol}{Subtotal:F2}";
         public string SubtotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_subtotalColones, 2):N2}";
         public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";

@@ -29,6 +29,9 @@ public sealed class InvoiceHistoryEntry
     public decimal TotalColones { get; set; }
     public decimal ChangeColones { get; set; }
 
+    // Cuenta de crédito (AccountNumber del cliente que pagó con crédito)
+    public string CreditAccountNumber { get; set; } = string.Empty;
+
     // Pago
     public string TenderDescription { get; set; } = string.Empty;
     public decimal TenderTotalColones { get; set; }

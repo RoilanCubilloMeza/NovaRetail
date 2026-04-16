@@ -324,6 +324,9 @@ namespace NovaAPI.Models
         [JsonProperty("secondTenderAmountColones")]
         public decimal SecondTenderAmountColones { get; set; }
 
+        [JsonProperty("creditAccountNumber")]
+        public string CreditAccountNumber { get; set; } = string.Empty;
+
         [JsonProperty("lines")]
         public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new List<NovaRetailInvoiceHistoryLineDto>();
     }

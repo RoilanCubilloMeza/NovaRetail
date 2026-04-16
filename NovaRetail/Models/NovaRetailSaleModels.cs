@@ -161,6 +161,7 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
     public decimal TenderTotalColones { get; set; }
     public string SecondTenderDescription { get; set; } = string.Empty;
     public decimal SecondTenderAmountColones { get; set; }
+    public string CreditAccountNumber { get; set; } = string.Empty;
     public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new();
 }
 

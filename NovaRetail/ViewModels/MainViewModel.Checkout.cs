@@ -285,6 +285,7 @@ namespace NovaRetail.ViewModels
                     Consecutivo               = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : request.COMPROBANTE_INTERNO,
                     ClientId                  = HasClient ? CurrentClientId : _defaultClientId,
                     ClientName                = HasClient ? CurrentClientName : _defaultClientName,
+                    CreditAccountNumber       = HasClient ? CurrentClientAccountNumber : string.Empty,
                     CashierName               = currentUser?.DisplayName ?? string.Empty,
                     RegisterNumber            = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     StoreName                 = _storeName,

@@ -411,7 +411,8 @@ SELECT TOP (@Top)
     CAST(ISNULL(s.DiscountColones, 0) AS decimal(18, 2)) AS DiscountColones,
     CAST(0 AS decimal(18, 2)) AS ExonerationColones,
     CAST(ISNULL(t.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
-    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones
+    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones,
+    ISNULL(c.AccountNumber, '') AS CreditAccountNumber
 FROM dbo.[Transaction] t
 LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
 LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
@@ -461,7 +462,8 @@ ORDER BY t.[Time] DESC";
                                     DiscountColones = reader["DiscountColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["DiscountColones"]),
                                     ExonerationColones = reader["ExonerationColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["ExonerationColones"]),
                                     TaxColones = reader["TaxColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TaxColones"]),
-                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"])
+                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"]),
+                                    CreditAccountNumber = reader["CreditAccountNumber"] == DBNull.Value ? string.Empty : Convert.ToString(reader["CreditAccountNumber"])
                                 });
                             }
                         }
@@ -515,7 +517,8 @@ SELECT TOP 1
     CAST(ISNULL(s.DiscountColones, 0) AS decimal(18, 2)) AS DiscountColones,
     CAST(0 AS decimal(18, 2)) AS ExonerationColones,
     CAST(ISNULL(t.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
-    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones
+    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones,
+    ISNULL(c.AccountNumber, '') AS CreditAccountNumber
 FROM dbo.[Transaction] t
 LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
 LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
@@ -555,7 +558,8 @@ WHERE t.TransactionNumber = @TransactionNumber";
                                     DiscountColones = reader["DiscountColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["DiscountColones"]),
                                     ExonerationColones = reader["ExonerationColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["ExonerationColones"]),
                                     TaxColones = reader["TaxColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TaxColones"]),
-                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"])
+                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"]),
+                                    CreditAccountNumber = reader["CreditAccountNumber"] == DBNull.Value ? string.Empty : Convert.ToString(reader["CreditAccountNumber"])
                                 };
                             }
                         }
