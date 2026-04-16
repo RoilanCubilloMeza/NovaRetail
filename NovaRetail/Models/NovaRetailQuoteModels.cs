@@ -122,6 +122,7 @@ public sealed class NovaRetailOrderEntry
     public decimal QuantityOnOrder { get; set; }
     public bool Taxable { get; set; }
     public int TaxID { get; set; }
+    public int ItemType { get; set; }
 }
 
 public sealed class NovaRetailListOrdersResponse

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -101,6 +102,7 @@ namespace NovaAPI.Controllers
 
             var response = new NovaRetailCreateSaleResponse();
             var connectionString = GetConnectionString();
+            SqlTransaction saleTransaction = null;
 
             try
             {
@@ -108,9 +110,35 @@ namespace NovaAPI.Controllers
                 {
                     cn.Open();
 
-                    var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID);
+                    var nonInventoryItemTypes = LoadNonInventoryItemTypes(cn);
+                    var requiresNonInventoryBypass = !request.AllowNegativeInventory
+                        && nonInventoryItemTypes.Count > 0
+                        && RequestContainsNonInventoryItems(request.Items, nonInventoryItemTypes);
+
+                    if (requiresNonInventoryBypass)
+                    {
+                        saleTransaction = cn.BeginTransaction(IsolationLevel.Serializable);
+
+                        var stockValidation = ValidateInventoryItems(cn, saleTransaction, request.Items, nonInventoryItemTypes);
+                        if (!stockValidation.StockOk)
+                        {
+                            SafeRollback(saleTransaction);
+                            saleTransaction = null;
+
+                            response.Ok = false;
+                            response.Message = "Stock insuficiente para uno o mas articulos.";
+                            return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                        }
+
+                        requiresNonInventoryBypass = stockValidation.HasNonInventoryItems;
+                    }
+
+                    var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID, saleTransaction);
                     if (activeBatch == null)
                     {
+                        SafeRollback(saleTransaction);
+                        saleTransaction = null;
+
                         response.Ok = false;
                         response.Message = "No existe un lote/caja abierto para registrar la venta.";
                         return Request.CreateResponse(HttpStatusCode.BadRequest, response);
@@ -121,6 +149,9 @@ namespace NovaAPI.Controllers
 
                     using (var cmd = new SqlCommand("dbo.spNovaRetail_CreateSale", cn))
                     {
+                        if (saleTransaction != null)
+                            cmd.Transaction = saleTransaction;
+
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.CommandTimeout = 180;
 
@@ -138,7 +169,7 @@ namespace NovaAPI.Controllers
                         cmd.Parameters.AddWithValue("@RecallType", request.RecallType);
                         cmd.Parameters.AddWithValue("@TransactionTime", (object)request.TransactionTime ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@TotalChange", request.TotalChange);
-                        cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory);
+                        cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory || requiresNonInventoryBypass);
                         cmd.Parameters.AddWithValue("@CurrencyCode", request.CurrencyCode ?? "CRC");
                         cmd.Parameters.AddWithValue("@TipoCambio", request.TipoCambio ?? "1");
                         cmd.Parameters.AddWithValue("@CondicionVenta", request.CondicionVenta ?? "01");
@@ -198,6 +229,16 @@ namespace NovaAPI.Controllers
                         {
                             response.TransactionNumber = Convert.ToInt32(transactionNumberParameter.Value);
                         }
+                    }
+
+                    if (saleTransaction != null)
+                    {
+                        if (response.Ok)
+                            saleTransaction.Commit();
+                        else
+                            SafeRollback(saleTransaction);
+
+                        saleTransaction = null;
                     }
 
                     if (response.Ok && response.TransactionNumber > 0)
@@ -285,6 +326,9 @@ namespace NovaAPI.Controllers
             }
             catch (SqlException ex)
             {
+                SafeRollback(saleTransaction);
+                saleTransaction = null;
+
                 response.Ok = false;
                 response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
                 response.ErrorNumber = ex.Number;
@@ -295,6 +339,9 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
+                SafeRollback(saleTransaction);
+                saleTransaction = null;
+
                 response.Ok = false;
                 var inner = ex.InnerException != null ? $" | Inner: {ex.InnerException.Message}" : string.Empty;
                 response.Message = $"{ex.GetType().Name}: {ex.Message}{inner} | StackTrace: {ex.StackTrace}";
@@ -742,6 +789,144 @@ ORDER BY te.ID";
 
             var value = reader[columnName];
             return value != DBNull.Value && Convert.ToBoolean(value);
+        }
+
+        private static HashSet<int> LoadNonInventoryItemTypes(SqlConnection cn, SqlTransaction tx = null)
+        {
+            using (var cmd = new SqlCommand("SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'IT-01'", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                var value = cmd.ExecuteScalar();
+                return ParseItemTypes(value == null || value == DBNull.Value ? string.Empty : Convert.ToString(value));
+            }
+        }
+
+        private static HashSet<int> ParseItemTypes(string value)
+        {
+            var itemTypes = new HashSet<int>();
+            if (string.IsNullOrWhiteSpace(value))
+                return itemTypes;
+
+            foreach (var part in value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                int itemType;
+                if (int.TryParse(part.Trim(), out itemType))
+                    itemTypes.Add(itemType);
+            }
+
+            return itemTypes;
+        }
+
+        private static bool RequestContainsNonInventoryItems(IEnumerable<NovaRetailSaleItemDto> items, ISet<int> nonInventoryItemTypes)
+        {
+            if (items == null || nonInventoryItemTypes == null || nonInventoryItemTypes.Count == 0)
+                return false;
+
+            return items.Any(item => item != null && nonInventoryItemTypes.Contains(item.ItemType));
+        }
+
+        private static InventoryValidationResult ValidateInventoryItems(SqlConnection cn, SqlTransaction tx, IEnumerable<NovaRetailSaleItemDto> items, ISet<int> nonInventoryItemTypes)
+        {
+            var result = new InventoryValidationResult { StockOk = true };
+            if (items == null)
+                return result;
+
+            var requestedQuantities = items
+                .Where(item => item != null && item.ItemID > 0 && item.Quantity > 0)
+                .GroupBy(item => item.ItemID)
+                .Select(group => new RequestedItemQuantity
+                {
+                    ItemID = group.Key,
+                    Quantity = group.Sum(item => item.Quantity)
+                })
+                .ToList();
+
+            if (requestedQuantities.Count == 0)
+                return result;
+
+            var inventorySnapshot = LoadItemInventorySnapshot(cn, tx, requestedQuantities.Select(item => item.ItemID));
+            foreach (var requested in requestedQuantities)
+            {
+                ItemInventorySnapshot snapshot;
+                if (!inventorySnapshot.TryGetValue(requested.ItemID, out snapshot))
+                    continue;
+
+                if (nonInventoryItemTypes.Contains(snapshot.ItemType))
+                {
+                    result.HasNonInventoryItems = true;
+                    continue;
+                }
+
+                if (snapshot.Quantity < requested.Quantity)
+                {
+                    result.StockOk = false;
+                    return result;
+                }
+            }
+
+            return result;
+        }
+
+        private static Dictionary<int, ItemInventorySnapshot> LoadItemInventorySnapshot(SqlConnection cn, SqlTransaction tx, IEnumerable<int> itemIds)
+        {
+            var ids = itemIds == null
+                ? new List<int>()
+                : itemIds.Where(id => id > 0).Distinct().ToList();
+
+            var snapshot = new Dictionary<int, ItemInventorySnapshot>();
+            if (ids.Count == 0)
+                return snapshot;
+
+            using (var cmd = new SqlCommand())
+            {
+                cmd.Connection = cn;
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 30;
+
+                var parameterNames = new List<string>(ids.Count);
+                for (var index = 0; index < ids.Count; index++)
+                {
+                    var parameterName = "@ItemID" + index.ToString(CultureInfo.InvariantCulture);
+                    parameterNames.Add(parameterName);
+                    cmd.Parameters.AddWithValue(parameterName, ids[index]);
+                }
+
+                cmd.CommandText = @"SELECT I.ID,
+                                           CAST(ISNULL(I.Quantity, 0) AS decimal(18, 4)) AS Quantity,
+                                           ISNULL(I.ItemType, 0) AS ItemType
+                                    FROM dbo.Item I WITH (UPDLOCK, HOLDLOCK)
+                                    WHERE I.ID IN (" + string.Join(", ", parameterNames) + ")";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        snapshot[Convert.ToInt32(reader["ID"])] = new ItemInventorySnapshot
+                        {
+                            Quantity = reader["Quantity"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Quantity"]),
+                            ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
+                        };
+                    }
+                }
+            }
+
+            return snapshot;
+        }
+
+        private static void SafeRollback(SqlTransaction tx)
+        {
+            if (tx == null)
+                return;
+
+            try
+            {
+                tx.Rollback();
+            }
+            catch
+            {
+            }
         }
 
         private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId, SqlTransaction tx = null)
@@ -1402,6 +1587,24 @@ ORDER BY te.ID";
             public int BatchNumber { get; set; }
             public int StoreID { get; set; }
             public int RegisterID { get; set; }
+        }
+
+        private sealed class RequestedItemQuantity
+        {
+            public int ItemID { get; set; }
+            public decimal Quantity { get; set; }
+        }
+
+        private sealed class ItemInventorySnapshot
+        {
+            public decimal Quantity { get; set; }
+            public int ItemType { get; set; }
+        }
+
+        private sealed class InventoryValidationResult
+        {
+            public bool StockOk { get; set; }
+            public bool HasNonInventoryItems { get; set; }
         }
 
         private static void EnsureExonerationEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
@@ -2328,13 +2531,15 @@ ORDER BY te.ID";
                         return Request.CreateResponse(HttpStatusCode.NotFound, new NovaRetailOrderDetailResponse { Ok = false, Message = "Factura en espera no encontrada." });
 
                     using (var cmd = new SqlCommand(@"
-                        SELECT the.ID AS EntryID, the.ItemID,
+                           SELECT the.ID AS EntryID, the.ItemID,
                                ISNULL(the.Description, '') AS Description,
                                the.Price, the.FullPrice, 0 AS Cost,
                                the.QuantityReserved AS QuantityOnOrder,
                                the.Taxable,
-                               ISNULL(the.ItemTaxID, 0) AS TaxID
+                               ISNULL(the.ItemTaxID, 0) AS TaxID,
+                               ISNULL(i.ItemType, 0) AS ItemType
                         FROM dbo.TransactionHoldEntry the
+                           LEFT JOIN dbo.Item i ON i.ID = the.ItemID
                         WHERE the.TransactionHoldID = @HoldID
                         ORDER BY the.ID", cn))
                     {
@@ -2353,7 +2558,8 @@ ORDER BY te.ID";
                                     Cost = 0m,
                                     QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 1m : Convert.ToDecimal(reader["QuantityOnOrder"]),
                                     Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
-                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"])
+                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
+                                    ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
                                 });
                             }
                         }
@@ -2488,7 +2694,8 @@ ORDER BY te.ID";
                     using (var cmd = new SqlCommand(@"
                         SELECT oe.ID AS EntryID, oe.ItemID, oe.Description, oe.Price, oe.FullPrice,
                                oe.Cost, oe.QuantityOnOrder, oe.Taxable,
-                               ISNULL(i.TaxID, 0) AS TaxID
+                               ISNULL(i.TaxID, 0) AS TaxID,
+                               ISNULL(i.ItemType, 0) AS ItemType
                         FROM dbo.OrderEntry oe
                         LEFT JOIN dbo.Item i ON i.ID = oe.ItemID
                         WHERE oe.OrderID = @OrderID
@@ -2509,7 +2716,8 @@ ORDER BY te.ID";
                                     Cost = reader["Cost"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Cost"]),
                                     QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["QuantityOnOrder"]),
                                     Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
-                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"])
+                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
+                                    ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
                                 });
                             }
                         }

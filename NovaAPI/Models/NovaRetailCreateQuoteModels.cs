@@ -175,6 +175,9 @@ namespace NovaAPI.Models
 
         [JsonProperty("taxID")]
         public int TaxID { get; set; }
+
+        [JsonProperty("itemType")]
+        public int ItemType { get; set; }
     }
 
     public class NovaRetailListOrdersResponse

@@ -325,6 +325,7 @@ namespace NovaRetail.ViewModels
                         TaxPercentage = entry.Taxable ? _defaultTaxPercentage : 0m,
                         TaxID = entry.TaxID,
                         Cabys = string.Empty,
+                        ItemType = entry.ItemType,
                         Stock = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
                         Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m
                     };
