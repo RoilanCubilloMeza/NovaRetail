@@ -11,6 +11,7 @@ public class OrderSearchViewModel : INotifyPropertyChanged
     private string _searchText = string.Empty;
     private string _titleText = string.Empty;
     private string _statusMessage = string.Empty;
+    private string _lastRefreshText = string.Empty;
     private bool _isBusy;
     private int _orderType;
 
@@ -41,7 +42,14 @@ public class OrderSearchViewModel : INotifyPropertyChanged
         private set { if (_statusMessage != value) { _statusMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasStatusMessage)); } }
     }
 
+    public string LastRefreshText
+    {
+        get => _lastRefreshText;
+        private set { if (_lastRefreshText != value) { _lastRefreshText = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasLastRefreshText)); } }
+    }
+
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+    public bool HasLastRefreshText => !string.IsNullOrWhiteSpace(LastRefreshText);
 
     public bool IsBusy
     {
@@ -53,10 +61,13 @@ public class OrderSearchViewModel : INotifyPropertyChanged
 
     public event Action? RequestClose;
     public event Action<NovaRetailOrderSummary>? RequestSelect;
+    public event Func<NovaRetailOrderSummary, Task>? RequestCancelOrder;
     public event Func<string, Task>? RequestSearch;
 
     public ICommand SearchCommand { get; }
+    public ICommand RefreshCommand { get; }
     public ICommand SelectCommand { get; }
+    public ICommand CancelOrderCommand { get; }
     public ICommand CloseCommand { get; }
 
     public OrderSearchViewModel()
@@ -66,10 +77,20 @@ public class OrderSearchViewModel : INotifyPropertyChanged
             if (RequestSearch is not null)
                 await RequestSearch.Invoke(SearchText);
         });
+        RefreshCommand = new Command(async () =>
+        {
+            if (RequestSearch is not null)
+                await RequestSearch.Invoke(SearchText);
+        });
         SelectCommand = new Command<NovaRetailOrderSummary>(order =>
         {
             if (order is not null)
                 RequestSelect?.Invoke(order);
+        });
+        CancelOrderCommand = new Command<NovaRetailOrderSummary>(async order =>
+        {
+            if (order is not null && RequestCancelOrder is not null)
+                await RequestCancelOrder.Invoke(order);
         });
         CloseCommand = new Command(() => RequestClose?.Invoke());
     }
@@ -80,6 +101,7 @@ public class OrderSearchViewModel : INotifyPropertyChanged
         TitleText = title;
         SearchText = string.Empty;
         StatusMessage = string.Empty;
+        LastRefreshText = string.Empty;
         IsBusy = false;
         Orders.Clear();
     }
@@ -92,6 +114,7 @@ public class OrderSearchViewModel : INotifyPropertyChanged
         foreach (var o in orders)
             Orders.Add(o);
 
+        LastRefreshText = $"Actualizado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
         StatusMessage = statusMessage ?? (Orders.Count == 0 ? "No se encontraron resultados." : string.Empty);
     }
 

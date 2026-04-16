@@ -64,39 +64,68 @@
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 0"
                     Padding="16,10">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <Label Grid.Column="0" Text="&#x1F50D;" FontSize="16" VerticalOptions="Center"/>
-                    <Entry Grid.Column="1"
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" RowSpacing="6">
+                    <Label Grid.Row="0" Grid.Column="0" Text="&#x1F50D;" FontSize="16" VerticalOptions="Center"/>
+                    <Entry Grid.Row="0" Grid.Column="1"
                            Text="{Binding SearchText, Mode=TwoWay}"
                            Placeholder="Buscar por cliente, cedula, No. o tipo..."
                            PlaceholderColor="#94A3B8"
                            FontSize="13"
                            BackgroundColor="Transparent"
                            VerticalOptions="Center"/>
+                    <Grid Grid.Row="0" Grid.Column="2"
+                          WidthRequest="40"
+                          HeightRequest="34">
+                        <Button Text="&#x21BB;"
+                                Command="{Binding LoadCommand}"
+                                BackgroundColor="#E2E8F0"
+                                TextColor="#0F172A"
+                                FontSize="16"
+                                CornerRadius="8"
+                                HeightRequest="34"
+                                WidthRequest="40"
+                                Padding="0">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button"
+                                             Binding="{Binding IsLoading}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="False"/>
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+                        <Border IsVisible="False"
+                                BackgroundColor="#E2E8F0"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                HeightRequest="34"
+                                WidthRequest="40"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsLoading}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="True"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                               IsVisible="{Binding IsLoading}"
+                                               Color="#0F172A"
+                                               HeightRequest="18"
+                                               WidthRequest="18"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                           Text="{Binding LastRefreshText}"
+                           IsVisible="{Binding HasLastRefreshText}"
+                           FontSize="11"
+                           TextColor="#64748B"/>
                 </Grid>
             </Border>
-
-            <!-- Indicador de carga -->
-            <VerticalStackLayout Grid.Row="2"
-                                 IsVisible="{Binding IsLoading}"
-                                 Spacing="10"
-                                 HorizontalOptions="Center"
-                                 VerticalOptions="Center">
-                <ActivityIndicator IsRunning="{Binding IsLoading}"
-                                   IsVisible="{Binding IsLoading}"
-                                   Color="#2563EB"
-                                   HeightRequest="40" WidthRequest="40"
-                                   HorizontalOptions="Center"/>
-                <Label Text="{Binding LoadingMessageText}"
-                       FontSize="14"
-                       FontAttributes="Bold"
-                       TextColor="#334155"
-                       HorizontalTextAlignment="Center"/>
-                <Label Text="Espere un momento..."
-                       FontSize="12"
-                       TextColor="#94A3B8"
-                       HorizontalTextAlignment="Center"/>
-            </VerticalStackLayout>
 
             <!-- Estado vacï¿½o -->
             <VerticalStackLayout Grid.Row="2"
@@ -211,6 +240,39 @@
                     <BoxView HeightRequest="16" Color="Transparent"/>
                 </CollectionView.Footer>
             </CollectionView>
+
+            <!-- Indicador de carga -->
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsLoading}"
+                  BackgroundColor="#66FFFFFF">
+                <Border BackgroundColor="White"
+                        Stroke="#BFDBFE"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14"
+                        Padding="22,18"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="10"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                           IsVisible="{Binding IsLoading}"
+                                           Color="#2563EB"
+                                           HeightRequest="40"
+                                           WidthRequest="40"
+                                           HorizontalOptions="Center"/>
+                        <Label Text="{Binding LoadingMessageText}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#334155"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="Espere un momento..."
+                               FontSize="12"
+                               TextColor="#94A3B8"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- DETALLE -->

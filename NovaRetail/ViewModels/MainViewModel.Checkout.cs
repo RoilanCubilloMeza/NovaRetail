@@ -231,10 +231,7 @@ namespace NovaRetail.ViewModels
                 var cartSnapshot = CartItems.ToList();
                 _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
 
-                ClearCart();
-                await ResetCatalogAfterCheckoutAsync();
-                _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
-                CheckoutVm.ExonerationAuthorization = string.Empty;
+                await ResetStateAfterCompletedCartAsync();
             }
             catch (Exception ex)
             {
@@ -248,6 +245,14 @@ namespace NovaRetail.ViewModels
 
                 _isProcessingCheckout = false;
             }
+        }
+
+        private async Task ResetStateAfterCompletedCartAsync()
+        {
+            ClearCart();
+            await ResetCatalogAfterCheckoutAsync();
+            _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
+            CheckoutVm.ExonerationAuthorization = string.Empty;
         }
 
         private async Task SaveInvoiceHistoryAsync(
@@ -376,6 +381,18 @@ namespace NovaRetail.ViewModels
                 });
             }
 
+            var recallId = _editingHoldId > 0
+                ? _editingHoldId
+                : _editingOrderId > 0
+                    ? _editingOrderId
+                    : 0;
+
+            var recallType = _editingHoldId > 0
+                ? HoldRecallType
+                : _editingOrderId > 0
+                    ? QuoteRecallType
+                    : 0;
+
             return new NovaRetailCreateSaleRequest
             {
                 StoreID = currentUser.StoreId > 0 ? currentUser.StoreId
@@ -387,8 +404,8 @@ namespace NovaRetail.ViewModels
                 ShipToID = 0,
                 Comment = string.Empty,
                 ReferenceNumber = string.Empty,
-                RecallID = _editingHoldId > 0 ? _editingHoldId : 0,
-                RecallType = _editingHoldId > 0 ? 1 : 0,
+                RecallID = recallId,
+                RecallType = recallType,
                 TransactionTime = null,
                 TotalChange = change,
                 AllowNegativeInventory = false,

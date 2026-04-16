@@ -20,6 +20,12 @@ public sealed class ApiQuoteService : IQuoteService
         _baseUrls = settings.BaseUrls;
     }
 
+    private static string AppendNoCacheToken(string url)
+    {
+        var separator = url.Contains('?') ? "&" : "?";
+        return $"{url}{separator}_ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+    }
+
     public async Task<NovaRetailCreateQuoteResponse> CreateQuoteAsync(NovaRetailCreateQuoteRequest request, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
@@ -127,7 +133,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                var url = $"{baseUrl}/api/NovaRetailSales/list-orders?storeId={storeId}&type={type}&search={Uri.EscapeDataString(search ?? string.Empty)}";
+                var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/list-orders?storeId={storeId}&type={type}&search={Uri.EscapeDataString(search ?? string.Empty)}");
                 var content = await http.GetStringAsync(url, cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
@@ -168,7 +174,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                var content = await http.GetStringAsync($"{baseUrl}/api/NovaRetailSales/order-detail/{orderId}", cancellationToken);
+                var content = await http.GetStringAsync(AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/order-detail/{orderId}"), cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
                 {
@@ -282,7 +288,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                var url = $"{baseUrl}/api/NovaRetailSales/list-holds?storeId={storeId}&search={Uri.EscapeDataString(search ?? string.Empty)}";
+                var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/list-holds?storeId={storeId}&search={Uri.EscapeDataString(search ?? string.Empty)}");
                 var content = await http.GetStringAsync(url, cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
@@ -313,7 +319,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                var content = await http.GetStringAsync($"{baseUrl}/api/NovaRetailSales/hold-detail/{holdId}", cancellationToken);
+                var content = await http.GetStringAsync(AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/hold-detail/{holdId}"), cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
                 {

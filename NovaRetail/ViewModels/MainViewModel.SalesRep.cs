@@ -56,9 +56,7 @@ namespace NovaRetail.ViewModels
                     break;
 
                 case SalesRepPickerContext.Checkout:
-                    _activeSalesRep = rep;
-                    OnPropertyChanged(nameof(ActiveSalesRepName));
-                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    SetActiveSalesRep(rep);
                     CheckoutVm.SetSalesRep(rep);
                     foreach (var item in CartItems)
                     {
@@ -68,9 +66,7 @@ namespace NovaRetail.ViewModels
                     break;
 
                 case SalesRepPickerContext.BeforeCheckout:
-                    _activeSalesRep = rep;
-                    OnPropertyChanged(nameof(ActiveSalesRepName));
-                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    SetActiveSalesRep(rep);
                     // Asignar solo a los artículos que no tienen vendedor aún
                     foreach (var item in CartItems.Where(c => c.SalesRepID == 0))
                     {
@@ -84,9 +80,7 @@ namespace NovaRetail.ViewModels
                     return;
 
                 default: // Session / BulkCart
-                    _activeSalesRep = rep;
-                    OnPropertyChanged(nameof(ActiveSalesRepName));
-                    OnPropertyChanged(nameof(HasActiveSalesRep));
+                    SetActiveSalesRep(rep);
                     var targets = CartItems.Where(c => c.IsSelected).ToList();
                     if (targets.Count == 0)
                         targets = CartItems.Where(c => c.SalesRepID == 0).ToList();
@@ -155,6 +149,43 @@ namespace NovaRetail.ViewModels
             // Si el picker se mostró justo antes del checkout, continuar con él
             if (ctx == SalesRepPickerContext.BeforeCheckout)
                 OpenCheckoutPopup();
+        }
+
+        private async Task EnsureSalesRepsLoadedAsync()
+        {
+            if (_cachedSalesReps.Count > 0)
+                return;
+
+            try
+            {
+                var reps = await _salesRepService.GetAllAsync();
+                _cachedSalesReps.Clear();
+                _cachedSalesReps.AddRange(reps);
+            }
+            catch
+            {
+            }
+        }
+
+        private SalesRepModel? FindCachedSalesRep(int salesRepId)
+        {
+            if (salesRepId <= 0)
+                return null;
+
+            for (var index = 0; index < _cachedSalesReps.Count; index++)
+            {
+                if (_cachedSalesReps[index].ID == salesRepId)
+                    return _cachedSalesReps[index];
+            }
+
+            return null;
+        }
+
+        private void SetActiveSalesRep(SalesRepModel? rep)
+        {
+            _activeSalesRep = rep;
+            OnPropertyChanged(nameof(ActiveSalesRepName));
+            OnPropertyChanged(nameof(HasActiveSalesRep));
         }
     }
 }

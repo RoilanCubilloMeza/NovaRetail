@@ -304,14 +304,15 @@ namespace NovaRetail.ViewModels
             if (await TryCancelRecoveredHoldAsync())
                 return;
 
+            if (await TryCancelRecoveredQuoteAsync())
+                return;
+
             ClearCart();
         }
 
         private void ClearCart()
         {
-            _editingOrderId = 0;
-            _editingHoldId = 0;
-            _editingHoldSummary = null;
+            ResetRecoveredOrderTracking();
             ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;

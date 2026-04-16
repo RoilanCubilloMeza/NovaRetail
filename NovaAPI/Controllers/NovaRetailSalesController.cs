@@ -17,6 +17,9 @@ namespace NovaAPI.Controllers
     public class NovaRetailSalesController : ApiController
     {
         private const int ReferenceNumberMaxLength = 50;
+        private const int HoldRecallType = 1;
+        private const int QuoteRecallType = 3;
+        private const int QuoteOrderType = 3;
 
         private static string GetConnectionString()
         {
@@ -293,7 +296,7 @@ namespace NovaAPI.Controllers
                             }
                         }
 
-                        if (request.RecallType == 1 && request.RecallID > 0)
+                        if (request.RecallType == HoldRecallType && request.RecallID > 0)
                         {
                             try
                             {
@@ -302,6 +305,19 @@ namespace NovaAPI.Controllers
                             catch (Exception exHold)
                             {
                                 response.Warnings.Add($"DeleteHold: {exHold.Message}");
+                            }
+                        }
+                        else if (request.RecallType == QuoteRecallType && request.RecallID > 0)
+                        {
+                            try
+                            {
+                                var rowsClosed = CloseQuoteOrder(cn, request.RecallID);
+                                if (rowsClosed == 0)
+                                    response.Warnings.Add($"CloseQuote: Cotización #{request.RecallID} no encontrada o ya cerrada.");
+                            }
+                            catch (Exception exQuote)
+                            {
+                                response.Warnings.Add($"CloseQuote: {exQuote.Message}");
                             }
                         }
 
@@ -2163,6 +2179,27 @@ ORDER BY te.ID";
             }
         }
 
+        private static int CloseQuoteOrder(SqlConnection cn, int orderId, SqlTransaction tx = null)
+        {
+            using (var cmd = new SqlCommand(@"
+                UPDATE dbo.[Order]
+                SET Closed = 1,
+                    LastUpdated = @LastUpdated
+                WHERE ID = @OrderID
+                  AND [Type] = @Type
+                  AND Closed = 0", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@OrderID", orderId);
+                cmd.Parameters.AddWithValue("@Type", QuoteOrderType);
+                cmd.Parameters.AddWithValue("@LastUpdated", DateTime.Now);
+                return cmd.ExecuteNonQuery();
+            }
+        }
+
         [HttpPost]
         [Route("save-hold")]
         public HttpResponseMessage SaveHold([FromBody] NovaRetailCreateQuoteRequest request)
@@ -2535,6 +2572,7 @@ ORDER BY te.ID";
                                ISNULL(the.Description, '') AS Description,
                                the.Price, the.FullPrice, 0 AS Cost,
                                the.QuantityReserved AS QuantityOnOrder,
+                               ISNULL(the.SalesRepID, 0) AS SalesRepID,
                                the.Taxable,
                                ISNULL(the.ItemTaxID, 0) AS TaxID,
                                ISNULL(i.ItemType, 0) AS ItemType
@@ -2557,6 +2595,7 @@ ORDER BY te.ID";
                                     FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
                                     Cost = 0m,
                                     QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 1m : Convert.ToDecimal(reader["QuantityOnOrder"]),
+                                    SalesRepID = reader["SalesRepID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["SalesRepID"]),
                                     Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
                                     TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
                                     ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
@@ -2693,7 +2732,7 @@ ORDER BY te.ID";
 
                     using (var cmd = new SqlCommand(@"
                         SELECT oe.ID AS EntryID, oe.ItemID, oe.Description, oe.Price, oe.FullPrice,
-                               oe.Cost, oe.QuantityOnOrder, oe.Taxable,
+                               oe.Cost, oe.QuantityOnOrder, ISNULL(oe.SalesRepID, 0) AS SalesRepID, oe.Taxable,
                                ISNULL(i.TaxID, 0) AS TaxID,
                                ISNULL(i.ItemType, 0) AS ItemType
                         FROM dbo.OrderEntry oe
@@ -2715,6 +2754,7 @@ ORDER BY te.ID";
                                     FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
                                     Cost = reader["Cost"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Cost"]),
                                     QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["QuantityOnOrder"]),
+                                    SalesRepID = reader["SalesRepID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["SalesRepID"]),
                                     Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
                                     TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
                                     ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
@@ -2761,19 +2801,18 @@ ORDER BY te.ID";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
-                    using (var cmd = new SqlCommand(
-                        "DELETE FROM dbo.OrderEntry WHERE OrderID = @OrderID; " +
-                        "DELETE FROM dbo.[Order] WHERE ID = @OrderID;", cn))
+                    var rowsAffected = CloseQuoteOrder(cn, orderId);
+                    if (rowsAffected == 0)
                     {
-                        cmd.CommandTimeout = 30;
-                        cmd.Parameters.AddWithValue("@OrderID", orderId);
-                        cmd.ExecuteNonQuery();
+                        response.Ok = false;
+                        response.Message = $"No se encontró la cotización #{orderId} o ya estaba cerrada.";
+                        return Request.CreateResponse(HttpStatusCode.BadRequest, response);
                     }
                 }
 
                 response.Ok = true;
                 response.OrderID = orderId;
-                response.Message = "Cotización eliminada.";
+                response.Message = "Cotización cancelada y marcada como cerrada.";
                 return Request.CreateResponse(HttpStatusCode.OK, response);
             }
             catch (SqlException ex)

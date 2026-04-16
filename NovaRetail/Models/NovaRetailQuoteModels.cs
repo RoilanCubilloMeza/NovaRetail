@@ -82,6 +82,7 @@ public sealed class NovaRetailOrderSummary
     public string DisplayCashier => string.IsNullOrWhiteSpace(CashierName) ? "—" : CashierName;
     public string DisplayClient => ParseClientName();
     public bool HasClientRef => !string.IsNullOrWhiteSpace(ReferenceNumber);
+    public bool CanCancel => Type == 3;
 
     /// <summary>Extrae la cédula del formato "cédula|nombre" almacenado en ReferenceNumber.</summary>
     public string ParseClientId()
@@ -120,6 +121,7 @@ public sealed class NovaRetailOrderEntry
     public decimal FullPrice { get; set; }
     public decimal Cost { get; set; }
     public decimal QuantityOnOrder { get; set; }
+    public int SalesRepID { get; set; }
     public bool Taxable { get; set; }
     public int TaxID { get; set; }
     public int ItemType { get; set; }

@@ -32,6 +32,8 @@ namespace NovaRetail.ViewModels
         private readonly List<SalesRepModel> _cachedSalesReps = new();
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private const int OrderReferenceNumberMaxLength = 50;
+        private const int HoldRecallType = 1;
+        private const int QuoteRecallType = 3;
         private const int ProductsPageSize = 500;
         private int _loadedItemsPage;
         private bool _canLoadMoreFromApi;
@@ -65,7 +67,9 @@ namespace NovaRetail.ViewModels
         private int _editingOrderId;
         private int _editingHoldId;
         private NovaRetailOrderSummary? _editingHoldSummary;
+        private NovaRetailOrderSummary? _editingQuoteSummary;
         private bool _isCancellingRecoveredHold;
+        private bool _isCancellingRecoveredQuote;
         private bool _askForSalesRep;
         private bool _requireSalesRep;
         private SalesRepModel? _activeSalesRep;
@@ -778,6 +782,7 @@ namespace NovaRetail.ViewModels
             OrderSearchVm.RequestClose += () => IsOrderSearchVisible = false;
             OrderSearchVm.RequestSearch += async search => await SearchOrdersAsync(search);
             OrderSearchVm.RequestSelect += order => OnOrderSelectedAsync(order);
+            OrderSearchVm.RequestCancelOrder += async order => await OnOrderCancelRequestedAsync(order);
             QuoteReceiptVm.RequestClose += () => IsQuoteReceiptVisible = false;
             SalesRepPickerVm.RequestConfirm += OnSalesRepSelected;
             SalesRepPickerVm.RequestSkip += OnSalesRepSkipped;

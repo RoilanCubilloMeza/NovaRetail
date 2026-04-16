@@ -170,6 +170,9 @@ namespace NovaAPI.Models
         [JsonProperty("quantityOnOrder")]
         public decimal QuantityOnOrder { get; set; }
 
+        [JsonProperty("salesRepID")]
+        public int SalesRepID { get; set; }
+
         [JsonProperty("taxable")]
         public bool Taxable { get; set; }
 

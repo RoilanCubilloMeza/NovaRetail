@@ -98,8 +98,7 @@ namespace NovaRetail.ViewModels
                     totalText: TotalText,
                     totalColonesText: TotalColonesText);
 
-                ClearCart();
-                await ResetCatalogAfterCheckoutAsync();
+                await ResetStateAfterCompletedCartAsync();
                 IsQuoteReceiptVisible = true;
             }
             catch (Exception ex)
@@ -137,7 +136,7 @@ namespace NovaRetail.ViewModels
                     PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
                     Price = price,
                     QuantityOnOrder = quantity,
-                    SalesRepID = 0,
+                    SalesRepID = item.SalesRepID,
                     Taxable = item.TaxPercentage > 0,
                     DetailID = 0,
                     Description = item.DisplayName.Length > 30 ? item.DisplayName[..30] : item.DisplayName,
@@ -231,8 +230,7 @@ namespace NovaRetail.ViewModels
                 }
 
                 await _dialogService.AlertAsync("Fac. Espera", $"Factura en espera #{result.OrderID} guardada exitosamente.", "OK");
-                ClearCart();
-                await ResetCatalogAfterCheckoutAsync();
+                await ResetStateAfterCompletedCartAsync();
             }
             catch (Exception ex)
             {
@@ -285,6 +283,51 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        public async Task<bool> TryCancelRecoveredQuoteAsync()
+        {
+            if (_editingOrderId <= 0 || CartItems.Count == 0 || _isCancellingRecoveredQuote || HasBlockingOverlayVisible())
+                return false;
+
+            _isCancellingRecoveredQuote = true;
+            var orderId = _editingOrderId;
+
+            try
+            {
+                var confirm = await _dialogService.ConfirmAsync(
+                    "Cancelar cotización recuperada",
+                    BuildRecoveredQuoteCancelMessage(orderId),
+                    "Sí",
+                    "No");
+
+                if (!confirm)
+                    return true;
+
+                var result = await _quoteService.DeleteQuoteAsync(orderId);
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? $"No fue posible cancelar la cotización #{orderId}."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Cotización", message, "OK");
+                    return true;
+                }
+
+                ClearCart();
+                _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
+                await ResetCatalogAfterCheckoutAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Cotización", ex.Message, "OK");
+                return true;
+            }
+            finally
+            {
+                _isCancellingRecoveredQuote = false;
+            }
+        }
+
         private string BuildRecoveredHoldDeleteMessage(int holdId)
         {
             var holdDescription = string.IsNullOrWhiteSpace(_editingHoldSummary?.Comment)
@@ -314,6 +357,113 @@ namespace NovaRetail.ViewModels
             return string.Join(Environment.NewLine, lines);
         }
 
+        private string BuildRecoveredQuoteCancelMessage(int orderId)
+        {
+            var quoteDescription = string.IsNullOrWhiteSpace(_editingQuoteSummary?.Comment)
+                ? string.IsNullOrWhiteSpace(_editingQuoteSummary?.DisplayClient)
+                    ? "Sin descripción"
+                    : _editingQuoteSummary.DisplayClient
+                : _editingQuoteSummary.Comment.Trim();
+
+            var quoteDate = _editingQuoteSummary?.Time;
+            var quoteDateText = quoteDate.HasValue
+                ? quoteDate.Value.ToString("dd/MM/yyyy HH:mm")
+                : "No disponible";
+
+            var lines = new List<string>
+            {
+                $"Cotización: #{orderId}",
+                $"Detalle: {quoteDescription}",
+                $"Fecha: {quoteDateText}"
+            };
+
+            lines.Add(string.Empty);
+            lines.Add("Si continúa:");
+            lines.Add("- La cotización se marcará como cerrada.");
+            lines.Add("- Dejará de verse en la ventana de cotizaciones.");
+            lines.Add("- El carrito actual se vaciará.");
+            lines.Add(string.Empty);
+            lines.Add("El registro no se elimina de la base de datos.");
+            lines.Add("¿Desea continuar?");
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private async Task OnOrderCancelRequestedAsync(NovaRetailOrderSummary order)
+        {
+            if (order is null || !order.CanCancel)
+                return;
+
+            var confirm = await _dialogService.ConfirmAsync(
+                "Cancelar cotización",
+                BuildOrderSearchQuoteCancelMessage(order),
+                "Sí",
+                "No");
+
+            if (!confirm)
+                return;
+
+            try
+            {
+                var result = await _quoteService.DeleteQuoteAsync(order.OrderID);
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? $"No fue posible cancelar la cotización #{order.OrderID}."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Cotización", message, "OK");
+                    return;
+                }
+
+                if (_editingOrderId == order.OrderID)
+                {
+                    _editingOrderId = 0;
+                    _editingQuoteSummary = null;
+                }
+
+                await SearchOrdersAsync(OrderSearchVm.SearchText);
+                await _dialogService.AlertAsync("Cotización", $"Cotización #{order.OrderID} cancelada exitosamente.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Cotización", ex.Message, "OK");
+            }
+        }
+
+        private string BuildOrderSearchQuoteCancelMessage(NovaRetailOrderSummary order)
+        {
+            var quoteDescription = string.IsNullOrWhiteSpace(order.Comment)
+                ? string.IsNullOrWhiteSpace(order.DisplayClient)
+                    ? "Sin descripción"
+                    : order.DisplayClient
+                : order.Comment.Trim();
+
+            var lines = new List<string>
+            {
+                $"Cotización: #{order.OrderID}",
+                $"Detalle: {quoteDescription}",
+                $"Fecha: {order.DisplayDate}"
+            };
+
+            lines.Add(string.Empty);
+            lines.Add("Si continúa:");
+            lines.Add("- La cotización se marcará como cerrada.");
+            lines.Add("- Dejará de mostrarse en la ventana de cotizaciones.");
+            lines.Add(string.Empty);
+            lines.Add("El registro no se elimina de la base de datos.");
+            lines.Add("¿Desea continuar?");
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private void ResetRecoveredOrderTracking()
+        {
+            _editingOrderId = 0;
+            _editingHoldId = 0;
+            _editingHoldSummary = null;
+            _editingQuoteSummary = null;
+        }
+
         private bool HasBlockingOverlayVisible()
             => IsItemActionVisible
                 || IsDiscountPopupVisible
@@ -338,7 +488,11 @@ namespace NovaRetail.ViewModels
 
         private async Task SearchOrdersAsync(string search)
         {
+            if (OrderSearchVm.IsBusy)
+                return;
+
             OrderSearchVm.SetBusy(true);
+            await Task.Yield();
             try
             {
                 var storeId = _storeIdFromConfig > 0 ? _storeIdFromConfig : 0;
@@ -401,8 +555,13 @@ namespace NovaRetail.ViewModels
                     ClearCart();
                 }
 
+                await EnsureSalesRepsLoadedAsync();
+
                 foreach (var entry in detail.Order.Entries)
                 {
+                    var recoveredSalesRep = FindCachedSalesRep(entry.SalesRepID);
+                    var recoveredSalesRepName = recoveredSalesRep?.Nombre ?? (entry.SalesRepID > 0 ? $"Vendedor #{entry.SalesRepID}" : string.Empty);
+
                     var cartItem = new CartItemModel
                     {
                         ItemID = entry.ItemID,
@@ -416,22 +575,30 @@ namespace NovaRetail.ViewModels
                         Cabys = string.Empty,
                         ItemType = entry.ItemType,
                         Stock = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
-                        Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m
+                        Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
+                        SalesRepID = entry.SalesRepID,
+                        SalesRepName = recoveredSalesRepName
                     };
                     CartItems.Add(cartItem);
                 }
 
+                SyncRecoveredSalesRep(detail.Order.Entries);
+
                 RecalculateTotal();
                 RefreshCartItemsView();
+
+                ResetRecoveredOrderTracking();
 
                 if (order.Type == 2)
                 {
                     _editingHoldId = order.OrderID;
                     _editingHoldSummary = order;
+                    _editingQuoteSummary = null;
                 }
                 else
                 {
                     _editingOrderId = order.OrderID;
+                    _editingQuoteSummary = order;
                     _editingHoldSummary = null;
                 }
 
@@ -453,6 +620,32 @@ namespace NovaRetail.ViewModels
             {
                 OrderSearchVm.SetBusy(false);
             }
+        }
+
+        private void SyncRecoveredSalesRep(IEnumerable<NovaRetailOrderEntry> entries)
+        {
+            var recoveredSalesRepIds = entries
+                .Where(entry => entry.SalesRepID > 0)
+                .Select(entry => entry.SalesRepID)
+                .Distinct()
+                .ToList();
+
+            if (recoveredSalesRepIds.Count != 1)
+            {
+                SetActiveSalesRep(null);
+                return;
+            }
+
+            var salesRepId = recoveredSalesRepIds[0];
+            var recoveredSalesRep = FindCachedSalesRep(salesRepId)
+                ?? new SalesRepModel
+                {
+                    ID = salesRepId,
+                    Number = salesRepId.ToString(),
+                    Nombre = $"Vendedor #{salesRepId}"
+                };
+
+            SetActiveSalesRep(recoveredSalesRep);
         }
     }
 }

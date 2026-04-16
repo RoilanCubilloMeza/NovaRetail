@@ -22,6 +22,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     private bool _isLoading;
     private InvoiceHistoryEntry? _selectedEntry;
     private bool _isReprintVisible;
+    private string _lastRefreshText = string.Empty;
     private CancellationTokenSource? _searchCts;
     private string _lastRemoteSearch = string.Empty;
 
@@ -68,6 +69,18 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public bool IsCompletelyEmpty => !IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool IsSearchEmpty => IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool HasLocalEntries => _localEntries.Count > 0;
+    public string LastRefreshText
+    {
+        get => _lastRefreshText;
+        private set
+        {
+            if (_lastRefreshText == value) return;
+            _lastRefreshText = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasLastRefreshText));
+        }
+    }
+    public bool HasLastRefreshText => !string.IsNullOrWhiteSpace(_lastRefreshText);
     public string LoadingMessageText => IsSearchActive
         ? "Buscando facturas..."
         : "Cargando facturas pasadas...";
@@ -122,8 +135,12 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
     public async Task LoadAsync()
     {
+        if (IsLoading)
+            return;
+
         _searchCts?.Cancel();
         IsLoading = true;
+        await Task.Yield();
         try
         {
             var list = await _historyService.GetAllAsync();
@@ -150,6 +167,11 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         }
     }
 
+    private void MarkRemoteRefresh()
+    {
+        LastRefreshText = $"Actualizado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+    }
+
     private async Task RefreshSearchAsync()
     {
         _searchCts?.Cancel();
@@ -166,6 +188,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 return;
 
             IsLoading = true;
+            await Task.Yield();
             await Task.Delay(string.IsNullOrWhiteSpace(normalizedSearch) ? 0 : 450, cts.Token);
             await LoadRemoteEntriesAsync(normalizedSearch, cts.Token);
             ApplyFilter();
@@ -311,7 +334,16 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         var result = await _saleService.SearchInvoiceHistoryAsync(search, cancellationToken);
 
         _remoteEntries.Clear();
-        if (!result.Ok || result.Entries.Count == 0)
+        if (!result.Ok)
+        {
+            _remoteSearchCache[search] = new List<InvoiceHistoryEntry>();
+            _lastRemoteSearch = search;
+            return;
+        }
+
+        MarkRemoteRefresh();
+
+        if (result.Entries.Count == 0)
         {
             _remoteSearchCache[search] = new List<InvoiceHistoryEntry>();
             _lastRemoteSearch = search;
@@ -333,6 +365,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (!result.Ok || result.Entry is null)
             return entry;
 
+        MarkRemoteRefresh();
         var detailedEntry = MapRemoteEntry(result.Entry);
         ReplaceRemoteEntry(detailedEntry);
         return detailedEntry;
