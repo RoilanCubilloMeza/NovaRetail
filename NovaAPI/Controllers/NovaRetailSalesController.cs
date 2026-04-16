@@ -21,6 +21,19 @@ namespace NovaAPI.Controllers
         private const int QuoteRecallType = 3;
         private const int QuoteOrderType = 3;
 
+        private static readonly string ErrorLogPath =
+            System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log");
+
+        private static void LogError(Exception ex)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(ErrorLogPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+            }
+            catch { }
+        }
+
         private static string GetConnectionString()
         {
             var connectionString = AppConfig.ConnectionString("RMHPOS");
@@ -346,10 +359,9 @@ namespace NovaAPI.Controllers
                 saleTransaction = null;
 
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al procesar la venta.";
                 response.ErrorNumber = ex.Number;
-                response.ErrorProcedure = ex.Procedure ?? string.Empty;
-                response.ErrorLine = ex.LineNumber;
+                LogError(ex);
 
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
@@ -359,10 +371,11 @@ namespace NovaAPI.Controllers
                 saleTransaction = null;
 
                 response.Ok = false;
-                var inner = ex.InnerException != null ? $" | Inner: {ex.InnerException.Message}" : string.Empty;
-                response.Message = $"{ex.GetType().Name}: {ex.Message}{inner} | StackTrace: {ex.StackTrace}";
+                response.Message = "Error interno al procesar la venta.";
 
-                try { System.IO.File.AppendAllText(@"C:\Users\developer01\Documents\NovaRetail\nova_error.log", $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n"); } catch { }
+                try { System.IO.File.AppendAllText(
+                    System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n"); } catch { }
 
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
@@ -463,10 +476,11 @@ ORDER BY t.[Time] DESC";
             }
             catch (Exception ex)
             {
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailInvoiceHistorySearchResponse
                 {
                     Ok = false,
-                    Message = ex.Message
+                    Message = "Error interno al consultar historial."
                 });
             }
         }
@@ -611,10 +625,11 @@ ORDER BY te.ID";
             }
             catch (Exception ex)
             {
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailInvoiceHistoryDetailResponse
                 {
                     Ok = false,
-                    Message = ex.Message
+                    Message = "Error interno al consultar detalle de factura."
                 });
             }
         }
@@ -1372,20 +1387,29 @@ ORDER BY te.ID";
             }
         }
 
+        private static readonly HashSet<string> AllowedConsecutivoColumns =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "CN_FE", "CN_ND", "CN_NC", "CN_TE", "CN_FEX" };
+
         /// <summary>
         /// Mapea COMPROBANTE_TIPO al nombre de la columna de consecutivo en AVS_INTEGRAFAST_02.
         /// </summary>
         private static string GetConsecutivoColumnIntegraFast02(string comprobanteTipo)
         {
+            string col;
             switch (comprobanteTipo)
             {
-                case "01": return "CN_FE";   // Factura Electrónica
-                case "02": return "CN_ND";   // Nota de Débito
-                case "03": return "CN_NC";   // Nota de Crédito
-                case "04": return "CN_TE";   // Tiquete Electrónico
-                case "09": return "CN_FEX";  // Factura Electrónica de Exportación
+                case "01": col = "CN_FE";  break;
+                case "02": col = "CN_ND";  break;
+                case "03": col = "CN_NC";  break;
+                case "04": col = "CN_TE";  break;
+                case "09": col = "CN_FEX"; break;
                 default:   return null;
             }
+
+            if (!AllowedConsecutivoColumns.Contains(col))
+                return null;
+
+            return col;
         }
 
         /// <summary>
@@ -2002,13 +2026,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al crear cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al crear cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
@@ -2174,13 +2200,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al actualizar cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al actualizar cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
@@ -2344,13 +2372,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al crear factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al crear factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
@@ -2470,13 +2500,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al actualizar factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al actualizar factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
@@ -2542,10 +2574,11 @@ ORDER BY te.ID";
             }
             catch (Exception ex)
             {
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailListOrdersResponse
                 {
                     Ok = false,
-                    Message = ex.Message
+                    Message = "Error interno al listar facturas en espera."
                 });
             }
         }
@@ -2626,7 +2659,8 @@ ORDER BY te.ID";
             }
             catch (Exception ex)
             {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse { Ok = false, Message = ex.Message });
+                LogError(ex);
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse { Ok = false, Message = "Error interno al consultar detalle de factura en espera." });
             }
         }
 
@@ -2696,10 +2730,11 @@ ORDER BY te.ID";
             }
             catch (Exception ex)
             {
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailListOrdersResponse
                 {
                     Ok = false,
-                    Message = ex.Message
+                    Message = "Error interno al listar órdenes."
                 });
             }
         }
@@ -2790,10 +2825,11 @@ ORDER BY te.ID";
             }
             catch (Exception ex)
             {
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse
                 {
                     Ok = false,
-                    Message = ex.Message
+                    Message = "Error interno al consultar detalle de orden."
                 });
             }
         }
@@ -2836,13 +2872,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al cancelar cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al cancelar cotización.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
@@ -2879,13 +2917,15 @@ ORDER BY te.ID";
             catch (SqlException ex)
             {
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al eliminar factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al eliminar factura en espera.";
+                LogError(ex);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }

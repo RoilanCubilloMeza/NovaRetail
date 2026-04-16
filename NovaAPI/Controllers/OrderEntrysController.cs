@@ -36,7 +36,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al registrar líneas de orden.");
             }
 
             return msg;

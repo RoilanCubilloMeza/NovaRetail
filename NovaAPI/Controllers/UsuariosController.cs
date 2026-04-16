@@ -105,7 +105,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                return InternalServerError(ex);
+                return InternalServerError();
             }
 
             return Ok(list);
@@ -142,7 +142,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                return InternalServerError(ex);
+                return InternalServerError();
             }
 
             return Ok(list);
@@ -201,7 +201,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                return InternalServerError(ex);
+                return InternalServerError();
             }
 
             return Ok(dto);

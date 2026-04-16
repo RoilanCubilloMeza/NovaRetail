@@ -88,7 +88,7 @@ public class SalesRepController : ApiController
         }
         catch (Exception ex)
         {
-            return Content(HttpStatusCode.InternalServerError, $"Error al obtener vendedores: {ex.Message}");
+            return Content(HttpStatusCode.InternalServerError, "Error interno al obtener vendedores.");
         }
     }
 

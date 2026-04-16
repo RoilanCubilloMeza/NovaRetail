@@ -17,8 +17,7 @@ namespace NovaAPI.Controllers
         readonly string rmhConnectionString = AppConfig.ConnectionString("RMHPOS");
      
 
-        [HttpGet]
-        public Cliente_App Get(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
+        private Cliente_App AuthenticateUser(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
         {
             if (string.IsNullOrWhiteSpace(LOGIN))
                 return null;
@@ -249,7 +248,7 @@ namespace NovaAPI.Controllers
             if (request == null || string.IsNullOrWhiteSpace(request.LOGIN))
                 return null;
 
-            return Get(request.ID_CLIENTE, request.LOGIN, request.CLAVE ?? string.Empty, request.TOKEN ?? string.Empty);
+            return AuthenticateUser(request.ID_CLIENTE, request.LOGIN, request.CLAVE ?? string.Empty, request.TOKEN ?? string.Empty);
         }
 
         [Route("api/Login/PostUpdate")]
@@ -270,7 +269,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al actualizar registro.");
             }
 
             return msg;

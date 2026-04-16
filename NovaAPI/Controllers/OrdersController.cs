@@ -96,7 +96,7 @@ namespace NovaAPI.Controllers
             catch (Exception ex)
             {
                 try { db.Transaction?.Rollback(); } catch { }
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al sincronizar órdenes.");
             }
 
             return msg;
