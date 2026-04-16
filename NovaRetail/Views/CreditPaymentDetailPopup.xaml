@@ -8,9 +8,10 @@
         <BoxView Color="#000000" Opacity="0.55"/>
 
         <!-- MAIN POPUP — Ventana fija, solo la tabla hace scroll -->
-        <Grid BackgroundColor="White"
-              MaximumWidthRequest="1150"
-              HeightRequest="750"
+      <Grid x:Name="MainPopup"
+          BackgroundColor="White"
+              MaximumWidthRequest="1080"
+              HeightRequest="700"
               Margin="24"
               HorizontalOptions="Center"
               VerticalOptions="Center"
