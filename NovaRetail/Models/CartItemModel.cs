@@ -19,6 +19,7 @@ namespace NovaRetail.Models
         private string _salesRepName = string.Empty;
 
         public int ItemID { get; set; }
+        public int SourceOrderEntryID { get; set; }
         public string Emoji { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;

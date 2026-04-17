@@ -34,6 +34,7 @@ namespace NovaRetail.ViewModels
         private readonly string[] _cartSortFields = { "Nombre", "Código", "Precio", "Unidades" };
         private const int OrderReferenceNumberMaxLength = 50;
         private const int HoldRecallType = 1;
+        private const int WorkOrderType = 2;
         private const int QuoteRecallType = 3;
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
@@ -60,18 +61,27 @@ namespace NovaRetail.ViewModels
         private int _appliedExonerationItemCount;
         private bool _isProcessingCheckout;
         private int _editingOrderId;
+        private int _editingWorkOrderId;
         private int _editingHoldId;
         private NovaRetailOrderSummary? _editingHoldSummary;
+        private NovaRetailOrderSummary? _editingWorkOrderSummary;
         private NovaRetailOrderSummary? _editingQuoteSummary;
         private bool _isCancellingRecoveredHold;
+        private bool _isCancellingRecoveredWorkOrder;
         private bool _isCancellingRecoveredQuote;
         private bool _askForSalesRep;
         private bool _requireSalesRep;
         private SalesRepModel? _activeSalesRep;
+        private NovaRetailOrderDetail? _editingWorkOrderDetail;
+        private bool _isWorkOrderActionVisible;
+        private bool _isWorkOrderPartialPickupVisible;
+        private List<CartItemModel>? _workOrderPartialCartBackup;
 
         private enum SalesRepPickerContext { Session, BulkCart, SingleItem, Checkout, BeforeCheckout }
+        private enum WorkOrderCheckoutMode { None, Complete, Partial }
         private SalesRepPickerContext _salesRepPickerContext = SalesRepPickerContext.Session;
         private CartItemModel? _pendingRepItem;
+        private WorkOrderCheckoutMode _workOrderCheckoutMode = WorkOrderCheckoutMode.None;
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -168,11 +178,39 @@ namespace NovaRetail.ViewModels
         public ReceiptViewModel ReceiptVm { get; } = new();
         public ManualExonerationViewModel ManualExonerationVm { get; } = new();
         public OrderSearchViewModel OrderSearchVm { get; } = new();
+        public WorkOrderActionViewModel WorkOrderActionVm { get; } = new();
+        public WorkOrderPartialPickupViewModel WorkOrderPartialPickupVm { get; } = new();
 
         public SalesRepPickerViewModel SalesRepPickerVm { get; } = new();
         public CustomerSearchViewModel CustomerSearchVm { get; } = new();
         public CreditPaymentSearchViewModel CreditPaymentSearchVm { get; } = new();
         public CreditPaymentDetailViewModel CreditPaymentDetailVm { get; } = new();
+
+        public bool IsWorkOrderActionVisible
+        {
+            get => _isWorkOrderActionVisible;
+            private set
+            {
+                if (_isWorkOrderActionVisible != value)
+                {
+                    _isWorkOrderActionVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsWorkOrderPartialPickupVisible
+        {
+            get => _isWorkOrderPartialPickupVisible;
+            private set
+            {
+                if (_isWorkOrderPartialPickupVisible != value)
+                {
+                    _isWorkOrderPartialPickupVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public bool IsManualExonerationVisible
         {
@@ -372,8 +410,10 @@ namespace NovaRetail.ViewModels
         public ICommand ApplyManualExonerationCommand { get; }
         public ICommand AddManualItemCommand { get; }
         public ICommand SaveQuoteCommand { get; }
+        public ICommand SaveWorkOrderCommand { get; }
         public ICommand SaveHoldCommand { get; }
         public ICommand RecallQuoteCommand { get; }
+        public ICommand RecallWorkOrderCommand { get; }
         public ICommand RecallHoldCommand { get; }
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
@@ -557,9 +597,11 @@ namespace NovaRetail.ViewModels
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
             NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
+            SaveWorkOrderCommand = new Command(async () => await SaveWorkOrderAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
             RecallQuoteCommand = new Command(async () => await OpenOrderSearchAsync(3, "Recuperar Cotización"));
-            RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(2, "Recuperar Factura en Espera"));
+            RecallWorkOrderCommand = new Command(async () => await OpenOrderSearchAsync(WorkOrderType, "Recuperar Orden de Trabajo"));
+            RecallHoldCommand = new Command(async () => await OpenOrderSearchAsync(HoldRecallType, "Recuperar Factura en Espera"));
             AssignSalesRepCommand = new Command(async () => await ShowSalesRepPickerForItemsAsync());
             ItemActionVm.RequestOk += OnItemActionOk;
             ItemActionVm.RequestCancel += OnItemActionCancel;
@@ -572,7 +614,11 @@ namespace NovaRetail.ViewModels
             PriceJustVm.RequestCancel += OnPriceJustCancel;
             PriceJustVm.RequestRefresh += async () => { _cachedDiscountCodes.Clear(); await LoadDiscountCodesAsync(); PriceJustVm.LoadCodes(_cachedDiscountCodes); };
             CheckoutVm.RequestConfirm += OnCheckoutConfirm;
-            CheckoutVm.RequestCancel += () => IsCheckoutVisible = false;
+            CheckoutVm.RequestCancel += () =>
+            {
+                IsCheckoutVisible = false;
+                ResetPendingWorkOrderCheckoutMode(restorePartialCart: true);
+            };
             CheckoutVm.RequestValidateExoneration += ApplyExonerationAsync;
             CheckoutVm.RequestClearExoneration += ClearExoneration;
             CheckoutVm.RequestApplyManualExoneration += ApplyManualExonerationAsync;
@@ -585,6 +631,12 @@ namespace NovaRetail.ViewModels
             OrderSearchVm.RequestSearch += async search => await SearchOrdersAsync(search);
             OrderSearchVm.RequestSelect += order => OnOrderSelectedAsync(order);
             OrderSearchVm.RequestCancelOrder += async order => await OnOrderCancelRequestedAsync(order);
+            WorkOrderActionVm.RequestSaveChanges += async () => await OnWorkOrderSaveChangesRequestedAsync();
+            WorkOrderActionVm.RequestPickComplete += async () => await OnWorkOrderPickCompleteRequestedAsync();
+            WorkOrderActionVm.RequestPickPartial += async () => await OnWorkOrderPickPartialRequestedAsync();
+            WorkOrderActionVm.RequestCancel += OnWorkOrderActionCanceled;
+            WorkOrderPartialPickupVm.RequestConfirm += async () => await OnWorkOrderPartialPickupConfirmedAsync();
+            WorkOrderPartialPickupVm.RequestCancel += OnWorkOrderPartialPickupCanceled;
             QuoteReceiptVm.RequestClose += () => IsQuoteReceiptVisible = false;
             SalesRepPickerVm.RequestConfirm += OnSalesRepSelected;
             SalesRepPickerVm.RequestSkip += OnSalesRepSkipped;

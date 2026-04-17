@@ -4,7 +4,7 @@ public sealed class NovaRetailCreateQuoteRequest
 {
     public int OrderID { get; set; }
     public int StoreID { get; set; }
-    /// <summary>2 = Factura en Espera, 3 = Cotización (default).</summary>
+    /// <summary>1 = Factura en Espera, 2 = Orden de Trabajo, 3 = Cotización (default).</summary>
     public int Type { get; set; } = 3;
     public int CustomerID { get; set; }
     public int ShipToID { get; set; }
@@ -73,7 +73,7 @@ public sealed class NovaRetailOrderSummary
             var label = !string.IsNullOrWhiteSpace(Comment) ? Comment.Trim()
                 : !string.IsNullOrWhiteSpace(ReferenceNumber) ? ParseClientName()
                 : null;
-            return label != null ? $"{id} — {label}" : $"Orden {id}";
+            return label != null ? $"{id} — {label}" : $"{TypeDisplayName} {id}";
         }
     }
     public string DisplayDate => Time.ToString("dd/MM/yyyy HH:mm");
@@ -82,7 +82,15 @@ public sealed class NovaRetailOrderSummary
     public string DisplayCashier => string.IsNullOrWhiteSpace(CashierName) ? "—" : CashierName;
     public string DisplayClient => ParseClientName();
     public bool HasClientRef => !string.IsNullOrWhiteSpace(ReferenceNumber);
-    public bool CanCancel => Type == 3;
+    public string TypeDisplayName => Type switch
+    {
+        1 => "Factura en espera",
+        2 => "Orden de trabajo",
+        3 => "Cotización",
+        _ => "Orden"
+    };
+    public bool CanCancel => Type == 2 || Type == 3;
+    public string CancelActionText => Type == 2 ? "Cancelar orden de trabajo" : "Cancelar cotización";
 
     /// <summary>Extrae la cédula del formato "cédula|nombre" almacenado en ReferenceNumber.</summary>
     public string ParseClientId()
@@ -125,6 +133,12 @@ public sealed class NovaRetailOrderEntry
     public bool Taxable { get; set; }
     public int TaxID { get; set; }
     public int ItemType { get; set; }
+    public int PriceSource { get; set; }
+    public int DetailID { get; set; }
+    public string Comment { get; set; } = string.Empty;
+    public int DiscountReasonCodeID { get; set; }
+    public int ReturnReasonCodeID { get; set; }
+    public int TaxChangeReasonCodeID { get; set; }
 }
 
 public sealed class NovaRetailListOrdersResponse

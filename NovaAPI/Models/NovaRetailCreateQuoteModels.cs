@@ -12,7 +12,7 @@ namespace NovaAPI.Models
         [Range(1, int.MaxValue)]
         public int StoreID { get; set; }
 
-        /// <summary>Order type: 2 = Factura en Espera, 3 = Cotización (default).</summary>
+        /// <summary>Order type: 1 = Factura en Espera, 2 = Orden de Trabajo, 3 = Cotización (default).</summary>
         public int Type { get; set; } = 3;
 
         public int CustomerID { get; set; }
@@ -38,8 +38,8 @@ namespace NovaAPI.Models
             if (Items == null || Items.Count == 0)
                 yield return new ValidationResult("La orden no contiene ítems.", new[] { nameof(Items) });
 
-            if (Type != 2 && Type != 3)
-                yield return new ValidationResult("Type debe ser 2 (Espera) o 3 (Cotización).", new[] { nameof(Type) });
+            if (Type != 1 && Type != 2 && Type != 3)
+                yield return new ValidationResult("Type debe ser 1 (Espera), 2 (Orden de Trabajo) o 3 (Cotización).", new[] { nameof(Type) });
         }
     }
 
@@ -181,6 +181,24 @@ namespace NovaAPI.Models
 
         [JsonProperty("itemType")]
         public int ItemType { get; set; }
+
+        [JsonProperty("priceSource")]
+        public int PriceSource { get; set; }
+
+        [JsonProperty("detailID")]
+        public int DetailID { get; set; }
+
+        [JsonProperty("comment")]
+        public string Comment { get; set; } = string.Empty;
+
+        [JsonProperty("discountReasonCodeID")]
+        public int DiscountReasonCodeID { get; set; }
+
+        [JsonProperty("returnReasonCodeID")]
+        public int ReturnReasonCodeID { get; set; }
+
+        [JsonProperty("taxChangeReasonCodeID")]
+        public int TaxChangeReasonCodeID { get; set; }
     }
 
     public class NovaRetailListOrdersResponse

@@ -302,6 +302,9 @@ namespace NovaRetail.ViewModels
             if (await TryCancelRecoveredHoldAsync())
                 return;
 
+            if (await TryCancelRecoveredWorkOrderAsync())
+                return;
+
             if (await TryCancelRecoveredQuoteAsync())
                 return;
 

@@ -162,8 +162,8 @@
                                         </Label.FormattedText>
                                     </Label>
 
-                                    <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                            Text="Cancelar cotización"
+                                        <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                            Text="{Binding CancelActionText}"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.CancelOrderCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding CanCancel}"

@@ -77,6 +77,12 @@ namespace NovaRetail.ViewModels
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
+                if (_editingWorkOrderId > 0)
+                {
+                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId); }
+                    catch { /* no bloquear si falla la limpieza */ }
+                }
+
                 var expiration = _quoteDays > 0 ? (DateTime?)DateTime.Now.AddDays(_quoteDays) : null;
                 QuoteReceiptVm.Load(
                     orderID: result.OrderID,
@@ -107,42 +113,158 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        private async Task SaveWorkOrderAsync()
+        {
+            if (CartItems.Count == 0)
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", "El carrito está vacío.", "OK");
+                return;
+            }
+
+            if (CartItems.Any(item => item.ItemID <= 0))
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", "Hay artículos manuales o sin identificador válido en el carrito.", "OK");
+                return;
+            }
+
+            var currentUser = _userSession.CurrentUser;
+            if (currentUser is null)
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", "No hay un usuario autenticado.", "OK");
+                return;
+            }
+
+            var comment = await _dialogService.PromptAsync(
+                "Orden de trabajo",
+                "Ingrese un comentario o descripción opcional para identificar esta orden:",
+                accept: "Guardar",
+                cancel: "Cancelar",
+                placeholder: "Ej. Instalación casa cliente",
+                maxLength: 255,
+                initialValue: _editingWorkOrderSummary?.Comment ?? string.Empty);
+
+            if (comment is null)
+                return;
+
+            try
+            {
+                var storeId = currentUser.StoreId > 0 ? currentUser.StoreId
+                    : _storeIdFromConfig > 0 ? _storeIdFromConfig
+                    : 1;
+
+                var cashierId = ParseCashierId(currentUser);
+                var clientRef = HasClient ? BuildOrderReferenceNumber(CurrentClientId, CurrentClientName) : string.Empty;
+
+                var request = new NovaRetailCreateQuoteRequest
+                {
+                    OrderID = _editingWorkOrderId,
+                    StoreID = storeId,
+                    Type = WorkOrderType,
+                    CustomerID = HasClient ? CurrentClientCustomerId : 0,
+                    ShipToID = 0,
+                    Comment = comment.Trim(),
+                    ReferenceNumber = clientRef,
+                    SalesRepID = cashierId,
+                    Taxable = true,
+                    ExpirationOrDueDate = DateTime.Now.Date,
+                    Tax = Math.Round(_taxColones, 4),
+                    Total = Math.Round(_totalColones, 4),
+                    Items = BuildQuoteItems()
+                };
+
+                NovaRetailCreateQuoteResponse result;
+                if (_editingWorkOrderId > 0)
+                    result = await _quoteService.UpdateWorkOrderAsync(request);
+                else
+                    result = await _quoteService.CreateWorkOrderAsync(request);
+
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "No fue posible guardar la orden de trabajo."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Orden de trabajo", message, "OK");
+                    return;
+                }
+
+                if (_editingHoldId > 0)
+                {
+                    try { await _quoteService.DeleteHoldAsync(_editingHoldId); }
+                    catch { /* no bloquear si falla la limpieza */ }
+                }
+
+                if (_editingOrderId > 0)
+                {
+                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId); }
+                    catch { /* no bloquear si falla la limpieza */ }
+                }
+
+                await _dialogService.AlertAsync("Orden de trabajo", $"Orden de trabajo #{result.OrderID} guardada exitosamente.", "OK");
+                await ResetStateAfterCompletedCartAsync();
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", ex.Message, "OK");
+            }
+        }
+
         private List<NovaRetailQuoteItemRequest> BuildQuoteItems()
         {
             var result = new List<NovaRetailQuoteItemRequest>(CartItems.Count);
 
             foreach (var item in CartItems)
             {
-                var lineTotals = CalculateLineTotals(item);
                 var quantity = item.Quantity <= 0 ? 1m : item.Quantity;
+                var sourceEntry = FindEditingWorkOrderEntry(item.SourceOrderEntryID);
+                var preserveSourceEntry = sourceEntry is not null
+                    && !item.HasOverridePrice
+                    && !item.HasDiscount
+                    && !item.HasExoneration;
 
                 // Price = precio con impuesto incluido (lo que se muestra al cliente)
                 var price = Math.Round(item.EffectivePriceColones * (1m - item.DiscountPercent / 100m), 4);
 
                 // FullPrice = precio de catálogo sin descuento
-                var fullPrice = Math.Round(item.EffectivePriceColones, 4);
+                var fullPrice = preserveSourceEntry && sourceEntry!.FullPrice > 0m
+                    ? Math.Round(sourceEntry.FullPrice, 4)
+                    : Math.Round(item.EffectivePriceColones, 4);
 
                 // Cost = costo del artículo (0 si no se conoce desde el catálogo)
-                var cost = 0m;
+                var cost = preserveSourceEntry ? sourceEntry!.Cost : 0m;
 
-                var discountReasonCodeID = ResolveDiscountReasonCodeID(item);
-                var taxChangeReasonCodeID = ResolveExonerationReasonCodeID(item);
+                var discountReasonCodeID = preserveSourceEntry
+                    ? sourceEntry!.DiscountReasonCodeID
+                    : ResolveDiscountReasonCodeID(item);
+                var taxChangeReasonCodeID = preserveSourceEntry
+                    ? sourceEntry!.TaxChangeReasonCodeID
+                    : ResolveExonerationReasonCodeID(item);
+                var returnReasonCodeID = preserveSourceEntry ? sourceEntry!.ReturnReasonCodeID : 0;
+                var description = preserveSourceEntry && !string.IsNullOrWhiteSpace(sourceEntry!.Description)
+                    ? sourceEntry.Description
+                    : item.DisplayName;
+                var comment = preserveSourceEntry
+                    ? sourceEntry!.Comment
+                    : (item.HasDiscount || (item.HasOverridePrice && !item.IsUpwardPriceOverride)) ? item.DiscountReasonCode : string.Empty;
+                var priceSource = preserveSourceEntry
+                    ? sourceEntry!.PriceSource
+                    : item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1;
+                var detailId = preserveSourceEntry ? sourceEntry!.DetailID : 0;
 
                 result.Add(new NovaRetailQuoteItemRequest
                 {
                     ItemID = item.ItemID,
                     Cost = cost,
                     FullPrice = fullPrice,
-                    PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
+                    PriceSource = priceSource,
                     Price = price,
                     QuantityOnOrder = quantity,
                     SalesRepID = item.SalesRepID,
                     Taxable = item.TaxPercentage > 0,
-                    DetailID = 0,
-                    Description = item.DisplayName.Length > 30 ? item.DisplayName[..30] : item.DisplayName,
-                    Comment = (item.HasDiscount || (item.HasOverridePrice && !item.IsUpwardPriceOverride)) ? item.DiscountReasonCode : string.Empty,
+                    DetailID = detailId,
+                    Description = description.Length > 30 ? description[..30] : description,
+                    Comment = comment,
                     DiscountReasonCodeID = discountReasonCodeID,
-                    ReturnReasonCodeID = 0,
+                    ReturnReasonCodeID = returnReasonCodeID,
                     TaxChangeReasonCodeID = taxChangeReasonCodeID
                 });
             }
@@ -194,7 +316,7 @@ namespace NovaRetail.ViewModels
                 {
                     OrderID = _editingHoldId,
                     StoreID = storeId,
-                    Type = 2,
+                    Type = HoldRecallType,
                     CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
                     Comment = comment.Trim(),
@@ -226,6 +348,12 @@ namespace NovaRetail.ViewModels
                 if (_editingOrderId > 0)
                 {
                     try { await _quoteService.DeleteQuoteAsync(_editingOrderId); }
+                    catch { /* no bloquear si falla la limpieza */ }
+                }
+
+                if (_editingWorkOrderId > 0)
+                {
+                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
@@ -280,6 +408,51 @@ namespace NovaRetail.ViewModels
             finally
             {
                 _isCancellingRecoveredHold = false;
+            }
+        }
+
+        public async Task<bool> TryCancelRecoveredWorkOrderAsync()
+        {
+            if (_editingWorkOrderId <= 0 || CartItems.Count == 0 || _isCancellingRecoveredWorkOrder || HasBlockingOverlayVisible())
+                return false;
+
+            _isCancellingRecoveredWorkOrder = true;
+            var orderId = _editingWorkOrderId;
+
+            try
+            {
+                var confirm = await _dialogService.ConfirmAsync(
+                    "Cancelar orden de trabajo recuperada",
+                    BuildRecoveredWorkOrderCancelMessage(orderId),
+                    "Sí",
+                    "No");
+
+                if (!confirm)
+                    return true;
+
+                var result = await _quoteService.DeleteWorkOrderAsync(orderId);
+                if (!result.Ok)
+                {
+                    var message = string.IsNullOrWhiteSpace(result.Message)
+                        ? $"No fue posible cancelar la orden de trabajo #{orderId}."
+                        : result.Message;
+                    await _dialogService.AlertAsync("Orden de trabajo", message, "OK");
+                    return true;
+                }
+
+                ClearCart();
+                _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
+                await ResetCatalogAfterCheckoutAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", ex.Message, "OK");
+                return true;
+            }
+            finally
+            {
+                _isCancellingRecoveredWorkOrder = false;
             }
         }
 
@@ -357,6 +530,38 @@ namespace NovaRetail.ViewModels
             return string.Join(Environment.NewLine, lines);
         }
 
+        private string BuildRecoveredWorkOrderCancelMessage(int orderId)
+        {
+            var workOrderDescription = string.IsNullOrWhiteSpace(_editingWorkOrderSummary?.Comment)
+                ? string.IsNullOrWhiteSpace(_editingWorkOrderSummary?.DisplayClient)
+                    ? "Sin descripción"
+                    : _editingWorkOrderSummary.DisplayClient
+                : _editingWorkOrderSummary.Comment.Trim();
+
+            var workOrderDate = _editingWorkOrderSummary?.Time;
+            var workOrderDateText = workOrderDate.HasValue
+                ? workOrderDate.Value.ToString("dd/MM/yyyy HH:mm")
+                : "No disponible";
+
+            var lines = new List<string>
+            {
+                $"Orden de trabajo: #{orderId}",
+                $"Detalle: {workOrderDescription}",
+                $"Fecha: {workOrderDateText}"
+            };
+
+            lines.Add(string.Empty);
+            lines.Add("Si continúa:");
+            lines.Add("- La orden de trabajo se marcará como cerrada.");
+            lines.Add("- Se liberará el inventario comprometido.");
+            lines.Add("- El carrito actual se vaciará.");
+            lines.Add(string.Empty);
+            lines.Add("El registro no se elimina de la base de datos.");
+            lines.Add("¿Desea continuar?");
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
         private string BuildRecoveredQuoteCancelMessage(int orderId)
         {
             var quoteDescription = string.IsNullOrWhiteSpace(_editingQuoteSummary?.Comment)
@@ -394,9 +599,14 @@ namespace NovaRetail.ViewModels
             if (order is null || !order.CanCancel)
                 return;
 
+            var isWorkOrder = order.Type == WorkOrderType;
+            var dialogTitle = isWorkOrder ? "Cancelar orden de trabajo" : "Cancelar cotización";
+            var alertTitle = isWorkOrder ? "Orden de trabajo" : "Cotización";
+            var typeLabel = isWorkOrder ? "orden de trabajo" : "cotización";
+
             var confirm = await _dialogService.ConfirmAsync(
-                "Cancelar cotización",
-                BuildOrderSearchQuoteCancelMessage(order),
+                dialogTitle,
+                BuildOrderSearchCancelMessage(order),
                 "Sí",
                 "No");
 
@@ -405,13 +615,16 @@ namespace NovaRetail.ViewModels
 
             try
             {
-                var result = await _quoteService.DeleteQuoteAsync(order.OrderID);
+                var result = isWorkOrder
+                    ? await _quoteService.DeleteWorkOrderAsync(order.OrderID)
+                    : await _quoteService.DeleteQuoteAsync(order.OrderID);
+
                 if (!result.Ok)
                 {
                     var message = string.IsNullOrWhiteSpace(result.Message)
-                        ? $"No fue posible cancelar la cotización #{order.OrderID}."
+                        ? $"No fue posible cancelar la {typeLabel} #{order.OrderID}."
                         : result.Message;
-                    await _dialogService.AlertAsync("Cotización", message, "OK");
+                    await _dialogService.AlertAsync(alertTitle, message, "OK");
                     return;
                 }
 
@@ -421,34 +634,52 @@ namespace NovaRetail.ViewModels
                     _editingQuoteSummary = null;
                 }
 
+                if (_editingWorkOrderId == order.OrderID)
+                {
+                    _editingWorkOrderId = 0;
+                    _editingWorkOrderSummary = null;
+                    _editingWorkOrderDetail = null;
+                    ResetPendingWorkOrderCheckoutMode();
+                }
+
                 await SearchOrdersAsync(OrderSearchVm.SearchText);
-                await _dialogService.AlertAsync("Cotización", $"Cotización #{order.OrderID} cancelada exitosamente.", "OK");
+                await _dialogService.AlertAsync(alertTitle, $"{(isWorkOrder ? "Orden de trabajo" : "Cotización")} #{order.OrderID} cancelada exitosamente.", "OK");
             }
             catch (Exception ex)
             {
-                await _dialogService.AlertAsync("Cotización", ex.Message, "OK");
+                await _dialogService.AlertAsync(alertTitle, ex.Message, "OK");
             }
         }
 
-        private string BuildOrderSearchQuoteCancelMessage(NovaRetailOrderSummary order)
+        private string BuildOrderSearchCancelMessage(NovaRetailOrderSummary order)
         {
-            var quoteDescription = string.IsNullOrWhiteSpace(order.Comment)
+            var orderDescription = string.IsNullOrWhiteSpace(order.Comment)
                 ? string.IsNullOrWhiteSpace(order.DisplayClient)
                     ? "Sin descripción"
                     : order.DisplayClient
                 : order.Comment.Trim();
 
+            var isWorkOrder = order.Type == WorkOrderType;
+            var orderTypeLabel = isWorkOrder ? "Orden de trabajo" : "Cotización";
+            var windowLabel = isWorkOrder ? "órdenes de trabajo" : "cotizaciones";
+
             var lines = new List<string>
             {
-                $"Cotización: #{order.OrderID}",
-                $"Detalle: {quoteDescription}",
+                $"{orderTypeLabel}: #{order.OrderID}",
+                $"Detalle: {orderDescription}",
                 $"Fecha: {order.DisplayDate}"
             };
 
             lines.Add(string.Empty);
             lines.Add("Si continúa:");
-            lines.Add("- La cotización se marcará como cerrada.");
-            lines.Add("- Dejará de mostrarse en la ventana de cotizaciones.");
+            lines.Add(isWorkOrder
+                ? "- La orden de trabajo se marcará como cerrada."
+                : "- La cotización se marcará como cerrada.");
+
+            if (isWorkOrder)
+                lines.Add("- Se liberará el inventario comprometido.");
+
+            lines.Add($"- Dejará de mostrarse en la ventana de {windowLabel}.");
             lines.Add(string.Empty);
             lines.Add("El registro no se elimina de la base de datos.");
             lines.Add("¿Desea continuar?");
@@ -459,9 +690,13 @@ namespace NovaRetail.ViewModels
         private void ResetRecoveredOrderTracking()
         {
             _editingOrderId = 0;
+            _editingWorkOrderId = 0;
             _editingHoldId = 0;
             _editingHoldSummary = null;
+            _editingWorkOrderSummary = null;
+            _editingWorkOrderDetail = null;
             _editingQuoteSummary = null;
+            ResetPendingWorkOrderCheckoutMode();
         }
 
         private bool HasBlockingOverlayVisible()
@@ -476,7 +711,9 @@ namespace NovaRetail.ViewModels
                 || IsSalesRepPickerVisible
                 || IsCustomerSearchVisible
                 || IsCreditPaymentSearchVisible
-                || IsCreditPaymentDetailVisible;
+                || IsCreditPaymentDetailVisible
+                || IsWorkOrderActionVisible
+                || IsWorkOrderPartialPickupVisible;
 
         private async Task OpenOrderSearchAsync(int orderType, string title)
         {
@@ -498,7 +735,7 @@ namespace NovaRetail.ViewModels
                 var storeId = _storeIdFromConfig > 0 ? _storeIdFromConfig : 0;
                 NovaRetailListOrdersResponse result;
 
-                if (OrderSearchVm.OrderType == 2)
+                if (OrderSearchVm.OrderType == HoldRecallType)
                     result = await _quoteService.ListHoldsAsync(storeId, search);
                 else
                     result = await _quoteService.ListOrdersAsync(storeId, OrderSearchVm.OrderType, search);
@@ -530,7 +767,7 @@ namespace NovaRetail.ViewModels
             try
             {
                 NovaRetailOrderDetailResponse detail;
-                if (order.Type == 2)
+                if (order.Type == HoldRecallType)
                     detail = await _quoteService.GetHoldDetailAsync(order.OrderID);
                 else
                     detail = await _quoteService.GetOrderDetailAsync(order.OrderID);
@@ -576,6 +813,7 @@ namespace NovaRetail.ViewModels
                         ItemType = entry.ItemType,
                         Stock = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
                         Quantity = entry.QuantityOnOrder > 0 ? entry.QuantityOnOrder : 1m,
+                        SourceOrderEntryID = order.Type == WorkOrderType ? entry.EntryID : 0,
                         SalesRepID = entry.SalesRepID,
                         SalesRepName = recoveredSalesRepName
                     };
@@ -589,10 +827,19 @@ namespace NovaRetail.ViewModels
 
                 ResetRecoveredOrderTracking();
 
-                if (order.Type == 2)
+                if (order.Type == HoldRecallType)
                 {
                     _editingHoldId = order.OrderID;
                     _editingHoldSummary = order;
+                    _editingWorkOrderSummary = null;
+                    _editingQuoteSummary = null;
+                }
+                else if (order.Type == WorkOrderType)
+                {
+                    _editingWorkOrderId = order.OrderID;
+                    _editingWorkOrderSummary = order;
+                    _editingWorkOrderDetail = detail.Order;
+                    _editingHoldSummary = null;
                     _editingQuoteSummary = null;
                 }
                 else
@@ -600,15 +847,21 @@ namespace NovaRetail.ViewModels
                     _editingOrderId = order.OrderID;
                     _editingQuoteSummary = order;
                     _editingHoldSummary = null;
+                    _editingWorkOrderSummary = null;
+                    _editingWorkOrderDetail = null;
                 }
 
-                // Restaurar datos del cliente desde la cotización
+                // Restaurar datos del cliente desde la orden recuperada
                 var savedClientId = order.ParseClientId();
                 var savedClientName = order.ParseClientName();
                 if (!string.IsNullOrWhiteSpace(savedClientId))
                     SetCliente(savedClientId, savedClientName, accountNumber: savedClientId, customerId: order.CustomerID);
 
-                var typeName = order.Type == 2 ? "Factura en espera" : "Cotización";
+                var typeName = order.Type == HoldRecallType
+                    ? "Factura en espera"
+                    : order.Type == WorkOrderType
+                        ? "Orden de trabajo"
+                        : "Cotización";
                 await _dialogService.AlertAsync("Orden recuperada",
                     $"{typeName} #{order.OrderID} cargada al carrito con {detail.Order.Entries.Count} artículo(s).", "OK");
             }
@@ -646,6 +899,14 @@ namespace NovaRetail.ViewModels
                 };
 
             SetActiveSalesRep(recoveredSalesRep);
+        }
+
+        private NovaRetailOrderEntry? FindEditingWorkOrderEntry(int sourceOrderEntryId)
+        {
+            if (sourceOrderEntryId <= 0 || _editingWorkOrderDetail is null)
+                return null;
+
+            return _editingWorkOrderDetail.Entries.FirstOrDefault(entry => entry.EntryID == sourceOrderEntryId);
         }
     }
 }

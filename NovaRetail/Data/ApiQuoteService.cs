@@ -124,6 +124,104 @@ public sealed class ApiQuoteService : IQuoteService
         };
     }
 
+    public async Task<NovaRetailCreateQuoteResponse> CreateWorkOrderAsync(NovaRetailCreateQuoteRequest request, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(QuoteClientName);
+                using var response = await http.PostAsJsonAsync($"{baseUrl}/api/NovaRetailSales/create-work-order", request, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailCreateQuoteResponse>(content);
+                    if (payload is not null)
+                    {
+                        if (string.IsNullOrWhiteSpace(payload.Message))
+                            payload.Message = response.ReasonPhrase ?? "Respuesta recibida.";
+
+                        return payload;
+                    }
+
+                    lastErrorMessage = content;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al crear orden de trabajo en {BaseUrl}", baseUrl);
+                lastErrorMessage = ex.Message;
+            }
+        }
+
+        return new NovaRetailCreateQuoteResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage)
+                ? "No fue posible comunicarse con el servicio."
+                : lastErrorMessage
+        };
+    }
+
+    public async Task<NovaRetailCreateQuoteResponse> UpdateWorkOrderAsync(NovaRetailCreateQuoteRequest request, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(QuoteClientName);
+                using var response = await http.PostAsJsonAsync($"{baseUrl}/api/NovaRetailSales/update-work-order", request, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailCreateQuoteResponse>(content);
+                    if (payload is not null)
+                    {
+                        if (string.IsNullOrWhiteSpace(payload.Message))
+                            payload.Message = response.ReasonPhrase ?? "Respuesta recibida.";
+
+                        return payload;
+                    }
+
+                    lastErrorMessage = content;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al actualizar orden de trabajo en {BaseUrl}", baseUrl);
+                lastErrorMessage = ex.Message;
+            }
+        }
+
+        return new NovaRetailCreateQuoteResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage)
+                ? "No fue posible comunicarse con el servicio."
+                : lastErrorMessage
+        };
+    }
+
     public async Task<NovaRetailListOrdersResponse> ListOrdersAsync(int storeId, int type, string search = "", CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
@@ -364,6 +462,39 @@ public sealed class ApiQuoteService : IQuoteService
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { _logger.LogWarning(ex, "Error al eliminar cotización en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
+        }
+
+        return new NovaRetailCreateQuoteResponse
+        {
+            Ok = false,
+            Message = string.IsNullOrWhiteSpace(lastErrorMessage) ? "No fue posible comunicarse con el servicio." : lastErrorMessage
+        };
+    }
+
+    public async Task<NovaRetailCreateQuoteResponse> DeleteWorkOrderAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        string? lastErrorMessage = null;
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(QuoteClientName);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-work-order/{orderId}", cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    var payload = JsonConvert.DeserializeObject<NovaRetailCreateQuoteResponse>(content);
+                    if (payload is not null)
+                        return payload;
+                    lastErrorMessage = content;
+                }
+                if (!response.IsSuccessStatusCode)
+                    lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error al cancelar orden de trabajo en {BaseUrl}", baseUrl); lastErrorMessage = ex.Message; }
         }
 
         return new NovaRetailCreateQuoteResponse

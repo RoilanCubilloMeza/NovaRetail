@@ -21,7 +21,9 @@ namespace NovaRetail.ViewModels
                || IsSalesRepPickerVisible
                || IsCustomerSearchVisible
                || IsCreditPaymentSearchVisible
-               || IsCreditPaymentDetailVisible;
+               || IsCreditPaymentDetailVisible
+               || IsWorkOrderActionVisible
+               || IsWorkOrderPartialPickupVisible;
 
         public async Task<bool> TryOpenClienteShortcutAsync()
         {

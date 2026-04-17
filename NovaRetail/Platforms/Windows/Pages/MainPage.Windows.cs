@@ -77,7 +77,7 @@ public partial class MainPage
 
     private async void OnEscapeAcceleratorInvoked(WinUiKeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (await _vm.TryCancelRecoveredHoldAsync() || await _vm.TryCancelRecoveredQuoteAsync())
+        if (await _vm.TryCancelRecoveredHoldAsync() || await _vm.TryCancelRecoveredWorkOrderAsync() || await _vm.TryCancelRecoveredQuoteAsync())
             args.Handled = true;
     }
 

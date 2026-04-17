@@ -15,6 +15,18 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (ShouldPromptForWorkOrderAction())
+            {
+                ShowWorkOrderActionPopup();
+                return;
+            }
+
+            await ContinueInvoiceToCheckoutAsync();
+        }
+
+        private async Task ContinueInvoiceToCheckoutAsync()
+        {
+
             if (_requireSalesRep && CartItems.Any(c => c.SalesRepID == 0))
             {
                 var assign = await _dialogService.ConfirmAsync(
@@ -23,6 +35,8 @@ namespace NovaRetail.ViewModels
                     "Asignar", "Cancelar");
                 if (assign)
                     await ShowSalesRepPickerForItemsAsync();
+                else if (_editingWorkOrderId > 0)
+                    ResetPendingWorkOrderCheckoutMode(restorePartialCart: true);
                 return;
             }
 
@@ -34,6 +48,95 @@ namespace NovaRetail.ViewModels
             // Mostrar picker de vendedor antes de abrir el checkout
             await ShowSalesRepPickerBeforeCheckoutAsync();
         }
+
+        private bool ShouldPromptForWorkOrderAction()
+            => _editingWorkOrderId > 0
+                && _editingWorkOrderDetail is not null
+                && _workOrderCheckoutMode == WorkOrderCheckoutMode.None
+                && !IsWorkOrderActionVisible;
+
+        private void ShowWorkOrderActionPopup()
+        {
+            if (_editingWorkOrderId <= 0 || _editingWorkOrderDetail is null)
+                return;
+
+            var canPickPartial = _editingWorkOrderDetail.Entries.Count > 1
+                || _editingWorkOrderDetail.Entries.Any(entry => entry.QuantityOnOrder > 1m);
+
+            WorkOrderActionVm.Load(
+                _editingWorkOrderId,
+                _editingWorkOrderDetail.Entries.Count,
+                canPickPartial);
+
+            IsWorkOrderActionVisible = true;
+        }
+
+        private void ResetPendingWorkOrderCheckoutMode(bool restorePartialCart = false)
+        {
+            if (restorePartialCart)
+                RestoreWorkOrderPartialCartSnapshot();
+
+            _workOrderCheckoutMode = WorkOrderCheckoutMode.None;
+            IsWorkOrderActionVisible = false;
+            IsWorkOrderPartialPickupVisible = false;
+            _workOrderPartialCartBackup = null;
+        }
+
+        private async Task OnWorkOrderSaveChangesRequestedAsync()
+        {
+            ResetPendingWorkOrderCheckoutMode();
+            await SaveWorkOrderAsync();
+        }
+
+        private async Task OnWorkOrderPickCompleteRequestedAsync()
+        {
+            IsWorkOrderActionVisible = false;
+            _workOrderCheckoutMode = WorkOrderCheckoutMode.Complete;
+            await ContinueInvoiceToCheckoutAsync();
+        }
+
+        private async Task OnWorkOrderPickPartialRequestedAsync()
+        {
+            IsWorkOrderActionVisible = false;
+
+            if (_editingWorkOrderId <= 0 || _editingWorkOrderDetail is null)
+            {
+                ResetPendingWorkOrderCheckoutMode();
+                return;
+            }
+
+            WorkOrderPartialPickupVm.Load(_editingWorkOrderId, CartItems, _editingWorkOrderDetail);
+            if (WorkOrderPartialPickupVm.Lines.Count == 0)
+            {
+                ResetPendingWorkOrderCheckoutMode();
+                await _dialogService.AlertAsync("Orden de trabajo", "No se encontraron líneas válidas para recoger parcialmente.", "OK");
+                return;
+            }
+
+            IsWorkOrderPartialPickupVisible = true;
+        }
+
+        private void OnWorkOrderActionCanceled()
+            => ResetPendingWorkOrderCheckoutMode();
+
+        private async Task OnWorkOrderPartialPickupConfirmedAsync()
+        {
+            if (!WorkOrderPartialPickupVm.TryBuildSelection(out var selection, out var validationMessage))
+            {
+                await _dialogService.AlertAsync("Orden de trabajo", validationMessage, "OK");
+                return;
+            }
+
+            BackupCurrentCartForPartialPickup();
+            ApplyPartialPickupSelection(selection);
+
+            IsWorkOrderPartialPickupVisible = false;
+            _workOrderCheckoutMode = WorkOrderCheckoutMode.Partial;
+            await ContinueInvoiceToCheckoutAsync();
+        }
+
+        private void OnWorkOrderPartialPickupCanceled()
+            => ResetPendingWorkOrderCheckoutMode();
 
         private async Task ShowSalesRepPickerBeforeCheckoutAsync()
         {
@@ -179,6 +282,9 @@ namespace NovaRetail.ViewModels
                 CheckoutVm.SetCheckoutState(false, string.Empty);
                 IsCheckoutVisible = false;
 
+                var cartSnapshot = CartItems.ToList();
+                var workOrderPostSaleMessage = await FinalizeRecoveredWorkOrderAfterSaleAsync(currentUser, cartSnapshot);
+
                 ReceiptVm.Load(
                     transactionNumber: result.TransactionNumber,
                     clientId: CurrentClientId,
@@ -188,7 +294,7 @@ namespace NovaRetail.ViewModels
                     storeName: _storeName,
                     storeAddress: _storeAddress,
                     storePhone: _storePhone,
-                    cartItems: CartItems.ToList(),
+                    cartItems: cartSnapshot,
                     subtotalText: SubtotalColonesText,
                     taxText: TaxColonesText,
                     discountText: DiscountColonesText,
@@ -228,10 +334,12 @@ namespace NovaRetail.ViewModels
                 );
                 IsReceiptVisible = true;
 
-                var cartSnapshot = CartItems.ToList();
                 _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
 
                 await ResetStateAfterCompletedCartAsync();
+
+                if (!string.IsNullOrWhiteSpace(workOrderPostSaleMessage))
+                    await _dialogService.AlertAsync("Orden de trabajo", workOrderPostSaleMessage, "OK");
             }
             catch (Exception ex)
             {
@@ -382,15 +490,24 @@ namespace NovaRetail.ViewModels
                 });
             }
 
+            var isPartialWorkOrderCheckout = _editingWorkOrderId > 0
+                && _workOrderCheckoutMode == WorkOrderCheckoutMode.Partial;
+
             var recallId = _editingHoldId > 0
                 ? _editingHoldId
+                : isPartialWorkOrderCheckout
+                    ? 0
+                : _editingWorkOrderId > 0
+                    ? _editingWorkOrderId
                 : _editingOrderId > 0
                     ? _editingOrderId
                     : 0;
 
             var recallType = _editingHoldId > 0
                 ? HoldRecallType
-                : _editingOrderId > 0
+                : isPartialWorkOrderCheckout
+                    ? 0
+                : _editingWorkOrderId > 0 || _editingOrderId > 0
                     ? QuoteRecallType
                     : 0;
 
@@ -426,6 +543,237 @@ namespace NovaRetail.ViewModels
                 Tenders = tenders
             };
         }
+
+        private async Task<string> FinalizeRecoveredWorkOrderAfterSaleAsync(LoginUserModel currentUser, IReadOnlyCollection<CartItemModel> soldItems)
+        {
+            if (_editingWorkOrderId <= 0 || _workOrderCheckoutMode != WorkOrderCheckoutMode.Partial)
+                return string.Empty;
+
+            if (_editingWorkOrderDetail is null)
+                return string.Empty;
+
+            var originalOrderId = _editingWorkOrderId;
+            var remainingItems = BuildRemainingWorkOrderItems(soldItems);
+
+            if (remainingItems.Count == 0)
+            {
+                var closeResult = await _quoteService.DeleteWorkOrderAsync(originalOrderId);
+                if (closeResult.Ok)
+                    return string.Empty;
+
+                var closeMessage = string.IsNullOrWhiteSpace(closeResult.Message)
+                    ? $"La venta se registró, pero no fue posible cerrar la orden de trabajo #{originalOrderId}."
+                    : closeResult.Message;
+                return $"La venta quedó registrada, pero la orden de trabajo no se pudo cerrar automáticamente. Revise la OT #{originalOrderId}. Detalle: {closeMessage}";
+            }
+
+            var request = BuildRemainingWorkOrderUpdateRequest(currentUser, originalOrderId, remainingItems);
+            var updateResult = await _quoteService.UpdateWorkOrderAsync(request);
+            if (updateResult.Ok)
+                return string.Empty;
+
+            var updateMessage = string.IsNullOrWhiteSpace(updateResult.Message)
+                ? $"La venta se registró, pero no fue posible actualizar la orden de trabajo #{originalOrderId}."
+                : updateResult.Message;
+            return $"La venta quedó registrada, pero la orden de trabajo no se actualizó con el remanente. Revise la OT #{originalOrderId}. Detalle: {updateMessage}";
+        }
+
+        private NovaRetailCreateQuoteRequest BuildRemainingWorkOrderUpdateRequest(
+            LoginUserModel currentUser,
+            int orderId,
+            List<NovaRetailQuoteItemRequest> remainingItems)
+        {
+            var storeId = currentUser.StoreId > 0 ? currentUser.StoreId
+                : _storeIdFromConfig > 0 ? _storeIdFromConfig
+                : 1;
+
+            var referenceNumber = !string.IsNullOrWhiteSpace(_editingWorkOrderSummary?.ReferenceNumber)
+                ? _editingWorkOrderSummary.ReferenceNumber
+                : HasClient ? BuildOrderReferenceNumber(CurrentClientId, CurrentClientName) : string.Empty;
+
+            var totals = CalculateWorkOrderTotals(remainingItems);
+
+            return new NovaRetailCreateQuoteRequest
+            {
+                OrderID = orderId,
+                StoreID = storeId,
+                Type = WorkOrderType,
+                CustomerID = _editingWorkOrderSummary?.CustomerID ?? (HasClient ? CurrentClientCustomerId : 0),
+                ShipToID = 0,
+                Comment = _editingWorkOrderDetail?.Comment ?? _editingWorkOrderSummary?.Comment ?? string.Empty,
+                ReferenceNumber = referenceNumber,
+                SalesRepID = ParseCashierId(currentUser),
+                Taxable = true,
+                ExpirationOrDueDate = _editingWorkOrderSummary?.ExpirationOrDueDate ?? _editingWorkOrderDetail?.Time.Date ?? DateTime.Now.Date,
+                Tax = totals.Tax,
+                Total = totals.Total,
+                Items = remainingItems
+            };
+        }
+
+        private List<NovaRetailQuoteItemRequest> BuildRemainingWorkOrderItems(IReadOnlyCollection<CartItemModel> soldItems)
+        {
+            var detail = _editingWorkOrderDetail;
+            if (detail is null || detail.Entries.Count == 0)
+                return new List<NovaRetailQuoteItemRequest>();
+
+            var entryLookup = detail.Entries.ToDictionary(entry => entry.EntryID);
+            var soldByEntry = new Dictionary<int, decimal>();
+
+            foreach (var item in soldItems)
+            {
+                if (item.SourceOrderEntryID <= 0)
+                    continue;
+
+                if (!entryLookup.TryGetValue(item.SourceOrderEntryID, out var sourceEntry))
+                    continue;
+
+                var sourceQuantity = sourceEntry.QuantityOnOrder > 0m ? sourceEntry.QuantityOnOrder : 1m;
+                var soldQuantity = Math.Min(Math.Max(item.Quantity, 0m), sourceQuantity);
+                if (soldQuantity <= 0m)
+                    continue;
+
+                soldByEntry.TryGetValue(item.SourceOrderEntryID, out var currentSold);
+                soldByEntry[item.SourceOrderEntryID] = Math.Min(sourceQuantity, currentSold + soldQuantity);
+            }
+
+            var remainingItems = new List<NovaRetailQuoteItemRequest>(detail.Entries.Count);
+            foreach (var entry in detail.Entries)
+            {
+                var sourceQuantity = entry.QuantityOnOrder > 0m ? entry.QuantityOnOrder : 1m;
+                soldByEntry.TryGetValue(entry.EntryID, out var soldQuantity);
+                var remainingQuantity = Math.Round(sourceQuantity - soldQuantity, 4);
+                if (remainingQuantity <= 0m)
+                    continue;
+
+                remainingItems.Add(new NovaRetailQuoteItemRequest
+                {
+                    ItemID = entry.ItemID,
+                    Cost = entry.Cost,
+                    FullPrice = entry.FullPrice,
+                    PriceSource = entry.PriceSource,
+                    Price = entry.Price,
+                    QuantityOnOrder = remainingQuantity,
+                    SalesRepID = entry.SalesRepID,
+                    Taxable = entry.Taxable,
+                    DetailID = entry.DetailID,
+                    Description = entry.Description,
+                    Comment = entry.Comment,
+                    DiscountReasonCodeID = entry.DiscountReasonCodeID,
+                    ReturnReasonCodeID = entry.ReturnReasonCodeID,
+                    TaxChangeReasonCodeID = entry.TaxChangeReasonCodeID
+                });
+            }
+
+            return remainingItems;
+        }
+
+        private (decimal Tax, decimal Total) CalculateWorkOrderTotals(IEnumerable<NovaRetailQuoteItemRequest> items)
+        {
+            decimal tax = 0m;
+            decimal total = 0m;
+            var taxRate = _defaultTaxPercentage / 100m;
+
+            foreach (var item in items)
+            {
+                if (item is null)
+                    continue;
+
+                var quantity = item.QuantityOnOrder > 0m ? item.QuantityOnOrder : 1m;
+                var lineTotal = Math.Round(item.Price * quantity, 4);
+                total += lineTotal;
+
+                if (!item.Taxable || taxRate <= 0m)
+                    continue;
+
+                tax += IsTaxIncluded
+                    ? lineTotal - (lineTotal / (1m + taxRate))
+                    : lineTotal * taxRate;
+            }
+
+            return (Math.Round(tax, 4), Math.Round(total, 4));
+        }
+
+        private void BackupCurrentCartForPartialPickup()
+        {
+            _workOrderPartialCartBackup = CartItems
+                .Select(CloneCartItem)
+                .ToList();
+        }
+
+        private void RestoreWorkOrderPartialCartSnapshot()
+        {
+            if (_workOrderPartialCartBackup is null)
+                return;
+
+            CartItems.Clear();
+            foreach (var item in _workOrderPartialCartBackup)
+                CartItems.Add(CloneCartItem(item));
+
+            SyncProductCatalogFromCart();
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private void ApplyPartialPickupSelection(IReadOnlyDictionary<int, decimal> selection)
+        {
+            for (var index = CartItems.Count - 1; index >= 0; index--)
+            {
+                var item = CartItems[index];
+                if (item.SourceOrderEntryID <= 0)
+                    continue;
+
+                if (!selection.TryGetValue(item.SourceOrderEntryID, out var selectedQuantity) || selectedQuantity <= 0m)
+                {
+                    CartItems.RemoveAt(index);
+                    continue;
+                }
+
+                item.Quantity = selectedQuantity;
+            }
+
+            SyncProductCatalogFromCart();
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
+
+        private void SyncProductCatalogFromCart()
+        {
+            ProductCatalog.ResetAllCartQuantities();
+
+            foreach (var item in CartItems)
+                ProductCatalog.UpdateProductCartQuantity(item.ItemID, item.Code, item.Quantity);
+        }
+
+        private static CartItemModel CloneCartItem(CartItemModel item)
+            => new()
+            {
+                ItemID = item.ItemID,
+                SourceOrderEntryID = item.SourceOrderEntryID,
+                Emoji = item.Emoji,
+                Name = item.Name,
+                Code = item.Code,
+                UnitPrice = item.UnitPrice,
+                UnitPriceColones = item.UnitPriceColones,
+                TaxPercentage = item.TaxPercentage,
+                TaxID = item.TaxID,
+                Cabys = item.Cabys,
+                Stock = item.Stock,
+                ItemType = item.ItemType,
+                OverridePriceColones = item.OverridePriceColones,
+                OverrideDescription = item.OverrideDescription,
+                DiscountPercent = item.DiscountPercent,
+                DiscountReasonCode = item.DiscountReasonCode,
+                DiscountReasonCodeID = item.DiscountReasonCodeID,
+                ExonerationReasonCodeID = item.ExonerationReasonCodeID,
+                ExonerationPercent = item.ExonerationPercent,
+                HasExonerationEligibility = item.HasExonerationEligibility,
+                IsExonerationEligible = item.IsExonerationEligible,
+                SalesRepID = item.SalesRepID,
+                SalesRepName = item.SalesRepName,
+                IsSelected = item.IsSelected,
+                Quantity = item.Quantity
+            };
 
         private static string ResolveMedioPagoCodigo(TenderModel tender)
         {
