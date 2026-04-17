@@ -25,6 +25,9 @@ namespace NovaAPI.Models
     {
         public bool Ok { get; set; }
         public string Message { get; set; }
+        public bool RmhposOk { get; set; }
+        public bool AppCentralOk { get; set; }
+        public string AppCentralMessage { get; set; }
     }
 
     public class OpenLedgerEntryDto

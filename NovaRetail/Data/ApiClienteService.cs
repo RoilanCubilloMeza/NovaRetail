@@ -232,7 +232,18 @@ namespace NovaRetail.Data
 
                     if (response.IsSuccessStatusCode)
                     {
-                        return (true, "Abono registrado correctamente.");
+                        try
+                        {
+                            var okObj = JsonConvert.DeserializeAnonymousType(body, new { Ok = false, Message = "", RmhposOk = false, AppCentralOk = false, AppCentralMessage = "" });
+                            string msg = "Abono registrado correctamente.";
+                            if (okObj != null && !okObj.AppCentralOk && !string.IsNullOrWhiteSpace(okObj.AppCentralMessage))
+                                msg += $" (AppCentral: {okObj.AppCentralMessage})";
+                            return (true, msg);
+                        }
+                        catch
+                        {
+                            return (true, "Abono registrado correctamente.");
+                        }
                     }
 
                     // Try to extract server error message

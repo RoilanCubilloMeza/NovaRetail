@@ -10,7 +10,7 @@
       <dSYMInfoPlistRelativePath>NovaRetail.app.dSYM\Contents\Info.plist</dSYMInfoPlistRelativePath>
       <SymbolFile></SymbolFile>
       <DSymName>NovaRetail.app.dSYM</DSymName>
-      <SourceProjectPath>C:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail</SourceProjectPath>
+      <SourceProjectPath>c:\Users\developer01\Documents\NovaRetail\NovaRetail\NovaRetail</SourceProjectPath>
       <IsXPCService></IsXPCService>
     </_PostProcessingItem>
   </ItemGroup>

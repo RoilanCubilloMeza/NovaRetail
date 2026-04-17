@@ -25,6 +25,54 @@ namespace NovaAPI.Controllers
             return text.Length > maxLength ? text.Substring(0, maxLength) : text;
         }
 
+        private static (bool Ok, string Message) TryAppCentralPayment(
+            string appCentralCs,
+            int cashierId,
+            int storeId,
+            string accountNumber,
+            DateTime now,
+            decimal amount,
+            string comment,
+            string reference)
+        {
+            if (string.IsNullOrWhiteSpace(appCentralCs))
+                return (false, "Cadena de conexión AppCentral no configurada.");
+
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                using (var cn = new SqlConnection(appCentralCs))
+                {
+                    cn.Open();
+                    using (var cmd = new SqlCommand("dbo.spAVSCrea_Payment", cn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 10;
+                        cmd.Parameters.AddWithValue("@ID", 0);
+                        cmd.Parameters.AddWithValue("@CashierID", cashierId);
+                        cmd.Parameters.AddWithValue("@StoreID", storeId);
+                        cmd.Parameters.AddWithValue("@CustomerAccountNumber", accountNumber);
+                        cmd.Parameters.AddWithValue("@Time", now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        cmd.Parameters.AddWithValue("@Amount", amount);
+                        cmd.Parameters.AddWithValue("@Comment", comment);
+                        cmd.Parameters.AddWithValue("@AppReference", reference);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                timer.Stop();
+                System.Diagnostics.Debug.WriteLine($"CreditPayment AppCentral ok: {timer.ElapsedMilliseconds} ms");
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                timer.Stop();
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                System.Diagnostics.Debug.WriteLine($"CreditPayment AppCentral error after {timer.ElapsedMilliseconds} ms: {msg}");
+                return (false, msg);
+            }
+        }
+
         private void UpsertCustomer(Customer customer)
         {
             var accountNumber = Safe(customer.AccountNumber, 20);
@@ -483,194 +531,201 @@ ORDER BY le.PostingDate";
             {
                 var accountNumber = request.AccountNumber.Trim();
                 var now = DateTime.Now;
+                var requestTimer = System.Diagnostics.Stopwatch.StartNew();
+                var comment = (request.Comment ?? string.Empty).Trim();
                 var reference = !string.IsNullOrWhiteSpace(request.Reference)
                     ? request.Reference.Trim()
                     : $"ABONO-{now:yyyyMMddHHmmss}";
-
-                // ── 1. Registrar Payment en AppCentral (opcional) ──
-                if (!string.IsNullOrWhiteSpace(appCentralCs))
-                {
-                    try
-                    {
-                        var dbAC = new AppCentralDataContext(appCentralCs);
-                        dbAC.spAVSCrea_Payment(0, request.CashierID, request.StoreID, accountNumber,
-                            now.ToString("yyyy-MM-dd HH:mm:ss"), request.Amount,
-                            (request.Comment ?? string.Empty).Trim(), reference);
-                    }
-                    catch (Exception exAC)
-                    {
-                        // AppCentral no disponible – continuar con RMHPOS
-                        System.Diagnostics.Debug.WriteLine("AppCentral spAVSCrea_Payment error (no crítico): " + exAC.Message);
-                    }
-                }
 
                 // ── 2. AR_LedgerEntry + AR_LedgerEntryDetail en RMS (RMHPOS) ──
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
-                    using (var tx = cn.BeginTransaction())
-                    {
-                    try
-                    {
 
-                    // Resolve AR_Account.ID
+                    var lookupTimer = System.Diagnostics.Stopwatch.StartNew();
                     int accountID = 0;
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn, tx))
+                    int customerID = 0;
+                    using (var cmd = new SqlCommand(@"
+SELECT TOP 1
+    a.ID AS AccountID,
+    ISNULL(c.ID, 0) AS CustomerID
+FROM dbo.AR_Account a
+LEFT JOIN dbo.Customer c ON c.AccountNumber = a.Number
+WHERE a.Number = @Number", cn))
                     {
                         cmd.Parameters.AddWithValue("@Number", accountNumber);
-                        var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value)
-                            accountID = Convert.ToInt32(result);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                accountID = reader["AccountID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["AccountID"]);
+                                customerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]);
+                            }
+                        }
                     }
-
-                    // Resolve Customer.ID
-                    int customerID = 0;
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn, tx))
-                    {
-                        cmd.Parameters.AddWithValue("@Acct", accountNumber);
-                        var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value)
-                            customerID = Convert.ToInt32(result);
-                    }
+                    lookupTimer.Stop();
 
                     if (accountID > 0)
                     {
-                        // DocumentType=5 (Payment), LedgerType=3, amount negative → reduces balance
-                        byte documentType = 5;
-                        byte ledgerType = 3;
-                        decimal amountACY = -request.Amount; // negative = reduces debt
-
-                        // Insert AR_LedgerEntry
-                        int ledgerEntryID = 0;
-                        using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn, tx))
+                        using (var tx = cn.BeginTransaction())
                         {
-                            cmd.CommandType = CommandType.StoredProcedure;
-                            cmd.CommandTimeout = 60;
-
-                            cmd.Parameters.AddWithValue("@LastUpdated", now);
-                            cmd.Parameters.AddWithValue("@AccountID", accountID);
-                            cmd.Parameters.AddWithValue("@CustomerID", customerID);
-                            cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                            cmd.Parameters.AddWithValue("@LinkType", (byte)0);
-                            cmd.Parameters.AddWithValue("@LinkID", 0);
-                            cmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                            cmd.Parameters.AddWithValue("@DocumentType", documentType);
-                            cmd.Parameters.AddWithValue("@DocumentID", 0);
-                            cmd.Parameters.AddWithValue("@PostingDate", now);
-                            cmd.Parameters.AddWithValue("@DueDate", now);
-                            cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                            cmd.Parameters.AddWithValue("@Reference", reference);
-                            cmd.Parameters.AddWithValue("@Description", "Abono a cuenta");
-                            cmd.Parameters.AddWithValue("@CurrencyID", 0);
-                            cmd.Parameters.AddWithValue("@CurrencyFactor", 1.0);
-                            cmd.Parameters.AddWithValue("@Positive", true);
-                            cmd.Parameters.AddWithValue("@ClosingDate", DBNull.Value);
-                            cmd.Parameters.AddWithValue("@ReasonID", 0);
-                            cmd.Parameters.AddWithValue("@HoldReasonID", 0);
-                            cmd.Parameters.AddWithValue("@UndoReasonID", 0);
-                            cmd.Parameters.AddWithValue("@PayMethodID", request.TenderID);
-                            cmd.Parameters.AddWithValue("@TransactionID", 0);
-                            cmd.Parameters.AddWithValue("@ExtReference", string.Empty);
-                            cmd.Parameters.AddWithValue("@Comment", (request.Comment ?? string.Empty).Trim());
-
-                            using (var reader = cmd.ExecuteReader())
+                            try
                             {
-                                if (reader.Read())
-                                    ledgerEntryID = Convert.ToInt32(reader["ID"]);
-                            }
-                        }
+                                // DocumentType=5 (Payment), LedgerType=3, amount negative → reduces balance
+                                byte documentType = 5;
+                                byte ledgerType = 3;
+                                decimal amountACY = -request.Amount; // negative = reduces debt
+                                var dbTimer = System.Diagnostics.Stopwatch.StartNew();
 
-                        // Insert AR_LedgerEntryDetail
-                        if (ledgerEntryID > 0)
-                        {
-                            using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
-                            {
-                                cmd.CommandType = CommandType.StoredProcedure;
-                                cmd.CommandTimeout = 60;
-
-                                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
-                                cmd.Parameters.AddWithValue("@AccountID", accountID);
-                                cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                                cmd.Parameters.AddWithValue("@DueDate", now);
-                                cmd.Parameters.AddWithValue("@PostingDate", now);
-                                cmd.Parameters.AddWithValue("@DetailType", (byte)0);
-                                cmd.Parameters.AddWithValue("@Reference", reference);
-                                cmd.Parameters.AddWithValue("@Amount", amountACY);
-                                cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
-                                cmd.Parameters.AddWithValue("@AmountACY", amountACY);
-                                cmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                                cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
-                                cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
-                                cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
-                                cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                                cmd.Parameters.AddWithValue("@ISCLOSING", false);
-
-                                cmd.ExecuteNonQuery();
-                            }
-
-                            // ── 3. Application details per invoice ──
-                            if (request.Applications != null && request.Applications.Count > 0)
-                            {
-                                foreach (var app in request.Applications)
+                                // Insert AR_LedgerEntry
+                                int ledgerEntryID = 0;
+                                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn, tx))
                                 {
-                                    if (app.LedgerEntryID <= 0 || app.Amount <= 0) continue;
+                                    cmd.CommandType = CommandType.StoredProcedure;
+                                    cmd.CommandTimeout = 60;
 
-                                    bool isClosing = app.Amount >= app.EntryBalance;
+                                    cmd.Parameters.AddWithValue("@LastUpdated", now);
+                                    cmd.Parameters.AddWithValue("@AccountID", accountID);
+                                    cmd.Parameters.AddWithValue("@CustomerID", customerID);
+                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                                    cmd.Parameters.AddWithValue("@LinkType", (byte)0);
+                                    cmd.Parameters.AddWithValue("@LinkID", 0);
+                                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                                    cmd.Parameters.AddWithValue("@DocumentType", documentType);
+                                    cmd.Parameters.AddWithValue("@DocumentID", 0);
+                                    cmd.Parameters.AddWithValue("@PostingDate", now);
+                                    cmd.Parameters.AddWithValue("@DueDate", now);
+                                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                                    cmd.Parameters.AddWithValue("@Reference", reference);
+                                    cmd.Parameters.AddWithValue("@Description", "Abono a cuenta");
+                                    cmd.Parameters.AddWithValue("@CurrencyID", 0);
+                                    cmd.Parameters.AddWithValue("@CurrencyFactor", 1.0);
+                                    cmd.Parameters.AddWithValue("@Positive", true);
+                                    cmd.Parameters.AddWithValue("@ClosingDate", DBNull.Value);
+                                    cmd.Parameters.AddWithValue("@ReasonID", 0);
+                                    cmd.Parameters.AddWithValue("@HoldReasonID", 0);
+                                    cmd.Parameters.AddWithValue("@UndoReasonID", 0);
+                                    cmd.Parameters.AddWithValue("@PayMethodID", request.TenderID);
+                                    cmd.Parameters.AddWithValue("@TransactionID", 0);
+                                    cmd.Parameters.AddWithValue("@ExtReference", string.Empty);
+                                    cmd.Parameters.AddWithValue("@Comment", comment);
 
-                                    using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+                                    using (var reader = cmd.ExecuteReader())
                                     {
-                                        appCmd.CommandType = CommandType.StoredProcedure;
-                                        appCmd.CommandTimeout = 60;
-
-                                        appCmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
-                                        appCmd.Parameters.AddWithValue("@AccountID", accountID);
-                                        appCmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                                        appCmd.Parameters.AddWithValue("@DueDate", now);
-                                        appCmd.Parameters.AddWithValue("@PostingDate", now);
-                                        appCmd.Parameters.AddWithValue("@DetailType", (byte)0);
-                                        appCmd.Parameters.AddWithValue("@Reference", reference);
-                                        appCmd.Parameters.AddWithValue("@Amount", 0m);
-                                        appCmd.Parameters.AddWithValue("@AmountLCY", 0m);
-                                        appCmd.Parameters.AddWithValue("@AmountACY", 0m);
-                                        appCmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                                        appCmd.Parameters.AddWithValue("@AppliedEntryID", app.LedgerEntryID);
-                                        appCmd.Parameters.AddWithValue("@AppliedAmount", -app.Amount);
-                                        appCmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
-                                        appCmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                                        appCmd.Parameters.AddWithValue("@ISCLOSING", isClosing);
-
-                                        appCmd.ExecuteNonQuery();
+                                        if (reader.Read())
+                                            ledgerEntryID = Convert.ToInt32(reader["ID"]);
                                     }
                                 }
+
+                                if (ledgerEntryID > 0)
+                                {
+                                    using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+                                    {
+                                        cmd.CommandType = CommandType.StoredProcedure;
+                                        cmd.CommandTimeout = 60;
+
+                                        cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                                        cmd.Parameters.AddWithValue("@AccountID", accountID);
+                                        cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                                        cmd.Parameters.AddWithValue("@DueDate", now);
+                                        cmd.Parameters.AddWithValue("@PostingDate", now);
+                                        cmd.Parameters.AddWithValue("@DetailType", (byte)0);
+                                        cmd.Parameters.AddWithValue("@Reference", reference);
+                                        cmd.Parameters.AddWithValue("@Amount", amountACY);
+                                        cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
+                                        cmd.Parameters.AddWithValue("@AmountACY", amountACY);
+                                        cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                                        cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
+                                        cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
+                                        cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                                        cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                                        cmd.Parameters.AddWithValue("@ISCLOSING", false);
+
+                                        cmd.ExecuteNonQuery();
+                                    }
+
+                                    if (request.Applications != null && request.Applications.Count > 0)
+                                    {
+                                        foreach (var app in request.Applications)
+                                        {
+                                            if (app.LedgerEntryID <= 0 || app.Amount <= 0)
+                                                continue;
+
+                                            bool isClosing = app.Amount >= app.EntryBalance;
+
+                                            using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+                                            {
+                                                appCmd.CommandType = CommandType.StoredProcedure;
+                                                appCmd.CommandTimeout = 60;
+
+                                                appCmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                                                appCmd.Parameters.AddWithValue("@AccountID", accountID);
+                                                appCmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                                                appCmd.Parameters.AddWithValue("@DueDate", now);
+                                                appCmd.Parameters.AddWithValue("@PostingDate", now);
+                                                appCmd.Parameters.AddWithValue("@DetailType", (byte)0);
+                                                appCmd.Parameters.AddWithValue("@Reference", reference);
+                                                appCmd.Parameters.AddWithValue("@Amount", 0m);
+                                                appCmd.Parameters.AddWithValue("@AmountLCY", 0m);
+                                                appCmd.Parameters.AddWithValue("@AmountACY", 0m);
+                                                appCmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                                                appCmd.Parameters.AddWithValue("@AppliedEntryID", app.LedgerEntryID);
+                                                appCmd.Parameters.AddWithValue("@AppliedAmount", -app.Amount);
+                                                appCmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                                                appCmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                                                appCmd.Parameters.AddWithValue("@ISCLOSING", isClosing);
+
+                                                appCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                    }
+                                }
+
+                                tx.Commit();
+                                dbTimer.Stop();
+                                requestTimer.Stop();
+                                System.Diagnostics.Debug.WriteLine($"CreditPayment RMHPOS ok: lookup={lookupTimer.ElapsedMilliseconds} ms, db={dbTimer.ElapsedMilliseconds} ms, apps={(request.Applications == null ? 0 : request.Applications.Count)} total={requestTimer.ElapsedMilliseconds} ms");
+                            }
+                            catch
+                            {
+                                tx.Rollback();
+                                throw;
                             }
                         }
                     }
+}
 
-                    tx.Commit();
-                    }
-                    catch
-                    {
-                        tx.Rollback();
-                        throw;
-                    }
-                    }
-                }
+var (acOk, acMsg) = TryAppCentralPayment(
+    appCentralCs,
+    request.CashierID,
+    request.StoreID,
+    accountNumber,
+    now,
+    request.Amount,
+    comment,
+    reference);
 
-                return Request.CreateResponse(HttpStatusCode.OK, new CreditPaymentResponse
-                {
-                    Ok = true,
-                    Message = "Abono registrado correctamente."
-                });
+return Request.CreateResponse(HttpStatusCode.OK, new CreditPaymentResponse
+{
+    Ok = true,
+    Message = "Abono registrado correctamente.",
+    RmhposOk = true,
+    AppCentralOk = acOk,
+    AppCentralMessage = acMsg
+});
             }
             catch (Exception ex)
             {
-                var msg = ex.InnerException?.Message ?? ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new CreditPaymentResponse
-                {
-                    Ok = false,
-                    Message = "Error al registrar abono: " + msg
-                });
-            }
+    var msg = ex.InnerException?.Message ?? ex.Message;
+    return Request.CreateResponse(HttpStatusCode.InternalServerError, new CreditPaymentResponse
+    {
+        Ok = false,
+        Message = "Error al registrar abono: " + msg,
+        RmhposOk = false,
+        AppCentralOk = false,
+        AppCentralMessage = "No se intentó (error en RMHPOS)."
+    });
+}
         }
 
     }
