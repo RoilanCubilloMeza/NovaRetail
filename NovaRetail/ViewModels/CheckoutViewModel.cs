@@ -32,6 +32,7 @@ namespace NovaRetail.ViewModels
         private TenderModel? _secondTender;
         private string _secondAmountText = string.Empty;
         private CustomerCreditInfo? _creditInfo;
+        private bool _creditInfoLookupCompleted;
 
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
@@ -199,6 +200,8 @@ namespace NovaRetail.ViewModels
         // ── Información de crédito del cliente ──────────────────────────
         public bool ShowCreditPreview => _creditInfo is not null && _creditInfo.HasCredit
             && (_selectedTender?.IsCredit == true || (HasSecondTender && _secondTender?.IsCredit == true));
+        public bool ClientHasCredit => _creditInfo is not null && _creditInfo.HasCredit;
+        public bool HasResolvedCreditInfo => _creditInfoLookupCompleted;
         public string CreditClientName => _creditInfo?.FullName ?? string.Empty;
         public string CreditLimitText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.CreditLimit:N2}" : string.Empty;
         public string CreditBalanceText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.ClosingBalance:N2}" : string.Empty;
@@ -419,6 +422,8 @@ namespace NovaRetail.ViewModels
             _hasSecondTender = false;
             _secondTender = null;
             _secondAmountText = string.Empty;
+            _creditInfo = null;
+            _creditInfoLookupCompleted = false;
             OnPropertyChanged(nameof(TenderedText));
             OnPropertyChanged(nameof(HasSecondTender));
             OnPropertyChanged(nameof(SecondTender));
@@ -576,14 +581,17 @@ namespace NovaRetail.ViewModels
                 || description.Contains("cash", StringComparison.OrdinalIgnoreCase);
         }
 
-        public void SetCreditInfo(CustomerCreditInfo? credit)
+        public void SetCreditInfo(CustomerCreditInfo? credit, bool lookupCompleted = true)
         {
             _creditInfo = credit;
+            _creditInfoLookupCompleted = lookupCompleted;
             NotifyCreditPreview();
         }
 
         private void NotifyCreditPreview()
         {
+            OnPropertyChanged(nameof(ClientHasCredit));
+            OnPropertyChanged(nameof(HasResolvedCreditInfo));
             OnPropertyChanged(nameof(ShowCreditPreview));
             OnPropertyChanged(nameof(CreditClientName));
             OnPropertyChanged(nameof(CreditLimitText));

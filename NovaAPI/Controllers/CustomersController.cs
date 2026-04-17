@@ -241,7 +241,7 @@ SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
 FROM dbo.Customer c
 INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
 LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
-WHERE c.AccountNumber = @Acct";
+WHERE c.AccountNumber = @Acct OR c.TaxNumber = @Acct";
 
                     using (var cmd = new SqlCommand(sql, cn))
                     {

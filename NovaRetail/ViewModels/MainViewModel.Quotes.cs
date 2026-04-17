@@ -855,7 +855,42 @@ namespace NovaRetail.ViewModels
                 var savedClientId = order.ParseClientId();
                 var savedClientName = order.ParseClientName();
                 if (!string.IsNullOrWhiteSpace(savedClientId))
+                {
+                    // Set basic info immediately so the UI shows the client
                     SetCliente(savedClientId, savedClientName, accountNumber: savedClientId, customerId: order.CustomerID);
+
+                    // Resolve full customer info (real AccountNumber, AccountTypeID) from the API
+                    try
+                    {
+                        var clienteService = GetClienteService();
+                        var matches = await clienteService.BuscarClientesAsync(savedClientId);
+                        var resolved = matches.FirstOrDefault(c =>
+                            string.Equals(c.TaxNumber?.Trim(), savedClientId.Trim(), StringComparison.OrdinalIgnoreCase))
+                            ?? matches.FirstOrDefault(c =>
+                            string.Equals(c.AccountNumber?.Trim(), savedClientId.Trim(), StringComparison.OrdinalIgnoreCase))
+                            ?? matches.FirstOrDefault();
+
+                        if (resolved is not null)
+                        {
+                            var customerType = resolved.AccountTypeID switch
+                            {
+                                2 => "Cr\u00e9dito",
+                                3 => "Gobierno",
+                                4 => "Exportaci\u00f3n",
+                                _ => "Contado"
+                            };
+                            var isReceiver = !string.IsNullOrWhiteSpace(resolved.Email);
+                            SetCliente(
+                                resolved.ResolvedClientId,
+                                resolved.FullName,
+                                isReceiver: isReceiver,
+                                customerType: customerType,
+                                accountNumber: resolved.AccountNumber,
+                                customerId: resolved.CustomerId);
+                        }
+                    }
+                    catch { /* non-critical: basic info already set */ }
+                }
 
                 var typeName = order.Type == HoldRecallType
                     ? "Factura en espera"

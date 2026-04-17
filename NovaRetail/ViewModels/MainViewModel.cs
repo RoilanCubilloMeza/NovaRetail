@@ -326,9 +326,7 @@ namespace NovaRetail.ViewModels
 
         public bool IsCurrentClientReceiver => _appStore.State.IsCurrentClientReceiver;
         public string CurrentClientCustomerType => _appStore.State.CurrentClientCustomerType;
-        public bool CurrentClientHasCredit => string.Equals(CurrentClientCustomerType, "Crédito", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(CurrentClientCustomerType, "Gobierno", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(CurrentClientCustomerType, "Exportación", StringComparison.OrdinalIgnoreCase);
+        public bool CurrentClientHasCredit => MatchesCreditCustomerType(CurrentClientCustomerType);
 
         public void SetCliente(string clientId, string name, bool isReceiver = false, string customerType = "", string? accountNumber = null, int customerId = 0)
         {
@@ -346,6 +344,22 @@ namespace NovaRetail.ViewModels
                 customerType,
                 normalizedAccountNumber,
                 customerId));
+        }
+
+        private static bool MatchesCreditCustomerType(string? customerType)
+        {
+            if (string.IsNullOrWhiteSpace(customerType))
+                return false;
+
+            var normalized = customerType
+                .Normalize(NormalizationForm.FormD)
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                .ToArray();
+
+            var text = new string(normalized).Trim();
+            return text.Equals("Credito", StringComparison.OrdinalIgnoreCase)
+                || text.Equals("Gobierno", StringComparison.OrdinalIgnoreCase)
+                || text.Equals("Exportacion", StringComparison.OrdinalIgnoreCase);
         }
 
         public ProductCatalogViewModel ProductCatalog { get; }

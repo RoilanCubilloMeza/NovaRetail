@@ -206,18 +206,31 @@ namespace NovaRetail.ViewModels
 
             // Fetch and display customer credit information
             CustomerCreditInfo? creditInfo = null;
-            if (HasClient && CurrentClientHasCredit)
+            var creditLookupCompleted = false;
+            if (HasClient)
             {
                 try
                 {
                     var clienteService = GetClienteService();
                     creditInfo = await clienteService.ObtenerCreditoAsync(CurrentClientCreditLookupId);
+                    creditLookupCompleted = true;
                 }
                 catch { /* non-critical */ }
             }
-            CheckoutVm.SetCreditInfo(creditInfo);
+            CheckoutVm.SetCreditInfo(creditInfo, lookupCompleted: creditLookupCompleted);
 
             IsCheckoutVisible = true;
+        }
+
+        private bool ResolveCheckoutClientHasCredit()
+        {
+            if (!HasClient)
+                return false;
+
+            if (CheckoutVm.HasResolvedCreditInfo)
+                return CheckoutVm.ClientHasCredit;
+
+            return CurrentClientHasCredit;
         }
 
         private async void OnCheckoutConfirm()
@@ -246,7 +259,7 @@ namespace NovaRetail.ViewModels
 
             var usesCredit = tender.IsCredit
                 || (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender?.IsCredit == true);
-            if (usesCredit && !CurrentClientHasCredit)
+            if (usesCredit && !ResolveCheckoutClientHasCredit())
             {
                 var creditMsg = !HasClient
                     ? "Para pagar con crédito debe seleccionar un cliente con cuenta de crédito."
