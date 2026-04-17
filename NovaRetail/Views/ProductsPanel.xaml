@@ -104,7 +104,7 @@
                         <HorizontalStackLayout Spacing="6"
                                                BindableLayout.ItemsSource="{Binding CategoryTabs}">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:MainViewModel.CategoryTabItem">
+                                <DataTemplate x:DataType="viewModels:ProductCatalogViewModel+CategoryTabItem">
                                     <controls:CategoryTab Text="{Binding Text}"
                                                           IsActive="{Binding IsActive}"
                                                           Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.SelectCategoryCommand}"

@@ -15,6 +15,7 @@ public partial class MainPage : ContentPage
         Loaded += OnPageLoaded;
         Unloaded += OnPageUnloaded;
         _vm.PropertyChanged += OnViewModelPropertyChanged;
+        _vm.ProductCatalog.PropertyChanged += OnProductCatalogPropertyChanged;
     }
 
     partial void RegisterPlatformKeyboardHooks();
@@ -24,11 +25,19 @@ public partial class MainPage : ContentPage
         => RegisterPlatformKeyboardHooks();
 
     private void OnPageUnloaded(object? sender, EventArgs e)
-        => UnregisterPlatformKeyboardHooks();
+    {
+        UnregisterPlatformKeyboardHooks();
+        _vm.PropertyChanged -= OnViewModelPropertyChanged;
+        _vm.ProductCatalog.PropertyChanged -= OnProductCatalogPropertyChanged;
+    }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.IsProductsPanelVisible))
+    }
+
+    private void OnProductCatalogPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ProductCatalogViewModel.IsProductsPanelVisible))
             ApplyLayout(MainGrid.Width);
     }
 
@@ -39,7 +48,7 @@ public partial class MainPage : ContentPage
     {
         if (width <= 0) return;
 
-        if (!_vm.IsProductsPanelVisible)
+        if (!_vm.ProductCatalog.IsProductsPanelVisible)
         {
             MainGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             MainGrid.ColumnDefinitions[1].Width = new GridLength(56);

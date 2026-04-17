@@ -24,9 +24,10 @@ namespace NovaRetail.ViewModels
         private readonly ISalesRepService _salesRepService;
         private readonly IInvoiceHistoryService _invoiceHistoryService;
         private readonly IParametrosService _parametrosService;
+        private readonly IPricingService _pricingService;
         private readonly AppStore _appStore;
         private readonly UserSession _userSession;
-        private readonly List<ProductModel> _allProducts = new();
+        private AppState _previousState = new();
         private readonly List<ReasonCodeModel> _cachedDiscountCodes = new();
         private readonly List<ReasonCodeModel> _cachedExonerationCodes = new();
         private readonly List<SalesRepModel> _cachedSalesReps = new();
@@ -34,12 +35,6 @@ namespace NovaRetail.ViewModels
         private const int OrderReferenceNumberMaxLength = 50;
         private const int HoldRecallType = 1;
         private const int QuoteRecallType = 3;
-        private const int ProductsPageSize = 500;
-        private int _loadedItemsPage;
-        private bool _canLoadMoreFromApi;
-        private bool _isLoadingItems;
-        private bool _isSearchingByCode;
-        private CancellationTokenSource _searchCts = new();
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
         private int _registerIdFromConfig = 1;
@@ -95,9 +90,8 @@ namespace NovaRetail.ViewModels
 
         private int _defaultTenderID;
         private int _priceOverridePriceSource = 1;
-        private HashSet<int> _nonInventoryItemTypes = new();
         private ProductModel? _pendingServiceProduct;
-        public ObservableCollection<TenderModel> Tenders { get; } = new();
+        public BatchObservableCollection<TenderModel> Tenders { get; } = new();
 
         private CartItemModel? _pendingPriceItem;
         private int? _pendingDiscountPercent;
@@ -316,9 +310,9 @@ namespace NovaRetail.ViewModels
                 customerId));
         }
 
-        public ObservableCollection<ProductModel> Products { get; } = new();
+        public ProductCatalogViewModel ProductCatalog { get; }
         public ObservableCollection<CartItemModel> CartItems { get; } = new();
-        public ObservableCollection<CartItemModel> FilteredCartItems { get; } = new();
+        public BatchObservableCollection<CartItemModel> FilteredCartItems { get; } = new();
         public IReadOnlyList<string> CartSortFields => _cartSortFields;
 
         public string SelectedCartSortField
@@ -361,21 +355,13 @@ namespace NovaRetail.ViewModels
         public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.##} artículo(s) · {CartItems.Count} línea(s)";
         public string CartEmptyText => "Carrito vacío";
 
-        public ICommand AddProductCommand { get; }
         public ICommand IncrementCommand { get; }
         public ICommand DecrementCommand { get; }
         public ICommand ClearCartCommand { get; }
         public ICommand InvoiceCommand { get; }
-        public ICommand SearchProductCommand { get; }
-        public ICommand SelectCategoryCommand { get; }
-        public ICommand SelectTabCommand { get; }
         public ICommand ApplyDiscountCommand { get; }
-        public ICommand ToggleProductsPanelCommand { get; }
-        public ICommand DecrementProductCommand { get; }
-        public ICommand SelectSpanCommand { get; }
         public ICommand NavigateToClienteCommand { get; }
         public ICommand OpenCustomerSearchCommand { get; }
-        public ICommand LoadMoreProductsCommand { get; }
         public ICommand EditCartItemCommand { get; }
         public ICommand ToggleSelectionModeCommand { get; }
         public ICommand ToggleItemSelectionCommand { get; }
@@ -458,105 +444,6 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private string _productSearchText = string.Empty;
-        public string ProductSearchText
-        {
-            get => _appStore.State.ProductSearchText;
-            set
-            {
-                if (ProductSearchText != value)
-                {
-                    _appStore.Dispatch(new SetProductSearchTextAction(value));
-                    FilterProducts();
-
-                    _searchCts.Cancel();
-                    _searchCts = new CancellationTokenSource();
-                    var cts = _searchCts;
-                    var text = value;
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(400, cts.Token);
-                            if (_isSearchingByCode) return;
-                            await SearchFromApiAsync(text, cts.Token);
-                        }
-                        catch (OperationCanceledException) { }
-                    }, cts.Token);
-                }
-            }
-        }
-
-        // ── Tab del panel izquierdo: Rápido / Categorías / Promos ──
-
-        public string SelectedTab
-        {
-            get => _appStore.State.SelectedTab;
-            set
-            {
-                if (SelectedTab != value)
-                {
-                    _appStore.Dispatch(new SetSelectedTabAction(value));
-
-                    if (value == TabKeys.Rapido || value == TabKeys.Promos)
-                        SelectedCategory = CategoryKeys.Todos;  // This already filters + loads
-                    else
-                        FilterProducts();
-                }
-            }
-        }
-
-        public bool IsTabRapido => SelectedTab == TabKeys.Rapido;
-        public bool IsTabCategorias => SelectedTab == TabKeys.Categorias;
-        public bool IsTabPromos => SelectedTab == TabKeys.Promos;
-        public bool ShowCategoryTabs => SelectedTab == TabKeys.Categorias;
-        public IReadOnlyList<TabTabItem> CatalogTabs => TabKeys.Options
-            .Select(option => new TabTabItem(option.Key, option.TabText, string.Equals(option.Key, SelectedTab, StringComparison.OrdinalIgnoreCase)))
-            .ToArray();
-        public IReadOnlyList<CategoryTabItem> CategoryTabs => CategoryKeys.Options
-            .Select(option => new CategoryTabItem(
-                option.Key,
-                option.TabText,
-                MatchesCategory(option.Key, SelectedCategory)))
-            .ToArray();
-
-        // ── Categoría del panel central ──
-
-        public string SelectedCategory
-        {
-            get => _appStore.State.SelectedCategory;
-            set
-            {
-                if (SelectedCategory != value)
-                {
-                    _appStore.Dispatch(new SetSelectedCategoryAction(value));
-
-                    // Cancel any pending search when switching categories
-                    _searchCts.Cancel();
-                    _searchCts = new CancellationTokenSource();
-
-                    if (value == CategoryKeys.Todos)
-                        _ = LoadProductsAsync();
-                    else
-                        _ = LoadCategoryProductsAsync(value);
-
-                    FilterProducts();
-                }
-            }
-        }
-
-        public string BreadcrumbText
-        {
-            get
-            {
-                if (SelectedTab == TabKeys.Promos)
-                    return "ðŸ·ï¸  Promociones activas";
-                if (SelectedTab == TabKeys.Categorias && SelectedCategory != CategoryKeys.Todos)
-                    return $"ðŸ“‹  {TabKeys.Categorias}  /  {SelectedCategory}";
-                return "ðŸ“‹  Todos los productos";
-            }
-        }
-
         // ── Descuento ──
 
         public int DiscountPercent
@@ -593,113 +480,6 @@ namespace NovaRetail.ViewModels
         public string TotalText => $"{UiConfig.CurrencySymbol}{Total:F2}";
         public string CartCountText => $"{CartItems.Count} ↑";
 
-        // ── Panel de productos: visible / ancho ──
-
-        public bool IsProductsPanelVisible
-        {
-            get => _appStore.State.IsProductsPanelVisible;
-            set
-            {
-                if (IsProductsPanelVisible != value)
-                    _appStore.Dispatch(new SetProductsPanelVisibleAction(value));
-            }
-        }
-        public string ProductsPanelVisibilityText => IsProductsPanelVisible ? "◀  Ocultar panel" : "Mostrar panel  ▶";
-
-        // ── Columnas del panel de productos (preferencia del usuario) ──
-
-        private int _preferredSpan = 2;
-        public int PreferredSpan
-        {
-            get => _preferredSpan;
-            set
-            {
-                if (_preferredSpan != value)
-                {
-                    _preferredSpan = Math.Clamp(value, 2, 3);
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsSpan2));
-                    OnPropertyChanged(nameof(IsSpan3));
-                    OnPropertyChanged(nameof(IsSpan4));
-                }
-            }
-        }
-        public bool IsSpan2 => PreferredSpan == 2;
-        public bool IsSpan3 => PreferredSpan == 3;
-        public bool IsSpan4 => PreferredSpan == 4;
-
-        private int _maxSpan = 3;
-        public int MaxSpan
-        {
-            get => _maxSpan;
-            set
-            {
-                if (_maxSpan != value)
-                {
-                    _maxSpan = Math.Clamp(value, 2, 3);
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsSpan3Available));
-                    OnPropertyChanged(nameof(IsSpan4Available));
-                }
-            }
-        }
-        public bool IsSpan3Available => _maxSpan >= 3;
-        public bool IsSpan4Available => _maxSpan >= 4;
-
-        private bool _isLoadingMoreProducts;
-        public bool IsLoadingMoreProducts
-        {
-            get => _isLoadingMoreProducts;
-            private set
-            {
-                if (_isLoadingMoreProducts != value)
-                {
-                    _isLoadingMoreProducts = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private bool _isSearchingProducts;
-        public bool IsSearchingProducts
-        {
-            get => _isSearchingProducts;
-            private set
-            {
-                if (_isSearchingProducts != value)
-                {
-                    _isSearchingProducts = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private int _totalApiProducts;
-        public int TotalApiProducts
-        {
-            get => _totalApiProducts;
-            private set
-            {
-                if (_totalApiProducts != value)
-                {
-                    _totalApiProducts = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(ProductCountText));
-                    OnPropertyChanged(nameof(HasProductCount));
-                }
-            }
-        }
-
-        public int LoadedProductCount => _allProducts.Count;
-        public string ProductCountText => TotalApiProducts > 0
-            ? $"{LoadedProductCount} de {TotalApiProducts} productos cargados"
-            : $"{LoadedProductCount} productos cargados";
-        public bool HasProductCount => TotalApiProducts > 0;
-        public bool CanLoadMore => _canLoadMoreFromApi && !IsLoadingMoreProducts;
-        public double LoadProgress => TotalApiProducts > 0
-            ? Math.Min(1.0, (double)LoadedProductCount / TotalApiProducts)
-            : 0.0;
-
         // ── Tipo de cambio ──
 
         private decimal _exchangeRate;
@@ -713,6 +493,7 @@ namespace NovaRetail.ViewModels
                     _exchangeRate = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(ExchangeRateText));
+                    ProductCatalog.SetExchangeRate(value);
                     RecalculateTotal();
                 }
             }
@@ -726,7 +507,7 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
@@ -737,24 +518,26 @@ namespace NovaRetail.ViewModels
             _salesRepService = salesRepService;
             _invoiceHistoryService = invoiceHistoryService;
             _parametrosService = parametrosService;
+            _pricingService = pricingService;
             _appStore = appStore;
             _userSession = userSession;
+            ProductCatalog = productCatalog;
             _appStore.StateChanged += OnAppStateChanged;
-            AddProductCommand = new Command<ProductModel>(p => _ = AddProductAsync(p));
+
+            // Wire ProductCatalog events
+            ProductCatalog.ProductAddRequested += (product, qty) => AddProduct(product, qty);
+            ProductCatalog.ProductDecrementRequested += DecrementProduct;
+            ProductCatalog.ServiceProductRequested += OpenServicePriceEntry;
+            ProductCatalog.InvoiceCommand = new Command(async () => await InvoiceAsync());
+            ProductCatalog.ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
+
             IncrementCommand = new Command<CartItemModel>(Increment);
             DecrementCommand = new Command<CartItemModel>(Decrement);
             ClearCartCommand = new Command(async () => await ClearCartAsync());
             InvoiceCommand = new Command(async () => await InvoiceAsync());
-            SearchProductCommand = new Command(async () => await SearchOrAddProductByCodeAsync());
-            SelectCategoryCommand = new Command<string>(SelectCategory);
-            SelectTabCommand = new Command<string>(SelectTab);
             ApplyDiscountCommand = new Command(async () => await ApplyDiscountAsync());
-            ToggleProductsPanelCommand = new Command(() => IsProductsPanelVisible = !IsProductsPanelVisible);
-            DecrementProductCommand = new Command<ProductModel>(DecrementProduct);
-            SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
             NavigateToClienteCommand = new Command(async () => await Shell.Current.GoToAsync("ClientePage"));
             OpenCustomerSearchCommand = new Command(async () => await OpenCustomerSearchAsync());
-            LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
             EditCartItemCommand = new Command<CartItemModel>(async item => await OpenItemActionAsync(item));
             ToggleSelectionModeCommand = new Command(() => IsSelectionMode = !IsSelectionMode);
             SelectCartSortCommand = new Command<string>(ToggleCartSort);
@@ -815,15 +598,22 @@ namespace NovaRetail.ViewModels
             CreditPaymentDetailVm.RequestBack += () => { IsCreditPaymentDetailVisible = false; IsCreditPaymentSearchVisible = true; };
             CreditPaymentDetailVm.RequestConfirmAbono += async request => await ProcessAbonoAsync(request);
             RefreshCartItemsView();
-            TenderSettingsChanged.Notified += () => _ = ReloadTendersAsync();
-            ParametrosChanged.Notified += () => _ = LoadStoreConfigAsync();
+            TenderSettingsChanged.Notified += async () => { try { await ReloadTendersAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainVM] ReloadTenders failed: {ex.Message}"); } };
+            ParametrosChanged.Notified += async () => { try { await LoadStoreConfigAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainVM] LoadStoreConfig failed: {ex.Message}"); } };
             _ = InitializeAsync();
         }
 
         private async Task InitializeAsync()
         {
-            await LoadStoreConfigAsync();
-            await Task.WhenAll(LoadProductsAsync(), LoadProductCountAsync());
+            try
+            {
+                await LoadStoreConfigAsync();
+                await ProductCatalog.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainVM] InitializeAsync failed: {ex.Message}");
+            }
         }
 
         public async Task ReloadTendersAsync()
@@ -852,76 +642,77 @@ namespace NovaRetail.ViewModels
                 }
                 catch { /* si falla, mostrar todos */ }
 
-                Tenders.Clear();
-                foreach (var t in tenders)
-                    Tenders.Add(t);
+                Tenders.ReplaceAll(tenders);
             }
             catch { }
         }
 
         private void OnAppStateChanged(AppState state)
         {
-            // ── UI overlays ──
-            OnPropertyChanged(nameof(IsItemActionVisible));
-            OnPropertyChanged(nameof(IsPriceJustVisible));
-            OnPropertyChanged(nameof(IsDiscountPopupVisible));
-            OnPropertyChanged(nameof(IsSelectionMode));
-            OnPropertyChanged(nameof(IsCheckoutVisible));
-            OnPropertyChanged(nameof(IsReceiptVisible));
-            OnPropertyChanged(nameof(IsProductsPanelVisible));
-            OnPropertyChanged(nameof(ProductsPanelVisibilityText));
-            OnPropertyChanged(nameof(IsManualExonerationVisible));
-            OnPropertyChanged(nameof(IsOrderSearchVisible));
-            OnPropertyChanged(nameof(IsQuoteReceiptVisible));
-            OnPropertyChanged(nameof(IsSalesRepPickerVisible));
-            OnPropertyChanged(nameof(IsCustomerSearchVisible));
-            OnPropertyChanged(nameof(IsCreditPaymentSearchVisible));
-            OnPropertyChanged(nameof(IsCreditPaymentDetailVisible));
+            var prev = _previousState;
+            _previousState = state;
+
+            // ── UI overlays (solo si cambió) ──
+            if (prev.IsItemActionVisible != state.IsItemActionVisible) OnPropertyChanged(nameof(IsItemActionVisible));
+            if (prev.IsPriceJustVisible != state.IsPriceJustVisible) OnPropertyChanged(nameof(IsPriceJustVisible));
+            if (prev.IsDiscountPopupVisible != state.IsDiscountPopupVisible) OnPropertyChanged(nameof(IsDiscountPopupVisible));
+            if (prev.IsSelectionMode != state.IsSelectionMode) OnPropertyChanged(nameof(IsSelectionMode));
+            if (prev.IsCheckoutVisible != state.IsCheckoutVisible) OnPropertyChanged(nameof(IsCheckoutVisible));
+            if (prev.IsReceiptVisible != state.IsReceiptVisible) OnPropertyChanged(nameof(IsReceiptVisible));
+            if (prev.IsManualExonerationVisible != state.IsManualExonerationVisible) OnPropertyChanged(nameof(IsManualExonerationVisible));
+            if (prev.IsOrderSearchVisible != state.IsOrderSearchVisible) OnPropertyChanged(nameof(IsOrderSearchVisible));
+            if (prev.IsQuoteReceiptVisible != state.IsQuoteReceiptVisible) OnPropertyChanged(nameof(IsQuoteReceiptVisible));
+            if (prev.IsSalesRepPickerVisible != state.IsSalesRepPickerVisible) OnPropertyChanged(nameof(IsSalesRepPickerVisible));
+            if (prev.IsCustomerSearchVisible != state.IsCustomerSearchVisible) OnPropertyChanged(nameof(IsCustomerSearchVisible));
+            if (prev.IsCreditPaymentSearchVisible != state.IsCreditPaymentSearchVisible) OnPropertyChanged(nameof(IsCreditPaymentSearchVisible));
+            if (prev.IsCreditPaymentDetailVisible != state.IsCreditPaymentDetailVisible) OnPropertyChanged(nameof(IsCreditPaymentDetailVisible));
 
             // ── Cliente ──
-            OnPropertyChanged(nameof(CurrentClientId));
-            OnPropertyChanged(nameof(CurrentClientAccountNumber));
-            OnPropertyChanged(nameof(CurrentClientCustomerId));
-            OnPropertyChanged(nameof(CurrentClientName));
-            OnPropertyChanged(nameof(HasClient));
-            OnPropertyChanged(nameof(ClientDisplayId));
-            OnPropertyChanged(nameof(ClientDisplayName));
-            OnPropertyChanged(nameof(IsCurrentClientReceiver));
-            OnPropertyChanged(nameof(CurrentClientCustomerType));
-            OnPropertyChanged(nameof(CurrentClientHasCredit));
+            if (prev.CurrentClientId != state.CurrentClientId
+                || prev.CurrentClientAccountNumber != state.CurrentClientAccountNumber
+                || prev.CurrentClientCustomerId != state.CurrentClientCustomerId
+                || prev.CurrentClientName != state.CurrentClientName
+                || prev.IsCurrentClientReceiver != state.IsCurrentClientReceiver
+                || prev.CurrentClientCustomerType != state.CurrentClientCustomerType)
+            {
+                OnPropertyChanged(nameof(CurrentClientId));
+                OnPropertyChanged(nameof(CurrentClientAccountNumber));
+                OnPropertyChanged(nameof(CurrentClientCustomerId));
+                OnPropertyChanged(nameof(CurrentClientName));
+                OnPropertyChanged(nameof(HasClient));
+                OnPropertyChanged(nameof(ClientDisplayId));
+                OnPropertyChanged(nameof(ClientDisplayName));
+                OnPropertyChanged(nameof(IsCurrentClientReceiver));
+                OnPropertyChanged(nameof(CurrentClientCustomerType));
+                OnPropertyChanged(nameof(CurrentClientHasCredit));
+            }
 
             // ── Carrito: ordenamiento ──
-            OnPropertyChanged(nameof(SelectedCartSortField));
-            OnPropertyChanged(nameof(IsCartSortDescending));
-            OnPropertyChanged(nameof(CartSortText));
-            OnPropertyChanged(nameof(IsCartSortByName));
-            OnPropertyChanged(nameof(IsCartSortByCode));
-            OnPropertyChanged(nameof(IsCartSortByPrice));
-            OnPropertyChanged(nameof(IsCartSortByUnits));
-            OnPropertyChanged(nameof(NameHeaderText));
-            OnPropertyChanged(nameof(CodeHeaderText));
-            OnPropertyChanged(nameof(QuantityHeaderText));
-            OnPropertyChanged(nameof(PriceHeaderText));
-
-            // ── Búsqueda de productos ──
-            OnPropertyChanged(nameof(ProductSearchText));
-            OnPropertyChanged(nameof(SelectedTab));
-            OnPropertyChanged(nameof(IsTabRapido));
-            OnPropertyChanged(nameof(IsTabCategorias));
-            OnPropertyChanged(nameof(IsTabPromos));
-            OnPropertyChanged(nameof(ShowCategoryTabs));
-            OnPropertyChanged(nameof(CatalogTabs));
-            OnPropertyChanged(nameof(CategoryTabs));
-            OnPropertyChanged(nameof(SelectedCategory));
-            OnPropertyChanged(nameof(BreadcrumbText));
+            if (prev.CartSortField != state.CartSortField || prev.IsCartSortDescending != state.IsCartSortDescending)
+            {
+                OnPropertyChanged(nameof(SelectedCartSortField));
+                OnPropertyChanged(nameof(IsCartSortDescending));
+                OnPropertyChanged(nameof(CartSortText));
+                OnPropertyChanged(nameof(IsCartSortByName));
+                OnPropertyChanged(nameof(IsCartSortByCode));
+                OnPropertyChanged(nameof(IsCartSortByPrice));
+                OnPropertyChanged(nameof(IsCartSortByUnits));
+                OnPropertyChanged(nameof(NameHeaderText));
+                OnPropertyChanged(nameof(CodeHeaderText));
+                OnPropertyChanged(nameof(QuantityHeaderText));
+                OnPropertyChanged(nameof(PriceHeaderText));
+            }
 
             // ── Descuento del ticket ──
-            OnPropertyChanged(nameof(DiscountPercent));
-            OnPropertyChanged(nameof(DiscountText));
-            OnPropertyChanged(nameof(DiscountAmountText));
-            OnPropertyChanged(nameof(DiscountColonesText));
-            OnPropertyChanged(nameof(TaxText));
-            OnPropertyChanged(nameof(TotalText));
+            if (prev.DiscountPercent != state.DiscountPercent)
+            {
+                OnPropertyChanged(nameof(DiscountPercent));
+                OnPropertyChanged(nameof(DiscountText));
+                OnPropertyChanged(nameof(DiscountAmountText));
+                OnPropertyChanged(nameof(DiscountColonesText));
+                OnPropertyChanged(nameof(TaxText));
+                OnPropertyChanged(nameof(TotalText));
+            }
         }
 
         private async Task LoadStoreConfigAsync()
@@ -940,7 +731,7 @@ namespace NovaRetail.ViewModels
                 QuoteDays = config.QuoteExpirationDays;
                 _defaultTenderID = config.DefaultTenderID;
                 _priceOverridePriceSource = config.PriceOverridePriceSource > 0 ? config.PriceOverridePriceSource : 1;
-                _nonInventoryItemTypes = ParseNonInventoryItemTypes(config.NonInventoryItemTypes);
+                ProductCatalog.SetStoreConfig(config.StoreID, ProductCatalogViewModel.ParseNonInventoryItemTypes(config.NonInventoryItemTypes));
                 _askForSalesRep = config.AskForSalesRep;
                 _requireSalesRep = config.RequireSalesRep;
                 _defaultTaxPercentage = config.DefaultTaxPercentage > 0 ? config.DefaultTaxPercentage : 13m;
@@ -948,7 +739,10 @@ namespace NovaRetail.ViewModels
                 _defaultClientName = !string.IsNullOrWhiteSpace(config.DefaultClientName) ? config.DefaultClientName : "CLIENTE CONTADO";
 
                 if (config.DefaultExchangeRate > 0)
+                {
                     ExchangeRate = config.DefaultExchangeRate;
+                    ProductCatalog.SetExchangeRate(config.DefaultExchangeRate);
+                }
 
                 OnPropertyChanged(nameof(ShowSalesRepFeature));
 
@@ -986,7 +780,7 @@ namespace NovaRetail.ViewModels
                 if (categories.Count > 0)
                 {
                     CategoryKeys.Load(categories);
-                    OnPropertyChanged(nameof(CategoryTabs));
+                    ProductCatalog.NotifyCategoryTabsChanged();
                 }
 
                 RecalculateTotal();
@@ -1008,48 +802,14 @@ namespace NovaRetail.ViewModels
                 if (categories.Count > 0)
                 {
                     CategoryKeys.Load(categories);
-                    OnPropertyChanged(nameof(CategoryTabs));
+                    ProductCatalog.NotifyCategoryTabsChanged();
                 }
             }
             catch { }
         }
 
         private static string NormalizeText(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return string.Empty;
-
-            var text = value.Trim().ToLowerInvariant();
-
-            var normalized = text.Normalize(NormalizationForm.FormD);
-            var sb = new StringBuilder(normalized.Length);
-
-            foreach (var c in normalized)
-            {
-                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-                    sb.Append(c);
-            }
-
-            return sb.ToString().Normalize(NormalizationForm.FormC);
-        }
-
-        // Sinónimos, stop words y lógica de expansión → ver Services/SearchSynonyms.cs
-
-        private void SelectTab(string? tab)
-        {
-            if (tab is null) return;
-            SelectedTab = tab;
-        }
-
-        public sealed record TabTabItem(string Key, string Text, bool IsActive);
-
-        private void SelectCategory(string? category)
-        {
-            if (category is null) return;
-            SelectedCategory = category;
-        }
-
-        public sealed record CategoryTabItem(string Key, string Text, bool IsActive);
+            => ProductCatalogViewModel.NormalizeText(value);
 
         // -- Checkout methods moved to MainViewModel.Checkout.cs --
         // -- Discount/Exoneration resolve methods moved to respective partial files --
@@ -1093,33 +853,19 @@ namespace NovaRetail.ViewModels
 
         private void RecalculateTotal()
         {
-            decimal subtotalBaseColones = 0m;
-            decimal taxAmountColones = 0m;
-            decimal totalAmountColones = 0m;
-            decimal discountAmountColones = 0m;
-            decimal exonerationAmountColones = 0m;
+            var totals = _pricingService.CalculateOrderTotals(CartItems, DiscountPercent, _exchangeRate, IsTaxIncluded);
 
-            foreach (var item in CartItems)
-            {
-                var lineTotals = CalculateLineTotals(item);
-                subtotalBaseColones += lineTotals.SubtotalBaseColones;
-                taxAmountColones += lineTotals.TaxColones;
-                totalAmountColones += lineTotals.TotalColones;
-                discountAmountColones += lineTotals.DiscountColones;
-                exonerationAmountColones += lineTotals.ExonerationColones;
-            }
+            _subtotalColones = totals.SubtotalColones;
+            _taxColones = totals.TaxColones;
+            _totalColones = totals.TotalColones;
+            _discountColones = totals.DiscountColones;
+            _exonerationColones = totals.ExonerationColones;
 
-            _subtotalColones = Math.Round(subtotalBaseColones, 2);
-            _taxColones = Math.Round(taxAmountColones, 2);
-            _totalColones = Math.Round(totalAmountColones, 2);
-            _discountColones = Math.Round(discountAmountColones, 2);
-            _exonerationColones = Math.Round(exonerationAmountColones, 2);
-
-            Subtotal = ConvertFromColones(_subtotalColones);
-            Tax = ConvertFromColones(_taxColones);
-            Total = ConvertFromColones(_totalColones);
-            DiscountAmount = ConvertFromColones(_discountColones);
-            ExonerationAmount = ConvertFromColones(_exonerationColones);
+            Subtotal = totals.Subtotal;
+            Tax = totals.Tax;
+            Total = totals.Total;
+            DiscountAmount = totals.DiscountAmount;
+            ExonerationAmount = totals.ExonerationAmount;
 
             OnPropertyChanged(nameof(CartCountText));
             OnPropertyChanged(nameof(DiscountText));
@@ -1140,52 +886,10 @@ namespace NovaRetail.ViewModels
         }
 
         private LineTotals CalculateLineTotals(CartItemModel item)
-        {
-            var originalGrossColones = item.EffectivePriceColones * item.Quantity;
-            var itemDiscountFactor = 1m - (item.DiscountPercent / 100m);
-            var ticketDiscountFactor = 1m - (DiscountPercent / 100m);
-            var displayedGrossAfterItemDiscount = originalGrossColones * itemDiscountFactor;
-            var displayedGrossAfterAllDiscounts = displayedGrossAfterItemDiscount * ticketDiscountFactor;
-            var originalTaxRate = item.TaxPercentage / 100m;
-            var effectiveTaxRate = item.EffectiveTaxPercentage / 100m;
-
-            if (IsTaxIncluded)
-            {
-                var divisor = 1m + originalTaxRate;
-                if (divisor <= 0m)
-                    divisor = 1m;
-
-                var subtotalBaseColones = displayedGrossAfterItemDiscount / divisor;
-                var discountedBaseColones = displayedGrossAfterAllDiscounts / divisor;
-                var taxColones = discountedBaseColones * effectiveTaxRate;
-                var totalColones = discountedBaseColones + taxColones;
-
-                return new LineTotals
-                {
-                    SubtotalBaseColones = subtotalBaseColones,
-                    TaxColones = taxColones,
-                    TotalColones = totalColones,
-                    DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
-                    ExonerationColones = Math.Max(0m, discountedBaseColones * (originalTaxRate - effectiveTaxRate))
-                };
-            }
-
-            var subtotalBase = displayedGrossAfterItemDiscount;
-            var discountedBase = displayedGrossAfterAllDiscounts;
-            var taxAmount = discountedBase * effectiveTaxRate;
-
-            return new LineTotals
-            {
-                SubtotalBaseColones = subtotalBase,
-                TaxColones = taxAmount,
-                TotalColones = discountedBase + taxAmount,
-                DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
-                ExonerationColones = Math.Max(0m, discountedBase * (originalTaxRate - effectiveTaxRate))
-            };
-        }
+            => _pricingService.CalculateLineTotals(item, DiscountPercent, IsTaxIncluded);
 
         private decimal ConvertFromColones(decimal amount)
-            => _exchangeRate > 0 ? Math.Round(amount / _exchangeRate, 4) : amount;
+            => _pricingService.ConvertFromColones(amount, _exchangeRate);
 
         private bool IsTaxIncluded => _storeTaxSystem > 0;
 
@@ -1198,15 +902,6 @@ namespace NovaRetail.ViewModels
         private static bool TryParseDecimal(string? value, out decimal result)
             => decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result)
                 || decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
-
-        private sealed class LineTotals
-        {
-            public decimal SubtotalBaseColones { get; set; }
-            public decimal TaxColones { get; set; }
-            public decimal TotalColones { get; set; }
-            public decimal DiscountColones { get; set; }
-            public decimal ExonerationColones { get; set; }
-        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)

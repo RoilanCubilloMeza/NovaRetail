@@ -120,13 +120,13 @@ namespace NovaRetail.ViewModels
             }
             else
             {
-                var maxAvailableQuantity = GetMaxAvailableQuantity(product.Stock);
+                var maxAvailableQuantity = ProductCatalogViewModel.GetMaxAvailableQuantity(product.Stock);
                 var currentQuantity = existing?.Quantity ?? 0m;
                 var availableToAdd = maxAvailableQuantity - currentQuantity;
 
                 if (availableToAdd <= 0m)
                 {
-                    ShowStockLimitAlert(product.Name, maxAvailableQuantity);
+                    ProductCatalog.ShowStockLimitAlert(product.Name, maxAvailableQuantity);
                     return;
                 }
 
@@ -163,7 +163,7 @@ namespace NovaRetail.ViewModels
             }
 
             if (!isNonInventory && quantityToApply < safeQuantity)
-                ShowStockLimitAlert(product.Name, GetMaxAvailableQuantity(product.Stock));
+                ProductCatalog.ShowStockLimitAlert(product.Name, ProductCatalogViewModel.GetMaxAvailableQuantity(product.Stock));
 
             RecalculateTotal();
             RefreshCartItemsView();
@@ -247,10 +247,10 @@ namespace NovaRetail.ViewModels
 
             if (!IsNonInventoryItem(item.ItemType))
             {
-                var maxAvailableQuantity = GetMaxAvailableQuantity(item.Stock);
+                var maxAvailableQuantity = ProductCatalogViewModel.GetMaxAvailableQuantity(item.Stock);
                 if (item.Quantity >= maxAvailableQuantity)
                 {
-                    ShowStockLimitAlert(item.DisplayName, maxAvailableQuantity);
+                    ProductCatalog.ShowStockLimitAlert(item.DisplayName, maxAvailableQuantity);
                     return;
                 }
                 item.Quantity = Math.Min(item.Quantity + 1m, maxAvailableQuantity);
@@ -260,8 +260,7 @@ namespace NovaRetail.ViewModels
                 item.Quantity += 1m;
             }
 
-            var product = _allProducts.FirstOrDefault(p => p.ItemID == item.ItemID && string.Equals(p.Code, item.Code, StringComparison.OrdinalIgnoreCase));
-            if (product is not null) product.CartQuantity = item.Quantity;
+            ProductCatalog.UpdateProductCartQuantity(item.ItemID, item.Code, item.Quantity);
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -276,8 +275,7 @@ namespace NovaRetail.ViewModels
                 ResetExonerationState();
             else
                 NormalizeAppliedExonerationState();
-            var product = _allProducts.FirstOrDefault(p => p.ItemID == item.ItemID && string.Equals(p.Code, item.Code, StringComparison.OrdinalIgnoreCase));
-            if (product is not null) product.CartQuantity = Math.Max(0m, item.Quantity);
+            ProductCatalog.UpdateProductCartQuantity(item.ItemID, item.Code, Math.Max(0m, item.Quantity));
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -294,7 +292,7 @@ namespace NovaRetail.ViewModels
                 ResetExonerationState();
             else
                 NormalizeAppliedExonerationState();
-            product.CartQuantity = Math.Max(0m, existing.Quantity);
+            ProductCatalog.UpdateProductCartQuantity(product.ItemID, product.Code, Math.Max(0m, existing.Quantity));
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -316,8 +314,7 @@ namespace NovaRetail.ViewModels
             ResetExonerationState();
             CartItems.Clear();
             DiscountPercent = 0;
-            foreach (var p in _allProducts)
-                p.CartQuantity = 0;
+            ProductCatalog.ResetAllCartQuantities();
             RecalculateTotal();
             RefreshCartItemsView();
         }
@@ -326,9 +323,7 @@ namespace NovaRetail.ViewModels
         {
             var ordered = ApplyCartSort(CartItems).ToList();
 
-            FilteredCartItems.Clear();
-            foreach (var item in ordered)
-                FilteredCartItems.Add(item);
+            FilteredCartItems.ReplaceAll(ordered);
 
             OnPropertyChanged(nameof(CartItemsSummaryText));
             OnPropertyChanged(nameof(CartEmptyText));

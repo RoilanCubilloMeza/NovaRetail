@@ -9,7 +9,7 @@
     <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0"
           SizeChanged="OnMainGridSizeChanged">
         <views:CartPanel     Grid.Column="0"/>
-        <views:ProductsPanel Grid.Column="1"/>
+        <views:ProductsPanel Grid.Column="1" BindingContext="{Binding ProductCatalog}"/>
         <views:ActionsPanel  Grid.Column="2"/>
 
         <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->

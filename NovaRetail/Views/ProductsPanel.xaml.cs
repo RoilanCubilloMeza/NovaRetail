@@ -7,7 +7,7 @@ public partial class ProductsPanel : ContentView
 {
     private int _preLoadProductCount;
     private int _lastKnownFirstVisible = -1;
-    private MainViewModel? _subscribedVm;
+    private ProductCatalogViewModel? _subscribedVm;
 
     public ProductsPanel()
     {
@@ -22,7 +22,7 @@ public partial class ProductsPanel : ContentView
         if (_subscribedVm is not null)
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
 
-        _subscribedVm = BindingContext as MainViewModel;
+        _subscribedVm = BindingContext as ProductCatalogViewModel;
 
         if (_subscribedVm is not null)
             _subscribedVm.PropertyChanged += OnVmPropertyChanged;
@@ -30,8 +30,8 @@ public partial class ProductsPanel : ContentView
 
     private async void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(MainViewModel.IsLoadingMoreProducts) ||
-            sender is not MainViewModel vm)
+        if (e.PropertyName != nameof(ProductCatalogViewModel.IsLoadingMoreProducts) ||
+            sender is not ProductCatalogViewModel vm)
             return;
 
         if (vm.IsLoadingMoreProducts)
