@@ -367,18 +367,7 @@ WHERE AccountNumber LIKE {0}
                 {
                     cn.Open();
 
-                    int accountID = 0;
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@Number", accountNumber.Trim());
-                        var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value)
-                            accountID = Convert.ToInt32(result);
-                    }
-
-                    if (accountID == 0)
-                        return Request.CreateResponse(HttpStatusCode.OK, entries);
-
+                    // Single round-trip: resolve AccountID via INNER JOIN
                     var sql = @"
 SELECT le.ID as LedgerEntryID,
        CONVERT(varchar(10), le.PostingDate, 103) as PostingDate,
@@ -391,6 +380,7 @@ SELECT le.ID as LedgerEntryID,
        ISNULL(d.Amount, 0) as Amount,
        ISNULL(d.Amount, 0) + ISNULL(applied.TotalApplied, 0) as Balance
 FROM dbo.AR_LedgerEntry le
+INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID AND a.Number = @Number
 LEFT JOIN dbo.AR_LedgerEntryDetail d
     ON d.LedgerEntryID = le.ID AND d.AppliedEntryID = 0
 LEFT JOIN (
@@ -398,19 +388,18 @@ LEFT JOIN (
     FROM dbo.AR_LedgerEntryDetail det
     INNER JOIN dbo.AR_LedgerEntry le2
         ON le2.ID = det.AppliedEntryID
+    INNER JOIN dbo.AR_Account a2 ON a2.ID = le2.AccountID AND a2.Number = @Number
     WHERE det.AppliedEntryID > 0
       AND le2.[Open] = 1
-      AND le2.AccountID = @AccountID
     GROUP BY det.AppliedEntryID
 ) applied ON applied.AppliedEntryID = le.ID
 WHERE le.[Open] = 1
-  AND le.AccountID = @AccountID
   AND le.DocumentType IN (1, 2, 3, 4)
 ORDER BY le.PostingDate";
 
                     using (var cmd = new SqlCommand(sql, cn))
                     {
-                        cmd.Parameters.AddWithValue("@AccountID", accountID);
+                        cmd.Parameters.AddWithValue("@Number", accountNumber.Trim());
                         cmd.CommandTimeout = 60;
 
                         using (var reader = cmd.ExecuteReader())
@@ -419,7 +408,7 @@ ORDER BY le.PostingDate";
                             {
                                 var documentType = Convert.ToInt32(reader["DocumentType"]);
                                 var ledgerType = Convert.ToInt32(reader["LedgerType"]);
-                                var balance = Convert.ToDecimal(reader["Balance"]);
+                                var balance = Math.Round(Convert.ToDecimal(reader["Balance"]), 2);
                                 if (balance <= 0) continue;
 
                                 string docTypeName;

@@ -391,21 +391,39 @@ namespace NovaAPI.Controllers
 
         [HttpGet]
         [Route("invoice-history")]
-        public HttpResponseMessage InvoiceHistory(string search = "", int top = 200)
+        public HttpResponseMessage InvoiceHistory(string search = "", int top = 100)
         {
             var connectionString = GetConnectionString();
             try
             {
                 var entries = new List<NovaRetailInvoiceHistoryEntryDto>();
+            var effectiveTop = top <= 0 ? 100 : top > 500 ? 500 : top;
+                var effectiveSearch = (search ?? string.Empty).Trim();
 
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
 
-                    const string sql = @"
-SELECT TOP (@Top)
-    t.TransactionNumber,
-    CAST(t.[Time] AS datetime) AS [Date],
+                    // Listing query: CTE selects TOP N from Transaction only,
+                    // then joins metadata tables. No OUTER APPLY — uses
+                    // Transaction.Total/SalesTax directly (detail view has full breakdown).
+                    string sql;
+                    if (effectiveSearch.Length == 0)
+                    {
+                        sql = @"
+;WITH TopTx AS (
+    SELECT TOP (@Top)
+        t.TransactionNumber,
+        t.[Time],
+        t.Total,
+        t.SalesTax,
+        t.CustomerID
+    FROM dbo.[Transaction] t
+    ORDER BY t.[Time] DESC
+)
+SELECT
+    tt.TransactionNumber,
+    CAST(tt.[Time] AS datetime) AS [Date],
     ISNULL(NULLIF(f.COMPROBANTE_TIPO, ''), '04') AS ComprobanteTipo,
     ISNULL(f.CLAVE50, '') AS Clave50,
     ISNULL(NULLIF(f.CLAVE20, ''), ISNULL(f.COMPROBANTE_INTERNO, '')) AS Consecutivo,
@@ -415,42 +433,71 @@ SELECT TOP (@Top)
         NULLIF(LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))), ''),
         'CLIENTE CONTADO') AS ClientName,
     CAST(0 AS INT) AS RegisterNumber,
-    CAST(ISNULL(s.SubtotalColones, ISNULL(t.Total, 0) - ISNULL(t.SalesTax, 0)) AS decimal(18, 2)) AS SubtotalColones,
-    CAST(ISNULL(s.DiscountColones, 0) AS decimal(18, 2)) AS DiscountColones,
+    CAST(ISNULL(tt.Total, 0) - ISNULL(tt.SalesTax, 0) AS decimal(18, 2)) AS SubtotalColones,
+    CAST(0 AS decimal(18, 2)) AS DiscountColones,
     CAST(0 AS decimal(18, 2)) AS ExonerationColones,
-    CAST(ISNULL(t.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
-    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones,
+    CAST(ISNULL(tt.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
+    CAST(ISNULL(tt.Total, 0) AS decimal(18, 2)) AS TotalColones,
     ISNULL(c.AccountNumber, '') AS CreditAccountNumber
-FROM dbo.[Transaction] t
-LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
-LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
-OUTER APPLY (
-    SELECT
-        SUM(CAST(ISNULL(te.FullPrice, te.Price) * ISNULL(te.Quantity, 0) AS decimal(18, 2))) AS SubtotalColones,
-        SUM(CAST(CASE
-            WHEN ISNULL(te.FullPrice, 0) > ISNULL(te.Price, 0)
-                THEN (ISNULL(te.FullPrice, 0) - ISNULL(te.Price, 0)) * ISNULL(te.Quantity, 0)
-            ELSE 0
-        END AS decimal(18, 2))) AS DiscountColones
-    FROM dbo.TransactionEntry te
-    WHERE te.TransactionNumber = t.TransactionNumber
-) s
-WHERE (@Search = ''
-    OR CAST(t.TransactionNumber AS NVARCHAR(50)) LIKE '%' + @Search + '%'
-    OR ISNULL(f.CEDULA_TRIBUTARIA, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.NOMBRE_CLIENTE, '') LIKE '%' + @Search + '%'
-    OR ISNULL(c.AccountNumber, '') LIKE '%' + @Search + '%'
-    OR LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))) LIKE '%' + @Search + '%'
-    OR ISNULL(f.CLAVE20, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.COMPROBANTE_INTERNO, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.CLAVE50, '') LIKE '%' + @Search + '%')
-ORDER BY t.[Time] DESC";
+FROM TopTx tt
+LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(tt.TransactionNumber AS NVARCHAR(50))
+LEFT JOIN dbo.Customer c ON c.ID = tt.CustomerID
+ORDER BY tt.[Time] DESC";
+                    }
+                    else
+                    {
+                        sql = @"
+;WITH FilteredTx AS (
+    SELECT TOP (@Top)
+        t.TransactionNumber,
+        t.[Time],
+        t.Total,
+        t.SalesTax,
+        t.CustomerID
+    FROM dbo.[Transaction] t
+    LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
+    LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
+    WHERE CAST(t.TransactionNumber AS NVARCHAR(50)) LIKE '%' + @Search + '%'
+        OR ISNULL(f.CEDULA_TRIBUTARIA, '') LIKE '%' + @Search + '%'
+        OR ISNULL(f.NOMBRE_CLIENTE, '') LIKE '%' + @Search + '%'
+        OR ISNULL(c.AccountNumber, '') LIKE '%' + @Search + '%'
+        OR LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))) LIKE '%' + @Search + '%'
+        OR ISNULL(f.CLAVE20, '') LIKE '%' + @Search + '%'
+        OR ISNULL(f.COMPROBANTE_INTERNO, '') LIKE '%' + @Search + '%'
+        OR ISNULL(f.CLAVE50, '') LIKE '%' + @Search + '%'
+    ORDER BY t.[Time] DESC
+)
+SELECT
+    ft.TransactionNumber,
+    CAST(ft.[Time] AS datetime) AS [Date],
+    ISNULL(NULLIF(f2.COMPROBANTE_TIPO, ''), '04') AS ComprobanteTipo,
+    ISNULL(f2.CLAVE50, '') AS Clave50,
+    ISNULL(NULLIF(f2.CLAVE20, ''), ISNULL(f2.COMPROBANTE_INTERNO, '')) AS Consecutivo,
+    ISNULL(NULLIF(f2.CEDULA_TRIBUTARIA, ''), ISNULL(NULLIF(c2.AccountNumber, ''), '')) AS ClientId,
+    COALESCE(
+        NULLIF(f2.NOMBRE_CLIENTE, ''),
+        NULLIF(LTRIM(RTRIM(ISNULL(c2.FirstName, '') + ' ' + ISNULL(c2.LastName, ''))), ''),
+        'CLIENTE CONTADO') AS ClientName,
+    CAST(0 AS INT) AS RegisterNumber,
+    CAST(ISNULL(ft.Total, 0) - ISNULL(ft.SalesTax, 0) AS decimal(18, 2)) AS SubtotalColones,
+    CAST(0 AS decimal(18, 2)) AS DiscountColones,
+    CAST(0 AS decimal(18, 2)) AS ExonerationColones,
+    CAST(ISNULL(ft.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
+    CAST(ISNULL(ft.Total, 0) AS decimal(18, 2)) AS TotalColones,
+    ISNULL(c2.AccountNumber, '') AS CreditAccountNumber
+FROM FilteredTx ft
+LEFT JOIN dbo.AVS_INTEGRAFAST_01 f2 ON f2.TRANSACTIONNUMBER = CAST(ft.TransactionNumber AS NVARCHAR(50))
+LEFT JOIN dbo.Customer c2 ON c2.ID = ft.CustomerID
+ORDER BY ft.[Time] DESC
+OPTION (RECOMPILE)";
+                    }
 
                     using (var cmd = new SqlCommand(sql, cn))
                     {
                         cmd.CommandTimeout = 60;
-                        cmd.Parameters.AddWithValue("@Top", top <= 0 ? 200 : top > 500 ? 500 : top);
-                        cmd.Parameters.AddWithValue("@Search", search ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@Top", effectiveTop);
+                        if (effectiveSearch.Length > 0)
+                            cmd.Parameters.AddWithValue("@Search", effectiveSearch);
 
                         using (var reader = cmd.ExecuteReader())
                         {
