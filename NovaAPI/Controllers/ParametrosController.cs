@@ -127,7 +127,15 @@ namespace NovaAPI.Controllers
                 return InternalServerError(ex);
             }
 
-            return NotFound();
+            return Ok(new TenderSettingsDto
+            {
+                ID = 1,
+                SalesTenderCods = string.Empty,
+                PaymentsTenderCods = string.Empty,
+                NCTenderCods = string.Empty,
+                NCPaymentCods = string.Empty,
+                NCPaymentChargeCode = string.Empty
+            });
         }
 
         /// <summary>PUT api/Parametros/Tenders → actualizar configuración de tenders</summary>

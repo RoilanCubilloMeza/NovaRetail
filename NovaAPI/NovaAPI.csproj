@@ -586,7 +586,9 @@
     <Content Include="Scripts\umd\popper-utils.min.js" />
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
-    <Content Include="SQL\setup_novaretail_sale.sql" />
+    <Content Include="Deployment\Script\Script.sql">
+      <Link>Deployment\Scripts\Script.sql</Link>
+    </Content>
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>

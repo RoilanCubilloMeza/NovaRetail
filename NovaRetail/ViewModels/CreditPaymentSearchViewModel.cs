@@ -84,13 +84,21 @@ public class CreditPaymentSearchViewModel : INotifyPropertyChanged
                 RequestSelect?.Invoke(customer);
         });
         CloseCommand = new Command(() => RequestClose?.Invoke());
-        ClearSearchCommand = new Command(() =>
+        ClearSearchCommand = new Command(async () =>
         {
+            _debounceCts?.Cancel();
+            _lastSearchedCriteria = string.Empty;
             SearchText = string.Empty;
-            _lastSearchedCriteria = null;
-            Customers.Clear();
-            TotalCount = 0;
-            StatusMessage = "Busque un cliente por cuenta, nombre o apellido.";
+
+            try
+            {
+                if (RequestSearch is not null)
+                    await RequestSearch.Invoke(null);
+            }
+            catch (Exception ex)
+            {
+                SetError($"Error: {ex.Message}");
+            }
         });
     }
 
