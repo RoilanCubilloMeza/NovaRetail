@@ -203,13 +203,10 @@ namespace NovaRetail.ViewModels
             IsBusy = true;
             try
             {
-                var path = Path.Combine(FileSystem.CacheDirectory, $"Proforma-{OrderID}.html");
-                File.WriteAllText(path, BuildHtml(false), Encoding.UTF8);
-                await Share.RequestAsync(new ShareFileRequest
-                {
-                    Title = $"Guardar Proforma #{OrderID}",
-                    File  = new ShareFile(path, "text/html")
-                });
+                await DocumentSaveService.SaveHtmlAsync(
+                    title: $"Guardar Proforma #{OrderID}",
+                    suggestedFileName: $"Proforma-{OrderID}.html",
+                    htmlContent: BuildHtml(false));
             }
             catch (Exception ex)
             {

@@ -365,12 +365,10 @@ namespace NovaRetail.ViewModels
             IsBusy = true;
             try
             {
-                var htmlFile = BuildCacheFile("html", BuildReceiptHtml(false));
-                await Share.RequestAsync(new ShareFileRequest
-                {
-                    Title = $"Guardar Factura #{TransactionNumber}",
-                    File  = new ShareFile(htmlFile, "text/html")
-                });
+                await DocumentSaveService.SaveHtmlAsync(
+                    title: $"Guardar Factura #{TransactionNumber}",
+                    suggestedFileName: $"Factura-{TransactionNumber}.html",
+                    htmlContent: BuildReceiptHtml(false));
             }
             catch (Exception ex)
             {
