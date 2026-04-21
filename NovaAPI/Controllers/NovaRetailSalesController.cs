@@ -1520,7 +1520,7 @@ ORDER BY te.ID";
                 try
                 {
                     using (var cmd = new SqlCommand(
-                        $"SELECT ID, ISNULL(CAST(ExtendedDescription AS NVARCHAR(20)),'') AS Cabys, ISNULL(ItemLookupCode,'') AS Code, ISNULL(Description,'') AS Desc1 FROM dbo.Item WHERE ID IN ({idList})", cn))
+                        $"SELECT ID, ISNULL(CAST(SubDescription3 AS NVARCHAR(20)),'') AS Cabys, ISNULL(ItemLookupCode,'') AS Code, ISNULL(Description,'') AS Desc1 FROM dbo.Item WHERE ID IN ({idList})", cn))
                     {
                         for (int pi = 0; pi < itemIds.Count; pi++)
                             cmd.Parameters.AddWithValue($"@id{pi}", itemIds[pi]);
@@ -1530,7 +1530,7 @@ ORDER BY te.ID";
                             while (r.Read())
                             {
                                 var id = Convert.ToInt32(r["ID"]);
-                                var cabys = r["Cabys"]?.ToString() ?? string.Empty;
+                                var cabys = NormalizeCabys(r["Cabys"]?.ToString());
                                 var code = r["Code"]?.ToString() ?? string.Empty;
                                 var desc = r["Desc1"]?.ToString() ?? string.Empty;
                                 itemInfoMap[id] = (cabys, code, desc);
@@ -1552,10 +1552,13 @@ ORDER BY te.ID";
                 if (montoDescuento == 0m && fullPrice > unitPrice)
                     montoDescuento = Math.Round((fullPrice - unitPrice) * qty, 2);
                 var subTotal = montoTotal - montoDescuento;
-                var taxRate = item.SalesTax > 0 && subTotal > 0
-                    ? Math.Round(item.SalesTax / subTotal * 100m, 2)
-                    : 0m;
                 var montoImpuesto = Math.Round(item.SalesTax, 2);
+                // Mantener la metadata base del impuesto original de la línea, aunque
+                // la exoneración reduzca el impuesto efectivo a cobrar.
+                var baseTaxAmount = Math.Round(item.SalesTax + Math.Max(0m, item.ExMonto), 2);
+                var baseTaxRate = baseTaxAmount > 0 && subTotal > 0
+                    ? Math.Round(baseTaxAmount / subTotal * 100m, 2)
+                    : 0m;
                 var montoLinea = subTotal + montoImpuesto;
                 var hasExoneration = !string.IsNullOrWhiteSpace(item.ExNumeroDoc);
 
@@ -1568,8 +1571,7 @@ ORDER BY te.ID";
                     : item.ItemID.ToString();
 
                 // Código de tarifa IVA según normativa CR
-                var codTarifaIVA = taxRate >= 13m ? "08" : taxRate >= 4m ? "04" : taxRate >= 2m ? "07" : taxRate >= 1m ? "06" : "01";
-                var codImpuesto = taxRate > 0 ? "01" : string.Empty;
+                var codTarifaIVA = baseTaxRate > 0 ? ResolveIntegraFastTaxCode(baseTaxRate) : string.Empty;
 
                 var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
 
@@ -1606,9 +1608,9 @@ ORDER BY te.ID";
                         cmd.Parameters.AddWithValue("@MONTO_DESCUENTO", montoDescuento);
                         cmd.Parameters.AddWithValue("@NATURALEZA_DESCUENTO", Truncate(naturalezaDescuento, 80));
                         cmd.Parameters.AddWithValue("@SUBTOTAL", subTotal);
-                        cmd.Parameters.AddWithValue("@COD_IMPUESTO", codImpuesto);
-                        cmd.Parameters.AddWithValue("@COD_IMPUESTO_BASE", string.Empty);
-                        cmd.Parameters.AddWithValue("@TARIFA_IMPUESTO", taxRate > 0 ? taxRate : 0m);
+                        cmd.Parameters.AddWithValue("@COD_IMPUESTO", codTarifaIVA);
+                        cmd.Parameters.AddWithValue("@COD_IMPUESTO_BASE", baseTaxRate > 0 ? (object)codTarifaIVA : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@TARIFA_IMPUESTO", baseTaxRate > 0 ? baseTaxRate : 0m);
                         cmd.Parameters.AddWithValue("@MONTO_IMPUESTO", montoImpuesto);
                         cmd.Parameters.AddWithValue("@EXONERA_TIPO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExTipoDoc, 2) : DBNull.Value);
                         cmd.Parameters.AddWithValue("@EXONERA_NUMERO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExNumeroDoc, 40) : DBNull.Value);
@@ -1627,6 +1629,15 @@ ORDER BY te.ID";
                     throw new InvalidOperationException($"No se pudo insertar AVS_INTEGRAFAST_05 para ItemID {item.ItemID}.", ex);
                 }
             }
+        }
+
+        private static string ResolveIntegraFastTaxCode(decimal taxRate)
+        {
+            if (taxRate >= 13m) return "08";
+            if (taxRate >= 4m) return "04";
+            if (taxRate >= 2m) return "07";
+            if (taxRate >= 1m) return "06";
+            return "01";
         }
 
         /// <summary>Crea la tabla AVS_INTEGRAFAST_05 si no existe.</summary>
@@ -1752,6 +1763,14 @@ ORDER BY te.ID";
             {
                 var s = value ?? string.Empty;
                 return s.Length <= maxLength ? s : s.Substring(0, maxLength);
+            }
+
+            private static string NormalizeCabys(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return string.Empty;
+
+                return new string(value.Where(char.IsDigit).ToArray());
             }
 
         /// <summary>

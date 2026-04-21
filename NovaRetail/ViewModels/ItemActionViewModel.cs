@@ -15,6 +15,8 @@ namespace NovaRetail.ViewModels
         private string _activeField = "Cantidad";
         private string _inputBuffer = string.Empty;
         private bool _isServiceMode;
+        private decimal _currentTaxPercentage;
+        private bool _isTaxIncludedMode;
 
         private string _tempQty = "1";
         private string _tempPrice = "0";
@@ -102,7 +104,29 @@ namespace NovaRetail.ViewModels
         public string TempPrice
         {
             get => _tempPrice;
-            private set { if (_tempPrice != value) { _tempPrice = value; OnPropertyChanged(); } }
+            private set
+            {
+                if (_tempPrice != value)
+                {
+                    _tempPrice = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(EditablePriceText));
+                    UpdateLivePricePreview(value);
+                }
+            }
+        }
+        public string EditablePriceText
+        {
+            get => _tempPrice;
+            set
+            {
+                var normalized = NormalizeNumericInput(value);
+                if (_inputBuffer == normalized && _tempPrice == normalized)
+                    return;
+
+                _inputBuffer = normalized;
+                TempPrice = normalized;
+            }
         }
         public string TempExtPrice
         {
@@ -132,10 +156,23 @@ namespace NovaRetail.ViewModels
         public bool IsServiceMode
         {
             get => _isServiceMode;
-            private set { if (_isServiceMode != value) { _isServiceMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(TitleText)); } }
+            private set
+            {
+                if (_isServiceMode != value)
+                {
+                    _isServiceMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsNormalMode));
+                    OnPropertyChanged(nameof(TitleText));
+                    OnPropertyChanged(nameof(KeypadActionText));
+                    OnPropertyChanged(nameof(KeypadActionParameter));
+                }
+            }
         }
         public bool IsNormalMode => !_isServiceMode;
         public string TitleText => _isServiceMode ? "Ingrese el Precio" : "Acción Sobre Artículo";
+        public string KeypadActionText => _isServiceMode ? "." : "ENT";
+        public string KeypadActionParameter => _isServiceMode ? "." : "ENT";
 
         // ── Discount panel ──
 
@@ -174,8 +211,7 @@ namespace NovaRetail.ViewModels
         public event Action? RequestAssignSalesRep;
 
         public decimal? PendingPriceColones =>
-            decimal.TryParse(_tempPrice, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : null;
+            TryParseInputDecimal(_tempPrice, out var p) && p > 0 ? p : null;
 
         // ── Commands ──
 
@@ -197,8 +233,7 @@ namespace NovaRetail.ViewModels
             OkCommand = new Command(() =>
             {
                 CommitCurrentBuffer();
-                var currentPrice = decimal.TryParse(_tempPrice, System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture, out var p) ? p : _originalPrice;
+                var currentPrice = TryParseInputDecimal(_tempPrice, out var p) ? p : _originalPrice;
 
                 if (_originalPrice > 0 && Math.Abs(currentPrice - _originalPrice) > 0.001m)
                 {
@@ -235,6 +270,8 @@ namespace NovaRetail.ViewModels
             _item = item;
             _originalPrice = item.EffectivePriceColones;
             _maxStock = item.Stock > 0 ? item.Stock : int.MaxValue;
+            _currentTaxPercentage = item.EffectiveTaxPercentage;
+            _isTaxIncludedMode = isTaxIncluded;
             IsServiceMode = false;
             ItemName = item.OverrideDescription ?? item.Name;
             ItemCode = item.Code;
@@ -278,6 +315,8 @@ namespace NovaRetail.ViewModels
             _item = null;
             _originalPrice = 0m;
             _maxStock = int.MaxValue;
+            _currentTaxPercentage = product.TaxPercentage;
+            _isTaxIncludedMode = isTaxIncluded;
             IsServiceMode = true;
             ItemName = product.Name;
             ItemCode = product.Code;
@@ -311,7 +350,7 @@ namespace NovaRetail.ViewModels
             get
             {
                 CommitCurrentBuffer();
-                return decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p) && p > 0 ? p : null;
+                return TryParseInputDecimal(TempPrice, out var p) && p > 0 ? p : null;
             }
         }
 
@@ -429,7 +468,7 @@ namespace NovaRetail.ViewModels
                         NavigateNext();
                     return;
                 case ".":
-                    if (!_inputBuffer.Contains('.'))
+                    if (!_inputBuffer.Contains('.') && !_inputBuffer.Contains(','))
                         _inputBuffer += ".";
                     break;
                 default:
@@ -447,24 +486,24 @@ namespace NovaRetail.ViewModels
             switch (_activeField)
             {
                 case "Cantidad":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var qty) && qty > 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var qty) && qty > 0)
                     {
                         TempQty = Math.Min(qty, _maxStock).ToString("0.##", CultureInfo.InvariantCulture);
                         RecalcExtPrice();
                     }
                     break;
                 case "Precio":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) && price >= 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var price) && price >= 0)
                     {
                         TempPrice = price.ToString("G", CultureInfo.InvariantCulture);
                         RecalcExtPrice();
                     }
                     break;
                 case "PrecioExt":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var ext) && ext >= 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var ext) && ext >= 0)
                     {
                         TempExtPrice = ext.ToString("G", CultureInfo.InvariantCulture);
-                        if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) && q > 0)
+                        if (TryParseInputDecimal(TempQty, out var q) && q > 0)
                             TempPrice = (ext / q).ToString("G", CultureInfo.InvariantCulture);
                     }
                     break;
@@ -472,7 +511,7 @@ namespace NovaRetail.ViewModels
                     TempDesc = _inputBuffer;
                     break;
                 case "DescuentoPct":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var pct)
+                    if (TryParseInputDecimal(_inputBuffer, out var pct)
                         && pct >= 0 && pct <= 100)
                         DiscountPercentText = ((int)pct).ToString();
                     break;
@@ -493,15 +532,15 @@ namespace NovaRetail.ViewModels
 
         private void RecalcExtPrice()
         {
-            if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) &&
-                decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+            if (TryParseInputDecimal(TempQty, out var q) &&
+                TryParseInputDecimal(TempPrice, out var p))
                 TempExtPrice = (q * p).ToString("G", CultureInfo.InvariantCulture);
         }
 
         private void AdjustQty(int delta)
         {
             CommitCurrentBuffer();
-            if (!decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q)) q = 1;
+            if (!TryParseInputDecimal(TempQty, out var q)) q = 1;
             q = Math.Clamp(q + delta, 1m, _maxStock);
             TempQty = q.ToString("0.##", CultureInfo.InvariantCulture);
             _inputBuffer = TempQty;
@@ -511,7 +550,7 @@ namespace NovaRetail.ViewModels
         private void AdjustDiscountPct(int delta)
         {
             CommitCurrentBuffer();
-            if (!decimal.TryParse(DiscountPercentText, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)) p = 0;
+            if (!TryParseInputDecimal(DiscountPercentText, out var p)) p = 0;
             p = Math.Clamp(p + delta, 0, 100);
             DiscountPercentText = ((int)p).ToString();
             _inputBuffer = DiscountPercentText;
@@ -558,6 +597,37 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsPrecioExtActive));
             OnPropertyChanged(nameof(IsDescripcionActive));
             OnPropertyChanged(nameof(IsDescuentoPctActive));
+        }
+
+        private void UpdateLivePricePreview(string? rawValue)
+        {
+            if (TryParseInputDecimal(rawValue, out var price) && price >= 0)
+            {
+                UpdatePriceBreakdown(price, _currentTaxPercentage, _isTaxIncludedMode);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rawValue))
+                UpdatePriceBreakdown(0m, _currentTaxPercentage, _isTaxIncludedMode);
+        }
+
+        private static bool TryParseInputDecimal(string? value, out decimal result)
+        {
+            var normalized = NormalizeNumericInput(value);
+            return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out result)
+                || decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.CurrentCulture, out result);
+        }
+
+        private static string NormalizeNumericInput(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            return value
+                .Trim()
+                .Replace(UiConfig.CurrencySymbol, string.Empty)
+                .Replace(",", ".")
+                .Trim();
         }
 
         // ── Apply to item ──

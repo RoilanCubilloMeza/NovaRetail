@@ -166,9 +166,24 @@
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding SetActiveFieldCommand}" CommandParameter="Precio"/>
                                 </Border.GestureRecognizers>
-                                <Label Text="{Binding TempPrice}"
-                                       FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
-                                       HorizontalTextAlignment="End" VerticalOptions="Center"/>
+                                <Grid>
+                                    <Label Text="{Binding TempPrice}"
+                                           IsVisible="{Binding IsNormalMode}"
+                                           FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
+                                           HorizontalTextAlignment="End" VerticalOptions="Center"/>
+                                    <Entry x:Name="ServicePriceEntry"
+                                           IsVisible="{Binding IsServiceMode}"
+                                           Text="{Binding EditablePriceText, Mode=TwoWay}"
+                                           Keyboard="Numeric"
+                                           ReturnType="Done"
+                                           ReturnCommand="{Binding OkCommand}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E293B"
+                                           BackgroundColor="Transparent"
+                                           HorizontalTextAlignment="End"
+                                           VerticalOptions="Center"/>
+                                </Grid>
                             </Border>
                         </Grid>
 
@@ -468,9 +483,9 @@
                                 BackgroundColor="#1E293B" StrokeShape="RoundRectangle 6"
                                 StrokeThickness="0" Padding="0">
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="ENT"/>
+                                <TapGestureRecognizer Command="{Binding KeypadCommand}" CommandParameter="{Binding KeypadActionParameter}"/>
                             </Border.GestureRecognizers>
-                            <Label Text="ENT" FontSize="15" FontAttributes="Bold" TextColor="White"
+                            <Label Text="{Binding KeypadActionText}" FontSize="15" FontAttributes="Bold" TextColor="White"
                                    HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Border>
                         <Border Grid.Row="3" Grid.Column="3" Style="{x:Null}"
