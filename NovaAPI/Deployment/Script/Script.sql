@@ -1406,14 +1406,33 @@ BEGIN
         END;
 
         SELECT
-            @SubTotal    = SUM((I.UnitPrice * I.Quantity) - ISNULL(I.SalesTax, 0)),
-            @Discounts   = SUM(ISNULL(I.LineDiscountAmount, 0)),
-            @SalesTax    = SUM(ISNULL(I.SalesTax, 0)),
+            @SubTotal    = SUM(CALC.SubTotal),
+            @Discounts   = SUM(CALC.DiscountAmount),
+            @SalesTax    = SUM(CALC.SalesTax),
             @CostOfGoods = SUM(ISNULL(I.Cost, 0) * I.Quantity),
             @Commission  = SUM(ISNULL(I.Commission, 0))
-        FROM @Items I;
+        FROM @Items I
+        CROSS APPLY
+        (
+            SELECT
+                GrossAmount = ROUND(ISNULL(I.FullPrice, I.UnitPrice) * I.Quantity, 2),
+                DiscountAmount = CASE
+                    WHEN ROUND(ISNULL(I.LineDiscountAmount, 0), 2) = 0
+                     AND ISNULL(I.FullPrice, I.UnitPrice) > I.UnitPrice
+                        THEN ROUND((ISNULL(I.FullPrice, I.UnitPrice) - I.UnitPrice) * I.Quantity, 2)
+                    ELSE ROUND(ISNULL(I.LineDiscountAmount, 0), 2)
+                END,
+                SalesTax = ROUND(ISNULL(I.SalesTax, 0), 2)
+        ) DISC
+        CROSS APPLY
+        (
+            SELECT
+                DiscountAmount = DISC.DiscountAmount,
+                SalesTax = DISC.SalesTax,
+                SubTotal = ROUND(DISC.GrossAmount - DISC.DiscountAmount, 2)
+        ) CALC;
 
-        SET @Total = @SubTotal + @SalesTax - @Discounts;
+        SET @Total = @SubTotal + @SalesTax;
 
         SELECT @TenderTotal = SUM(T.Amount) FROM @Tenders T;
 

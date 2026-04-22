@@ -15,6 +15,8 @@ namespace NovaAPI.Controllers
 
     public class CustomersController : ApiController
     {
+        private const decimal LedgerClosingTolerance = 0.01m;
+
         //string cs = AppConfig.ConnectionString("RMHPOS");
         //readonly LINQDataContext db = new LINQDataContext();
         readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));//test
@@ -23,6 +25,87 @@ namespace NovaAPI.Controllers
         {
             var text = (value ?? string.Empty).Trim();
             return text.Length > maxLength ? text.Substring(0, maxLength) : text;
+        }
+
+        private sealed class LedgerBalanceSnapshot
+        {
+            public decimal BaseAmount { get; set; }
+            public decimal AppliedToEntry { get; set; }
+            public decimal AppliedByEntry { get; set; }
+        }
+
+        private static LedgerBalanceSnapshot LoadLedgerBalanceSnapshot(SqlConnection cn, SqlTransaction tx, int ledgerEntryID)
+        {
+            using (var cmd = new SqlCommand(@"
+SELECT
+    BaseAmount = ISNULL(
+        (
+            SELECT SUM(d.Amount)
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.LedgerEntryID = @LedgerEntryID
+              AND d.AppliedEntryID = 0
+        ), 0),
+    AppliedToEntry = ISNULL(
+        (
+            SELECT SUM(d.AppliedAmount)
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.AppliedEntryID = @LedgerEntryID
+        ), 0),
+    AppliedByEntry = ISNULL(
+        (
+            SELECT SUM(ABS(d.AppliedAmount))
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.LedgerEntryID = @LedgerEntryID
+              AND d.AppliedEntryID > 0
+        ), 0);", cn, tx))
+            {
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (!reader.Read())
+                        return new LedgerBalanceSnapshot();
+
+                    return new LedgerBalanceSnapshot
+                    {
+                        BaseAmount = reader["BaseAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["BaseAmount"]),
+                        AppliedToEntry = reader["AppliedToEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedToEntry"]),
+                        AppliedByEntry = reader["AppliedByEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedByEntry"])
+                    };
+                }
+            }
+        }
+
+        private static void SetLedgerEntryOpenState(SqlConnection cn, SqlTransaction tx, int ledgerEntryID, bool isOpen, DateTime now)
+        {
+            using (var cmd = new SqlCommand(@"
+UPDATE dbo.AR_LedgerEntry
+SET ClosingDate = CASE WHEN @Open = 1 THEN NULL ELSE ISNULL(ClosingDate, @Now) END,
+    LastUpdated = @Now
+WHERE ID = @LedgerEntryID;", cn, tx))
+            {
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                cmd.Parameters.AddWithValue("@Open", isOpen ? 1 : 0);
+                cmd.Parameters.AddWithValue("@Now", now);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static void RefreshLedgerApplicationStatuses(SqlConnection cn, SqlTransaction tx, int sourceLedgerEntryID, IEnumerable<int> targetLedgerEntryIDs, DateTime now)
+        {
+            if (sourceLedgerEntryID > 0)
+            {
+                var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, sourceLedgerEntryID);
+                var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
+                SetLedgerEntryOpenState(cn, tx, sourceLedgerEntryID, sourceRemaining > LedgerClosingTolerance, now);
+            }
+
+            foreach (var targetLedgerEntryID in (targetLedgerEntryIDs ?? Enumerable.Empty<int>()).Distinct().Where(id => id > 0))
+            {
+                var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, targetLedgerEntryID);
+                var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
+                SetLedgerEntryOpenState(cn, tx, targetLedgerEntryID, targetBalance > LedgerClosingTolerance, now);
+            }
         }
 
         private static (bool Ok, string Message) TryAppCentralPayment(
@@ -464,7 +547,7 @@ ORDER BY le.PostingDate";
                                 {
                                     case 1: docTypeName = "Adjustment"; break;
                                     case 2: docTypeName = "Adjustment"; break;
-                                    case 3: docTypeName = "Transaction"; break;
+                                    case 3: docTypeName = ledgerType == 4 ? "Credit Memo" : "Transaction"; break;
                                     case 4: docTypeName = "Credit Memo"; break;
                                     default: docTypeName = "Other"; break;
                                 }
@@ -474,6 +557,7 @@ ORDER BY le.PostingDate";
                                 {
                                     case 1: ledgerTypeName = "Adjustment"; break;
                                     case 3: ledgerTypeName = "Invoice"; break;
+                                    case 4: ledgerTypeName = "Credit Memo"; break;
                                     default: ledgerTypeName = "Other"; break;
                                 }
 
@@ -571,6 +655,8 @@ WHERE a.Number = @Number", cn))
                         {
                             try
                             {
+                                var appliedLedgerEntryIDs = new List<int>();
+
                                 // DocumentType=5 (Payment), LedgerType=3, amount negative → reduces balance
                                 byte documentType = 5;
                                 byte ledgerType = 3;
@@ -588,8 +674,8 @@ WHERE a.Number = @Number", cn))
                                     cmd.Parameters.AddWithValue("@AccountID", accountID);
                                     cmd.Parameters.AddWithValue("@CustomerID", customerID);
                                     cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                    cmd.Parameters.AddWithValue("@LinkType", (byte)0);
-                                    cmd.Parameters.AddWithValue("@LinkID", 0);
+                                    cmd.Parameters.AddWithValue("@LinkType", (byte)1);
+                                    cmd.Parameters.AddWithValue("@LinkID", customerID);
                                     cmd.Parameters.AddWithValue("@AuditEntryID", 0);
                                     cmd.Parameters.AddWithValue("@DocumentType", documentType);
                                     cmd.Parameters.AddWithValue("@DocumentID", 0);
@@ -651,8 +737,6 @@ WHERE a.Number = @Number", cn))
                                             if (app.LedgerEntryID <= 0 || app.Amount <= 0)
                                                 continue;
 
-                                            bool isClosing = app.Amount >= app.EntryBalance;
-
                                             using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
                                             {
                                                 appCmd.CommandType = CommandType.StoredProcedure;
@@ -673,12 +757,16 @@ WHERE a.Number = @Number", cn))
                                                 appCmd.Parameters.AddWithValue("@AppliedAmount", -app.Amount);
                                                 appCmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
                                                 appCmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                                                appCmd.Parameters.AddWithValue("@ISCLOSING", isClosing);
+                                                appCmd.Parameters.AddWithValue("@ISCLOSING", false);
 
                                                 appCmd.ExecuteNonQuery();
                                             }
+
+                                            appliedLedgerEntryIDs.Add(app.LedgerEntryID);
                                         }
                                     }
+
+                                    RefreshLedgerApplicationStatuses(cn, tx, ledgerEntryID, appliedLedgerEntryIDs, now);
                                 }
 
                                 tx.Commit();

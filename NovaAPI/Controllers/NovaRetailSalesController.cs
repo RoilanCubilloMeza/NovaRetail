@@ -21,6 +21,7 @@ namespace NovaAPI.Controllers
         private const int QuoteRecallType = 3;
         private const int WorkOrderType = 2;
         private const int QuoteOrderType = 3;
+        private const decimal LedgerClosingTolerance = 0.01m;
 
         private static readonly string ErrorLogPath =
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log");
@@ -261,6 +262,22 @@ namespace NovaAPI.Controllers
                     if (response.Ok && response.TransactionNumber > 0)
                     {
                         response.BatchNumber = EnsureTransactionBatchNumber(cn, response.TransactionNumber, request.StoreID, request.RegisterID, response.BatchNumber ?? activeBatch.BatchNumber);
+
+                        try
+                        {
+                            var correctedTotals = SyncPersistedTransactionTotals(cn, response.TransactionNumber, request);
+                            if (correctedTotals.Total > 0m)
+                            {
+                                response.SubTotal = correctedTotals.SubTotal;
+                                response.Discounts = correctedTotals.Discounts;
+                                response.SalesTax = correctedTotals.SalesTax;
+                                response.Total = correctedTotals.Total;
+                            }
+                        }
+                        catch (Exception exTotals)
+                        {
+                            response.Warnings.Add($"Totals: {exTotals.Message}");
+                        }
 
                         try
                         {
@@ -1765,18 +1782,283 @@ ORDER BY te.ID";
                 return s.Length <= maxLength ? s : s.Substring(0, maxLength);
             }
 
-            private static string NormalizeCabys(string value)
-            {
-                if (string.IsNullOrWhiteSpace(value))
-                    return string.Empty;
+        private static string NormalizeCabys(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
 
-                return new string(value.Where(char.IsDigit).ToArray());
+            return new string(value.Where(char.IsDigit).ToArray());
+        }
+
+        private sealed class LedgerBalanceSnapshot
+        {
+            public decimal BaseAmount { get; set; }
+            public decimal AppliedToEntry { get; set; }
+            public decimal AppliedByEntry { get; set; }
+        }
+
+        private sealed class SaleTotalsSnapshot
+        {
+            public decimal SubTotal { get; set; }
+            public decimal Discounts { get; set; }
+            public decimal SalesTax { get; set; }
+            public decimal Total { get; set; }
+        }
+
+        private static string NormalizeTransactionReference(string reference)
+        {
+            var value = (reference ?? string.Empty).Trim();
+            if (value.StartsWith("TR:", StringComparison.OrdinalIgnoreCase))
+                value = value.Substring(3).Trim();
+
+            return value;
+        }
+
+        private static string BuildLedgerReference(string transactionReference)
+        {
+            var normalized = NormalizeTransactionReference(transactionReference);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? string.Empty
+                : "TR:" + normalized;
+        }
+
+        private static SaleTotalsSnapshot CalculateRequestedSaleTotals(NovaRetailCreateSaleRequest request)
+        {
+            var totals = new SaleTotalsSnapshot();
+            if (request?.Items == null || request.Items.Count == 0)
+                return totals;
+
+            foreach (var item in request.Items)
+            {
+                var qty = item.Quantity <= 0 ? 1m : item.Quantity;
+                var unitPrice = item.UnitPrice;
+                var fullPrice = item.FullPrice ?? unitPrice;
+                var grossAmount = Math.Round(fullPrice * qty, 2, MidpointRounding.AwayFromZero);
+                var discountAmount = Math.Round(item.LineDiscountAmount, 2, MidpointRounding.AwayFromZero);
+
+                if (discountAmount == 0m && fullPrice > unitPrice)
+                    discountAmount = Math.Round((fullPrice - unitPrice) * qty, 2, MidpointRounding.AwayFromZero);
+
+                var subTotal = Math.Round(grossAmount - discountAmount, 2, MidpointRounding.AwayFromZero);
+                var salesTax = Math.Round(item.SalesTax, 2, MidpointRounding.AwayFromZero);
+
+                totals.SubTotal += subTotal;
+                totals.Discounts += discountAmount;
+                totals.SalesTax += salesTax;
+                totals.Total += subTotal + salesTax;
             }
+
+            totals.SubTotal = Math.Round(totals.SubTotal, 2, MidpointRounding.AwayFromZero);
+            totals.Discounts = Math.Round(totals.Discounts, 2, MidpointRounding.AwayFromZero);
+            totals.SalesTax = Math.Round(totals.SalesTax, 2, MidpointRounding.AwayFromZero);
+            totals.Total = Math.Round(totals.Total, 2, MidpointRounding.AwayFromZero);
+
+            return totals;
+        }
+
+        private static SaleTotalsSnapshot SyncPersistedTransactionTotals(SqlConnection cn, int transactionNumber, NovaRetailCreateSaleRequest request)
+        {
+            var totals = CalculateRequestedSaleTotals(request);
+            if (transactionNumber <= 0 || totals.Total <= 0m)
+                return totals;
+
+            using (var cmd = new SqlCommand(@"
+UPDATE dbo.[Transaction]
+SET Total = @Total,
+    SalesTax = @SalesTax
+WHERE TransactionNumber = @TransactionNumber
+  AND
+  (
+      ABS(ISNULL(Total, 0) - @Total) > @Tolerance
+      OR ABS(ISNULL(SalesTax, 0) - @SalesTax) > @Tolerance
+  );", cn))
+            {
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                cmd.Parameters.AddWithValue("@Total", totals.Total);
+                cmd.Parameters.AddWithValue("@SalesTax", totals.SalesTax);
+                cmd.Parameters.AddWithValue("@Tolerance", LedgerClosingTolerance);
+                cmd.ExecuteNonQuery();
+            }
+
+            return totals;
+        }
+
+        private static decimal LoadPersistedTransactionTotal(SqlConnection cn, SqlTransaction tx, int transactionNumber, decimal fallback)
+        {
+            if (transactionNumber <= 0)
+                return fallback;
+
+            using (var cmd = new SqlCommand("SELECT TOP 1 Total FROM dbo.[Transaction] WHERE TransactionNumber = @TransactionNumber", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                var result = cmd.ExecuteScalar();
+                if (result == null || result == DBNull.Value)
+                    return fallback;
+
+                return Math.Abs(Convert.ToDecimal(result));
+            }
+        }
+
+        private static int ResolveReferencedLedgerEntryID(SqlConnection cn, SqlTransaction tx, int accountID, string transactionReference)
+        {
+            var ledgerReference = BuildLedgerReference(transactionReference);
+            if (accountID <= 0 || string.IsNullOrWhiteSpace(ledgerReference))
+                return 0;
+
+            using (var cmd = new SqlCommand(@"
+SELECT TOP 1 le.ID
+FROM dbo.AR_LedgerEntry le
+WHERE le.AccountID = @AccountID
+  AND le.Reference = @Reference
+  AND le.DocumentType IN (1, 2, 3, 4)
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.AR_LedgerEntryDetail d
+      WHERE d.LedgerEntryID = le.ID
+        AND d.AppliedEntryID = 0
+        AND d.Amount > 0
+  )
+ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
+         le.ID DESC;", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                cmd.Parameters.AddWithValue("@AccountID", accountID);
+                cmd.Parameters.AddWithValue("@Reference", ledgerReference);
+
+                var result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value
+                    ? 0
+                    : Convert.ToInt32(result);
+            }
+        }
+
+        private static LedgerBalanceSnapshot LoadLedgerBalanceSnapshot(SqlConnection cn, SqlTransaction tx, int ledgerEntryID)
+        {
+            using (var cmd = new SqlCommand(@"
+SELECT
+    BaseAmount = ISNULL(
+        (
+            SELECT SUM(d.Amount)
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.LedgerEntryID = @LedgerEntryID
+              AND d.AppliedEntryID = 0
+        ), 0),
+    AppliedToEntry = ISNULL(
+        (
+            SELECT SUM(d.AppliedAmount)
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.AppliedEntryID = @LedgerEntryID
+        ), 0),
+    AppliedByEntry = ISNULL(
+        (
+            SELECT SUM(ABS(d.AppliedAmount))
+            FROM dbo.AR_LedgerEntryDetail d
+            WHERE d.LedgerEntryID = @LedgerEntryID
+              AND d.AppliedEntryID > 0
+        ), 0);", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (!reader.Read())
+                        return new LedgerBalanceSnapshot();
+
+                    return new LedgerBalanceSnapshot
+                    {
+                        BaseAmount = reader["BaseAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["BaseAmount"]),
+                        AppliedToEntry = reader["AppliedToEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedToEntry"]),
+                        AppliedByEntry = reader["AppliedByEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedByEntry"])
+                    };
+                }
+            }
+        }
+
+        private static void SetLedgerEntryOpenState(SqlConnection cn, SqlTransaction tx, int ledgerEntryID, bool isOpen, DateTime now)
+        {
+            using (var cmd = new SqlCommand(@"
+UPDATE dbo.AR_LedgerEntry
+SET ClosingDate = CASE WHEN @Open = 1 THEN NULL ELSE ISNULL(ClosingDate, @Now) END,
+    LastUpdated = @Now
+WHERE ID = @LedgerEntryID;", cn))
+            {
+                if (tx != null)
+                    cmd.Transaction = tx;
+
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                cmd.Parameters.AddWithValue("@Open", isOpen ? 1 : 0);
+                cmd.Parameters.AddWithValue("@Now", now);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static void RefreshLedgerApplicationStatuses(SqlConnection cn, SqlTransaction tx, int sourceLedgerEntryID, int targetLedgerEntryID, DateTime now)
+        {
+            if (sourceLedgerEntryID > 0)
+            {
+                var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, sourceLedgerEntryID);
+                var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
+                SetLedgerEntryOpenState(cn, tx, sourceLedgerEntryID, sourceRemaining > LedgerClosingTolerance, now);
+            }
+
+            if (targetLedgerEntryID > 0)
+            {
+                var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, targetLedgerEntryID);
+                var targetBalance = targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry;
+                SetLedgerEntryOpenState(cn, tx, targetLedgerEntryID, targetBalance > LedgerClosingTolerance, now);
+            }
+        }
+
+        private static void InsertLedgerApplicationDetail(
+            SqlConnection cn,
+            SqlTransaction tx,
+            int ledgerEntryID,
+            int accountID,
+            int ledgerType,
+            DateTime postingDate,
+            string reference,
+            int appliedEntryID,
+            decimal appliedAmount)
+        {
+            using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 60;
+
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                cmd.Parameters.AddWithValue("@AccountID", accountID);
+                cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                cmd.Parameters.AddWithValue("@DueDate", postingDate);
+                cmd.Parameters.AddWithValue("@PostingDate", postingDate);
+                cmd.Parameters.AddWithValue("@DetailType", (byte)0);
+                cmd.Parameters.AddWithValue("@Reference", reference);
+                cmd.Parameters.AddWithValue("@Amount", 0m);
+                cmd.Parameters.AddWithValue("@AmountLCY", 0m);
+                cmd.Parameters.AddWithValue("@AmountACY", 0m);
+                cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                cmd.Parameters.AddWithValue("@AppliedEntryID", appliedEntryID);
+                cmd.Parameters.AddWithValue("@AppliedAmount", appliedAmount);
+                cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                cmd.Parameters.AddWithValue("@ISCLOSING", false);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
 
         /// <summary>
         /// Creates an AR_Transaction entry when the sale is a credit sale or a credit-mode credit note.
-        /// Credit sale (CondicionVenta=02, no NC): DocumentType=2 (Invoice) – increases customer debt.
-        /// Credit NC (has NC_REFERENCIA, MedioPago 99): DocumentType=3 (Credit Memo) – reduces customer debt.
+        /// Credit sale (CondicionVenta=02, no NC): DocumentType=3 + LedgerType=3.
+        /// Credit NC (has NC_REFERENCIA, MedioPago 99): DocumentType=3 + LedgerType=4.
         /// </summary>
         private static void TryCreateARTransaction(NovaRetailCreateSaleRequest request, NovaRetailCreateSaleResponse response)
         {
@@ -1842,82 +2124,127 @@ ORDER BY te.ID";
                     }
                 }
 
-                var now = DateTime.Now;
-                var reference = "TR:" + response.TransactionNumber;
-
-                // Credit sale: DocumentType=3 (Invoice), LedgerType=3, Positive=1, amount positive → increases balance
-                // Credit NC:  DocumentType=4 (Credit Memo), LedgerType=3, Positive=1, amount negative → decreases balance
-                byte documentType = (byte)(isCreditSale ? 3 : 4);
-                byte ledgerType = 3;
-                decimal amountACY = isCreditSale ? total : -total;
-
-                // 1. Insert AR_LedgerEntry
-                int ledgerEntryID = 0;
-                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn))
+                using (var tx = cn.BeginTransaction())
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 60;
+                    var now = DateTime.Now;
+                    var dueDate = now.AddDays(30);
+                    var reference = BuildLedgerReference(response.TransactionNumber.ToString(CultureInfo.InvariantCulture));
 
-                    cmd.Parameters.AddWithValue("@LastUpdated", now);
-                    cmd.Parameters.AddWithValue("@AccountID", accountID);
-                    cmd.Parameters.AddWithValue("@CustomerID", customerID);
-                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                    cmd.Parameters.AddWithValue("@LinkType", (byte)0);
-                    cmd.Parameters.AddWithValue("@LinkID", 0);
-                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                    cmd.Parameters.AddWithValue("@DocumentType", documentType);
-                    cmd.Parameters.AddWithValue("@DocumentID", 0);
-                    cmd.Parameters.AddWithValue("@PostingDate", now);
-                    cmd.Parameters.AddWithValue("@DueDate", now.AddDays(30));
-                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                    cmd.Parameters.AddWithValue("@Reference", reference);
-                    cmd.Parameters.AddWithValue("@Description", isCreditSale ? "Venta a crédito" : "Nota de crédito");
-                    cmd.Parameters.AddWithValue("@CurrencyID", 0);
-                    cmd.Parameters.AddWithValue("@CurrencyFactor", 1.0);
-                    cmd.Parameters.AddWithValue("@Positive", true);
-                    cmd.Parameters.AddWithValue("@ClosingDate", DBNull.Value);
-                    cmd.Parameters.AddWithValue("@ReasonID", 0);
-                    cmd.Parameters.AddWithValue("@HoldReasonID", 0);
-                    cmd.Parameters.AddWithValue("@UndoReasonID", 0);
-                    cmd.Parameters.AddWithValue("@PayMethodID", 0);
-                    cmd.Parameters.AddWithValue("@TransactionID", 0);
-                    cmd.Parameters.AddWithValue("@ExtReference", string.Empty);
-                    cmd.Parameters.AddWithValue("@Comment", string.Empty);
-
-                    using (var reader = cmd.ExecuteReader())
+                    total = LoadPersistedTransactionTotal(cn, tx, response.TransactionNumber, total);
+                    if (total <= 0m)
                     {
-                        if (reader.Read())
-                            ledgerEntryID = Convert.ToInt32(reader["ID"]);
+                        tx.Rollback();
+                        return;
                     }
-                }
 
-                if (ledgerEntryID <= 0)
-                    return;
+                    // RMH expects transaction-backed AR rows with DocumentType=3.
+                    // The ledger type distinguishes invoices (3) from credit notes (4).
+                    byte documentType = 3;
+                    byte ledgerType = (byte)(isCreditSale ? 3 : 4);
+                    decimal amountACY = isCreditSale ? total : -total;
 
-                // 2. Insert AR_LedgerEntryDetail
-                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 60;
+                    // 1. Insert AR_LedgerEntry
+                    int ledgerEntryID = 0;
+                    using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn, tx))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 60;
 
-                    cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
-                    cmd.Parameters.AddWithValue("@AccountID", accountID);
-                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                    cmd.Parameters.AddWithValue("@DueDate", now.AddDays(30));
-                    cmd.Parameters.AddWithValue("@PostingDate", now);
-                    cmd.Parameters.AddWithValue("@DetailType", (byte)0);
-                    cmd.Parameters.AddWithValue("@Reference", reference);
-                    cmd.Parameters.AddWithValue("@Amount", amountACY);
-                    cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
-                    cmd.Parameters.AddWithValue("@AmountACY", amountACY);
-                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                    cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
-                    cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
-                    cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
-                    cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                    cmd.Parameters.AddWithValue("@ISCLOSING", false);
+                        cmd.Parameters.AddWithValue("@LastUpdated", now);
+                        cmd.Parameters.AddWithValue("@AccountID", accountID);
+                        cmd.Parameters.AddWithValue("@CustomerID", customerID);
+                        cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
+                        cmd.Parameters.AddWithValue("@LinkType", (byte)1);
+                        cmd.Parameters.AddWithValue("@LinkID", customerID);
+                        cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                        cmd.Parameters.AddWithValue("@DocumentType", documentType);
+                        cmd.Parameters.AddWithValue("@DocumentID", response.TransactionNumber);
+                        cmd.Parameters.AddWithValue("@PostingDate", now);
+                        cmd.Parameters.AddWithValue("@DueDate", dueDate);
+                        cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                        cmd.Parameters.AddWithValue("@Reference", reference);
+                        cmd.Parameters.AddWithValue("@Description", isCreditSale ? "Venta a crédito" : "Nota de crédito");
+                        cmd.Parameters.AddWithValue("@CurrencyID", 0);
+                        cmd.Parameters.AddWithValue("@CurrencyFactor", 1.0);
+                        cmd.Parameters.AddWithValue("@Positive", true);
+                        cmd.Parameters.AddWithValue("@ClosingDate", DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ReasonID", 0);
+                        cmd.Parameters.AddWithValue("@HoldReasonID", 0);
+                        cmd.Parameters.AddWithValue("@UndoReasonID", 0);
+                        cmd.Parameters.AddWithValue("@PayMethodID", 0);
+                        cmd.Parameters.AddWithValue("@TransactionID", 0);
+                        cmd.Parameters.AddWithValue("@ExtReference", isCreditNC ? NormalizeTransactionReference(request.NC_REFERENCIA) : response.TransactionNumber.ToString(CultureInfo.InvariantCulture));
+                        cmd.Parameters.AddWithValue("@Comment", isCreditNC ? ("NC aplicada a " + BuildLedgerReference(request.NC_REFERENCIA)) : string.Empty);
 
-                    cmd.ExecuteNonQuery();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                                ledgerEntryID = Convert.ToInt32(reader["ID"]);
+                        }
+                    }
+
+                    if (ledgerEntryID <= 0)
+                    {
+                        tx.Rollback();
+                        return;
+                    }
+
+                    // 2. Insert AR_LedgerEntryDetail
+                    using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 60;
+
+                        cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                        cmd.Parameters.AddWithValue("@AccountID", accountID);
+                        cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                        cmd.Parameters.AddWithValue("@DueDate", dueDate);
+                        cmd.Parameters.AddWithValue("@PostingDate", now);
+                        cmd.Parameters.AddWithValue("@DetailType", (byte)0);
+                        cmd.Parameters.AddWithValue("@Reference", reference);
+                        cmd.Parameters.AddWithValue("@Amount", amountACY);
+                        cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
+                        cmd.Parameters.AddWithValue("@AmountACY", amountACY);
+                        cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                        cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
+                        cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
+                        cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                        cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                        cmd.Parameters.AddWithValue("@ISCLOSING", false);
+
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    if (isCreditNC)
+                    {
+                        int referencedLedgerEntryID = ResolveReferencedLedgerEntryID(cn, tx, accountID, request.NC_REFERENCIA);
+                        if (referencedLedgerEntryID > 0)
+                        {
+                            var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, ledgerEntryID);
+                            var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, referencedLedgerEntryID);
+                            var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
+                            var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
+                            var amountToApply = Math.Min(sourceRemaining, targetBalance);
+
+                            if (amountToApply > LedgerClosingTolerance)
+                            {
+                                InsertLedgerApplicationDetail(
+                                    cn,
+                                    tx,
+                                    ledgerEntryID,
+                                    accountID,
+                                    ledgerType,
+                                    now,
+                                    reference,
+                                    referencedLedgerEntryID,
+                                    -amountToApply);
+
+                                RefreshLedgerApplicationStatuses(cn, tx, ledgerEntryID, referencedLedgerEntryID, now);
+                            }
+                        }
+                    }
+
+                    tx.Commit();
                 }
             }
         }
