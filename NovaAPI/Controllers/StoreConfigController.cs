@@ -228,8 +228,8 @@ namespace NovaAPI.Controllers
                     }
 
                     var sql = hasMedioPago
-                        ? "SELECT ID, Description, CurrencyID, DisplayOrder, ISNULL(MedioPagoCodigo,'') AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder"
-                        : "SELECT ID, Description, CurrencyID, DisplayOrder, '' AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder";
+                        ? "SELECT ID, Description, ISNULL(Code,'') AS Code, CurrencyID, DisplayOrder, ISNULL(MedioPagoCodigo,'') AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder"
+                        : "SELECT ID, Description, ISNULL(Code,'') AS Code, CurrencyID, DisplayOrder, '' AS MedioPagoCodigo FROM Tender WHERE Inactive = 0 ORDER BY DisplayOrder";
 
                     using (var cmd = new SqlCommand(sql, cn))
                     using (var reader = cmd.ExecuteReader())
@@ -240,6 +240,7 @@ namespace NovaAPI.Controllers
                             {
                                 ID = Convert.ToInt32(reader["ID"]),
                                 Description = reader["Description"]?.ToString() ?? string.Empty,
+                                Code = reader["Code"]?.ToString() ?? string.Empty,
                                 CurrencyID = Convert.ToInt32(reader["CurrencyID"]),
                                 DisplayOrder = Convert.ToInt32(reader["DisplayOrder"]),
                                 MedioPagoCodigo = reader["MedioPagoCodigo"]?.ToString() ?? string.Empty
@@ -353,7 +354,8 @@ namespace NovaAPI.Controllers
     public class TenderDto
     {
         public int ID { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
         public int CurrencyID { get; set; }
         public int DisplayOrder { get; set; }
         /// <summary>Código de medio de pago para facturación electrónica (01=Efectivo, 02=Tarjeta, 04=Transferencia, etc.).</summary>

@@ -49,6 +49,7 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
 
     public int ID { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     public int CurrencyID { get; set; }
     public int DisplayOrder { get; set; }
 
@@ -64,6 +65,28 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
     };
 
     public string DisplayText => $"{Description}  ({CurrencySymbol})";
+
+    public string ResolveFiscalMedioPagoCodigo()
+    {
+        if (!string.IsNullOrWhiteSpace(MedioPagoCodigo))
+            return MedioPagoCodigo.Trim();
+
+        var tenderCode = (Code ?? string.Empty).Trim();
+        if (tenderCode.Length >= 2 && char.IsDigit(tenderCode[0]) && char.IsDigit(tenderCode[1]))
+            return tenderCode.Substring(0, 2);
+
+        var description = (Description ?? string.Empty).Trim().ToUpperInvariant();
+        if (description.Contains("EFECTIVO") || description.Contains("CONTADO"))
+            return "01";
+        if (description.Contains("TARJETA"))
+            return "02";
+        if (description.Contains("TRANSFER") || description.Contains("SINPE"))
+            return "04";
+        if (description.Contains("CRÉDITO") || description.Contains("CREDITO"))
+            return "99";
+
+        return string.Empty;
+    }
 
     /// <summary>True si este medio de pago es de tipo crédito (cuenta corriente del cliente).</summary>
     public bool IsCredit => (Description ?? string.Empty).Contains("crédito", StringComparison.OrdinalIgnoreCase)

@@ -126,6 +126,74 @@ namespace NovaAPI.Controllers
         }
 
         [HttpGet]
+        [Route("api/Items/{id:int}")]
+        public IHttpActionResult GetById(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                    return NotFound();
+
+                var connectionString = AppConfig.ConnectionString("RMHPOS");
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    return NotFound();
+
+                using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(@"
+                            SELECT TOP 1
+                                i.ID, i.ItemLookupCode, i.Description, i.ExtendedDescription,
+                                i.Quantity, i.DepartmentID, i.CategoryID,
+                                i.Price, i.PriceA, i.PriceB, i.PriceC,
+                                i.TaxID, i.Cost,
+                                i.SubDescription1, i.SubDescription2, i.SubDescription3,
+                                i.WebItem, i.ItemType,
+                                ISNULL(t.Percentage, 0) AS Percentage
+                            FROM dbo.Item i
+                            LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
+                            WHERE i.ID = @id", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (!reader.Read())
+                                return NotFound();
+
+                            return Ok(new ProductSearchDto
+                            {
+                                ID = Convert.ToInt32(reader["ID"]),
+                                ItemLookupCode = reader["ItemLookupCode"]?.ToString() ?? "",
+                                Description = reader["Description"]?.ToString() ?? "",
+                                ExtendedDescription = reader["ExtendedDescription"]?.ToString() ?? "",
+                                Quantity = reader["Quantity"] != DBNull.Value ? Convert.ToDouble(reader["Quantity"]) : 0,
+                                DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
+                                CategoryID = Convert.ToInt32(reader["CategoryID"]),
+                                PRICE = reader["Price"] != DBNull.Value ? Convert.ToDecimal(reader["Price"]) : 0,
+                                PriceA = reader["PriceA"] != DBNull.Value ? Convert.ToDecimal(reader["PriceA"]) : 0,
+                                PriceB = reader["PriceB"] != DBNull.Value ? Convert.ToDecimal(reader["PriceB"]) : 0,
+                                PriceC = reader["PriceC"] != DBNull.Value ? Convert.ToDecimal(reader["PriceC"]) : 0,
+                                TaxID = Convert.ToInt32(reader["TaxID"]),
+                                Cost = reader["Cost"] != DBNull.Value ? Convert.ToDecimal(reader["Cost"]) : 0,
+                                SubDescription1 = reader["SubDescription1"]?.ToString() ?? "",
+                                SubDescription2 = reader["SubDescription2"]?.ToString() ?? "",
+                                SubDescription3 = reader["SubDescription3"]?.ToString() ?? "",
+                                WebItem = reader["WebItem"] != DBNull.Value && Convert.ToBoolean(reader["WebItem"]),
+                                Percentage = reader["Percentage"] != DBNull.Value ? Convert.ToSingle(reader["Percentage"]) : 0f,
+                                ItemType = reader["ItemType"] != DBNull.Value ? Convert.ToInt32(reader["ItemType"]) : 0
+                            });
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpGet]
         [Route("api/Items/Search")]
         public IEnumerable<ProductSearchDto> Search(string criteria, int top = 300)
         {

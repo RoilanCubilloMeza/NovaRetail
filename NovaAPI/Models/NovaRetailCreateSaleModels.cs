@@ -35,6 +35,7 @@ namespace NovaAPI.Models
         public string CodCliente { get; set; } = string.Empty;
         public string NombreCliente { get; set; } = string.Empty;
         public string CedulaTributaria { get; set; } = string.Empty;
+        public string CreditAccountNumber { get; set; } = string.Empty;
         public short Exonera { get; set; }
         public bool InsertarTiqueteEspera { get; set; }
         public string CLAVE50 { get; set; } = string.Empty;

@@ -53,6 +53,35 @@ public sealed class ApiProductService : IProductService
         return [];
     }
 
+    public async Task<ProductModel?> GetByIdAsync(int itemId, decimal exchangeRate)
+    {
+        if (itemId <= 0)
+            return null;
+
+        var deptMap = await GetDepartmentMapAsync();
+
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ItemsClientName);
+                var url = $"{baseUrl}/api/Items/{itemId}";
+                var apiItem = await http.GetFromJsonAsync<ApiItem>(url);
+
+                if (apiItem is null || apiItem.ID <= 0)
+                    continue;
+
+                return MapToProduct(apiItem, exchangeRate, deptMap);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener producto {ItemId} desde {BaseUrl}", itemId, baseUrl);
+            }
+        }
+
+        return null;
+    }
+
     public async Task<List<ProductModel>> SearchAsync(string criteria, int top, decimal exchangeRate)
     {
         var safeTop = Math.Clamp(top, 1, 1000);

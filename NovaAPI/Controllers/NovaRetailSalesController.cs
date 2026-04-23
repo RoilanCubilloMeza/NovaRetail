@@ -1305,6 +1305,7 @@ ORDER BY te.ID";
         {
             var comprobanteTipo = request.COMPROBANTE_TIPO ?? string.Empty;
             var consecutivoCol = GetConsecutivoColumnIntegraFast02(comprobanteTipo);
+            var cedulaColumn = ColumnExists(cn, "AVS_INTEGRAFAST_02", "CEDULA") ? "CEDULA" : "PROVEEDOR_SISTEMA";
 
             if (consecutivoCol != null)
             {
@@ -1312,7 +1313,7 @@ ORDER BY te.ID";
                 {
                     using (var incCmd = new SqlCommand(
                         $"UPDATE dbo.AVS_INTEGRAFAST_02 SET {consecutivoCol} = {consecutivoCol} + 1 " +
-                        $"OUTPUT INSERTED.{consecutivoCol} AS Consecutivo, INSERTED.COD_SUCURSAL, INSERTED.PROVEEDOR_SISTEMA", cn))
+                        $"OUTPUT INSERTED.{consecutivoCol} AS Consecutivo, INSERTED.COD_SUCURSAL, INSERTED.{cedulaColumn} AS CedulaTributaria", cn))
                     {
                         incCmd.CommandTimeout = 30;
                         using (var rd = incCmd.ExecuteReader())
@@ -1323,7 +1324,7 @@ ORDER BY te.ID";
                                 var suc = rd["COD_SUCURSAL"];
                                 if (suc != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(suc)))
                                     request.COD_SUCURSAL = Convert.ToString(suc);
-                                var ced = rd["PROVEEDOR_SISTEMA"];
+                                var ced = rd["CedulaTributaria"];
                                 if (ced != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(ced)))
                                     request.CedulaTributaria = Convert.ToString(ced);
                             }
@@ -1351,11 +1352,7 @@ ORDER BY te.ID";
                     return;
             }
 
-            var medioPagos = (request.Tenders ?? new List<NovaRetailSaleTenderDto>())
-                .OrderBy(t => t.RowNo)
-                .Select(t => string.IsNullOrWhiteSpace(t.MedioPagoCodigo) ? string.Empty : t.MedioPagoCodigo.Trim())
-                .Take(4)
-                .ToList();
+            var medioPagos = ResolveIntegraFastMedioPagos(cn, request.Tenders);
 
             while (medioPagos.Count < 4)
                 medioPagos.Add(string.Empty);
@@ -1486,6 +1483,119 @@ ORDER BY te.ID";
                 return null;
 
             return col;
+        }
+
+        private static bool ColumnExists(SqlConnection cn, string tableName, string columnName)
+        {
+            using (var cmd = new SqlCommand(
+                @"SELECT COUNT(1)
+                  FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_NAME = @TableName
+                    AND COLUMN_NAME = @ColumnName", cn))
+            {
+                cmd.Parameters.AddWithValue("@TableName", tableName);
+                cmd.Parameters.AddWithValue("@ColumnName", columnName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private sealed class TenderFiscalInfo
+        {
+            public string Code { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+        }
+
+        private static List<string> ResolveIntegraFastMedioPagos(SqlConnection cn, IEnumerable<NovaRetailSaleTenderDto> tenders)
+        {
+            var orderedTenders = (tenders ?? Enumerable.Empty<NovaRetailSaleTenderDto>())
+                .OrderBy(t => t.RowNo)
+                .Take(4)
+                .ToList();
+
+            var tenderInfo = LoadTenderFiscalInfo(cn, orderedTenders.Select(t => t.TenderID));
+            return orderedTenders
+                .Select(t =>
+                {
+                    TenderFiscalInfo info;
+                    tenderInfo.TryGetValue(t.TenderID, out info);
+                    return ResolveIntegraFastMedioPagoCodigo(t, info);
+                })
+                .ToList();
+        }
+
+        private static Dictionary<int, TenderFiscalInfo> LoadTenderFiscalInfo(SqlConnection cn, IEnumerable<int> tenderIds)
+        {
+            var ids = (tenderIds ?? Enumerable.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var result = new Dictionary<int, TenderFiscalInfo>();
+            if (ids.Count == 0)
+                return result;
+
+            var parameterNames = ids.Select((id, index) => $"@TenderID{index}").ToList();
+            var sql = $"SELECT ID, ISNULL(Code, '') AS Code, ISNULL(Description, '') AS Description FROM dbo.Tender WHERE ID IN ({string.Join(", ", parameterNames)})";
+
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                for (var index = 0; index < ids.Count; index++)
+                    cmd.Parameters.AddWithValue(parameterNames[index], ids[index]);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result[Convert.ToInt32(reader["ID"])] = new TenderFiscalInfo
+                        {
+                            Code = reader["Code"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Code"]),
+                            Description = reader["Description"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Description"])
+                        };
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static string ResolveIntegraFastMedioPagoCodigo(NovaRetailSaleTenderDto tender, TenderFiscalInfo info)
+        {
+            var tenderCode = info != null ? ExtractIntegraFastMedioPagoFromTenderCode(info.Code) : string.Empty;
+            if (!string.IsNullOrWhiteSpace(tenderCode))
+                return tenderCode;
+
+            if (!string.IsNullOrWhiteSpace(tender?.MedioPagoCodigo))
+                return tender.MedioPagoCodigo.Trim();
+
+            var description = info != null && !string.IsNullOrWhiteSpace(info.Description)
+                ? info.Description
+                : tender?.Description;
+
+            return InferIntegraFastMedioPagoCodigo(description);
+        }
+
+        private static string ExtractIntegraFastMedioPagoFromTenderCode(string tenderCode)
+        {
+            var value = (tenderCode ?? string.Empty).Trim();
+            if (value.Length >= 2 && char.IsDigit(value[0]) && char.IsDigit(value[1]))
+                return value.Substring(0, 2);
+
+            return string.Empty;
+        }
+
+        private static string InferIntegraFastMedioPagoCodigo(string description)
+        {
+            var value = (description ?? string.Empty).Trim().ToUpperInvariant();
+            if (value.Contains("EFECTIVO") || value.Contains("CONTADO"))
+                return "01";
+            if (value.Contains("TARJETA"))
+                return "02";
+            if (value.Contains("TRANSFER") || value.Contains("SINPE"))
+                return "04";
+            if (value.Contains("CRÉDITO") || value.Contains("CREDITO"))
+                return "99";
+
+            return string.Empty;
         }
 
         /// <summary>
@@ -2062,7 +2172,10 @@ WHERE ID = @LedgerEntryID;", cn))
         /// </summary>
         private static void TryCreateARTransaction(NovaRetailCreateSaleRequest request, NovaRetailCreateSaleResponse response)
         {
-            if (response.TransactionNumber <= 0 || string.IsNullOrWhiteSpace(request.CodCliente))
+            if (response.TransactionNumber <= 0 ||
+                (string.IsNullOrWhiteSpace(request.CodCliente) &&
+                 string.IsNullOrWhiteSpace(request.CreditAccountNumber) &&
+                 request.CustomerID <= 0))
                 return;
 
             var total = Math.Abs(response.Total ?? 0m);
@@ -2071,10 +2184,9 @@ WHERE ID = @LedgerEntryID;", cn))
 
             bool isNC = !string.IsNullOrWhiteSpace(request.NC_REFERENCIA);
             bool isCreditSale = string.Equals(request.CondicionVenta, "02", StringComparison.OrdinalIgnoreCase) && !isNC;
-            bool isCreditNC = isNC && request.Tenders != null &&
-                              request.Tenders.Any(t => string.Equals(t.MedioPagoCodigo, "99", StringComparison.OrdinalIgnoreCase));
+            bool isCreditNC = false;
 
-            if (!isCreditSale && !isCreditNC)
+            if (!isCreditSale && !isNC)
                 return;
 
             var connectionString = GetConnectionString();
@@ -2083,8 +2195,14 @@ WHERE ID = @LedgerEntryID;", cn))
             {
                 cn.Open();
 
-                var customerAccountNumber = request.CodCliente;
-                if (request.CustomerID > 0)
+                isCreditNC = isNC && ResolveIntegraFastMedioPagos(cn, request.Tenders)
+                    .Any(code => string.Equals(code, "99", StringComparison.OrdinalIgnoreCase));
+
+                if (!isCreditSale && !isCreditNC)
+                    return;
+
+                var customerAccountNumber = request.CreditAccountNumber;
+                if (string.IsNullOrWhiteSpace(customerAccountNumber) && request.CustomerID > 0)
                 {
                     using (var cmd = new SqlCommand("SELECT TOP 1 AccountNumber FROM dbo.Customer WHERE ID = @CustomerID", cn))
                     {
@@ -2094,6 +2212,9 @@ WHERE ID = @LedgerEntryID;", cn))
                             customerAccountNumber = Convert.ToString(result);
                     }
                 }
+
+                if (string.IsNullOrWhiteSpace(customerAccountNumber))
+                    customerAccountNumber = request.CodCliente;
 
                 if (string.IsNullOrWhiteSpace(customerAccountNumber))
                     return;

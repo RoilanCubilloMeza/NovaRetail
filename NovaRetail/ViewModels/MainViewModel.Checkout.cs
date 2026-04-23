@@ -790,6 +790,7 @@ namespace NovaRetail.ViewModels
 
         private static string ResolveMedioPagoCodigo(TenderModel tender)
         {
+            return tender.ResolveFiscalMedioPagoCodigo();
             // Si la DB tiene el código de medio de pago configurado, usarlo directamente
             if (!string.IsNullOrWhiteSpace(tender.MedioPagoCodigo))
                 return tender.MedioPagoCodigo.Trim();

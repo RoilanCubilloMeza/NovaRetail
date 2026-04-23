@@ -875,16 +875,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 return;
             }
 
-            var unresolvedLines = await ResolveSelectedLinesAsync(selectedLines);
-            if (unresolvedLines.Count > 0)
-            {
-                StatusMessage = "Hay artículos sin correspondencia válida en el catálogo actual.";
-                await _dialogService.AlertAsync(
-                    "Nota de Crédito",
-                    $"No se pudo localizar en dbo.Item: {string.Join(", ", unresolvedLines)}",
-                    "OK");
-                return;
-            }
+            // The invoice lines already carry their original ItemID/TaxID.
+            // Do not block credit-note creation if the item no longer exists in the current catalog.
+            await ResolveSelectedLinesAsync(selectedLines);
 
             // Determine the original document type code for NC_TIPO_DOC
             var ncTipoDoc = _isStandaloneMode
@@ -907,19 +900,16 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
             // Tender from selected tender model
             var tenderDescription = _selectedTender?.Description ?? "Efectivo";
-            var medioPagoCodigo = !string.IsNullOrWhiteSpace(_selectedTender?.MedioPagoCodigo)
-                ? _selectedTender.MedioPagoCodigo
-                : (_isCreditMode ? "99" : "01");
+            var medioPagoCodigo = _selectedTender?.ResolveFiscalMedioPagoCodigo();
+            if (string.IsNullOrWhiteSpace(medioPagoCodigo))
+                medioPagoCodigo = _isCreditMode ? "99" : "01";
             var tenderId = _selectedTender?.ID ?? 1;
 
             var clientId = EffectiveClientId;
             var clientName = EffectiveClientName;
-
-            // For credit-mode NC, CodCliente must be the AccountNumber used for the
-            // original credit sale so the API can locate the AR_Account to reverse.
-            var codCliente = clientId;
-            if (_isCreditMode && _sourceEntry is not null && !string.IsNullOrWhiteSpace(_sourceEntry.CreditAccountNumber))
-                codCliente = _sourceEntry.CreditAccountNumber;
+            var creditAccountNumber = _isCreditMode && _sourceEntry is not null
+                ? _sourceEntry.CreditAccountNumber ?? string.Empty
+                : string.Empty;
 
             var request = new NovaRetailCreateSaleRequest
             {
@@ -935,9 +925,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 CurrencyCode = "CRC",
                 TipoCambio = "1",
                 CondicionVenta = "01",
-                CodCliente = !string.IsNullOrWhiteSpace(codCliente) ? codCliente : string.Empty,
+                CodCliente = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
                 NombreCliente = !string.IsNullOrWhiteSpace(clientName) ? clientName : string.Empty,
                 CedulaTributaria = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
+                CreditAccountNumber = creditAccountNumber,
                 InsertarTiqueteEspera = true,
                 COMPROBANTE_TIPO = "03",
                 COMPROBANTE_SITUACION = "1",
@@ -1046,8 +1037,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 continue;
             }
 
-            line.ItemID = match.ItemID;
-            if (line.TaxPercentage > 0)
+            if (line.ItemID <= 0)
+                line.ItemID = match.ItemID;
+
+            if (line.TaxID <= 0 && line.TaxPercentage > 0)
                 line.TaxID = match.TaxId;
         }
 
@@ -1056,6 +1049,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private async Task<ProductModel?> FindCatalogMatchAsync(CreditNoteLineItem line)
     {
+        if (line.ItemID > 0)
+        {
+            var itemById = await _productService.GetByIdAsync(line.ItemID, 1m);
+            if (itemById is not null)
+                return itemById;
+        }
+
         var searchTerms = new[]
         {
             line.Code,
