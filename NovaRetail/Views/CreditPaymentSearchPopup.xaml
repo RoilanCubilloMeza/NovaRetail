@@ -11,7 +11,7 @@
                 StrokeShape="RoundRectangle 14"
                 Stroke="#E2E8F0"
                 StrokeThickness="1"
-                MaximumWidthRequest="1100"
+                MaximumWidthRequest="1180"
                 MaximumHeightRequest="720"
                 Margin="20"
                 HorizontalOptions="Center"
@@ -157,7 +157,7 @@
                             BackgroundColor="#F1F5F9"
                             StrokeThickness="0"
                             Padding="20,8">
-                        <Grid ColumnDefinitions="80, 2*, 2*, *, *, 120"
+                        <Grid ColumnDefinitions="140, 1.7*, 2*, *, *, 130"
                               ColumnSpacing="10">
                             <Label Grid.Column="0" Text="Cuenta" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
                             <Label Grid.Column="1" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
@@ -201,7 +201,7 @@
                                             Command="{Binding Source={x:Reference CreditSearchRoot}, Path=BindingContext.SelectCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>
-                                    <Grid ColumnDefinitions="80, 2*, 2*, *, *, 120"
+                                    <Grid ColumnDefinitions="140, 1.7*, 2*, *, *, 130"
                                           ColumnSpacing="10">
                                         <Label Grid.Column="0"
                                                Text="{Binding AccountNumber}"
