@@ -1,5 +1,5 @@
 using NovaRetail.Models;
-using System.Collections.ObjectModel;
+using NovaRetail.Data;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -21,8 +21,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private string _partialAmountText = string.Empty;
     private OpenLedgerEntryModel? _pendingEntry;
 
-    public ObservableCollection<TenderModel> PaymentTenders { get; } = new();
-    public ObservableCollection<OpenLedgerEntryModel> OpenEntries { get; } = new();
+    public BatchObservableCollection<TenderModel> PaymentTenders { get; } = new();
+    public BatchObservableCollection<OpenLedgerEntryModel> OpenEntries { get; } = new();
 
     public TenderModel? SelectedTender
     {
@@ -393,14 +393,15 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
             e.PropertyChanged -= OnEntryPropertyChanged;
         }
 
-        OpenEntries.Clear();
+        var preparedEntries = (entries ?? Enumerable.Empty<OpenLedgerEntryModel>()).ToList();
 
-        foreach (var entry in entries)
+        foreach (var entry in preparedEntries)
         {
             entry.ValueChanged += OnEntryValueChanged;
             entry.PropertyChanged += OnEntryPropertyChanged;
-            OpenEntries.Add(entry);
         }
+
+        OpenEntries.ReplaceAll(preparedEntries);
 
         OnPropertyChanged(nameof(HasEntries));
         RefreshTotals();
@@ -408,9 +409,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     public void LoadTenders(IEnumerable<TenderModel> tenders)
     {
-        PaymentTenders.Clear();
-        foreach (var t in tenders)
-            PaymentTenders.Add(t);
+        PaymentTenders.ReplaceAll(tenders ?? Enumerable.Empty<TenderModel>());
         if (SelectedTender is null && PaymentTenders.Count > 0)
             SelectedTender = PaymentTenders[0];
     }
@@ -437,7 +436,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         }
 
         Customer = null;
-        OpenEntries.Clear();
+        OpenEntries.ReplaceAll(Array.Empty<OpenLedgerEntryModel>());
         Referencia = string.Empty;
         Descripcion = string.Empty;
         ErrorMessage = string.Empty;

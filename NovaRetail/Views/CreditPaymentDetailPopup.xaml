@@ -100,43 +100,53 @@
                 <Label Grid.Column="10" Text="&#x2713;"    FontSize="10"  FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="Center"/>
             </Grid>
 
-            <!-- Row 7: Scrollable table rows (toma todo el espacio restante) -->
-            <ScrollView Grid.Row="7" Margin="12,0" VerticalOptions="Fill">
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding OpenEntries}"
-                                     Spacing="0">
-                    <BindableLayout.EmptyView>
-                        <Label Text="No hay cuentas abiertas."
-                               FontSize="12" TextColor="#94A3B8"
-                               HorizontalTextAlignment="Center" Margin="0,24"/>
-                    </BindableLayout.EmptyView>
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate>
-                            <Grid ColumnDefinitions="78,78,78,82,*,44,88,100,100,110,36"
-                                  Padding="6,5" ColumnSpacing="4" BackgroundColor="White">
-                                <BoxView Grid.ColumnSpan="11" Color="#F8FAFC"
-                                         Opacity="0.6" InputTransparent="True"/>
-                                <Label Grid.Column="0"  Text="{Binding PostingDate}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                                <Label Grid.Column="1"  Text="{Binding DueDate}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                                <Label Grid.Column="2"  Text="{Binding LedgerTypeName}"   FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
-                                <Label Grid.Column="3"  Text="{Binding DocumentTypeName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
-                                <Label Grid.Column="4"  Text="{Binding Description}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                <Label Grid.Column="5"  Text="{Binding StoreID}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" HorizontalTextAlignment="Center"/>
-                                <Label Grid.Column="6"  Text="{Binding Reference}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                <Label Grid.Column="7"  Text="{Binding AmountText}"       FontSize="10" TextColor="#334155" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
-                                <Label Grid.Column="8"  Text="{Binding BalanceText}"      FontSize="10" TextColor="#EF4444" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
-                                <Entry Grid.Column="9"  Text="{Binding AmountToApplyText}"
-                                       Keyboard="Numeric" FontSize="10" TextColor="#0F172A"
-                                       BackgroundColor="#F1F5F9" HorizontalTextAlignment="End"
-                                       VerticalOptions="Center" HeightRequest="28"/>
-                                <CheckBox Grid.Column="10" IsChecked="{Binding IsSelected}"
-                                          Color="#3B82F6" VerticalOptions="Center" HorizontalOptions="Center"/>
-                                <BoxView Grid.ColumnSpan="11" HeightRequest="1" Color="#F1F5F9"
-                                         VerticalOptions="End" InputTransparent="True"/>
-                            </Grid>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-            </ScrollView>
+            <!-- Row 7: Virtualized rows -->
+            <CollectionView Grid.Row="7"
+                            Margin="12,0"
+                            ItemsSource="{Binding OpenEntries}"
+                            ItemSizingStrategy="MeasureFirstItem"
+                            SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="No hay cuentas abiertas."
+                           FontSize="12"
+                           TextColor="#94A3B8"
+                           HorizontalTextAlignment="Center"
+                           Margin="0,24"/>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="78,78,78,82,*,44,88,100,100,110,36"
+                              Padding="6,5"
+                              ColumnSpacing="4"
+                              BackgroundColor="White">
+                            <BoxView Grid.ColumnSpan="11"
+                                     Color="#F8FAFC"
+                                     Opacity="0.6"
+                                     InputTransparent="True"/>
+                            <Label Grid.Column="0"  Text="{Binding PostingDate}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
+                            <Label Grid.Column="1"  Text="{Binding DueDate}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
+                            <Label Grid.Column="2"  Text="{Binding LedgerTypeName}"   FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
+                            <Label Grid.Column="3"  Text="{Binding DocumentTypeName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
+                            <Label Grid.Column="4"  Text="{Binding Description}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="5"  Text="{Binding StoreID}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" HorizontalTextAlignment="Center"/>
+                            <Label Grid.Column="6"  Text="{Binding Reference}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="7"  Text="{Binding AmountText}"       FontSize="10" TextColor="#334155" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
+                            <Label Grid.Column="8"  Text="{Binding BalanceText}"      FontSize="10" TextColor="#EF4444" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
+                            <Entry Grid.Column="9"  Text="{Binding AmountToApplyText}"
+                                   Keyboard="Numeric" FontSize="10" TextColor="#0F172A"
+                                   BackgroundColor="#F1F5F9" HorizontalTextAlignment="End"
+                                   VerticalOptions="Center" HeightRequest="28"/>
+                            <CheckBox Grid.Column="10" IsChecked="{Binding IsSelected}"
+                                      Color="#3B82F6" VerticalOptions="Center" HorizontalOptions="Center"/>
+                            <BoxView Grid.ColumnSpan="11"
+                                     HeightRequest="1"
+                                     Color="#F1F5F9"
+                                     VerticalOptions="End"
+                                     InputTransparent="True"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
             <!-- Row 8: Separator -->
             <BoxView Grid.Row="8" Color="#E2E8F0" Margin="12,0"/>
