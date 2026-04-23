@@ -607,7 +607,7 @@ namespace NovaRetail.ViewModels
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
-            ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentSearchAsync());
+            ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentAsync());
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
             NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
@@ -661,8 +661,13 @@ namespace NovaRetail.ViewModels
             CreditPaymentSearchVm.RequestSearch += async criteria => await SearchCreditCustomersAsync(criteria);
             CreditPaymentSearchVm.RequestSelect += OnCreditCustomerSelected;
             CreditPaymentDetailVm.RequestClose += () => { IsCreditPaymentDetailVisible = false; IsCreditPaymentSearchVisible = false; };
-            CreditPaymentDetailVm.RequestBack += () => { IsCreditPaymentDetailVisible = false; IsCreditPaymentSearchVisible = true; };
+            CreditPaymentDetailVm.RequestBack += () =>
+            {
+                IsCreditPaymentDetailVisible = false;
+                IsCreditPaymentSearchVisible = _creditPaymentBackReturnsToSearch;
+            };
             CreditPaymentDetailVm.RequestConfirmAbono += async request => await ProcessAbonoAsync(request);
+            CreditPaymentDetailVm.RequestRefresh += async () => await RefreshCreditPaymentDetailAsync(CreditPaymentDetailVm.AccountNumber);
             RefreshCartItemsView();
             TenderSettingsChanged.Notified += async () => { try { await ReloadTendersAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainVM] ReloadTenders failed: {ex.Message}"); } };
             ParametrosChanged.Notified += async () => { try { await LoadStoreConfigAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainVM] LoadStoreConfig failed: {ex.Message}"); } };

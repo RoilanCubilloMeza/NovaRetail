@@ -207,6 +207,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public event Action? RequestClose;
     public event Action? RequestBack;
     public event Func<AbonoPaymentRequest, Task>? RequestConfirmAbono;
+    public event Func<Task>? RequestRefresh;
 
     public ICommand ConfirmCommand { get; }
     public ICommand FinalConfirmCommand { get; }
@@ -222,6 +223,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public ICommand ConfirmPartialCommand { get; }
     public ICommand BackToPaymentOptionsCommand { get; }
     public ICommand CancelPaymentDialogCommand { get; }
+    public ICommand RefreshCommand { get; }
 
     public CreditPaymentDetailViewModel()
     {
@@ -373,8 +375,18 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
             ShowPaymentTypeDialog = false;
             PendingEntry = null;
         });
-    }
 
+        RefreshCommand = new Command(async () =>
+        {
+            if (IsBusy || string.IsNullOrWhiteSpace(AccountNumber))
+                return;
+
+            ErrorMessage = string.Empty;
+
+            if (RequestRefresh is not null)
+                await RequestRefresh.Invoke();
+        });
+    }
     public void LoadCustomer(CustomerCreditInfo customer)
     {
         Customer = customer;
@@ -416,6 +428,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     public void SetBusy(bool busy) => IsBusy = busy;
     public void SetError(string message) => ErrorMessage = message;
+    public void ClearError() => ErrorMessage = string.Empty;
 
     public void SetSuccess()
     {

@@ -65,17 +65,23 @@
             <BoxView Grid.Row="4" Color="#E2E8F0"/>
 
             <!-- Row 5: Toolbar -->
-            <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto" Padding="16,8" ColumnSpacing="8">
+            <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Padding="16,8" ColumnSpacing="8">
                 <Label Grid.Column="0" Text="Cuentas por cobrar abiertas"
                        FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
                        VerticalOptions="Center"/>
-                <Button Grid.Column="2" Text="Seleccionar todo"
+                <Button Grid.Column="2" Text="Refrescar"
+                        Command="{Binding RefreshCommand}"
+                        FontSize="11" FontAttributes="Bold"
+                        TextColor="#2563EB" BackgroundColor="#EFF6FF"
+                        BorderColor="#BFDBFE" BorderWidth="1"
+                        CornerRadius="4" Padding="10,4" HeightRequest="30"/>
+                <Button Grid.Column="3" Text="Seleccionar todo"
                         Command="{Binding SelectAllCommand}"
                         FontSize="11" FontAttributes="Bold"
                         TextColor="#3B82F6" BackgroundColor="#EFF6FF"
                         BorderColor="#BFDBFE" BorderWidth="1"
                         CornerRadius="4" Padding="10,4" HeightRequest="30"/>
-                <Button Grid.Column="3" Text="Limpiar"
+                <Button Grid.Column="4" Text="Limpiar"
                         Command="{Binding DeselectAllCommand}"
                         FontSize="11" FontAttributes="Bold"
                         TextColor="#64748B" BackgroundColor="#F1F5F9"

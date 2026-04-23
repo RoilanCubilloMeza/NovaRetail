@@ -141,6 +141,34 @@ namespace NovaRetail.ViewModels
 
         // ── Abonos a crédito ──
 
+        private bool _creditPaymentBackReturnsToSearch;
+
+        private async Task OpenCreditPaymentAsync()
+        {
+            if (HasClient && !string.IsNullOrWhiteSpace(CurrentClientCreditLookupId))
+            {
+                try
+                {
+                    var clienteService = GetClienteService();
+                    var selectedCustomerCredit = await clienteService.ObtenerCreditoAsync(CurrentClientCreditLookupId);
+
+                    if (selectedCustomerCredit is not null
+                        && selectedCustomerCredit.HasCredit
+                        && !string.IsNullOrWhiteSpace(selectedCustomerCredit.AccountNumber))
+                    {
+                        await OpenCreditPaymentDetailAsync(selectedCustomerCredit, returnToSearch: false, reloadTenders: true);
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreditOpen] Direct-open fallback to search: {ex.Message}");
+                }
+            }
+
+            await OpenCreditPaymentSearchAsync();
+        }
+
         private async Task OpenCreditPaymentSearchAsync()
         {
             CreditPaymentSearchVm.Reset();
@@ -176,20 +204,33 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                IsCreditPaymentSearchVisible = false;
-                CreditPaymentDetailVm.LoadCustomer(customer);
-                IsCreditPaymentDetailVisible = true;
-
-                // Load tenders and open entries in parallel
-                var tendersTask = LoadCreditTendersAsync();
-                var entriesTask = LoadCreditEntriesAsync(customer.AccountNumber);
-                await Task.WhenAll(tendersTask, entriesTask);
+                await OpenCreditPaymentDetailAsync(customer, returnToSearch: true, reloadTenders: true);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CreditSelect] FATAL ERROR: {ex}");
                 IsCreditPaymentDetailVisible = true;
             }
+        }
+
+        private async Task OpenCreditPaymentDetailAsync(CustomerCreditInfo customer, bool returnToSearch, bool reloadTenders)
+        {
+            if (customer is null || string.IsNullOrWhiteSpace(customer.AccountNumber))
+            {
+                await OpenCreditPaymentSearchAsync();
+                return;
+            }
+
+            _creditPaymentBackReturnsToSearch = returnToSearch;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                IsCreditPaymentSearchVisible = false;
+                CreditPaymentDetailVm.LoadCustomer(customer);
+                IsCreditPaymentDetailVisible = true;
+            });
+
+            await RefreshCreditPaymentDetailAsync(customer.AccountNumber, reloadTenders);
         }
 
         private async Task LoadCreditTendersAsync()
@@ -217,19 +258,56 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private async Task LoadCreditEntriesAsync(string accountNumber)
+        private async Task RefreshCreditPaymentDetailAsync(string accountNumber, bool reloadTenders = false)
         {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return;
+
             try
             {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    CreditPaymentDetailVm.SetBusy(true);
+                    CreditPaymentDetailVm.ClearError();
+                });
+
                 var clienteService = GetClienteService();
-                var entries = await clienteService.ObtenerCuentasAbiertasAsync(accountNumber);
-                await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.LoadOpenEntries(entries));
+                var creditTask = clienteService.ObtenerCreditoAsync(accountNumber);
+                var entriesTask = clienteService.ObtenerCuentasAbiertasAsync(accountNumber);
+                var tendersTask = reloadTenders ? LoadCreditTendersAsync() : Task.CompletedTask;
+
+                await Task.WhenAll(creditTask, entriesTask, tendersTask);
+
+                var updatedCredit = await creditTask;
+                var entries = await entriesTask;
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (updatedCredit is not null)
+                    {
+                        if (CreditPaymentDetailVm.HasCustomer
+                            && string.Equals(CreditPaymentDetailVm.AccountNumber, updatedCredit.AccountNumber, StringComparison.OrdinalIgnoreCase))
+                        {
+                            CreditPaymentDetailVm.RefreshCredit(updatedCredit);
+                        }
+                        else
+                        {
+                            CreditPaymentDetailVm.LoadCustomer(updatedCredit);
+                        }
+                    }
+
+                    CreditPaymentDetailVm.LoadOpenEntries(entries);
+                });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[CreditSelect] Entries load error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CreditRefresh] Load error: {ex.Message}");
                 await MainThread.InvokeOnMainThreadAsync(() =>
                     CreditPaymentDetailVm.SetError($"Error al cargar cuentas abiertas: {ex.Message}"));
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.SetBusy(false));
             }
         }
 
@@ -237,7 +315,11 @@ namespace NovaRetail.ViewModels
         {
             try
             {
-                CreditPaymentDetailVm.SetBusy(true);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    CreditPaymentDetailVm.SetBusy(true);
+                    CreditPaymentDetailVm.ClearError();
+                });
                 var clienteService = GetClienteService();
                 var currentUser = _userSession.CurrentUser;
                 var cashierId = currentUser is not null ? ParseCashierId(currentUser) : 1;
@@ -250,21 +332,7 @@ namespace NovaRetail.ViewModels
                 if (success)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.SetSuccess());
-                    // Refresh credit info + open entries in parallel
-                    var creditTask = clienteService.ObtenerCreditoAsync(request.AccountNumber);
-                    var entriesTask = clienteService.ObtenerCuentasAbiertasAsync(request.AccountNumber);
-                    await Task.WhenAll(creditTask, entriesTask);
-
-                    var updated = await creditTask;
-                    var refreshedEntries = await entriesTask;
-
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        if (updated is not null)
-                            CreditPaymentDetailVm.RefreshCredit(updated);
-
-                        CreditPaymentDetailVm.LoadOpenEntries(refreshedEntries);
-                    });
+                    await RefreshCreditPaymentDetailAsync(request.AccountNumber);
                 }
                 else
                 {
