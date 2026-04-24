@@ -229,8 +229,8 @@ namespace NovaRetail.ViewModels
                     ? Math.Round(sourceEntry.FullPrice, 4)
                     : Math.Round(item.EffectivePriceColones, 4);
 
-                // Cost = costo del artículo (0 si no se conoce desde el catálogo)
-                var cost = preserveSourceEntry ? sourceEntry!.Cost : 0m;
+                // Cost = costo del articulo conservado desde RMH/catalogo.
+                var cost = preserveSourceEntry ? sourceEntry!.Cost : item.Cost;
 
                 var discountReasonCodeID = preserveSourceEntry
                     ? sourceEntry!.DiscountReasonCodeID
@@ -807,6 +807,7 @@ namespace NovaRetail.ViewModels
                         Code = entry.ItemID.ToString(),
                         UnitPriceColones = entry.Price,
                         UnitPrice = ConvertFromColones(entry.Price),
+                        Cost = entry.Cost,
                         TaxPercentage = entry.Taxable ? _defaultTaxPercentage : 0m,
                         TaxID = entry.TaxID,
                         Cabys = string.Empty,

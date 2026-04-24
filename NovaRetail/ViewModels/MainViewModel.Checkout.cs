@@ -699,6 +699,12 @@ namespace NovaRetail.ViewModels
                     rawFullPrice = Math.Round(rawFullPrice / divisor, 4);
                 }
                 var fullPrice = Math.Round(rawFullPrice, 4);
+                var displayPrice = IsTaxIncluded
+                    ? Math.Round(lineTotals.TotalColones / quantity, 4)
+                    : Math.Round(unitPrice, 4);
+                var displayFullPrice = IsTaxIncluded
+                    ? Math.Round(catalogPriceColones, 4)
+                    : fullPrice;
 
                 var lineDiscountAmount = Math.Round(lineTotals.DiscountColones, 2);
                 var lineDiscountPercent = fullPrice > 0
@@ -718,7 +724,9 @@ namespace NovaRetail.ViewModels
                     Quantity = quantity,
                     UnitPrice = unitPrice,
                     FullPrice = fullPrice,
-                    Cost = 0m,
+                    DisplayPrice = displayPrice,
+                    DisplayFullPrice = displayFullPrice,
+                    Cost = item.Cost,
                     Commission = 0m,
                     PriceSource = item.IsUpwardPriceOverride ? _priceOverridePriceSource : 1,
                     SalesRepID = item.SalesRepID,

@@ -102,6 +102,46 @@ WHERE TransactionNumber = @TransactionNumber
             return totals;
         }
 
+        private static void SyncPersistedTransactionEntryValues(SqlConnection cn, int transactionNumber, NovaRetailCreateSaleRequest request)
+        {
+            if (transactionNumber <= 0 || request?.Items == null || request.Items.Count == 0)
+                return;
+
+            foreach (var item in request.Items)
+            {
+                if (item == null || item.RowNo <= 0)
+                    continue;
+
+                var displayPrice = item.DisplayPrice ?? item.UnitPrice;
+                var displayFullPrice = item.DisplayFullPrice ?? item.FullPrice ?? displayPrice;
+
+                if (displayPrice < 0m || displayFullPrice < 0m)
+                    continue;
+
+                using (var cmd = new SqlCommand(@"
+UPDATE TE
+   SET TE.Price = @Price,
+       TE.FullPrice = @FullPrice,
+       TE.Cost = CASE
+           WHEN @Cost > 0 THEN @Cost
+           WHEN ISNULL(TE.Cost, 0) = 0 THEN ISNULL(IT.Cost, 0)
+           ELSE TE.Cost
+       END
+FROM dbo.TransactionEntry TE
+LEFT JOIN dbo.Item IT ON IT.ID = TE.ItemID
+WHERE TE.TransactionNumber = @TransactionNumber
+  AND ISNULL(TE.DetailID, -1) = @DetailID;", cn))
+                {
+                    cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+                    cmd.Parameters.AddWithValue("@DetailID", item.RowNo - 1);
+                    cmd.Parameters.AddWithValue("@Price", displayPrice);
+                    cmd.Parameters.AddWithValue("@FullPrice", displayFullPrice);
+                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         private static decimal LoadPersistedTransactionTotal(SqlConnection cn, SqlTransaction tx, int transactionNumber, decimal fallback)
         {
             if (transactionNumber <= 0)

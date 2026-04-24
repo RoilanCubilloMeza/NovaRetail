@@ -230,6 +230,7 @@ public sealed class ApiProductService : IProductService
             Category = ResolveCategoryFromDepartment(item.DepartmentID, departmentMap),
             Stock = Convert.ToDecimal(item.Quantity ?? 0),
             PriceColonesValue = priceColones,
+            Cost = item.Cost,
             TaxPercentage = NormalizeTaxPercentage(item.Percentage),
             TaxId = item.TaxID,
             Cabys = NormalizeCabys(item.SubDescription3),
@@ -303,6 +304,7 @@ public sealed class ApiProductService : IProductService
         public int DepartmentID { get; set; }
         public decimal PRICE { get; set; }
         public decimal PriceA { get; set; }
+        public decimal Cost { get; set; }
         public string? Description { get; set; }
         public string? SubDescription2 { get; set; }
         public string? SubDescription3 { get; set; }

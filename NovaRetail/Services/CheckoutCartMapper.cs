@@ -14,6 +14,7 @@ internal static class CheckoutCartMapper
             Code = item.Code,
             UnitPrice = item.UnitPrice,
             UnitPriceColones = item.UnitPriceColones,
+            Cost = item.Cost,
             TaxPercentage = item.TaxPercentage,
             TaxID = item.TaxID,
             Cabys = item.Cabys,

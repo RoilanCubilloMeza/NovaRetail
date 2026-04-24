@@ -266,6 +266,15 @@ namespace NovaAPI.Controllers
 
                         try
                         {
+                            SyncPersistedTransactionEntryValues(cn, response.TransactionNumber, request);
+                        }
+                        catch (Exception exEntries)
+                        {
+                            response.Warnings.Add($"TransactionEntry: {exEntries.Message}");
+                        }
+
+                        try
+                        {
                             var correctedTotals = SyncPersistedTransactionTotals(cn, response.TransactionNumber, request);
                             if (correctedTotals.Total > 0m)
                             {
@@ -715,8 +724,6 @@ namespace NovaAPI.Controllers
             if (request.Items == null || request.Items.Count == 0)
                 return 0;
 
-            var taxSystem = GetTaxSystem(cn);
-
             // Cargar TransactionEntry: indexar por DetailID y por posiciÃƒÆ’Ã‚Â³n secuencial
             var entriesByDetailId = new Dictionary<int, int>();
             var entriesOrdered    = new List<(int EntryId, int DetailId, int ItemId)>();
@@ -783,9 +790,7 @@ namespace NovaAPI.Controllers
 
                 var lineAmount    = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
                 var taxAmount     = Math.Round(item.SalesTax,  4, MidpointRounding.AwayFromZero);
-                var taxableAmount = taxSystem > 0
-                    ? Math.Max(0m, Math.Round(lineAmount - taxAmount, 4, MidpointRounding.AwayFromZero))
-                    : Math.Max(0m, lineAmount);
+                var taxableAmount = Math.Max(0m, lineAmount);
 
                 using (var insertCmd = new SqlCommand(
                     @"INSERT INTO dbo.TaxEntry (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)

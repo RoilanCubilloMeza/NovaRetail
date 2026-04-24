@@ -87,6 +87,8 @@ namespace NovaAPI.Models
         public decimal UnitPrice { get; set; }
 
         public decimal? FullPrice { get; set; }
+        public decimal? DisplayPrice { get; set; }
+        public decimal? DisplayFullPrice { get; set; }
         public decimal Cost { get; set; }
         public decimal Commission { get; set; }
         public int PriceSource { get; set; } = 1;

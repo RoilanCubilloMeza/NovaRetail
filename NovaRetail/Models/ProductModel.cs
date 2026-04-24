@@ -16,6 +16,7 @@ public class ProductModel : INotifyPropertyChanged
     public string  OldPrice        { get; set; } = string.Empty;
     public decimal PriceValue      { get; set; }
     public decimal PriceColonesValue { get; set; }
+    public decimal Cost            { get; set; }
     public decimal TaxPercentage   { get; set; }
     public int TaxId              { get; set; }
     public string Cabys           { get; set; } = string.Empty;

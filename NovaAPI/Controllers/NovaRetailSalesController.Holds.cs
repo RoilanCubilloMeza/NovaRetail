@@ -93,7 +93,7 @@ namespace NovaAPI.Controllers
                                     INSERT INTO [TransactionHoldEntry]
                                         ([EntryKey],[StoreID],[TransactionHoldID],[RecallID],[Description],
                                          [QuantityPurchased],[QuantityOnOrder],[QuantityRTD],[QuantityReserved],
-                                         [Price],[FullPrice],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
+                                         [Price],[FullPrice],[Cost],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
                                          [SalesRepID],[SerialNumber1],[SerialNumber2],[SerialNumber3],[VoucherNumber],
                                          [VoucherExpirationDate],[DiscountReasonCodeID],[ReturnReasonCodeID],
                                          [TaxChangeReasonCodeID],[ItemTaxID],[ComponentQuantityReserved],
@@ -101,7 +101,7 @@ namespace NovaAPI.Controllers
                                     VALUES
                                         ('',@StoreID,@HoldID,0,@Description,
                                          0,0,0,@QuantityReserved,
-                                         @Price,@FullPrice,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
+                                         @Price,@FullPrice,@Cost,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
                                          @SalesRepID,'','','','',
                                          NULL,@DiscountReasonCodeID,@ReturnReasonCodeID,
                                          @TaxChangeReasonCodeID,
@@ -115,6 +115,7 @@ namespace NovaAPI.Controllers
                                     cmd.Parameters.AddWithValue("@QuantityReserved", Convert.ToDouble(item.QuantityOnOrder));
                                     cmd.Parameters.AddWithValue("@Price", item.Price);
                                     cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
+                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
                                     cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
                                     cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
                                     cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
@@ -224,7 +225,7 @@ namespace NovaAPI.Controllers
                                     INSERT INTO [TransactionHoldEntry]
                                         ([EntryKey],[StoreID],[TransactionHoldID],[RecallID],[Description],
                                          [QuantityPurchased],[QuantityOnOrder],[QuantityRTD],[QuantityReserved],
-                                         [Price],[FullPrice],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
+                                         [Price],[FullPrice],[Cost],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
                                          [SalesRepID],[SerialNumber1],[SerialNumber2],[SerialNumber3],[VoucherNumber],
                                          [VoucherExpirationDate],[DiscountReasonCodeID],[ReturnReasonCodeID],
                                          [TaxChangeReasonCodeID],[ItemTaxID],[ComponentQuantityReserved],
@@ -232,7 +233,7 @@ namespace NovaAPI.Controllers
                                     VALUES
                                         ('',@StoreID,@HoldID,0,@Description,
                                          0,0,0,@QuantityReserved,
-                                         @Price,@FullPrice,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
+                                         @Price,@FullPrice,@Cost,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
                                          @SalesRepID,'','','','',
                                          NULL,@DiscountReasonCodeID,@ReturnReasonCodeID,
                                          @TaxChangeReasonCodeID,
@@ -246,6 +247,7 @@ namespace NovaAPI.Controllers
                                     cmd.Parameters.AddWithValue("@QuantityReserved", Convert.ToDouble(item.QuantityOnOrder));
                                     cmd.Parameters.AddWithValue("@Price", item.Price);
                                     cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
+                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
                                     cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
                                     cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
                                     cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
@@ -401,7 +403,7 @@ namespace NovaAPI.Controllers
                     using (var cmd = new SqlCommand(@"
                            SELECT the.ID AS EntryID, the.ItemID,
                                ISNULL(the.Description, '') AS Description,
-                               the.Price, the.FullPrice, 0 AS Cost,
+                               the.Price, the.FullPrice, ISNULL(the.Cost, ISNULL(i.Cost, 0)) AS Cost,
                                the.QuantityReserved AS QuantityOnOrder,
                                ISNULL(the.SalesRepID, 0) AS SalesRepID,
                                the.Taxable,
@@ -424,7 +426,7 @@ namespace NovaAPI.Controllers
                                     Description = Convert.ToString(reader["Description"]),
                                     Price = reader["Price"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Price"]),
                                     FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
-                                    Cost = 0m,
+                                    Cost = reader["Cost"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Cost"]),
                                     QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 1m : Convert.ToDecimal(reader["QuantityOnOrder"]),
                                     SalesRepID = reader["SalesRepID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["SalesRepID"]),
                                     Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,

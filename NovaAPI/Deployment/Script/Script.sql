@@ -653,6 +653,7 @@ CREATE TABLE dbo.TransactionHoldEntry (
     QuantityReserved            FLOAT            NOT NULL DEFAULT 0,
     Price                       MONEY            NOT NULL DEFAULT 0,
     FullPrice                   MONEY            NOT NULL DEFAULT 0,
+    Cost                        MONEY            NOT NULL DEFAULT 0,
     PriceSource                 SMALLINT         NOT NULL DEFAULT 0,
     Comment                     NVARCHAR(510)    NOT NULL DEFAULT '',
     DetailID                    INT              NOT NULL DEFAULT 0,
@@ -674,6 +675,11 @@ CREATE TABLE dbo.TransactionHoldEntry (
     VoucherID                   INT              NOT NULL DEFAULT 0,
     SyncGuid                    UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID()
 );
+GO
+
+IF COL_LENGTH('dbo.TransactionHoldEntry', 'Cost') IS NULL
+    ALTER TABLE dbo.TransactionHoldEntry
+    ADD Cost MONEY NOT NULL CONSTRAINT DF_TransactionHoldEntry_Cost DEFAULT 0;
 GO
 
 -- ─────────────────────────────────────────────────────────────────────
