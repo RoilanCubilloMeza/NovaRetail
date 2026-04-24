@@ -455,7 +455,7 @@ namespace NovaRetail.ViewModels
         private NovaRetailCreateSaleRequest BuildSaleRequest(LoginUserModel currentUser, TenderModel tender)
         {
             var currencyCode = tender.CurrencyID == 2 ? "USD" : "CRC";
-            var medioPagoCodigo = ResolveMedioPagoCodigo(tender);
+            var medioPagoCodigo = CheckoutCartMapper.ResolveMedioPagoCodigo(tender);
 
             var firstAmount = Math.Round(
                 CheckoutVm.HasSecondTender && CheckoutVm.FirstTenderAmount > 0
@@ -485,7 +485,7 @@ namespace NovaRetail.ViewModels
             if (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null && CheckoutVm.SecondAmount > 0m)
             {
                 var secondAmount = Math.Round(CheckoutVm.SecondAmount, 2);
-                var secondMedioPago = ResolveMedioPagoCodigo(CheckoutVm.SecondTender);
+                var secondMedioPago = CheckoutCartMapper.ResolveMedioPagoCodigo(CheckoutVm.SecondTender);
                 var secondForeign = CheckoutVm.SecondTender.CurrencyID == 2
                     ? Math.Round(secondAmount / (_exchangeRate > 0 ? _exchangeRate : 1m), 2)
                     : secondAmount;
@@ -566,7 +566,7 @@ namespace NovaRetail.ViewModels
                 return string.Empty;
 
             var originalOrderId = _editingWorkOrderId;
-            var remainingItems = BuildRemainingWorkOrderItems(soldItems);
+            var remainingItems = RecoveredWorkOrderCheckoutHelper.BuildRemainingItems(_editingWorkOrderDetail, soldItems);
 
             if (remainingItems.Count == 0)
             {
@@ -604,7 +604,7 @@ namespace NovaRetail.ViewModels
                 ? _editingWorkOrderSummary.ReferenceNumber
                 : HasClient ? BuildOrderReferenceNumber(CurrentClientId, CurrentClientName) : string.Empty;
 
-            var totals = CalculateWorkOrderTotals(remainingItems);
+            var totals = RecoveredWorkOrderCheckoutHelper.CalculateTotals(remainingItems, _defaultTaxPercentage, IsTaxIncluded);
 
             return new NovaRetailCreateQuoteRequest
             {
@@ -624,93 +624,10 @@ namespace NovaRetail.ViewModels
             };
         }
 
-        private List<NovaRetailQuoteItemRequest> BuildRemainingWorkOrderItems(IReadOnlyCollection<CartItemModel> soldItems)
-        {
-            var detail = _editingWorkOrderDetail;
-            if (detail is null || detail.Entries.Count == 0)
-                return new List<NovaRetailQuoteItemRequest>();
-
-            var entryLookup = detail.Entries.ToDictionary(entry => entry.EntryID);
-            var soldByEntry = new Dictionary<int, decimal>();
-
-            foreach (var item in soldItems)
-            {
-                if (item.SourceOrderEntryID <= 0)
-                    continue;
-
-                if (!entryLookup.TryGetValue(item.SourceOrderEntryID, out var sourceEntry))
-                    continue;
-
-                var sourceQuantity = sourceEntry.QuantityOnOrder > 0m ? sourceEntry.QuantityOnOrder : 1m;
-                var soldQuantity = Math.Min(Math.Max(item.Quantity, 0m), sourceQuantity);
-                if (soldQuantity <= 0m)
-                    continue;
-
-                soldByEntry.TryGetValue(item.SourceOrderEntryID, out var currentSold);
-                soldByEntry[item.SourceOrderEntryID] = Math.Min(sourceQuantity, currentSold + soldQuantity);
-            }
-
-            var remainingItems = new List<NovaRetailQuoteItemRequest>(detail.Entries.Count);
-            foreach (var entry in detail.Entries)
-            {
-                var sourceQuantity = entry.QuantityOnOrder > 0m ? entry.QuantityOnOrder : 1m;
-                soldByEntry.TryGetValue(entry.EntryID, out var soldQuantity);
-                var remainingQuantity = Math.Round(sourceQuantity - soldQuantity, 4);
-                if (remainingQuantity <= 0m)
-                    continue;
-
-                remainingItems.Add(new NovaRetailQuoteItemRequest
-                {
-                    ItemID = entry.ItemID,
-                    Cost = entry.Cost,
-                    FullPrice = entry.FullPrice,
-                    PriceSource = entry.PriceSource,
-                    Price = entry.Price,
-                    QuantityOnOrder = remainingQuantity,
-                    SalesRepID = entry.SalesRepID,
-                    Taxable = entry.Taxable,
-                    DetailID = entry.DetailID,
-                    Description = entry.Description,
-                    Comment = entry.Comment,
-                    DiscountReasonCodeID = entry.DiscountReasonCodeID,
-                    ReturnReasonCodeID = entry.ReturnReasonCodeID,
-                    TaxChangeReasonCodeID = entry.TaxChangeReasonCodeID
-                });
-            }
-
-            return remainingItems;
-        }
-
-        private (decimal Tax, decimal Total) CalculateWorkOrderTotals(IEnumerable<NovaRetailQuoteItemRequest> items)
-        {
-            decimal tax = 0m;
-            decimal total = 0m;
-            var taxRate = _defaultTaxPercentage / 100m;
-
-            foreach (var item in items)
-            {
-                if (item is null)
-                    continue;
-
-                var quantity = item.QuantityOnOrder > 0m ? item.QuantityOnOrder : 1m;
-                var lineTotal = Math.Round(item.Price * quantity, 4);
-                total += lineTotal;
-
-                if (!item.Taxable || taxRate <= 0m)
-                    continue;
-
-                tax += IsTaxIncluded
-                    ? lineTotal - (lineTotal / (1m + taxRate))
-                    : lineTotal * taxRate;
-            }
-
-            return (Math.Round(tax, 4), Math.Round(total, 4));
-        }
-
         private void BackupCurrentCartForPartialPickup()
         {
             _workOrderPartialCartBackup = CartItems
-                .Select(CloneCartItem)
+                .Select(CheckoutCartMapper.CloneCartItem)
                 .ToList();
         }
 
@@ -721,7 +638,7 @@ namespace NovaRetail.ViewModels
 
             CartItems.Clear();
             foreach (var item in _workOrderPartialCartBackup)
-                CartItems.Add(CloneCartItem(item));
+                CartItems.Add(CheckoutCartMapper.CloneCartItem(item));
 
             SyncProductCatalogFromCart();
             RecalculateTotal();
@@ -756,58 +673,6 @@ namespace NovaRetail.ViewModels
 
             foreach (var item in CartItems)
                 ProductCatalog.UpdateProductCartQuantity(item.ItemID, item.Code, item.Quantity);
-        }
-
-        private static CartItemModel CloneCartItem(CartItemModel item)
-            => new()
-            {
-                ItemID = item.ItemID,
-                SourceOrderEntryID = item.SourceOrderEntryID,
-                Emoji = item.Emoji,
-                Name = item.Name,
-                Code = item.Code,
-                UnitPrice = item.UnitPrice,
-                UnitPriceColones = item.UnitPriceColones,
-                TaxPercentage = item.TaxPercentage,
-                TaxID = item.TaxID,
-                Cabys = item.Cabys,
-                Stock = item.Stock,
-                ItemType = item.ItemType,
-                OverridePriceColones = item.OverridePriceColones,
-                OverrideDescription = item.OverrideDescription,
-                DiscountPercent = item.DiscountPercent,
-                DiscountReasonCode = item.DiscountReasonCode,
-                DiscountReasonCodeID = item.DiscountReasonCodeID,
-                ExonerationReasonCodeID = item.ExonerationReasonCodeID,
-                ExonerationPercent = item.ExonerationPercent,
-                HasExonerationEligibility = item.HasExonerationEligibility,
-                IsExonerationEligible = item.IsExonerationEligible,
-                SalesRepID = item.SalesRepID,
-                SalesRepName = item.SalesRepName,
-                IsSelected = item.IsSelected,
-                Quantity = item.Quantity
-            };
-
-        private static string ResolveMedioPagoCodigo(TenderModel tender)
-        {
-            return tender.ResolveFiscalMedioPagoCodigo();
-            // Si la DB tiene el código de medio de pago configurado, usarlo directamente
-            if (!string.IsNullOrWhiteSpace(tender.MedioPagoCodigo))
-                return tender.MedioPagoCodigo.Trim();
-
-            // Fallback: derivar del nombre de la forma de pago
-            var description = (tender.Description ?? string.Empty).Trim().ToUpperInvariant();
-
-            if (description.Contains("EFECTIVO") || description.Contains("CONTADO"))
-                return "01";
-            if (description.Contains("TARJETA"))
-                return "02";
-            if (description.Contains("CR\u00C9DITO") || description.Contains("CREDITO"))
-                return "99";
-            if (description.Contains("TRANSFER") || description.Contains("SINPE"))
-                return "04";
-
-            return string.Empty;
         }
 
         private List<NovaRetailSaleItemRequest> BuildSaleItems()

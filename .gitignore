@@ -1,0 +1,23 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Local .NET/CLI state
+.dotnet/
+.dotnet-cli/
+
+# Logs
+*.log
+
+# Visual Studio user files
+*.user
+*.suo
+.vs/
+
+# NuGet package restore output
+packages/
+!packages/repositories.config
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
