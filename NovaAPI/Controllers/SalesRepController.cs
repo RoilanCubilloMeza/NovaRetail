@@ -86,7 +86,7 @@ public class SalesRepController : ApiController
 
             return Ok(list);
         }
-        catch (Exception ex)
+        catch
         {
             return Content(HttpStatusCode.InternalServerError, "Error interno al obtener vendedores.");
         }

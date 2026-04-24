@@ -103,7 +103,7 @@ namespace NovaAPI.Controllers
                     FillRoles(cn, list);
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 return InternalServerError();
             }
@@ -140,7 +140,7 @@ namespace NovaAPI.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 return InternalServerError();
             }
@@ -199,7 +199,7 @@ namespace NovaAPI.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 return InternalServerError();
             }

@@ -186,7 +186,9 @@
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\MediaController.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.Holds.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.AccountsReceivable.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.InvoiceHistory.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.IntegraFast.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.Orders.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.Quotes.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.cs" />

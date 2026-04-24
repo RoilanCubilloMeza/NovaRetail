@@ -4,6 +4,7 @@ using NovaRetail.Models;
 using NovaRetail.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
@@ -260,23 +261,18 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     private async Task StandaloneCreditNoteAsync()
     {
         var clave50 = await _dialogService.PromptAsync(
-            "NC por Clave 50",
-            "Ingrese la Clave 50 de referencia (máx. 50 caracteres):",
+            "NC por referencia",
+            "Escanee o ingrese la referencia de compra (Clave 50, consecutivo o número de transacción):",
             "Continuar", "Cancelar",
-            placeholder: "Clave 50...",
+            placeholder: "Referencia de compra...",
             maxLength: 50);
 
         if (string.IsNullOrWhiteSpace(clave50))
             return;
 
         clave50 = clave50.Trim();
-        if (clave50.Length > 50)
-        {
-            await _dialogService.AlertAsync("Error", "La clave no puede tener más de 50 caracteres.", "OK");
-            return;
-        }
 
-        // Try to find the invoice by Clave50 in the server
+        // Try to find the invoice by any supported reference in the server.
         InvoiceHistoryEntry? foundEntry = null;
         try
         {
@@ -284,8 +280,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             if (result.Ok && result.Entries.Count > 0)
             {
                 var match = result.Entries.FirstOrDefault(e =>
-                    !string.IsNullOrWhiteSpace(e.Clave50) &&
-                    string.Equals(e.Clave50, clave50, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(e.Clave50?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(e.Consecutivo?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(e.TransactionNumber.ToString(CultureInfo.InvariantCulture), clave50, StringComparison.OrdinalIgnoreCase));
 
                 if (match is not null)
                 {

@@ -24,7 +24,6 @@ namespace NovaAPI.Controllers
         public HttpResponseMessage Post(List<OrderEntry> orderEntry)
         {
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 for (int i = 0; i <= orderEntry.Count() - 1; i++)
@@ -34,7 +33,7 @@ namespace NovaAPI.Controllers
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al registrar líneas de orden.");
             }

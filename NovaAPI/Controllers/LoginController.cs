@@ -256,7 +256,6 @@ namespace NovaAPI.Controllers
         public HttpResponseMessage PostUpdate(Cliente_App Cliente)
         {
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 using (var wsCliente = new wsSecurityMain.FacturaMeCrContractClient())
@@ -267,7 +266,7 @@ namespace NovaAPI.Controllers
                 msg = Request.CreateResponse(HttpStatusCode.OK, resultado);
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al actualizar registro.");
             }

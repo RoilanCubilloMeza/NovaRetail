@@ -28,7 +28,7 @@ namespace NovaAPI.Controllers
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al registrar pagos.");
             }

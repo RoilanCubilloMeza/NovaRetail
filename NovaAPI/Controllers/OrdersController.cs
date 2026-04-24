@@ -67,7 +67,6 @@ namespace NovaAPI.Controllers
             List<Order> order = syncOrders.order;
             List<OrderEntry> orderEntry = syncOrders.orderEntry;
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 if (db.Connection.State != System.Data.ConnectionState.Open)
@@ -87,13 +86,12 @@ namespace NovaAPI.Controllers
                             EntriesByOrderID[j].PriceSource, EntriesByOrderID[j].Price, Convert.ToDouble(EntriesByOrderID[j].QuantityOnOrder), EntriesByOrderID[j].SalesRepID, EntriesByOrderID[j].Taxable, EntriesByOrderID[j].DetailID,
                             EntriesByOrderID[j].Description, Convert.ToDouble(EntriesByOrderID[j].QuantityRTD), EntriesByOrderID[j].LastUpdated, EntriesByOrderID[j].Comment, EntriesByOrderID[j].TransactionTime, EntriesByOrderID[j].IsBonificado);//, EntriesByOrderID[j].IsBonificado
                     }
-                    registroActual = "Registro " + i.ToString();
                 }
 
                 db.Transaction.Commit();
                 msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
-            catch (Exception ex)
+            catch
             {
                 try { db.Transaction?.Rollback(); } catch { }
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al sincronizar órdenes.");

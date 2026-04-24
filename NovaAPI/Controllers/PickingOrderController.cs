@@ -22,9 +22,9 @@ namespace NovaAPI.Controllers
             {
                 return db.spWS_GetPOD_Header();
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -36,9 +36,9 @@ namespace NovaAPI.Controllers
             {
                 return db.spWS_GetPOD_Detail();
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -60,7 +60,7 @@ namespace NovaAPI.Controllers
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro sincronizado");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al sincronizar órdenes de picking.");
             }

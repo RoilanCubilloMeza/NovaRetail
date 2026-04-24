@@ -18,7 +18,6 @@ namespace NovaAPI.Controllers
             List<Transaction> transactions = syncTransactions.transactions;
             List<TransactionEntry> TransactionEntry = syncTransactions.transactionEntries;
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 if (db.Connection.State != System.Data.ConnectionState.Open)
@@ -40,13 +39,12 @@ namespace NovaAPI.Controllers
                             Convert.ToDecimal(EntriesByTransactionID[j].SalesTax), EntriesByTransactionID[j].QuantityDiscountID, EntriesByTransactionID[j].ItemType, EntriesByTransactionID[j].ComputedQuantity, EntriesByTransactionID[j].TransactionTime,
                             Convert.ToBoolean(EntriesByTransactionID[j].IsAddMoney), EntriesByTransactionID[j].VoucherID, EntriesByTransactionID[j].PrecioEditado);
                     }
-                    registroActual = "Registro " + i.ToString();
                 }
 
                 db.Transaction.Commit();
                 msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
-            catch (Exception ex)
+            catch
             {
                 try { db.Transaction?.Rollback(); } catch { }
                 msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al sincronizar transacciones.");
