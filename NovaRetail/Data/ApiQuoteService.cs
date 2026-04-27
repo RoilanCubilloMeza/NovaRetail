@@ -438,7 +438,7 @@ public sealed class ApiQuoteService : IQuoteService
         };
     }
 
-    public async Task<NovaRetailCreateQuoteResponse> DeleteQuoteAsync(int orderId, CancellationToken cancellationToken = default)
+    public async Task<NovaRetailCreateQuoteResponse> DeleteQuoteAsync(int orderId, int cashierId = 0, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
 
@@ -447,7 +447,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-quote/{orderId}", cancellationToken);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-quote/{orderId}?cashierId={cashierId}", cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
@@ -471,7 +471,7 @@ public sealed class ApiQuoteService : IQuoteService
         };
     }
 
-    public async Task<NovaRetailCreateQuoteResponse> DeleteWorkOrderAsync(int orderId, CancellationToken cancellationToken = default)
+    public async Task<NovaRetailCreateQuoteResponse> DeleteWorkOrderAsync(int orderId, int cashierId = 0, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
 
@@ -480,7 +480,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-work-order/{orderId}", cancellationToken);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-work-order/{orderId}?cashierId={cashierId}", cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))
@@ -504,7 +504,7 @@ public sealed class ApiQuoteService : IQuoteService
         };
     }
 
-    public async Task<NovaRetailCreateQuoteResponse> DeleteHoldAsync(int holdId, CancellationToken cancellationToken = default)
+    public async Task<NovaRetailCreateQuoteResponse> DeleteHoldAsync(int holdId, int cashierId = 0, CancellationToken cancellationToken = default)
     {
         string? lastErrorMessage = null;
 
@@ -513,7 +513,7 @@ public sealed class ApiQuoteService : IQuoteService
             try
             {
                 var http = _httpClientFactory.CreateClient(QuoteClientName);
-                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-hold/{holdId}", cancellationToken);
+                using var response = await http.DeleteAsync($"{baseUrl}/api/NovaRetailSales/delete-hold/{holdId}?cashierId={cashierId}", cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(content))

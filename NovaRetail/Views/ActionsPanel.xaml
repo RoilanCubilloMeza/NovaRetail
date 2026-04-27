@@ -112,6 +112,12 @@
                                             SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
                                             IconColor="#4F46E5" LabelColor="#3730A3" ArrowColor="#4F46E5"/>
 
+                    <controls:ActionLinkRow Icon="&#x1F4CA;" Text="Dashboard"
+                                            Command="{Binding ShowManagerDashboardCommand}"
+                                            IsVisible="{Binding CanViewManagerDashboard}"
+                                            SurfaceColor="#ECFEFF" StrokeColor="#A5F3FC"
+                                            IconColor="#0891B2" LabelColor="#155E75" ArrowColor="#0891B2"/>
+
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,8,0,8"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4C2;" Text="Categorías"
@@ -124,6 +130,11 @@
                                             IsVisible="{Binding CanAccessParametros}"
                                             SurfaceColor="#FDF2F8" StrokeColor="#FBCFE8"
                                             IconColor="#DB2777" LabelColor="#9D174D" ArrowColor="#DB2777"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F6AA;" Text="Cerrar sesión"
+                                            Command="{Binding LogoutCommand}"
+                                            SurfaceColor="#FEF2F2" StrokeColor="#FECACA"
+                                            IconColor="#DC2626" LabelColor="#991B1B" ArrowColor="#DC2626"/>
 
                 </VerticalStackLayout>
 

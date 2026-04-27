@@ -45,6 +45,8 @@ namespace NovaRetail.ViewModels
                     StoreID = storeId,
                     CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
+                    CashierID = cashierId,
+                    RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     Comment = string.Empty,
                     ReferenceNumber = clientRef,
                     SalesRepID = cashierId,
@@ -73,13 +75,13 @@ namespace NovaRetail.ViewModels
                 // Si venía de una factura en espera, eliminar la original
                 if (_editingHoldId > 0)
                 {
-                    try { await _quoteService.DeleteHoldAsync(_editingHoldId); }
+                    try { await _quoteService.DeleteHoldAsync(_editingHoldId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
                 if (_editingWorkOrderId > 0)
                 {
-                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId); }
+                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
@@ -162,6 +164,8 @@ namespace NovaRetail.ViewModels
                     Type = WorkOrderType,
                     CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
+                    CashierID = cashierId,
+                    RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     Comment = comment.Trim(),
                     ReferenceNumber = clientRef,
                     SalesRepID = cashierId,
@@ -189,13 +193,13 @@ namespace NovaRetail.ViewModels
 
                 if (_editingHoldId > 0)
                 {
-                    try { await _quoteService.DeleteHoldAsync(_editingHoldId); }
+                    try { await _quoteService.DeleteHoldAsync(_editingHoldId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
                 if (_editingOrderId > 0)
                 {
-                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId); }
+                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
@@ -319,6 +323,8 @@ namespace NovaRetail.ViewModels
                     Type = HoldRecallType,
                     CustomerID = HasClient ? CurrentClientCustomerId : 0,
                     ShipToID = 0,
+                    CashierID = cashierId,
+                    RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     Comment = comment.Trim(),
                     ReferenceNumber = clientRef,
                     SalesRepID = cashierId,
@@ -347,13 +353,13 @@ namespace NovaRetail.ViewModels
                 // Si venía de una cotización, eliminar la original
                 if (_editingOrderId > 0)
                 {
-                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId); }
+                    try { await _quoteService.DeleteQuoteAsync(_editingOrderId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
                 if (_editingWorkOrderId > 0)
                 {
-                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId); }
+                    try { await _quoteService.DeleteWorkOrderAsync(_editingWorkOrderId, GetCurrentCashierId()); }
                     catch { /* no bloquear si falla la limpieza */ }
                 }
 
@@ -385,7 +391,7 @@ namespace NovaRetail.ViewModels
                 if (!confirm)
                     return true;
 
-                var result = await _quoteService.DeleteHoldAsync(holdId);
+                var result = await _quoteService.DeleteHoldAsync(holdId, GetCurrentCashierId());
                 if (!result.Ok)
                 {
                     var message = string.IsNullOrWhiteSpace(result.Message)
@@ -430,7 +436,7 @@ namespace NovaRetail.ViewModels
                 if (!confirm)
                     return true;
 
-                var result = await _quoteService.DeleteWorkOrderAsync(orderId);
+                var result = await _quoteService.DeleteWorkOrderAsync(orderId, GetCurrentCashierId());
                 if (!result.Ok)
                 {
                     var message = string.IsNullOrWhiteSpace(result.Message)
@@ -475,7 +481,7 @@ namespace NovaRetail.ViewModels
                 if (!confirm)
                     return true;
 
-                var result = await _quoteService.DeleteQuoteAsync(orderId);
+                var result = await _quoteService.DeleteQuoteAsync(orderId, GetCurrentCashierId());
                 if (!result.Ok)
                 {
                     var message = string.IsNullOrWhiteSpace(result.Message)
@@ -616,8 +622,8 @@ namespace NovaRetail.ViewModels
             try
             {
                 var result = isWorkOrder
-                    ? await _quoteService.DeleteWorkOrderAsync(order.OrderID)
-                    : await _quoteService.DeleteQuoteAsync(order.OrderID);
+                    ? await _quoteService.DeleteWorkOrderAsync(order.OrderID, GetCurrentCashierId())
+                    : await _quoteService.DeleteQuoteAsync(order.OrderID, GetCurrentCashierId());
 
                 if (!result.Ok)
                 {

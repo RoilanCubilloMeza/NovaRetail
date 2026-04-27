@@ -37,6 +37,103 @@ namespace NovaAPI.Controllers
             catch { }
         }
 
+        private static void LogOrderSavedAudit(SqlConnection cn, NovaRetailCreateQuoteRequest request, int orderId, string actionType, string entityType)
+        {
+            NovaRetailAuditLogger.Log(
+                cn,
+                actionType,
+                entityType,
+                orderId,
+                request.CashierID > 0 ? request.CashierID : request.SalesRepID,
+                request.StoreID,
+                request.RegisterID,
+                request.Total,
+                $"{entityType} #{orderId}");
+
+            LogQuoteItemAudit(cn, request, orderId, entityType);
+        }
+
+        private static void LogQuoteItemAudit(SqlConnection cn, NovaRetailCreateQuoteRequest request, int orderId, string entityType)
+        {
+            if (request == null || request.Items == null)
+                return;
+
+            var cashierID = request.CashierID > 0 ? request.CashierID : request.SalesRepID;
+            foreach (var item in request.Items)
+            {
+                if (item == null)
+                    continue;
+
+                if (item.FullPrice > item.Price)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "DiscountApplied",
+                        entityType,
+                        orderId,
+                        cashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        item.FullPrice - item.Price,
+                        $"Item {item.ItemID}: descuento/precio menor de {item.FullPrice:N2} a {item.Price:N2}. Motivo {item.DiscountReasonCodeID}");
+                }
+                else if (item.PriceSource != 1 || item.Price > item.FullPrice)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "PriceChanged",
+                        entityType,
+                        orderId,
+                        cashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        item.Price,
+                        $"Item {item.ItemID}: precio cambiado de {item.FullPrice:N2} a {item.Price:N2}. PriceSource {item.PriceSource}");
+                }
+            }
+        }
+
+        private static void LogSaleItemAudit(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            if (request == null || request.Items == null)
+                return;
+
+            foreach (var item in request.Items)
+            {
+                if (item == null)
+                    continue;
+
+                var fullPrice = item.DisplayFullPrice ?? item.FullPrice ?? item.UnitPrice;
+                var price = item.DisplayPrice ?? item.UnitPrice;
+                if (fullPrice > price || item.DiscountReasonCodeID > 0)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "DiscountApplied",
+                        "Sale",
+                        transactionNumber,
+                        request.CashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        Math.Max(0m, fullPrice - price),
+                        $"Item {item.ItemID}: descuento/precio menor de {fullPrice:N2} a {price:N2}. Motivo {item.DiscountReasonCodeID}");
+                }
+                else if (item.PriceSource != 1 || price > fullPrice)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "PriceChanged",
+                        "Sale",
+                        transactionNumber,
+                        request.CashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        price,
+                        $"Item {item.ItemID}: precio cambiado de {fullPrice:N2} a {price:N2}. PriceSource {item.PriceSource}");
+                }
+            }
+        }
+
         private static string GetConnectionString()
         {
             var connectionString = AppConfig.ConnectionString("RMHPOS");
@@ -362,6 +459,19 @@ namespace NovaAPI.Controllers
                                     var orderLabel = orderType == WorkOrderType ? "Orden de trabajo" : "CotizaciÃƒÆ’Ã‚Â³n";
                                     response.Warnings.Add($"CloseQuote: {orderLabel} #{request.RecallID} no encontrada o ya cerrada.");
                                 }
+                                else if (orderType != WorkOrderType)
+                                {
+                                    NovaRetailAuditLogger.Log(
+                                        cn,
+                                        "QuoteConverted",
+                                        "Quote",
+                                        request.RecallID,
+                                        request.CashierID,
+                                        request.StoreID,
+                                        request.RegisterID,
+                                        response.Total ?? request.Items.Sum(i => i.UnitPrice * i.Quantity),
+                                        $"Cotizacion #{request.RecallID} convertida en venta #{response.TransactionNumber}");
+                                }
                             }
                             catch (Exception exQuote)
                             {
@@ -370,6 +480,19 @@ namespace NovaAPI.Controllers
                         }
 
                         // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ AR Transaction: create entry for credit sales / credit NCs ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+                        NovaRetailAuditLogger.Log(
+                            cn,
+                            "SaleCreated",
+                            "Sale",
+                            response.TransactionNumber,
+                            request.CashierID,
+                            request.StoreID,
+                            request.RegisterID,
+                            response.Total ?? request.Items.Sum(i => i.UnitPrice * i.Quantity),
+                            $"Venta #{response.TransactionNumber} registrada");
+
+                        LogSaleItemAudit(cn, request, response.TransactionNumber);
+
                         try
                         {
                             TryCreateARTransaction(request, response);

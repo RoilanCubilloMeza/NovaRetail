@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using NovaAPI.Models;
+using NovaAPI.Services;
 
 namespace NovaAPI.Controllers
 {
@@ -175,6 +176,7 @@ namespace NovaAPI.Controllers
                             response.Tax = request.Tax;
                             response.Total = request.Total;
                             response.Message = "CotizaciÃƒÂ³n creada exitosamente.";
+                            LogOrderSavedAudit(cn, request, orderID, "QuoteCreated", "Quote");
                         }
                         catch
                         {
@@ -348,6 +350,7 @@ namespace NovaAPI.Controllers
                             response.Tax = request.Tax;
                             response.Total = request.Total;
                             response.Message = "CotizaciÃƒÂ³n actualizada exitosamente.";
+                            LogOrderSavedAudit(cn, request, request.OrderID, "OrderModified", "Quote");
                         }
                         catch
                         {
@@ -540,6 +543,7 @@ namespace NovaAPI.Controllers
                             response.Tax = request.Tax;
                             response.Total = request.Total;
                             response.Message = "Orden de trabajo creada exitosamente.";
+                            LogOrderSavedAudit(cn, request, orderID, "WorkOrderCreated", "WorkOrder");
                         }
                         catch
                         {
@@ -717,6 +721,7 @@ namespace NovaAPI.Controllers
                             response.Tax = request.Tax;
                             response.Total = request.Total;
                             response.Message = "Orden de trabajo actualizada exitosamente.";
+                            LogOrderSavedAudit(cn, request, request.OrderID, "OrderModified", "WorkOrder");
                         }
                         catch
                         {

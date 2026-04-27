@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using NovaAPI.Models;
+using NovaAPI.Services;
 
 namespace NovaAPI.Controllers
 {
@@ -877,6 +878,21 @@ WHERE a.Number = @Number", cn))
                             throw;
                         }
                     }
+                }
+
+                using (var auditCn = new SqlConnection(connectionString))
+                {
+                    auditCn.Open();
+                    NovaRetailAuditLogger.Log(
+                        auditCn,
+                        "PaymentReceived",
+                        "Payment",
+                        paymentID,
+                        request.CashierID,
+                        request.StoreID,
+                        0,
+                        request.Amount,
+                        $"Abono recibido cuenta {accountNumber}. Referencia {reference}");
                 }
 
                 var (acOk, acMsg) = TryAppCentralPayment(

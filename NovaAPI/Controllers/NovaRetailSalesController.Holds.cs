@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using NovaAPI.Models;
+using NovaAPI.Services;
 
 namespace NovaAPI.Controllers
 {
@@ -137,6 +138,7 @@ namespace NovaAPI.Controllers
                             response.Tax = request.Tax;
                             response.Total = request.Total;
                             response.Message = "Factura en espera guardada exitosamente.";
+                            LogOrderSavedAudit(cn, request, holdId, "HoldCreated", "Hold");
                         }
                         catch
                         {
@@ -267,6 +269,7 @@ namespace NovaAPI.Controllers
                             response.Ok = true;
                             response.OrderID = request.OrderID;
                             response.Message = "Factura en espera actualizada exitosamente.";
+                            LogOrderSavedAudit(cn, request, request.OrderID, "OrderModified", "Hold");
                         }
                         catch
                         {
@@ -449,7 +452,7 @@ namespace NovaAPI.Controllers
 
         [HttpDelete]
         [Route("delete-hold/{holdId}")]
-        public HttpResponseMessage DeleteHold(int holdId)
+        public HttpResponseMessage DeleteHold(int holdId, int cashierId = 0)
         {
             if (holdId <= 0)
             {
@@ -474,6 +477,11 @@ namespace NovaAPI.Controllers
                 response.Ok = true;
                 response.OrderID = holdId;
                 response.Message = "Factura en espera eliminada.";
+                using (var auditCn = new SqlConnection(connectionString))
+                {
+                    auditCn.Open();
+                    NovaRetailAuditLogger.Log(auditCn, "OrderCanceled", "Hold", holdId, cashierId, 0, 0, 0m, $"Factura en espera #{holdId} eliminada");
+                }
                 return Request.CreateResponse(HttpStatusCode.OK, response);
             }
             catch (SqlException ex)

@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using NovaAPI.Models;
+using NovaAPI.Services;
 
 namespace NovaAPI.Controllers
 {
@@ -349,7 +350,7 @@ namespace NovaAPI.Controllers
 
         [HttpDelete]
         [Route("delete-work-order/{orderId}")]
-        public HttpResponseMessage DeleteWorkOrder(int orderId)
+        public HttpResponseMessage DeleteWorkOrder(int orderId, int cashierId = 0)
         {
             if (orderId <= 0)
             {
@@ -395,6 +396,11 @@ namespace NovaAPI.Controllers
                 response.Ok = true;
                 response.OrderID = orderId;
                 response.Message = "Orden de trabajo cancelada y stock liberado.";
+                using (var auditCn = new SqlConnection(connectionString))
+                {
+                    auditCn.Open();
+                    NovaRetailAuditLogger.Log(auditCn, "OrderCanceled", "WorkOrder", orderId, cashierId, 0, 0, 0m, $"Orden de trabajo #{orderId} cancelada");
+                }
                 return Request.CreateResponse(HttpStatusCode.OK, response);
             }
             catch (SqlException ex)
@@ -415,7 +421,7 @@ namespace NovaAPI.Controllers
 
         [HttpDelete]
         [Route("delete-quote/{orderId}")]
-        public HttpResponseMessage DeleteQuote(int orderId)
+        public HttpResponseMessage DeleteQuote(int orderId, int cashierId = 0)
         {
             if (orderId <= 0)
             {
@@ -446,6 +452,11 @@ namespace NovaAPI.Controllers
                 response.Ok = true;
                 response.OrderID = orderId;
                 response.Message = "Cotizaci\u00F3n cancelada y marcada como cerrada.";
+                using (var auditCn = new SqlConnection(connectionString))
+                {
+                    auditCn.Open();
+                    NovaRetailAuditLogger.Log(auditCn, "OrderCanceled", "Quote", orderId, cashierId, 0, 0, 0m, $"Cotizacion #{orderId} cancelada");
+                }
                 return Request.CreateResponse(HttpStatusCode.OK, response);
             }
             catch (SqlException ex)

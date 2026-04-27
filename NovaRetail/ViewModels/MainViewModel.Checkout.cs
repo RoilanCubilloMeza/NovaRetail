@@ -570,7 +570,7 @@ namespace NovaRetail.ViewModels
 
             if (remainingItems.Count == 0)
             {
-                var closeResult = await _quoteService.DeleteWorkOrderAsync(originalOrderId);
+                var closeResult = await _quoteService.DeleteWorkOrderAsync(originalOrderId, ParseCashierId(currentUser));
                 if (closeResult.Ok)
                     return string.Empty;
 
@@ -613,6 +613,8 @@ namespace NovaRetail.ViewModels
                 Type = WorkOrderType,
                 CustomerID = _editingWorkOrderSummary?.CustomerID ?? (HasClient ? CurrentClientCustomerId : 0),
                 ShipToID = 0,
+                CashierID = ParseCashierId(currentUser),
+                RegisterID = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                 Comment = _editingWorkOrderDetail?.Comment ?? _editingWorkOrderSummary?.Comment ?? string.Empty,
                 ReferenceNumber = referenceNumber,
                 SalesRepID = ParseCashierId(currentUser),

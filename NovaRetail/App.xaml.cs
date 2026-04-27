@@ -33,6 +33,21 @@ public partial class App : Application
         });
     }
 
+    public void ShowLoginPage()
+    {
+        var window = Windows.FirstOrDefault();
+        if (window is null)
+            return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var loginViewModel = _services.GetRequiredService<ViewModels.LoginViewModel>();
+            loginViewModel.ResetForNewSession();
+            window.Page = _services.GetRequiredService<LoginPage>();
+            ConfigureLoginWindow(window);
+        });
+    }
+
     partial void ConfigureLoginWindow(Window window);
     partial void ConfigureMainWindow(Window window);
 }

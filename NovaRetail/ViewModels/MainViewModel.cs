@@ -432,10 +432,13 @@ namespace NovaRetail.ViewModels
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
         public ICommand ShowCreditPaymentCommand { get; private set; } = new Command(() => { });
+        public ICommand ShowManagerDashboardCommand { get; private set; } = new Command(() => { });
         public ICommand NavigateToCategoryConfigCommand { get; }
         public ICommand NavigateToMantenimientosCommand { get; }
+        public ICommand LogoutCommand { get; private set; } = new Command(() => { });
 
         public bool CanAccessParametros => _userSession.CurrentUser?.IsAdmin == true;
+        public bool CanViewManagerDashboard => _userSession.CurrentUser?.IsAdmin == true;
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -577,6 +580,7 @@ namespace NovaRetail.ViewModels
             _userSession = userSession;
             ProductCatalog = productCatalog;
             _appStore.StateChanged += OnAppStateChanged;
+            _userSession.CurrentUserChanged += OnCurrentUserChanged;
 
             // Wire ProductCatalog events
             ProductCatalog.ProductAddRequested += (product, qty) => AddProduct(product, qty);
@@ -608,8 +612,21 @@ namespace NovaRetail.ViewModels
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentAsync());
+            ShowManagerDashboardCommand = new Command(
+                async () =>
+                {
+                    if (!CanViewManagerDashboard)
+                    {
+                        await _dialogService.AlertAsync("Dashboard", "No tiene permisos para ver el dashboard.", "OK");
+                        return;
+                    }
+
+                    await Shell.Current.GoToAsync("ManagerDashboardPage");
+                },
+                () => CanViewManagerDashboard);
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
             NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
+            LogoutCommand = new Command(async () => await LogoutAsync());
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveWorkOrderCommand = new Command(async () => await SaveWorkOrderAsync());
             SaveHoldCommand = new Command(async () => await SaveHoldAsync());
@@ -786,6 +803,28 @@ namespace NovaRetail.ViewModels
             }
         }
 
+        private void OnCurrentUserChanged(object? sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(CanAccessParametros));
+            OnPropertyChanged(nameof(CanViewManagerDashboard));
+            ((Command)ShowManagerDashboardCommand).ChangeCanExecute();
+
+            if (_userSession.CurrentUser is not null)
+                _ = ReloadSessionContextAsync();
+        }
+
+        private async Task ReloadSessionContextAsync()
+        {
+            try
+            {
+                await LoadStoreConfigAsync();
+                await ReloadCategoriesAsync();
+            }
+            catch
+            {
+            }
+        }
+
         private async Task LoadStoreConfigAsync()
         {
             try
@@ -896,6 +935,9 @@ namespace NovaRetail.ViewModels
             return 1;
         }
 
+        private int GetCurrentCashierId()
+            => _userSession.CurrentUser is null ? 0 : ParseCashierId(_userSession.CurrentUser);
+
         private static string BuildOrderReferenceNumber(string? clientId, string? clientName)
         {
             var id = (clientId ?? string.Empty).Trim();
@@ -963,6 +1005,63 @@ namespace NovaRetail.ViewModels
             => _pricingService.ConvertFromColones(amount, _exchangeRate);
 
         private bool IsTaxIncluded => _storeTaxSystem > 0;
+
+        private async Task LogoutAsync()
+        {
+            var confirm = await _dialogService.ConfirmAsync(
+                "Cerrar sesión",
+                "Se cerrará la sesión actual y volverá a la pantalla de login. ¿Desea continuar?",
+                "Cerrar sesión",
+                "Cancelar");
+
+            if (!confirm)
+                return;
+
+            ResetSessionState();
+            _userSession.CurrentUser = null;
+
+            if (Application.Current is App app)
+                app.ShowLoginPage();
+        }
+
+        private void ResetSessionState()
+        {
+            ResetRecoveredOrderTracking();
+            ResetExonerationState();
+            ResetPendingWorkOrderCheckoutMode(restorePartialCart: true);
+
+            CartItems.Clear();
+            FilteredCartItems.Clear();
+            ProductCatalog.ResetAllCartQuantities();
+
+            _cachedSalesReps.Clear();
+            _pendingRepItem = null;
+            _salesRepPickerContext = SalesRepPickerContext.Session;
+            SetActiveSalesRep(null);
+            CheckoutVm.SetSalesRep(null);
+
+            _appStore.Reset();
+            _previousState = _appStore.State;
+
+            IsItemActionVisible = false;
+            IsPriceJustVisible = false;
+            IsDiscountPopupVisible = false;
+            IsCheckoutVisible = false;
+            IsReceiptVisible = false;
+            IsManualExonerationVisible = false;
+            IsOrderSearchVisible = false;
+            IsQuoteReceiptVisible = false;
+            IsSalesRepPickerVisible = false;
+            IsCustomerSearchVisible = false;
+            IsCreditPaymentSearchVisible = false;
+            IsCreditPaymentDetailVisible = false;
+            IsWorkOrderActionVisible = false;
+            IsWorkOrderPartialPickupVisible = false;
+
+            OnPropertyChanged(nameof(ShowSalesRepFeature));
+            RecalculateTotal();
+            RefreshCartItemsView();
+        }
 
         private static string NormalizeCabys(string? value)
             => new string((value ?? string.Empty).Where(char.IsDigit).ToArray());

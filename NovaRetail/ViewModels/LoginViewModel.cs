@@ -276,6 +276,18 @@ public class LoginViewModel : INotifyPropertyChanged
             : "Base BM sin conexión";
     }
 
+    public void ResetForNewSession()
+    {
+        UserName = string.Empty;
+        Password = string.Empty;
+        ErrorMessage = string.Empty;
+        CurrentPassword = string.Empty;
+        NewPassword = string.Empty;
+        ConfirmPassword = string.Empty;
+        ChangePasswordError = string.Empty;
+        IsChangePasswordVisible = false;
+    }
+
     private async Task LoginAsync()
     {
         if (IsBusy)

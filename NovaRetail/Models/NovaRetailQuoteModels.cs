@@ -8,6 +8,8 @@ public sealed class NovaRetailCreateQuoteRequest
     public int Type { get; set; } = 3;
     public int CustomerID { get; set; }
     public int ShipToID { get; set; }
+    public int CashierID { get; set; }
+    public int RegisterID { get; set; }
     public string Comment { get; set; } = string.Empty;
     public string ReferenceNumber { get; set; } = string.Empty;
     public int SalesRepID { get; set; }

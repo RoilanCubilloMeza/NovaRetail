@@ -14,7 +14,7 @@ public interface IQuoteService
     Task<NovaRetailListOrdersResponse> ListHoldsAsync(int storeId, string search = "", CancellationToken cancellationToken = default);
     Task<NovaRetailOrderDetailResponse> GetOrderDetailAsync(int orderId, CancellationToken cancellationToken = default);
     Task<NovaRetailOrderDetailResponse> GetHoldDetailAsync(int holdId, CancellationToken cancellationToken = default);
-    Task<NovaRetailCreateQuoteResponse> DeleteWorkOrderAsync(int orderId, CancellationToken cancellationToken = default);
-    Task<NovaRetailCreateQuoteResponse> DeleteQuoteAsync(int orderId, CancellationToken cancellationToken = default);
-    Task<NovaRetailCreateQuoteResponse> DeleteHoldAsync(int holdId, CancellationToken cancellationToken = default);
+    Task<NovaRetailCreateQuoteResponse> DeleteWorkOrderAsync(int orderId, int cashierId = 0, CancellationToken cancellationToken = default);
+    Task<NovaRetailCreateQuoteResponse> DeleteQuoteAsync(int orderId, int cashierId = 0, CancellationToken cancellationToken = default);
+    Task<NovaRetailCreateQuoteResponse> DeleteHoldAsync(int holdId, int cashierId = 0, CancellationToken cancellationToken = default);
 }

@@ -41,6 +41,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IUsuariosService, ApiUsuariosService>();
         builder.Services.AddSingleton<IParametrosService, ApiParametrosService>();
         builder.Services.AddSingleton<IPricingService, PricingService>();
+        builder.Services.AddSingleton<IManagerDashboardService, ApiManagerDashboardService>();
         builder.Services.AddSingleton<AppStore>();
         builder.Services.AddSingleton<UserSession>();
         builder.Services.AddSingleton<Utilities>();
@@ -68,6 +69,8 @@ public static class MauiProgram
             c => c.Timeout = TimeSpan.FromSeconds(20)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaSalesRep",
             c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
+        builder.Services.AddHttpClient("NovaManager",
+            c => c.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
 
         // ViewModels
         builder.Services.AddSingleton<LoginViewModel>();
@@ -80,6 +83,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ParametrosViewModel>();
         builder.Services.AddTransient<MantenimientosViewModel>();
         builder.Services.AddTransient<UsuariosViewModel>();
+        builder.Services.AddTransient<ManagerDashboardViewModel>();
 
         // Pages
         builder.Services.AddSingleton<LoginPage>();
@@ -91,6 +95,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ParametrosPage>();
         builder.Services.AddTransient<MantenimientosPage>();
         builder.Services.AddTransient<UsuariosPage>();
+        builder.Services.AddTransient<ManagerDashboardPage>();
 
         // Shell
         builder.Services.AddSingleton<AppShell>();

@@ -1752,3 +1752,101 @@ PRINT ' Base de datos creada con todas las tablas limpias.'
 PRINT ' AVS_Parametros cargada con datos de configuración.'
 PRINT '============================================================='
 GO
+-- =====================================================================
+-- EXTENSIONES NOVARETAIL
+-- =====================================================================
+
+IF OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.NovaRetail_ActionLog
+    (
+        ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_NovaRetail_ActionLog PRIMARY KEY,
+        ActionDate DATETIME NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_ActionDate DEFAULT (GETDATE()),
+        ActionType NVARCHAR(40) NOT NULL,
+        EntityType NVARCHAR(40) NOT NULL,
+        EntityID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_EntityID DEFAULT (0),
+        CashierID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_CashierID DEFAULT (0),
+        CashierName NVARCHAR(120) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_CashierName DEFAULT (''),
+        StoreID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_StoreID DEFAULT (0),
+        RegisterID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_RegisterID DEFAULT (0),
+        Amount MONEY NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_Amount DEFAULT (0),
+        Detail NVARCHAR(1000) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_Detail DEFAULT ('')
+    );
+END
+GO
+
+IF OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'ActionDate') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD ActionDate DATETIME NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_ActionDate_Upgrade DEFAULT (GETDATE()) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'ActionType') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD ActionType NVARCHAR(40) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_ActionType_Upgrade DEFAULT ('') WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'EntityType') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD EntityType NVARCHAR(40) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_EntityType_Upgrade DEFAULT ('') WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'EntityID') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD EntityID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_EntityID_Upgrade DEFAULT (0) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'CashierID') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD CashierID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_CashierID_Upgrade DEFAULT (0) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'CashierName') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD CashierName NVARCHAR(120) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_CashierName_Upgrade DEFAULT ('') WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'StoreID') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD StoreID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_StoreID_Upgrade DEFAULT (0) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'RegisterID') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD RegisterID INT NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_RegisterID_Upgrade DEFAULT (0) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'Amount') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD Amount MONEY NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_Amount_Upgrade DEFAULT (0) WITH VALUES;
+
+    IF COL_LENGTH(N'dbo.NovaRetail_ActionLog', N'Detail') IS NULL
+        ALTER TABLE dbo.NovaRetail_ActionLog ADD Detail NVARCHAR(1000) NOT NULL CONSTRAINT DF_NovaRetail_ActionLog_Detail_Upgrade DEFAULT ('') WITH VALUES;
+END
+GO
+
+IF OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_NovaRetail_ActionLog_ActionDate'
+         AND object_id = OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_NovaRetail_ActionLog_ActionDate
+        ON dbo.NovaRetail_ActionLog(ActionDate DESC);
+END
+GO
+
+IF OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_NovaRetail_ActionLog_ActionType'
+         AND object_id = OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_NovaRetail_ActionLog_ActionType
+        ON dbo.NovaRetail_ActionLog(ActionType, ActionDate DESC);
+END
+GO
+
+IF OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_NovaRetail_ActionLog_StoreDate'
+         AND object_id = OBJECT_ID(N'dbo.NovaRetail_ActionLog', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_NovaRetail_ActionLog_StoreDate
+        ON dbo.NovaRetail_ActionLog(StoreID, ActionDate DESC);
+END
+GO
+
+PRINT ' Extensiones NovaRetail de dashboard y auditoria aplicadas.'
+GO

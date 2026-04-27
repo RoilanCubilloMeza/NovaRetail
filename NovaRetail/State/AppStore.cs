@@ -31,4 +31,12 @@ public sealed class AppStore
 
         StateChanged?.Invoke(nextState);
     }
+
+    public void Reset()
+    {
+        lock (_sync)
+            _state = new AppState();
+
+        StateChanged?.Invoke(_state);
+    }
 }
