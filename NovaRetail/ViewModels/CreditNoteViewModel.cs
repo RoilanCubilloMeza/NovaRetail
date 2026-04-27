@@ -21,6 +21,7 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
     public string DisplayName { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
     public decimal OriginalQuantity { get; init; }
+    public decimal AvailableQuantity { get; init; }
     public decimal TaxPercentage { get; init; }
     public decimal UnitPriceColones { get; init; }
     public decimal LineTotalColones { get; init; }
@@ -41,7 +42,7 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
         get => _returnQuantity;
         set
         {
-            var clamped = Math.Max(0, Math.Min(value, OriginalQuantity));
+            var clamped = Math.Max(0, Math.Min(value, AvailableQuantity));
             if (_returnQuantity != clamped)
             {
                 _returnQuantity = clamped;
@@ -57,7 +58,7 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
     public decimal ReturnTotal => UnitTotal * _returnQuantity;
 
     public string ReturnQuantityText => $"{_returnQuantity:0.##}";
-    public string OriginalQuantityText => $"/ {OriginalQuantity:0.##}";
+    public string OriginalQuantityText => $"{AvailableQuantity:0.##} / {OriginalQuantity:0.##}";
     public string UnitPriceText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
     public string LineTotalText => $"{UiConfig.CurrencySymbol}{LineTotalColones:N2}";
     public string ReturnTotalText => $"{UiConfig.CurrencySymbol}{ReturnTotal:N2}";
@@ -100,6 +101,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _customerSearchCts;
     private string _overrideClientId = string.Empty;
     private string _overrideClientName = string.Empty;
+    private bool _sourcePricesIncludeTax;
 
     public ObservableCollection<CreditNoteLineItem> Lines { get; } = new();
     public ObservableCollection<ReasonCodeModel> ReasonCodes { get; } = new();
@@ -377,6 +379,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _overrideClientId = string.Empty;
         _overrideClientName = string.Empty;
         _customerSearchText = string.Empty;
+        _sourcePricesIncludeTax = SourceLineTotalsIncludeTax(entry);
         ReferenceNumber = entry.TransactionNumber.ToString(CultureInfo.InvariantCulture);
         CommentText = string.Empty;
 
@@ -435,10 +438,17 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             // Load available tenders — match the original invoice's payment method
             await LoadTendersAsync(entry.TenderDescription);
 
+            var refundedLines = await GetRefundedLinesAsync(entry.TransactionNumber);
+
             // Populate lines from the source entry
             Lines.Clear();
             foreach (var line in entry.Lines)
             {
+                var refundedQuantity = GetRefundedQuantityForLine(refundedLines, line);
+                var availableQuantity = Math.Max(0m, line.Quantity - refundedQuantity);
+                if (availableQuantity <= 0m)
+                    continue;
+
                 var item = new CreditNoteLineItem
                 {
                     ItemID = line.ItemID,
@@ -446,6 +456,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     DisplayName = line.DisplayName,
                     Code = line.Code,
                     OriginalQuantity = line.Quantity,
+                    AvailableQuantity = availableQuantity,
                     TaxPercentage = line.TaxPercentage,
                     UnitPriceColones = line.UnitPriceColones,
                     LineTotalColones = line.LineTotalColones,
@@ -455,10 +466,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     ExonerationPercent = line.ExonerationPercent,
                     HasOverridePrice = line.HasOverridePrice
                 };
-                item.ReturnQuantity = line.Quantity; // default: return all
+                item.ReturnQuantity = availableQuantity;
                 item.PropertyChanged += (_, _) => RefreshSelectedSummary();
                 Lines.Add(item);
             }
+
+            if (Lines.Count == 0)
+                StatusMessage = "Esta factura ya no tiene cantidades disponibles para otra nota de crédito.";
 
             RefreshSelectedSummary();
         }
@@ -594,6 +608,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             DisplayName = product.Name,
             Code = product.Code,
             OriginalQuantity = 999,
+            AvailableQuantity = 999,
             TaxPercentage = product.TaxPercentage,
             UnitPriceColones = product.PriceColonesValue,
             LineTotalColones = product.PriceColonesValue * 999,
@@ -939,7 +954,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 NC_REFERENCIA_FECHA = _isStandaloneMode ? (DateTime?)null : _sourceEntry!.Date,
                 NC_CODIGO = _selectedReason.Code,
                 NC_RAZON = _selectedReason.Description,
-                Items = BuildCreditNoteItems(selectedLines, _selectedReason.ID),
+                TR_REP = _isStandaloneMode ? string.Empty : _sourceEntry!.TransactionNumber.ToString(CultureInfo.InvariantCulture),
+                Items = BuildCreditNoteItems(selectedLines, _selectedReason.ID, _sourcePricesIncludeTax),
                 Tenders = new List<NovaRetailSaleTenderRequest>
                 {
                     new()
@@ -980,6 +996,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     Consecutivo = !string.IsNullOrWhiteSpace(result.Clave20) ? result.Clave20 : string.Empty,
                     ClientId = clientId,
                     ClientName = clientName,
+                    SourceTransactionNumber = _isStandaloneMode || _sourceEntry is null ? 0 : _sourceEntry.TransactionNumber,
+                    AppliedSourceTransactionNumber = result.AccountsReceivableApplied && !_isStandaloneMode && _sourceEntry is not null
+                        ? _sourceEntry.TransactionNumber
+                        : 0,
                     CashierName = currentUser.DisplayName ?? string.Empty,
                     RegisterNumber = _registerId,
                     StoreName = _storeName,
@@ -1005,6 +1025,14 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 };
 
                 await _invoiceHistoryService.AddAsync(historyEntry);
+                CreditNoteAppliedChanged.Send(new CreditNoteAppliedMessage
+                {
+                    SourceTransactionNumber = _isStandaloneMode || _sourceEntry is null ? 0 : _sourceEntry.TransactionNumber,
+                    CreditNoteTransactionNumber = result.TransactionNumber,
+                    AppliedAmountColones = returnTotal,
+                    AccountsReceivableApplied = result.AccountsReceivableApplied,
+                    CreditNoteEntry = historyEntry
+                });
             }
             catch
             {
@@ -1090,28 +1118,94 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         return null;
     }
 
-    private static List<NovaRetailSaleItemRequest> BuildCreditNoteItems(List<CreditNoteLineItem> selectedLines, int returnReasonCodeId)
+    private static bool SourceLineTotalsIncludeTax(InvoiceHistoryEntry entry)
+    {
+        if (entry is null || entry.TaxColones <= 0m || entry.TotalColones <= 0m || entry.Lines.Count == 0)
+            return false;
+
+        var lineTotal = entry.Lines.Sum(line => line.LineTotalColones);
+        return Math.Abs(lineTotal - entry.TotalColones) <= 0.05m;
+    }
+
+    private async Task<List<InvoiceHistoryLine>> GetRefundedLinesAsync(int sourceTransactionNumber)
+    {
+        var refundedLines = new List<InvoiceHistoryLine>();
+        var history = await _invoiceHistoryService.GetAllAsync();
+
+        foreach (var entry in history)
+        {
+            if (!entry.IsCreditNote || entry.SourceTransactionNumber != sourceTransactionNumber)
+                continue;
+
+            refundedLines.AddRange(entry.Lines);
+        }
+
+        return refundedLines;
+    }
+
+    private static decimal GetRefundedQuantityForLine(List<InvoiceHistoryLine> refundedLines, InvoiceHistoryLine line)
+    {
+        return refundedLines
+            .Where(refundedLine => IsSameSourceLine(refundedLine, line))
+            .Sum(refundedLine => Math.Abs(refundedLine.Quantity));
+    }
+
+    private static bool IsSameSourceLine(InvoiceHistoryLine refundedLine, InvoiceHistoryLine sourceLine)
+    {
+        if (refundedLine.ItemID > 0 && sourceLine.ItemID > 0 && refundedLine.ItemID == sourceLine.ItemID)
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(refundedLine.Code) &&
+            !string.IsNullOrWhiteSpace(sourceLine.Code) &&
+            string.Equals(refundedLine.Code.Trim(), sourceLine.Code.Trim(), StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(refundedLine.DisplayName) &&
+            !string.IsNullOrWhiteSpace(sourceLine.DisplayName) &&
+            string.Equals(refundedLine.DisplayName.Trim(), sourceLine.DisplayName.Trim(), StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private static List<NovaRetailSaleItemRequest> BuildCreditNoteItems(List<CreditNoteLineItem> selectedLines, int returnReasonCodeId, bool pricesIncludeTax)
     {
         var items = new List<NovaRetailSaleItemRequest>(selectedLines.Count);
         for (var i = 0; i < selectedLines.Count; i++)
         {
             var line = selectedLines[i];
+            var quantity = Math.Abs(line.ReturnQuantity);
+            var grossUnitPrice = line.UnitPriceColones;
+            var unitPrice = grossUnitPrice;
+            var salesTax = 0m;
+
+            if (line.TaxPercentage > 0 && pricesIncludeTax)
+            {
+                var divisor = 1m + line.TaxPercentage / 100m;
+                unitPrice = Math.Round(grossUnitPrice / divisor, 4, MidpointRounding.AwayFromZero);
+                var grossLine = Math.Round(grossUnitPrice * quantity, 2, MidpointRounding.AwayFromZero);
+                var netLine = Math.Round(unitPrice * quantity, 2, MidpointRounding.AwayFromZero);
+                salesTax = Math.Round(grossLine - netLine, 2, MidpointRounding.AwayFromZero);
+            }
+            else if (line.TaxPercentage > 0)
+            {
+                salesTax = Math.Round(unitPrice * quantity * line.TaxPercentage / 100m, 2, MidpointRounding.AwayFromZero);
+            }
+
             items.Add(new NovaRetailSaleItemRequest
             {
                 RowNo = i + 1,
                 ItemID = line.ItemID,
-                Quantity = Math.Abs(line.ReturnQuantity),
-                UnitPrice = line.UnitPriceColones,
-                FullPrice = line.UnitPriceColones,
+                Quantity = quantity,
+                UnitPrice = unitPrice,
+                FullPrice = unitPrice,
                 Taxable = line.TaxPercentage > 0,
                 TaxID = line.TaxID,
-                SalesTax = line.TaxPercentage > 0
-                    ? Math.Round(line.UnitPriceColones * Math.Abs(line.ReturnQuantity) * line.TaxPercentage / 100m, 2)
-                    : 0m,
+                SalesTax = salesTax,
                 LineComment = string.Empty,
                 ReturnReasonCodeID = returnReasonCodeId,
                 ItemType = 0,
-                ComputedQuantity = Math.Abs(line.ReturnQuantity),
+                ComputedQuantity = quantity,
                 ExtendedDescription = line.DisplayName
             });
         }

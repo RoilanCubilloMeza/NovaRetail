@@ -6,6 +6,7 @@ public interface IInvoiceHistoryService
 {
     Task<IReadOnlyList<InvoiceHistoryEntry>> GetAllAsync();
     Task AddAsync(InvoiceHistoryEntry entry);
+    Task UpdateAsync(InvoiceHistoryEntry entry);
     Task DeleteAsync(Guid id);
     Task ClearAllAsync();
 }

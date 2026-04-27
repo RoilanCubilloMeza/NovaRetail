@@ -51,11 +51,34 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
+            entry.NormalizeForDisplay();
             var list = await LoadAsync();
             list.Insert(0, entry);
             await SaveAsync(list);
             _cache = list;
             System.Diagnostics.Debug.WriteLine($"[InvoiceHistory] Guardado OK. Total entradas: {list.Count}");
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task UpdateAsync(InvoiceHistoryEntry entry)
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            entry.NormalizeForDisplay();
+            var list = await LoadAsync();
+            var index = list.FindIndex(e => e.Id == entry.Id);
+            if (index >= 0)
+                list[index] = entry;
+            else
+                list.Insert(0, entry);
+
+            await SaveAsync(list);
+            _cache = list;
         }
         finally
         {
@@ -111,6 +134,8 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
             var json = await File.ReadAllTextAsync(FilePath).ConfigureAwait(false);
             _cache = JsonConvert.DeserializeObject<List<InvoiceHistoryEntry>>(json)
                      ?? [];
+            foreach (var entry in _cache)
+                entry.NormalizeForDisplay();
         }
         catch
         {

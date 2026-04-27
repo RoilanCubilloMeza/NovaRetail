@@ -200,6 +200,16 @@
                                     </HorizontalStackLayout>
                                     <Label Text="{Binding ClientMetaText}"
                                            FontSize="10" TextColor="#94A3B8"/>
+                                    <Border BackgroundColor="{Binding LifecycleBadgeBackground}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="8,3"
+                                            IsVisible="{Binding HasLifecycleBadge}"
+                                            HorizontalOptions="Start">
+                                        <Label Text="{Binding LifecycleBadgeText}"
+                                               FontSize="9" FontAttributes="Bold"
+                                               TextColor="{Binding LifecycleBadgeTextColor}"/>
+                                    </Border>
                                 </VerticalStackLayout>
 
                                 <!-- Total + botones -->
@@ -364,6 +374,17 @@
                             <Label Text="{Binding SelectedEntry.Consecutivo}"
                                    FontSize="10" TextColor="#166534"/>
                         </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="{Binding SelectedEntry.LifecycleBadgeBackground}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10"
+                            Padding="12,8"
+                            IsVisible="{Binding SelectedEntry.HasLifecycleBadge}">
+                        <Label Text="{Binding SelectedEntry.LifecycleBadgeText}"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{Binding SelectedEntry.LifecycleBadgeTextColor}"/>
                     </Border>
 
                     <!-- Encabezado lï¿½neas -->

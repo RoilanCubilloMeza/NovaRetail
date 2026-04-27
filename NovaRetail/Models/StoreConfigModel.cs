@@ -71,20 +71,20 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
         if (!string.IsNullOrWhiteSpace(MedioPagoCodigo))
             return MedioPagoCodigo.Trim();
 
+        var description = (Description ?? string.Empty).Trim().ToUpperInvariant();
+        if (description.Contains("CRÉDITO") || description.Contains("CREDITO"))
+            return "99";
+
         var tenderCode = (Code ?? string.Empty).Trim();
         if (tenderCode.Length >= 2 && char.IsDigit(tenderCode[0]) && char.IsDigit(tenderCode[1]))
             return tenderCode.Substring(0, 2);
 
-        var description = (Description ?? string.Empty).Trim().ToUpperInvariant();
         if (description.Contains("EFECTIVO") || description.Contains("CONTADO"))
             return "01";
         if (description.Contains("TARJETA"))
             return "02";
         if (description.Contains("TRANSFER") || description.Contains("SINPE"))
             return "04";
-        if (description.Contains("CRÉDITO") || description.Contains("CREDITO"))
-            return "99";
-
         return string.Empty;
     }
 

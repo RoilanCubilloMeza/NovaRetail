@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using NovaRetail.Data;
+using NovaRetail.Messages;
 using NovaRetail.Models;
 using NovaRetail.Services;
 using System.Collections.ObjectModel;
@@ -63,13 +64,13 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     }
 
     public bool IsNotLoading => !_isLoading;
-
     public bool IsEmpty => Entries.Count == 0 && !_isLoading;
     public bool HasEntries => Entries.Count > 0;
     public bool IsSearchActive => !string.IsNullOrWhiteSpace(_searchText);
     public bool IsCompletelyEmpty => !IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool IsSearchEmpty => IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool HasLocalEntries => _localEntries.Count > 0;
+
     public string LastRefreshText
     {
         get => _lastRefreshText;
@@ -81,10 +82,13 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasLastRefreshText));
         }
     }
+
     public bool HasLastRefreshText => !string.IsNullOrWhiteSpace(_lastRefreshText);
+
     public string LoadingMessageText => IsSearchActive
         ? "Buscando facturas..."
         : "Cargando facturas pasadas...";
+
     public string ResultSummaryText => IsLoading
         ? LoadingMessageText
         : HasEntries
@@ -96,7 +100,12 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public InvoiceHistoryEntry? SelectedEntry
     {
         get => _selectedEntry;
-        set { _selectedEntry = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasSelectedEntry)); }
+        set
+        {
+            _selectedEntry = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSelectedEntry));
+        }
     }
 
     public bool HasSelectedEntry => _selectedEntry is not null;
@@ -104,7 +113,12 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public bool IsReprintVisible
     {
         get => _isReprintVisible;
-        private set { if (_isReprintVisible == value) return; _isReprintVisible = value; OnPropertyChanged(); }
+        private set
+        {
+            if (_isReprintVisible == value) return;
+            _isReprintVisible = value;
+            OnPropertyChanged();
+        }
     }
 
     public ICommand LoadCommand { get; }
@@ -132,6 +146,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         StandaloneCreditNoteCommand = new Command(async () => await StandaloneCreditNoteAsync());
 
         ReprintVm.RequestClose += () => IsReprintVisible = false;
+        CreditNoteAppliedChanged.Notified += OnCreditNoteApplied;
     }
 
     public async Task LoadAsync()
@@ -235,21 +250,25 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (entry is null)
             return;
 
-        // Only allow NC for facturas/tiquetes, not for existing NCs
         if (entry.ComprobanteTipo == "03")
         {
-            await _dialogService.AlertAsync("Nota de Crédito", "No se puede crear una nota de crédito sobre otra nota de crédito.", "OK");
+            await _dialogService.AlertAsync("Nota de CrÃ©dito", "No se puede crear una nota de crÃ©dito sobre otra nota de crÃ©dito.", "OK");
+            return;
+        }
+
+        if (entry.IsReturnCompleted)
+        {
+            await _dialogService.AlertAsync("Nota de CrÃ©dito", $"La factura #{entry.TransactionNumber} ya fue devuelta completamente con la NC #{entry.LastAppliedCreditNoteTransactionNumber}.", "OK");
             return;
         }
 
         var fullEntry = await EnsureDetailAsync(entry);
         if (fullEntry.Lines.Count == 0)
         {
-            await _dialogService.AlertAsync("Nota de Crédito", "No se encontraron líneas de detalle para esta factura.", "OK");
+            await _dialogService.AlertAsync("Nota de CrÃ©dito", "No se encontraron lÃ­neas de detalle para esta factura.", "OK");
             return;
         }
 
-        // Navigate to CreditNotePage passing the entry via the service provider
         var page = Application.Current?.Handler?.MauiContext?.Services.GetService<NovaRetail.Pages.CreditNotePage>();
         if (page is null)
             return;
@@ -262,7 +281,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     {
         var clave50 = await _dialogService.PromptAsync(
             "NC por referencia",
-            "Escanee o ingrese la referencia de compra (Clave 50, consecutivo o número de transacción):",
+            "Escanee o ingrese la referencia de compra (Clave 50, consecutivo o nÃºmero de transacciÃ³n):",
             "Continuar", "Cancelar",
             placeholder: "Referencia de compra...",
             maxLength: 50);
@@ -272,7 +291,6 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         clave50 = clave50.Trim();
 
-        // Try to find the invoice by any supported reference in the server.
         InvoiceHistoryEntry? foundEntry = null;
         try
         {
@@ -293,24 +311,16 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         }
         catch
         {
-            // If search fails, continue with standalone mode
         }
 
-        var page = Application.Current?.Handler?.MauiContext?.Services
-            .GetService<NovaRetail.Pages.CreditNotePage>();
+        var page = Application.Current?.Handler?.MauiContext?.Services.GetService<NovaRetail.Pages.CreditNotePage>();
         if (page is null)
             return;
 
         if (foundEntry is not null && foundEntry.Lines.Count > 0)
-        {
-            // Found the invoice - use normal NC flow
             await page.LoadAsync(foundEntry);
-        }
         else
-        {
-            // Standalone NC - no source invoice found
             await page.LoadStandaloneAsync(clave50);
-        }
 
         await Shell.Current.Navigation.PushAsync(page);
     }
@@ -364,6 +374,11 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         MarkRemoteRefresh();
         var detailedEntry = MapRemoteEntry(result.Entry);
+        detailedEntry.ClosedByCreditNoteTransactionNumber = entry.ClosedByCreditNoteTransactionNumber;
+        detailedEntry.LastAppliedCreditNoteTransactionNumber = entry.LastAppliedCreditNoteTransactionNumber;
+        detailedEntry.SourceTransactionNumber = entry.SourceTransactionNumber;
+        detailedEntry.AppliedSourceTransactionNumber = entry.AppliedSourceTransactionNumber;
+        detailedEntry.CreditedAmountColones = entry.CreditedAmountColones;
         ReplaceRemoteEntry(detailedEntry);
         return detailedEntry;
     }
@@ -410,6 +425,11 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             ClientId = entry.ClientId,
             ClientName = entry.ClientName,
             CreditAccountNumber = entry.CreditAccountNumber,
+            SourceTransactionNumber = entry.SourceTransactionNumber,
+            ClosedByCreditNoteTransactionNumber = entry.ClosedByCreditNoteTransactionNumber,
+            LastAppliedCreditNoteTransactionNumber = entry.LastAppliedCreditNoteTransactionNumber,
+            AppliedSourceTransactionNumber = entry.AppliedSourceTransactionNumber,
+            CreditedAmountColones = entry.CreditedAmountColones,
             CashierName = entry.CashierName,
             RegisterNumber = entry.RegisterNumber,
             StoreName = entry.StoreName,
@@ -518,8 +538,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             .ToList();
 
         Entries.Clear();
-        foreach (var e in filtered)
-            Entries.Add(e);
+        foreach (var entry in filtered)
+            Entries.Add(entry);
 
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasEntries));
@@ -535,7 +555,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         var confirmed = await _dialogService.ConfirmAsync(
             "Eliminar registro",
-            $"¿Desea eliminar la factura #{entry.TransactionNumber}?",
+            $"Â¿Desea eliminar la factura #{entry.TransactionNumber}?",
             "Eliminar", "Cancelar");
 
         if (!confirmed) return;
@@ -559,7 +579,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         var confirmed = await _dialogService.ConfirmAsync(
             "Limpiar historial",
-            "¿Desea eliminar todo el historial local de facturas?",
+            "Â¿Desea eliminar todo el historial local de facturas?",
             "Limpiar", "Cancelar");
 
         if (!confirmed) return;
@@ -577,7 +597,110 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         await LoadAsync();
     }
 
+    private async void OnCreditNoteApplied(CreditNoteAppliedMessage message)
+    {
+        await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () => await ApplyCreditNoteAppliedAsync(message));
+    }
+
+    private async Task ApplyCreditNoteAppliedAsync(CreditNoteAppliedMessage message)
+    {
+        if (message.CreditNoteEntry is not null)
+        {
+            var creditNoteEntry = CloneEntry(message.CreditNoteEntry);
+            creditNoteEntry.IsLocalEntry = true;
+            creditNoteEntry.SourceTransactionNumber = message.SourceTransactionNumber;
+            creditNoteEntry.AppliedSourceTransactionNumber = message.AccountsReceivableApplied ? message.SourceTransactionNumber : 0;
+
+            var localNcIndex = _localEntries.FindIndex(e => e.TransactionNumber == creditNoteEntry.TransactionNumber);
+            if (localNcIndex >= 0)
+                _localEntries[localNcIndex] = creditNoteEntry;
+            else
+                _localEntries.Insert(0, creditNoteEntry);
+
+            await _historyService.UpdateAsync(creditNoteEntry);
+
+            if (SelectedEntry?.TransactionNumber == creditNoteEntry.TransactionNumber)
+                SelectedEntry = creditNoteEntry;
+        }
+
+        if (message.SourceTransactionNumber > 0)
+            await UpdateSourceEntriesAsync(
+                message.SourceTransactionNumber,
+                message.CreditNoteTransactionNumber,
+                message.AppliedAmountColones,
+                message.AccountsReceivableApplied);
+
+        ApplyFilter();
+        OnPropertyChanged(nameof(HasLocalEntries));
+    }
+
+    private async Task UpdateSourceEntriesAsync(int sourceTransactionNumber, int creditNoteTransactionNumber, decimal appliedAmountColones, bool accountsReceivableApplied)
+    {
+        var localSourceIndex = _localEntries.FindIndex(e => e.TransactionNumber == sourceTransactionNumber);
+        if (localSourceIndex >= 0)
+        {
+            var updatedLocalSource = CloneEntry(_localEntries[localSourceIndex]);
+            ApplyCreditToSourceEntry(updatedLocalSource, creditNoteTransactionNumber, appliedAmountColones, accountsReceivableApplied);
+            _localEntries[localSourceIndex] = updatedLocalSource;
+            await _historyService.UpdateAsync(updatedLocalSource);
+
+            if (SelectedEntry?.TransactionNumber == updatedLocalSource.TransactionNumber)
+                SelectedEntry = updatedLocalSource;
+        }
+
+        var remoteSourceIndex = _remoteEntries.FindIndex(e => e.TransactionNumber == sourceTransactionNumber);
+        if (remoteSourceIndex >= 0)
+        {
+            var updatedRemoteSource = CloneEntry(_remoteEntries[remoteSourceIndex]);
+            updatedRemoteSource.IsLocalEntry = false;
+            ApplyCreditToSourceEntry(updatedRemoteSource, creditNoteTransactionNumber, appliedAmountColones, accountsReceivableApplied);
+            _remoteEntries[remoteSourceIndex] = updatedRemoteSource;
+
+            if (localSourceIndex < 0)
+            {
+                var localMirror = CloneEntry(updatedRemoteSource);
+                localMirror.IsLocalEntry = true;
+                _localEntries.Insert(0, localMirror);
+                await _historyService.UpdateAsync(localMirror);
+            }
+
+            foreach (var cacheEntry in _remoteSearchCache.Values)
+            {
+                var cacheIndex = cacheEntry.FindIndex(e => e.TransactionNumber == sourceTransactionNumber);
+                if (cacheIndex >= 0)
+                    cacheEntry[cacheIndex] = CloneEntry(updatedRemoteSource);
+            }
+
+            if (SelectedEntry?.TransactionNumber == updatedRemoteSource.TransactionNumber)
+                SelectedEntry = updatedRemoteSource;
+        }
+    }
+
+    private static void ApplyCreditToSourceEntry(InvoiceHistoryEntry entry, int creditNoteTransactionNumber, decimal appliedAmountColones, bool accountsReceivableApplied)
+    {
+        entry.LastAppliedCreditNoteTransactionNumber = creditNoteTransactionNumber;
+        entry.CreditedAmountColones += Math.Abs(appliedAmountColones);
+
+        var totalAmount = Math.Abs(entry.TotalColones);
+        if (totalAmount <= 0m)
+        {
+            entry.ClosedByCreditNoteTransactionNumber = accountsReceivableApplied ? creditNoteTransactionNumber : 0;
+            return;
+        }
+
+        if (entry.CreditedAmountColones + 0.01m >= totalAmount)
+        {
+            entry.CreditedAmountColones = totalAmount;
+            entry.ClosedByCreditNoteTransactionNumber = accountsReceivableApplied ? creditNoteTransactionNumber : 0;
+        }
+        else
+        {
+            entry.ClosedByCreditNoteTransactionNumber = 0;
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
+
     private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

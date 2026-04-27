@@ -125,6 +125,9 @@ public sealed class NovaRetailCreateSaleResponse
     public bool TiqueteEsperaOk { get; set; }
     public string Clave50 { get; set; } = string.Empty;
     public string Clave20 { get; set; } = string.Empty;
+    public bool AccountsReceivableEntryCreated { get; set; }
+    public bool AccountsReceivableApplied { get; set; }
+    public decimal AccountsReceivableAppliedAmount { get; set; }
     public List<string> Warnings { get; set; } = new();
 }
 

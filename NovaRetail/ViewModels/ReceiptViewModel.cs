@@ -110,6 +110,7 @@ namespace NovaRetail.ViewModels
         public string SecondTenderEntregadoText => string.IsNullOrWhiteSpace(SecondTenderDescription)
             ? "2do Pago"
             : $"2do Pago: {SecondTenderDescription}";
+        private bool IsCreditNote => ComprobanteTipo == "03";
 
         public ReceiptViewModel()
         {
@@ -254,14 +255,16 @@ namespace NovaRetail.ViewModels
             Items.Clear();
             foreach (var line in entry.Lines)
             {
+                var displayUnitPrice = IsCreditNote ? -Math.Abs(line.UnitPriceColones) : line.UnitPriceColones;
+                var displayLineTotal = IsCreditNote ? -Math.Abs(line.LineTotalColones) : line.LineTotalColones;
                 Items.Add(new ReceiptLineItem
                 {
                     DisplayName           = line.DisplayName,
                     Code                  = line.Code,
                     Quantity              = line.Quantity,
                     TaxPercentage         = line.TaxPercentage,
-                    UnitPriceColonesText  = $"{UiConfig.CurrencySymbol}{line.UnitPriceColones:N2}",
-                    LineTotalText         = $"{UiConfig.CurrencySymbol}{line.LineTotalColones:N2}",
+                    UnitPriceColonesText  = $"{UiConfig.CurrencySymbol}{displayUnitPrice:N2}",
+                    LineTotalText         = $"{UiConfig.CurrencySymbol}{displayLineTotal:N2}",
                     HasOverridePrice      = line.HasOverridePrice,
                     PriceChangeDetailText = line.HasOverridePrice ? "Precio modificado" : string.Empty,
                     HasDiscount           = line.HasDiscount,
@@ -275,20 +278,26 @@ namespace NovaRetail.ViewModels
                 });
             }
 
-            TenderTotalText  = entry.TenderTotalColones > 0
-                ? $"{UiConfig.CurrencySymbol}{entry.TenderTotalColones:N2}"
-                : $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
+            var signedTenderTotal = entry.TenderTotalColones > 0 ? entry.TenderTotalColones : entry.TotalColones;
+            if (IsCreditNote)
+                signedTenderTotal = -Math.Abs(signedTenderTotal);
+
+            var signedSubtotal = IsCreditNote ? -Math.Abs(entry.SubtotalColones) : entry.SubtotalColones;
+            var signedTax = IsCreditNote ? -Math.Abs(entry.TaxColones) : entry.TaxColones;
+            var signedTotal = IsCreditNote ? -Math.Abs(entry.TotalColones) : entry.TotalColones;
+
+            TenderTotalText  = $"{UiConfig.CurrencySymbol}{signedTenderTotal:N2}";
             ChangeAmountText = entry.ChangeColones > 0 ? $"{UiConfig.CurrencySymbol}{entry.ChangeColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasChange        = entry.ChangeColones > 0;
 
-            SubtotalText    = $"{UiConfig.CurrencySymbol}{entry.SubtotalColones:N2}";
-            TaxText         = $"{UiConfig.CurrencySymbol}{entry.TaxColones:N2}";
+            SubtotalText    = $"{UiConfig.CurrencySymbol}{signedSubtotal:N2}";
+            TaxText         = $"{UiConfig.CurrencySymbol}{signedTax:N2}";
             DiscountText    = entry.DiscountColones > 0 ? $"-{UiConfig.CurrencySymbol}{entry.DiscountColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasDiscount     = entry.DiscountColones > 0;
             ExonerationText = entry.ExonerationColones > 0 ? $"-{UiConfig.CurrencySymbol}{entry.ExonerationColones:N2}" : $"{UiConfig.CurrencySymbol}0.00";
             HasExoneration  = entry.ExonerationColones > 0;
-            TotalText       = $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
-            TotalColonesText = $"{UiConfig.CurrencySymbol}{entry.TotalColones:N2}";
+            TotalText       = $"{UiConfig.CurrencySymbol}{signedTotal:N2}";
+            TotalColonesText = $"{UiConfig.CurrencySymbol}{signedTotal:N2}";
 
             TenderDescription    = entry.TenderDescription;
             HasSecondTender      = entry.HasSecondTender;

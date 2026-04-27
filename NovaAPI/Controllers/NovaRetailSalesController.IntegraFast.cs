@@ -148,7 +148,7 @@ namespace NovaAPI.Controllers
                      MEDIO_PAGO1, MEDIO_PAGO2, MEDIO_PAGO3, MEDIO_PAGO4,
                      TIPOCAMBIO, CEDULA_TRIBUTARIA, EXONERA,
                      NC_TIPO_DOC, NC_REFERENCIA, NC_REFERENCIA_FECHA, NC_CODIGO, NC_RAZON,
-                     FECHA_TRANSAC, ESTADO_HACIENDA)
+                     TR_REP, FECHA_TRANSAC, ESTADO_HACIENDA)
                 VALUES
                     (@CLAVE50, @CLAVE20, @TN, @COD_SUCURSAL, @TERMINAL_POS,
                      @COMPROBANTE_INTERNO, @COMPROBANTE_SITUACION, @COMPROBANTE_TIPO,
@@ -156,7 +156,7 @@ namespace NovaAPI.Controllers
                      @MEDIO_PAGO1, @MEDIO_PAGO2, @MEDIO_PAGO3, @MEDIO_PAGO4,
                      @TIPOCAMBIO, @CEDULA_TRIBUTARIA, @EXONERA,
                      @NC_TIPO_DOC, @NC_REFERENCIA, @NC_REFERENCIA_FECHA, @NC_CODIGO, @NC_RAZON,
-                     GETDATE(), '00')", cn))
+                     @TR_REP, GETDATE(), '00')", cn))
             {
                 cmd.CommandTimeout = 60;
                 cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
@@ -183,6 +183,7 @@ namespace NovaAPI.Controllers
                 cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
                 cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
+                cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -280,16 +281,19 @@ namespace NovaAPI.Controllers
 
         private static string ResolveIntegraFastMedioPagoCodigo(NovaRetailSaleTenderDto tender, TenderFiscalInfo info)
         {
-            var tenderCode = info != null ? ExtractIntegraFastMedioPagoFromTenderCode(info.Code) : string.Empty;
-            if (!string.IsNullOrWhiteSpace(tenderCode))
-                return tenderCode;
-
             if (!string.IsNullOrWhiteSpace(tender?.MedioPagoCodigo))
                 return tender.MedioPagoCodigo.Trim();
 
             var description = info != null && !string.IsNullOrWhiteSpace(info.Description)
                 ? info.Description
                 : tender?.Description;
+
+            if (IsCreditDescription(description))
+                return "99";
+
+            var tenderCode = info != null ? ExtractIntegraFastMedioPagoFromTenderCode(info.Code) : string.Empty;
+            if (!string.IsNullOrWhiteSpace(tenderCode))
+                return tenderCode;
 
             return InferIntegraFastMedioPagoCodigo(description);
         }
@@ -316,6 +320,12 @@ namespace NovaAPI.Controllers
                 return "99";
 
             return string.Empty;
+        }
+
+        private static bool IsCreditDescription(string description)
+        {
+            var value = (description ?? string.Empty).Trim().ToUpperInvariant();
+            return value.Contains("CRÃ‰DITO") || value.Contains("CREDITO");
         }
 
         private static void EnsureIntegraFast05(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)

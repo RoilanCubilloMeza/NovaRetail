@@ -237,6 +237,15 @@ namespace NovaAPI.Models
         [JsonProperty("clave20")]
         public string Clave20 { get; set; } = string.Empty;
 
+        [JsonProperty("accountsReceivableEntryCreated")]
+        public bool AccountsReceivableEntryCreated { get; set; }
+
+        [JsonProperty("accountsReceivableApplied")]
+        public bool AccountsReceivableApplied { get; set; }
+
+        [JsonProperty("accountsReceivableAppliedAmount")]
+        public decimal AccountsReceivableAppliedAmount { get; set; }
+
         [JsonProperty("warnings")]
         public List<string> Warnings { get; set; } = new List<string>();
     }
