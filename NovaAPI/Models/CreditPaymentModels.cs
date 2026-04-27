@@ -28,6 +28,8 @@ namespace NovaAPI.Models
         public bool RmhposOk { get; set; }
         public bool AppCentralOk { get; set; }
         public string AppCentralMessage { get; set; }
+        public int PaymentID { get; set; }
+        public string Reference { get; set; }
     }
 
     public class OpenLedgerEntryDto
