@@ -252,20 +252,20 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         if (entry.ComprobanteTipo == "03")
         {
-            await _dialogService.AlertAsync("Nota de CrÃ©dito", "No se puede crear una nota de crÃ©dito sobre otra nota de crÃ©dito.", "OK");
+            await _dialogService.AlertAsync("Nota de Crédito", "No se puede crear una nota de crédito sobre otra nota de crédito.", "OK");
             return;
         }
 
         if (entry.IsReturnCompleted)
         {
-            await _dialogService.AlertAsync("Nota de CrÃ©dito", $"La factura #{entry.TransactionNumber} ya fue devuelta completamente con la NC #{entry.LastAppliedCreditNoteTransactionNumber}.", "OK");
+            await _dialogService.AlertAsync("Nota de Crédito", $"La factura #{entry.TransactionNumber} ya fue devuelta completamente con la NC #{entry.LastAppliedCreditNoteTransactionNumber}.", "OK");
             return;
         }
 
         var fullEntry = await EnsureDetailAsync(entry);
         if (fullEntry.Lines.Count == 0)
         {
-            await _dialogService.AlertAsync("Nota de CrÃ©dito", "No se encontraron lÃ­neas de detalle para esta factura.", "OK");
+            await _dialogService.AlertAsync("Nota de Crédito", "No se encontraron líneas de detalle para esta factura.", "OK");
             return;
         }
 
@@ -281,7 +281,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     {
         var clave50 = await _dialogService.PromptAsync(
             "NC por referencia",
-            "Escanee o ingrese la referencia de compra (Clave 50, consecutivo o nÃºmero de transacciÃ³n):",
+            "Escanee o ingrese la referencia de compra (Clave 50, consecutivo o número de transacción):",
             "Continuar", "Cancelar",
             placeholder: "Referencia de compra...",
             maxLength: 50);
