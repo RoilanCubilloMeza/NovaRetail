@@ -6,11 +6,6 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-/// <summary>
-/// Implementación de <see cref="ILoginService"/> que consume el backend local.
-/// Autentica cajeros vía <c>POST api/Login</c>, verifica conexión a BD vía <c>GET api/StoreConfig</c>
-/// e itera las URLs configuradas en <see cref="ApiSettings"/> para failover.
-/// </summary>
 public sealed class ApiLoginService : ILoginService
 {
     private const string AuthClientName = "NovaAuth";
@@ -30,10 +25,6 @@ public sealed class ApiLoginService : ILoginService
     {
         var login = userName?.Trim() ?? string.Empty;
         var clave = password?.Trim() ?? string.Empty;
-
-        var isDatabaseConnected = await IsDatabaseConnectedAsync();
-        if (!isDatabaseConnected)
-            return null;
 
         if (string.IsNullOrWhiteSpace(login))
             return null;
@@ -58,10 +49,25 @@ public sealed class ApiLoginService : ILoginService
                             ClientId = result.ID_CLIENTE,
                             UserName = result.US_LOGIN ?? login,
                             DisplayName = string.IsNullOrWhiteSpace(result.US_NOMBRE) ? login : result.US_NOMBRE,
-                            StoreId = result.US_ID_STORE ?? 0
+                            StoreId = result.US_ID_STORE ?? 0,
+                            RoleCode = result.US_ROLE_CODE ?? string.Empty,
+                            RoleName = result.US_ROLE_NAME ?? string.Empty,
+                            SecurityLevel = result.US_SECURITY_LEVEL,
+                            Privileges = result.US_PRIVILEGES,
+                            RolePrivileges = result.US_ROLE_PRIVILEGES ?? string.Empty
                         };
                     }
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning(ex, "Error de conexión al autenticar desde {BaseUrl}", baseUrl);
+                throw;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Timeout al autenticar desde {BaseUrl}", baseUrl);
+                throw;
             }
             catch (Exception ex)
             {
@@ -134,6 +140,11 @@ public sealed class ApiLoginService : ILoginService
         public string? US_LOGIN { get; set; }
         public string? US_NOMBRE { get; set; }
         public int? US_ID_STORE { get; set; }
+        public string? US_ROLE_CODE { get; set; }
+        public string? US_ROLE_NAME { get; set; }
+        public short US_SECURITY_LEVEL { get; set; }
+        public int US_PRIVILEGES { get; set; }
+        public string? US_ROLE_PRIVILEGES { get; set; }
     }
 
     private sealed class ApiConnectionInfoResponse

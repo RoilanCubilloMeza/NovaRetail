@@ -4,11 +4,6 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-/// <summary>
-/// Implementación de <see cref="ISalesRepService"/>.
-/// Consulta la lista de vendedores disponibles desde el API local
-/// para asignarlos a la sesión, al carrito o a una línea específica.
-/// </summary>
 public sealed class ApiSalesRepService : ISalesRepService
 {
     private const string ClientName = "NovaSalesRep";

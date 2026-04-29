@@ -5,11 +5,6 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
 
-/// <summary>
-/// ViewModel del popup de descuento.
-/// Maneja un teclado numérico simple para capturar el porcentaje de descuento
-/// que luego se aplicará a una línea o a un conjunto de líneas del carrito.
-/// </summary>
 public class DiscountEntryViewModel : INotifyPropertyChanged
 {
     private string _percentText = "0";

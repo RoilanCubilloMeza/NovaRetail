@@ -8,17 +8,9 @@ using System.Web.Services;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de medios/imágenes.
-    /// Gestiona el listado de imágenes de productos almacenadas en el servidor local.
-    /// </summary>
     public class MediaController : ApiController
     {
 
-        /// <summary>
-        /// Devuelve el listado de imágenes disponibles para un cliente o contexto dado.
-        /// El resultado normalmente contiene el nombre del archivo y la ruta accesible para consumirlo.
-        /// </summary>
         [Route("api/Media/GetListadoImagenes")]
         [HttpGet]
         public Dictionary<string, string> GetListadoImagenes(string IDCliente, string tipo)
@@ -29,7 +21,8 @@ namespace NovaAPI.Controllers
             {
                 WebService data = new WebService();
 
-                // Ruta base local donde se almacenan las imágenes del cliente o contexto solicitado.
+                //Esta ruta es en el servidor local, en el caso de correr el API con local Host deben crear la ruta
+                //en el equipo local
                 var URL = data.Server.MapPath(ConfigurationManager.AppSettings["UbicacionFiles"].ToString() + "/" + IDCliente);
 
                 var extensions = new String[] { "jpg", "png" };
@@ -38,20 +31,24 @@ namespace NovaAPI.Controllers
                 {
                     Directory.CreateDirectory(URL);
                 }
-
-                // Obtiene las carpetas de productos disponibles dentro de la ruta base.
+                int contador = 0;
+                //Obtiene el listado de Carpetas (Productos) disponibles en la ruta deseada
                 var ItemsFolder = Directory.GetDirectories(URL).ToList();
 
                 for (int i = 0; i <= ItemsFolder.Count() - 1; i++)
                 {
+                    //Obtiene la información de cada Folder
+                    //     string rutaFolder = URL + "/" + ItemsFolder[i].ToString();
                     var filesInFolder = Directory.GetFiles(ItemsFolder[i].ToString()).ToList();
 
-                    // Recorre cada carpeta y devuelve la lista plana de imágenes encontradas.
+                    //Recorre cada Folder para tener las Imagenes listas
                     for (int j = 0; j <= filesInFolder.Count() - 1; j++)
                     {
                         string Rutaimagen = filesInFolder[j].ToString();
 
+                        //Considero que el diccionar debería ser: Producto(FolderName) y la ruta completa de la imagen
                         ListadoImagenes.Add(Rutaimagen, Rutaimagen);
+                        contador++;
                     }
                 }
 

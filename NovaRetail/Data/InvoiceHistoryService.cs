@@ -3,9 +3,6 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-/// <summary>
-/// Persiste un historial local de comprobantes para consulta rápida dentro de la app.
-/// </summary>
 public sealed class InvoiceHistoryService : IInvoiceHistoryService
 {
     private const string FileName = "invoice_history.json";
@@ -54,11 +51,34 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
+            entry.NormalizeForDisplay();
             var list = await LoadAsync();
             list.Insert(0, entry);
             await SaveAsync(list);
             _cache = list;
             System.Diagnostics.Debug.WriteLine($"[InvoiceHistory] Guardado OK. Total entradas: {list.Count}");
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task UpdateAsync(InvoiceHistoryEntry entry)
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            entry.NormalizeForDisplay();
+            var list = await LoadAsync();
+            var index = list.FindIndex(e => e.Id == entry.Id);
+            if (index >= 0)
+                list[index] = entry;
+            else
+                list.Insert(0, entry);
+
+            await SaveAsync(list);
+            _cache = list;
         }
         finally
         {
@@ -98,9 +118,6 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Carga el historial desde disco solo una vez y luego reutiliza el caché en memoria.
-    /// </summary>
     private async Task<List<InvoiceHistoryEntry>> LoadAsync()
     {
         if (_cache is not null)
@@ -117,6 +134,8 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
             var json = await File.ReadAllTextAsync(FilePath).ConfigureAwait(false);
             _cache = JsonConvert.DeserializeObject<List<InvoiceHistoryEntry>>(json)
                      ?? [];
+            foreach (var entry in _cache)
+                entry.NormalizeForDisplay();
         }
         catch
         {
@@ -126,9 +145,6 @@ public sealed class InvoiceHistoryService : IInvoiceHistoryService
         return _cache;
     }
 
-    /// <summary>
-    /// Serializa el historial local en JSON dentro del directorio de datos de la app.
-    /// </summary>
     private static Task SaveAsync(List<InvoiceHistoryEntry> list)
     {
         var dir = Path.GetDirectoryName(FilePath);

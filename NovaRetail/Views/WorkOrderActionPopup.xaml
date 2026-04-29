@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.WorkOrderActionPopup">
+
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <Border BackgroundColor="White"
+                Stroke="#E2E8F0"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14"
+                MaximumWidthRequest="520"
+                Margin="20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Padding="0"
+                Shadow="{x:Null}">
+
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="0">
+
+                <Border Grid.Row="0"
+                        BackgroundColor="#0F172A"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 14,14,0,0"
+                        Padding="18,14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding Title}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="{Binding Subtitle}"
+                               FontSize="12"
+                               TextColor="#CBD5E1"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Grid.Row="1"
+                                     Padding="28,24"
+                                     Spacing="12">
+                    <Button Text="Guardar Cambios"
+                            Command="{Binding SaveChangesCommand}"
+                            BackgroundColor="#E2E8F0"
+                            TextColor="#0F172A"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            HeightRequest="46"/>
+
+                    <Button Text="Recoger Completo"
+                            Command="{Binding PickCompleteCommand}"
+                            BackgroundColor="#1D4ED8"
+                            TextColor="White"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            HeightRequest="46"/>
+
+                    <Button Text="Recoger Parcial"
+                            Command="{Binding PickPartialCommand}"
+                            BackgroundColor="#2563EB"
+                            TextColor="White"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            HeightRequest="46"
+                            IsEnabled="{Binding CanPickPartial}"/>
+
+                    <Button Text="Cancelar"
+                            Command="{Binding CancelCommand}"
+                            BackgroundColor="#F1F5F9"
+                            TextColor="#334155"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            HeightRequest="46"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

@@ -3,38 +3,146 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.Xml.Linq;
 using NovaAPI.Models;
+using NovaAPI.Services;
 
 namespace NovaAPI.Controllers
 {
     [RoutePrefix("api/NovaRetailSales")]
-    /// <summary>
-    /// Expone operaciones de venta consumidas por el cliente MAUI de NovaRetail.
-    /// </summary>
-    public class NovaRetailSalesController : ApiController
+    public partial class NovaRetailSalesController : ApiController
     {
-        /// <summary>
-        /// Obtiene la cadena de conexión operativa de RMH.
-        /// Centraliza la lectura de configuración para que todos los endpoints de venta fallen de forma consistente si falta la conexión.
-        /// </summary>
+        private const int ReferenceNumberMaxLength = 50;
+        private const int HoldRecallType = 1;
+        private const int QuoteRecallType = 3;
+        private const int WorkOrderType = 2;
+        private const int QuoteOrderType = 3;
+        private const decimal LedgerClosingTolerance = 0.01m;
+
+        private static readonly string ErrorLogPath =
+            System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log");
+
+        private static void LogError(Exception ex)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(ErrorLogPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+            }
+            catch { }
+        }
+
+        private static void LogOrderSavedAudit(SqlConnection cn, NovaRetailCreateQuoteRequest request, int orderId, string actionType, string entityType)
+        {
+            NovaRetailAuditLogger.Log(
+                cn,
+                actionType,
+                entityType,
+                orderId,
+                request.CashierID > 0 ? request.CashierID : request.SalesRepID,
+                request.StoreID,
+                request.RegisterID,
+                request.Total,
+                $"{entityType} #{orderId}");
+
+            LogQuoteItemAudit(cn, request, orderId, entityType);
+        }
+
+        private static void LogQuoteItemAudit(SqlConnection cn, NovaRetailCreateQuoteRequest request, int orderId, string entityType)
+        {
+            if (request == null || request.Items == null)
+                return;
+
+            var cashierID = request.CashierID > 0 ? request.CashierID : request.SalesRepID;
+            foreach (var item in request.Items)
+            {
+                if (item == null)
+                    continue;
+
+                if (item.FullPrice > item.Price)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "DiscountApplied",
+                        entityType,
+                        orderId,
+                        cashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        item.FullPrice - item.Price,
+                        $"Item {item.ItemID}: descuento/precio menor de {item.FullPrice:N2} a {item.Price:N2}. Motivo {item.DiscountReasonCodeID}");
+                }
+                else if (item.PriceSource != 1 || item.Price > item.FullPrice)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "PriceChanged",
+                        entityType,
+                        orderId,
+                        cashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        item.Price,
+                        $"Item {item.ItemID}: precio cambiado de {item.FullPrice:N2} a {item.Price:N2}. PriceSource {item.PriceSource}");
+                }
+            }
+        }
+
+        private static void LogSaleItemAudit(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            if (request == null || request.Items == null)
+                return;
+
+            foreach (var item in request.Items)
+            {
+                if (item == null)
+                    continue;
+
+                var fullPrice = item.DisplayFullPrice ?? item.FullPrice ?? item.UnitPrice;
+                var price = item.DisplayPrice ?? item.UnitPrice;
+                if (fullPrice > price || item.DiscountReasonCodeID > 0)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "DiscountApplied",
+                        "Sale",
+                        transactionNumber,
+                        request.CashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        Math.Max(0m, fullPrice - price),
+                        $"Item {item.ItemID}: descuento/precio menor de {fullPrice:N2} a {price:N2}. Motivo {item.DiscountReasonCodeID}");
+                }
+                else if (item.PriceSource != 1 || price > fullPrice)
+                {
+                    NovaRetailAuditLogger.Log(
+                        cn,
+                        "PriceChanged",
+                        "Sale",
+                        transactionNumber,
+                        request.CashierID,
+                        request.StoreID,
+                        request.RegisterID,
+                        price,
+                        $"Item {item.ItemID}: precio cambiado de {fullPrice:N2} a {price:N2}. PriceSource {item.PriceSource}");
+                }
+            }
+        }
+
         private static string GetConnectionString()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
-                throw new ConfigurationErrorsException("No se encontró la cadena de conexión RMHPOS para registrar ventas.");
+                throw new ConfigurationErrorsException("No se encontrÃƒÆ’Ã‚Â³ la cadena de conexiÃƒÆ’Ã‚Â³n RMHPOS para registrar ventas.");
 
             return connectionString;
         }
 
-        /// <summary>
-        /// Convierte la cadena de conexión a un texto legible servidor/base de datos.
-        /// Se usa para enriquecer mensajes de error SQL y facilitar diagnóstico en soporte.
-        /// </summary>
         private static string GetConnectionTarget(string connectionString)
         {
             try
@@ -48,11 +156,19 @@ namespace NovaAPI.Controllers
             }
         }
 
+        private static string SanitizeReferenceNumber(string referenceNumber)
+        {
+            if (string.IsNullOrWhiteSpace(referenceNumber))
+                return string.Empty;
+
+            var value = referenceNumber.Trim();
+            return value.Length <= ReferenceNumberMaxLength
+                ? value
+                : value.Substring(0, ReferenceNumberMaxLength).TrimEnd();
+        }
+
         [HttpPost]
         [Route("create-sale")]
-        /// <summary>
-        /// Registra una venta en RMHPOS ejecutando el procedimiento almacenado principal.
-        /// </summary>
         public HttpResponseMessage CreateSale([FromBody] NovaRetailCreateSaleRequest request)
         {
             if (request == null)
@@ -60,7 +176,7 @@ namespace NovaAPI.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
                 {
                     Ok = false,
-                    Message = "Solicitud inválida."
+                    Message = "Solicitud invÃƒÆ’Ã‚Â¡lida."
                 });
             }
 
@@ -77,7 +193,7 @@ namespace NovaAPI.Controllers
                 {
                     Ok = false,
                     Message = errors.Count == 0
-                        ? "Solicitud inválida."
+                        ? "Solicitud invÃƒÆ’Ã‚Â¡lida."
                         : string.Join(" | ", errors)
                 });
             }
@@ -87,7 +203,7 @@ namespace NovaAPI.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateSaleResponse
                 {
                     Ok = false,
-                    Message = "La venta no contiene ítems."
+                    Message = "La venta no contiene ÃƒÆ’Ã‚Â­tems."
                 });
             }
 
@@ -102,6 +218,7 @@ namespace NovaAPI.Controllers
 
             var response = new NovaRetailCreateSaleResponse();
             var connectionString = GetConnectionString();
+            SqlTransaction saleTransaction = null;
 
             try
             {
@@ -109,9 +226,35 @@ namespace NovaAPI.Controllers
                 {
                     cn.Open();
 
-                    var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID);
+                    var nonInventoryItemTypes = LoadNonInventoryItemTypes(cn);
+                    var requiresNonInventoryBypass = !request.AllowNegativeInventory
+                        && nonInventoryItemTypes.Count > 0
+                        && RequestContainsNonInventoryItems(request.Items, nonInventoryItemTypes);
+
+                    if (requiresNonInventoryBypass)
+                    {
+                        saleTransaction = cn.BeginTransaction(IsolationLevel.Serializable);
+
+                        var stockValidation = ValidateInventoryItems(cn, saleTransaction, request.Items, nonInventoryItemTypes);
+                        if (!stockValidation.StockOk)
+                        {
+                            SafeRollback(saleTransaction);
+                            saleTransaction = null;
+
+                            response.Ok = false;
+                            response.Message = "Stock insuficiente para uno o mas articulos.";
+                            return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                        }
+
+                        requiresNonInventoryBypass = stockValidation.HasNonInventoryItems;
+                    }
+
+                    var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID, saleTransaction);
                     if (activeBatch == null)
                     {
+                        SafeRollback(saleTransaction);
+                        saleTransaction = null;
+
                         response.Ok = false;
                         response.Message = "No existe un lote/caja abierto para registrar la venta.";
                         return Request.CreateResponse(HttpStatusCode.BadRequest, response);
@@ -122,6 +265,9 @@ namespace NovaAPI.Controllers
 
                     using (var cmd = new SqlCommand("dbo.spNovaRetail_CreateSale", cn))
                     {
+                        if (saleTransaction != null)
+                            cmd.Transaction = saleTransaction;
+
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.CommandTimeout = 180;
 
@@ -131,7 +277,7 @@ namespace NovaAPI.Controllers
                         cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
                         cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
                         cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@ReferenceNumber", SanitizeReferenceNumber(request.ReferenceNumber));
                         cmd.Parameters.AddWithValue("@Status", request.Status);
                         cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
                         cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
@@ -139,7 +285,7 @@ namespace NovaAPI.Controllers
                         cmd.Parameters.AddWithValue("@RecallType", request.RecallType);
                         cmd.Parameters.AddWithValue("@TransactionTime", (object)request.TransactionTime ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@TotalChange", request.TotalChange);
-                        cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory);
+                        cmd.Parameters.AddWithValue("@AllowNegativeInventory", request.AllowNegativeInventory || requiresNonInventoryBypass);
                         cmd.Parameters.AddWithValue("@CurrencyCode", request.CurrencyCode ?? "CRC");
                         cmd.Parameters.AddWithValue("@TipoCambio", request.TipoCambio ?? "1");
                         cmd.Parameters.AddWithValue("@CondicionVenta", request.CondicionVenta ?? "01");
@@ -162,11 +308,11 @@ namespace NovaAPI.Controllers
                         cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
                         cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
 
-                        var itemsParameter = cmd.Parameters.AddWithValue("@Items", ToItemsTable(request.Items));
+                        var itemsParameter = cmd.Parameters.AddWithValue("@Items", NovaRetailSalesSqlMapper.ToItemsTable(request.Items));
                         itemsParameter.SqlDbType = SqlDbType.Structured;
                         itemsParameter.TypeName = "dbo.NovaRetailSaleItemTVP";
 
-                        var tendersParameter = cmd.Parameters.AddWithValue("@Tenders", ToTendersTable(request.Tenders));
+                        var tendersParameter = cmd.Parameters.AddWithValue("@Tenders", NovaRetailSalesSqlMapper.ToTendersTable(request.Tenders));
                         tendersParameter.SqlDbType = SqlDbType.Structured;
                         tendersParameter.TypeName = "dbo.NovaRetailSaleTenderTVP";
 
@@ -180,18 +326,18 @@ namespace NovaAPI.Controllers
                         {
                             if (reader.Read())
                             {
-                                response.Ok = GetBoolean(reader, "Ok");
-                                response.Message = GetString(reader, "Message", GetString(reader, "ErrorMessage", string.Empty));
-                                response.TransactionNumber = GetInt(reader, "TransactionNumber");
-                                response.BatchNumber = GetNullableInt(reader, "BatchNumber");
-                                response.SubTotal = GetNullableDecimal(reader, "SubTotal");
-                                response.Discounts = GetNullableDecimal(reader, "Discounts");
-                                response.SalesTax = GetNullableDecimal(reader, "SalesTax");
-                                response.Total = GetNullableDecimal(reader, "Total");
-                                response.TenderTotal = GetNullableDecimal(reader, "TenderTotal");
-                                response.ErrorNumber = GetNullableInt(reader, "ErrorNumber");
-                                response.ErrorProcedure = GetString(reader, "ErrorProcedure", string.Empty);
-                                response.ErrorLine = GetNullableInt(reader, "ErrorLine");
+                                response.Ok = NovaRetailSalesSqlMapper.GetBoolean(reader, "Ok");
+                                response.Message = NovaRetailSalesSqlMapper.GetString(reader, "Message", NovaRetailSalesSqlMapper.GetString(reader, "ErrorMessage", string.Empty));
+                                response.TransactionNumber = NovaRetailSalesSqlMapper.GetInt(reader, "TransactionNumber");
+                                response.BatchNumber = NovaRetailSalesSqlMapper.GetNullableInt(reader, "BatchNumber");
+                                response.SubTotal = NovaRetailSalesSqlMapper.GetNullableDecimal(reader, "SubTotal");
+                                response.Discounts = NovaRetailSalesSqlMapper.GetNullableDecimal(reader, "Discounts");
+                                response.SalesTax = NovaRetailSalesSqlMapper.GetNullableDecimal(reader, "SalesTax");
+                                response.Total = NovaRetailSalesSqlMapper.GetNullableDecimal(reader, "Total");
+                                response.TenderTotal = NovaRetailSalesSqlMapper.GetNullableDecimal(reader, "TenderTotal");
+                                response.ErrorNumber = NovaRetailSalesSqlMapper.GetNullableInt(reader, "ErrorNumber");
+                                response.ErrorProcedure = NovaRetailSalesSqlMapper.GetString(reader, "ErrorProcedure", string.Empty);
+                                response.ErrorLine = NovaRetailSalesSqlMapper.GetNullableInt(reader, "ErrorLine");
                             }
                         }
 
@@ -201,9 +347,44 @@ namespace NovaAPI.Controllers
                         }
                     }
 
+                    if (saleTransaction != null)
+                    {
+                        if (response.Ok)
+                            saleTransaction.Commit();
+                        else
+                            SafeRollback(saleTransaction);
+
+                        saleTransaction = null;
+                    }
+
                     if (response.Ok && response.TransactionNumber > 0)
                     {
                         response.BatchNumber = EnsureTransactionBatchNumber(cn, response.TransactionNumber, request.StoreID, request.RegisterID, response.BatchNumber ?? activeBatch.BatchNumber);
+
+                        try
+                        {
+                            SyncPersistedTransactionEntryValues(cn, response.TransactionNumber, request);
+                        }
+                        catch (Exception exEntries)
+                        {
+                            response.Warnings.Add($"TransactionEntry: {exEntries.Message}");
+                        }
+
+                        try
+                        {
+                            var correctedTotals = SyncPersistedTransactionTotals(cn, response.TransactionNumber, request);
+                            if (correctedTotals.Total > 0m)
+                            {
+                                response.SubTotal = correctedTotals.SubTotal;
+                                response.Discounts = correctedTotals.Discounts;
+                                response.SalesTax = correctedTotals.SalesTax;
+                                response.Total = correctedTotals.Total;
+                            }
+                        }
+                        catch (Exception exTotals)
+                        {
+                            response.Warnings.Add($"Totals: {exTotals.Message}");
+                        }
 
                         try
                         {
@@ -218,6 +399,7 @@ namespace NovaAPI.Controllers
                         {
                             try
                             {
+                                ApplyIntegraFast02Config(cn, request);
                                 EnsureClaves(request, response.TransactionNumber, cn);
                                 response.Clave50 = request.CLAVE50 ?? string.Empty;
                                 response.Clave20 = request.CLAVE20 ?? string.Empty;
@@ -252,7 +434,7 @@ namespace NovaAPI.Controllers
                             }
                         }
 
-                        if (request.RecallType == 1 && request.RecallID > 0)
+                        if (request.RecallType == HoldRecallType && request.RecallID > 0)
                         {
                             try
                             {
@@ -262,6 +444,62 @@ namespace NovaAPI.Controllers
                             {
                                 response.Warnings.Add($"DeleteHold: {exHold.Message}");
                             }
+                        }
+                        else if (request.RecallType == QuoteRecallType && request.RecallID > 0)
+                        {
+                            try
+                            {
+                                var orderType = LoadOrderType(cn, request.RecallID);
+                                var rowsClosed = orderType == WorkOrderType
+                                    ? CloseWorkOrder(cn, request.RecallID)
+                                    : CloseQuoteOrder(cn, request.RecallID);
+
+                                if (rowsClosed == 0)
+                                {
+                                    var orderLabel = orderType == WorkOrderType ? "Orden de trabajo" : "CotizaciÃƒÆ’Ã‚Â³n";
+                                    response.Warnings.Add($"CloseQuote: {orderLabel} #{request.RecallID} no encontrada o ya cerrada.");
+                                }
+                                else if (orderType != WorkOrderType)
+                                {
+                                    NovaRetailAuditLogger.Log(
+                                        cn,
+                                        "QuoteConverted",
+                                        "Quote",
+                                        request.RecallID,
+                                        request.CashierID,
+                                        request.StoreID,
+                                        request.RegisterID,
+                                        response.Total ?? request.Items.Sum(i => i.UnitPrice * i.Quantity),
+                                        $"Cotizacion #{request.RecallID} convertida en venta #{response.TransactionNumber}");
+                                }
+                            }
+                            catch (Exception exQuote)
+                            {
+                                response.Warnings.Add($"CloseQuote: {exQuote.Message}");
+                            }
+                        }
+
+                        // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ AR Transaction: create entry for credit sales / credit NCs ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+                        NovaRetailAuditLogger.Log(
+                            cn,
+                            "SaleCreated",
+                            "Sale",
+                            response.TransactionNumber,
+                            request.CashierID,
+                            request.StoreID,
+                            request.RegisterID,
+                            response.Total ?? request.Items.Sum(i => i.UnitPrice * i.Quantity),
+                            $"Venta #{response.TransactionNumber} registrada");
+
+                        LogSaleItemAudit(cn, request, response.TransactionNumber);
+
+                        try
+                        {
+                            TryCreateARTransaction(request, response);
+                        }
+                        catch (Exception exAR)
+                        {
+                            response.Warnings.Add($"AR_Transaction: {exAR.Message}");
                         }
                     }
                 }
@@ -275,500 +513,170 @@ namespace NovaAPI.Controllers
             }
             catch (SqlException ex)
             {
+                SafeRollback(saleTransaction);
+                saleTransaction = null;
+
                 response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
+                response.Message = "Error de base de datos al procesar la venta.";
                 response.ErrorNumber = ex.Number;
-                response.ErrorProcedure = ex.Procedure ?? string.Empty;
-                response.ErrorLine = ex.LineNumber;
+                LogError(ex);
 
                 return Request.CreateResponse(HttpStatusCode.BadRequest, response);
             }
             catch (Exception ex)
             {
+                SafeRollback(saleTransaction);
+                saleTransaction = null;
+
                 response.Ok = false;
-                response.Message = ex.Message;
+                response.Message = "Error interno al procesar la venta.";
+
+                try { System.IO.File.AppendAllText(
+                    System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n"); } catch { }
 
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
             }
         }
 
-        /// <summary>
-        /// Busca facturas registradas en RMH y sus tablas fiscales auxiliares.
-        /// Se usa desde el historial del frontend para consultas rápidas por texto, cliente, clave o número de transacción.
-        /// </summary>
-        [HttpGet]
-        [Route("invoice-history")]
-        public HttpResponseMessage InvoiceHistory(string search = "", int top = 200)
+        private static HashSet<int> LoadNonInventoryItemTypes(SqlConnection cn, SqlTransaction tx = null)
         {
-            var connectionString = GetConnectionString();
-            try
+            using (var cmd = new SqlCommand("SELECT TOP 1 LTRIM(RTRIM(VALOR)) FROM dbo.AVS_Parametros WHERE CODIGO = 'IT-01'", cn))
             {
-                var entries = new List<NovaRetailInvoiceHistoryEntryDto>();
+                if (tx != null)
+                    cmd.Transaction = tx;
 
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-
-                    const string sql = @"
-SELECT TOP (@Top)
-    t.TransactionNumber,
-    CAST(t.[Time] AS datetime) AS [Date],
-    ISNULL(NULLIF(f.COMPROBANTE_TIPO, ''), '04') AS ComprobanteTipo,
-    ISNULL(f.CLAVE50, '') AS Clave50,
-    ISNULL(NULLIF(f.CLAVE20, ''), ISNULL(f.COMPROBANTE_INTERNO, '')) AS Consecutivo,
-    ISNULL(NULLIF(f.CEDULA_TRIBUTARIA, ''), ISNULL(NULLIF(c.AccountNumber, ''), '')) AS ClientId,
-    COALESCE(
-        NULLIF(f.NOMBRE_CLIENTE, ''),
-        NULLIF(LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))), ''),
-        'CLIENTE CONTADO') AS ClientName,
-    CAST(0 AS INT) AS RegisterNumber,
-    CAST(ISNULL(s.SubtotalColones, ISNULL(t.Total, 0) - ISNULL(t.SalesTax, 0)) AS decimal(18, 2)) AS SubtotalColones,
-    CAST(ISNULL(s.DiscountColones, 0) AS decimal(18, 2)) AS DiscountColones,
-    CAST(0 AS decimal(18, 2)) AS ExonerationColones,
-    CAST(ISNULL(t.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
-    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones
-FROM dbo.[Transaction] t
-LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
-LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
-OUTER APPLY (
-    SELECT
-        SUM(CAST(ISNULL(te.FullPrice, te.Price) * ISNULL(te.Quantity, 0) AS decimal(18, 2))) AS SubtotalColones,
-        SUM(CAST(CASE
-            WHEN ISNULL(te.FullPrice, 0) > ISNULL(te.Price, 0)
-                THEN (ISNULL(te.FullPrice, 0) - ISNULL(te.Price, 0)) * ISNULL(te.Quantity, 0)
-            ELSE 0
-        END AS decimal(18, 2))) AS DiscountColones
-    FROM dbo.TransactionEntry te
-    WHERE te.TransactionNumber = t.TransactionNumber
-) s
-WHERE (@Search = ''
-    OR CAST(t.TransactionNumber AS NVARCHAR(50)) LIKE '%' + @Search + '%'
-    OR ISNULL(f.CEDULA_TRIBUTARIA, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.NOMBRE_CLIENTE, '') LIKE '%' + @Search + '%'
-    OR ISNULL(c.AccountNumber, '') LIKE '%' + @Search + '%'
-    OR LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))) LIKE '%' + @Search + '%'
-    OR ISNULL(f.CLAVE20, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.COMPROBANTE_INTERNO, '') LIKE '%' + @Search + '%'
-    OR ISNULL(f.CLAVE50, '') LIKE '%' + @Search + '%')
-ORDER BY t.[Time] DESC";
-
-                    using (var cmd = new SqlCommand(sql, cn))
-                    {
-                        cmd.CommandTimeout = 60;
-                        cmd.Parameters.AddWithValue("@Top", top <= 0 ? 200 : top > 500 ? 500 : top);
-                        cmd.Parameters.AddWithValue("@Search", search ?? string.Empty);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                entries.Add(new NovaRetailInvoiceHistoryEntryDto
-                                {
-                                    TransactionNumber = Convert.ToInt32(reader["TransactionNumber"]),
-                                    Date = Convert.ToDateTime(reader["Date"]),
-                                    ComprobanteTipo = reader["ComprobanteTipo"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ComprobanteTipo"]),
-                                    Clave50 = reader["Clave50"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Clave50"]),
-                                    Consecutivo = reader["Consecutivo"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Consecutivo"]),
-                                    ClientId = reader["ClientId"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ClientId"]),
-                                    ClientName = reader["ClientName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ClientName"]),
-                                    RegisterNumber = reader["RegisterNumber"] == DBNull.Value ? 0 : Convert.ToInt32(reader["RegisterNumber"]),
-                                    SubtotalColones = reader["SubtotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["SubtotalColones"]),
-                                    DiscountColones = reader["DiscountColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["DiscountColones"]),
-                                    ExonerationColones = reader["ExonerationColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["ExonerationColones"]),
-                                    TaxColones = reader["TaxColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TaxColones"]),
-                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"])
-                                });
-                            }
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailInvoiceHistorySearchResponse
-                {
-                    Ok = true,
-                    Entries = entries
-                });
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailInvoiceHistorySearchResponse
-                {
-                    Ok = false,
-                    Message = ex.Message
-                });
+                var value = cmd.ExecuteScalar();
+                return ParseItemTypes(value == null || value == DBNull.Value ? string.Empty : Convert.ToString(value));
             }
         }
 
-        /// <summary>
-        /// Obtiene el detalle completo de una factura específica.
-        /// Devuelve encabezado y líneas para reimpresión o consulta posterior desde la app MAUI.
-        /// </summary>
-        [HttpGet]
-        [Route("invoice-history-detail/{transactionNumber:int}")]
-        public HttpResponseMessage InvoiceHistoryDetail(int transactionNumber)
+        private static HashSet<int> ParseItemTypes(string value)
         {
-            var connectionString = GetConnectionString();
-            try
+            var itemTypes = new HashSet<int>();
+            if (string.IsNullOrWhiteSpace(value))
+                return itemTypes;
+
+            foreach (var part in value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                NovaRetailInvoiceHistoryEntryDto entry = null;
-
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-
-                    const string headerSql = @"
-SELECT TOP 1
-    t.TransactionNumber,
-    CAST(t.[Time] AS datetime) AS [Date],
-    ISNULL(NULLIF(f.COMPROBANTE_TIPO, ''), '04') AS ComprobanteTipo,
-    ISNULL(f.CLAVE50, '') AS Clave50,
-    ISNULL(NULLIF(f.CLAVE20, ''), ISNULL(f.COMPROBANTE_INTERNO, '')) AS Consecutivo,
-    ISNULL(NULLIF(f.CEDULA_TRIBUTARIA, ''), ISNULL(NULLIF(c.AccountNumber, ''), '')) AS ClientId,
-    COALESCE(
-        NULLIF(f.NOMBRE_CLIENTE, ''),
-        NULLIF(LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))), ''),
-        'CLIENTE CONTADO') AS ClientName,
-    CAST(0 AS INT) AS RegisterNumber,
-    CAST(ISNULL(s.SubtotalColones, ISNULL(t.Total, 0) - ISNULL(t.SalesTax, 0)) AS decimal(18, 2)) AS SubtotalColones,
-    CAST(ISNULL(s.DiscountColones, 0) AS decimal(18, 2)) AS DiscountColones,
-    CAST(0 AS decimal(18, 2)) AS ExonerationColones,
-    CAST(ISNULL(t.SalesTax, 0) AS decimal(18, 2)) AS TaxColones,
-    CAST(ISNULL(t.Total, 0) AS decimal(18, 2)) AS TotalColones
-FROM dbo.[Transaction] t
-LEFT JOIN dbo.AVS_INTEGRAFAST_01 f ON f.TRANSACTIONNUMBER = CAST(t.TransactionNumber AS NVARCHAR(50))
-LEFT JOIN dbo.Customer c ON c.ID = t.CustomerID
-OUTER APPLY (
-    SELECT
-        SUM(CAST(ISNULL(te.FullPrice, te.Price) * ISNULL(te.Quantity, 0) AS decimal(18, 2))) AS SubtotalColones,
-        SUM(CAST(CASE
-            WHEN ISNULL(te.FullPrice, 0) > ISNULL(te.Price, 0)
-                THEN (ISNULL(te.FullPrice, 0) - ISNULL(te.Price, 0)) * ISNULL(te.Quantity, 0)
-            ELSE 0
-        END AS decimal(18, 2))) AS DiscountColones
-    FROM dbo.TransactionEntry te
-    WHERE te.TransactionNumber = t.TransactionNumber
-) s
-WHERE t.TransactionNumber = @TransactionNumber";
-
-                    using (var cmd = new SqlCommand(headerSql, cn))
-                    {
-                        cmd.CommandTimeout = 60;
-                        cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                entry = new NovaRetailInvoiceHistoryEntryDto
-                                {
-                                    TransactionNumber = Convert.ToInt32(reader["TransactionNumber"]),
-                                    Date = Convert.ToDateTime(reader["Date"]),
-                                    ComprobanteTipo = reader["ComprobanteTipo"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ComprobanteTipo"]),
-                                    Clave50 = reader["Clave50"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Clave50"]),
-                                    Consecutivo = reader["Consecutivo"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Consecutivo"]),
-                                    ClientId = reader["ClientId"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ClientId"]),
-                                    ClientName = reader["ClientName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ClientName"]),
-                                    RegisterNumber = reader["RegisterNumber"] == DBNull.Value ? 0 : Convert.ToInt32(reader["RegisterNumber"]),
-                                    SubtotalColones = reader["SubtotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["SubtotalColones"]),
-                                    DiscountColones = reader["DiscountColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["DiscountColones"]),
-                                    ExonerationColones = reader["ExonerationColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["ExonerationColones"]),
-                                    TaxColones = reader["TaxColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TaxColones"]),
-                                    TotalColones = reader["TotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalColones"])
-                                };
-                            }
-                        }
-                    }
-
-                    if (entry == null)
-                    {
-                        return Request.CreateResponse(HttpStatusCode.NotFound, new NovaRetailInvoiceHistoryDetailResponse
-                        {
-                            Ok = false,
-                            Message = "Factura no encontrada."
-                        });
-                    }
-
-                    const string linesSql = @"
-SELECT
-    ISNULL(NULLIF(i.Description, ''), 'Artículo') AS DisplayName,
-    ISNULL(NULLIF(i.ItemLookupCode, ''), CAST(te.ItemID AS NVARCHAR(50))) AS Code,
-    CAST(ISNULL(te.Quantity, 0) AS decimal(18, 2)) AS Quantity,
-    CAST(ISNULL(tax.Percentage, 0) AS decimal(18, 2)) AS TaxPercentage,
-    CAST(ISNULL(te.Price, 0) AS decimal(18, 2)) AS UnitPriceColones,
-    CAST(ISNULL(te.Price, 0) * ISNULL(te.Quantity, 0) AS decimal(18, 2)) AS LineTotalColones,
-    CAST(CASE WHEN ISNULL(te.FullPrice, 0) > ISNULL(te.Price, 0) AND ISNULL(te.FullPrice, 0) > 0
-        THEN (((ISNULL(te.FullPrice, 0) - ISNULL(te.Price, 0)) / ISNULL(te.FullPrice, 1)) * 100)
-        ELSE 0 END AS decimal(18, 2)) AS DiscountPercent,
-    CAST(CASE WHEN ISNULL(te.FullPrice, 0) > ISNULL(te.Price, 0) THEN 1 ELSE 0 END AS bit) AS HasDiscount
-FROM dbo.TransactionEntry te
-LEFT JOIN dbo.Item i ON i.ID = te.ItemID
-LEFT JOIN dbo.Tax tax ON tax.ID = i.TaxID
-WHERE te.TransactionNumber = @TransactionNumber
-ORDER BY te.ID";
-
-                    using (var cmd = new SqlCommand(linesSql, cn))
-                    {
-                        cmd.CommandTimeout = 60;
-                        cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                entry.Lines.Add(new NovaRetailInvoiceHistoryLineDto
-                                {
-                                    DisplayName = reader["DisplayName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["DisplayName"]),
-                                    Code = reader["Code"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Code"]),
-                                    Quantity = reader["Quantity"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Quantity"]),
-                                    TaxPercentage = reader["TaxPercentage"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TaxPercentage"]),
-                                    UnitPriceColones = reader["UnitPriceColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["UnitPriceColones"]),
-                                    LineTotalColones = reader["LineTotalColones"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["LineTotalColones"]),
-                                    HasDiscount = reader["HasDiscount"] != DBNull.Value && Convert.ToBoolean(reader["HasDiscount"]),
-                                    DiscountPercent = reader["DiscountPercent"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["DiscountPercent"])
-                                });
-                            }
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailInvoiceHistoryDetailResponse
-                {
-                    Ok = true,
-                    Entry = entry
-                });
+                int itemType;
+                if (int.TryParse(part.Trim(), out itemType))
+                    itemTypes.Add(itemType);
             }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailInvoiceHistoryDetailResponse
-                {
-                    Ok = false,
-                    Message = ex.Message
-                });
-            }
+
+            return itemTypes;
         }
 
-        /// <summary>
-        /// Convierte las líneas del request de venta a un <see cref="DataTable"/> compatible con el TVP del stored procedure.
-        /// Es el puente entre el contrato JSON del API y el formato tabular esperado por SQL Server.
-        /// </summary>
-        private static DataTable ToItemsTable(IEnumerable<NovaRetailSaleItemDto> items)
+        private static bool RequestContainsNonInventoryItems(IEnumerable<NovaRetailSaleItemDto> items, ISet<int> nonInventoryItemTypes)
         {
-            var dt = new DataTable();
-            dt.Columns.Add("RowNo", typeof(int));
-            dt.Columns.Add("ItemID", typeof(int));
-            dt.Columns.Add("Quantity", typeof(decimal));
-            dt.Columns.Add("UnitPrice", typeof(decimal));
-            dt.Columns.Add("FullPrice", typeof(decimal));
-            dt.Columns.Add("Cost", typeof(decimal));
-            dt.Columns.Add("Commission", typeof(decimal));
-            dt.Columns.Add("PriceSource", typeof(int));
-            dt.Columns.Add("SalesRepID", typeof(int));
-            dt.Columns.Add("Taxable", typeof(bool));
-            dt.Columns.Add("TaxID", typeof(int));
-            dt.Columns.Add("SalesTax", typeof(decimal));
-            dt.Columns.Add("LineComment", typeof(string));
-            dt.Columns.Add("DiscountReasonCodeID", typeof(int));
-            dt.Columns.Add("ReturnReasonCodeID", typeof(int));
-            dt.Columns.Add("TaxChangeReasonCodeID", typeof(int));
-            dt.Columns.Add("QuantityDiscountID", typeof(int));
-            dt.Columns.Add("ItemType", typeof(int));
-            dt.Columns.Add("ComputedQuantity", typeof(decimal));
-            dt.Columns.Add("IsAddMoney", typeof(bool));
-            dt.Columns.Add("VoucherID", typeof(int));
-            dt.Columns.Add("ExtendedDescription", typeof(string));
-            dt.Columns.Add("PromotionID", typeof(int));
-            dt.Columns.Add("PromotionName", typeof(string));
-            dt.Columns.Add("LineDiscountAmount", typeof(decimal));
-            dt.Columns.Add("LineDiscountPercent", typeof(decimal));
-
-            foreach (var item in items)
-            {
-                dt.Rows.Add(
-                    item.RowNo,
-                    item.ItemID,
-                    item.Quantity,
-                    item.UnitPrice,
-                    item.FullPrice.HasValue ? (object)item.FullPrice.Value : DBNull.Value,
-                    item.Cost,
-                    item.Commission,
-                    item.PriceSource,
-                    item.SalesRepID,
-                    item.Taxable,
-                    item.TaxID.HasValue ? (object)item.TaxID.Value : DBNull.Value,
-                    item.SalesTax,
-                    item.LineComment ?? string.Empty,
-                    item.DiscountReasonCodeID,
-                    item.ReturnReasonCodeID,
-                    item.TaxChangeReasonCodeID,
-                    item.QuantityDiscountID,
-                    item.ItemType,
-                    item.ComputedQuantity,
-                    item.IsAddMoney,
-                    item.VoucherID,
-                    string.IsNullOrWhiteSpace(item.ExtendedDescription) ? (object)DBNull.Value : item.ExtendedDescription,
-                    item.PromotionID.HasValue ? (object)item.PromotionID.Value : DBNull.Value,
-                    string.IsNullOrWhiteSpace(item.PromotionName) ? (object)DBNull.Value : item.PromotionName,
-                    item.LineDiscountAmount,
-                    item.LineDiscountPercent);
-            }
-
-            return dt;
-        }
-
-        /// <summary>
-        /// Convierte los medios de pago del request a un <see cref="DataTable"/> para el TVP del stored procedure.
-        /// Aquí se empaquetan montos, moneda, datos de tarjeta y códigos de medio de pago al formato tabular SQL.
-        /// </summary>
-        private static DataTable ToTendersTable(IEnumerable<NovaRetailSaleTenderDto> tenders)
-        {
-            var dt = new DataTable();
-            dt.Columns.Add("RowNo", typeof(int));
-            dt.Columns.Add("TenderID", typeof(int));
-            dt.Columns.Add("PaymentID", typeof(int));
-            dt.Columns.Add("Description", typeof(string));
-            dt.Columns.Add("Amount", typeof(decimal));
-            dt.Columns.Add("AmountForeign", typeof(decimal));
-            dt.Columns.Add("RoundingError", typeof(decimal));
-            dt.Columns.Add("CreditCardExpiration", typeof(string));
-            dt.Columns.Add("CreditCardNumber", typeof(string));
-            dt.Columns.Add("CreditCardApprovalCode", typeof(string));
-            dt.Columns.Add("AccountHolder", typeof(string));
-            dt.Columns.Add("BankNumber", typeof(string));
-            dt.Columns.Add("SerialNumber", typeof(string));
-            dt.Columns.Add("State", typeof(string));
-            dt.Columns.Add("License", typeof(string));
-            dt.Columns.Add("BirthDate", typeof(DateTime));
-            dt.Columns.Add("TransitNumber", typeof(string));
-            dt.Columns.Add("VisaNetAuthorizationID", typeof(int));
-            dt.Columns.Add("DebitSurcharge", typeof(decimal));
-            dt.Columns.Add("CashBackSurcharge", typeof(decimal));
-            dt.Columns.Add("IsCreateNew", typeof(bool));
-            dt.Columns.Add("MedioPagoCodigo", typeof(string));
-
-            foreach (var tender in tenders)
-            {
-                dt.Rows.Add(
-                    tender.RowNo,
-                    tender.TenderID,
-                    tender.PaymentID,
-                    tender.Description ?? string.Empty,
-                    tender.Amount,
-                    tender.AmountForeign.HasValue ? (object)tender.AmountForeign.Value : DBNull.Value,
-                    tender.RoundingError,
-                    string.IsNullOrWhiteSpace(tender.CreditCardExpiration) ? (object)DBNull.Value : tender.CreditCardExpiration,
-                    string.IsNullOrWhiteSpace(tender.CreditCardNumber) ? (object)DBNull.Value : tender.CreditCardNumber,
-                    string.IsNullOrWhiteSpace(tender.CreditCardApprovalCode) ? (object)DBNull.Value : tender.CreditCardApprovalCode,
-                    string.IsNullOrWhiteSpace(tender.AccountHolder) ? (object)DBNull.Value : tender.AccountHolder,
-                    string.IsNullOrWhiteSpace(tender.BankNumber) ? (object)DBNull.Value : tender.BankNumber,
-                    string.IsNullOrWhiteSpace(tender.SerialNumber) ? (object)DBNull.Value : tender.SerialNumber,
-                    string.IsNullOrWhiteSpace(tender.State) ? (object)DBNull.Value : tender.State,
-                    string.IsNullOrWhiteSpace(tender.License) ? (object)DBNull.Value : tender.License,
-                    tender.BirthDate.HasValue ? (object)tender.BirthDate.Value : DBNull.Value,
-                    string.IsNullOrWhiteSpace(tender.TransitNumber) ? (object)DBNull.Value : tender.TransitNumber,
-                    tender.VisaNetAuthorizationID,
-                    tender.DebitSurcharge,
-                    tender.CashBackSurcharge,
-                    tender.IsCreateNew,
-                    string.IsNullOrWhiteSpace(tender.MedioPagoCodigo) ? (object)DBNull.Value : tender.MedioPagoCodigo);
-            }
-
-            return dt;
-        }
-
-        /// <summary>
-        /// Verifica si un <see cref="IDataRecord"/> expone una columna específica.
-        /// Se usa para tolerar respuestas variables de procedimientos o consultas sin romper el mapeo.
-        /// </summary>
-        private static bool HasColumn(IDataRecord reader, string columnName)
-        {
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                if (string.Equals(reader.GetName(i), columnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Lee un valor string de un reader con fallback por columna ausente o nula.
-        /// Simplifica el mapeo defensivo de respuestas SQL hacia DTOs del API.
-        /// </summary>
-        private static string GetString(IDataRecord reader, string columnName, string defaultValue)
-        {
-            if (!HasColumn(reader, columnName))
-            {
-                return defaultValue;
-            }
-
-            var value = reader[columnName];
-            return value == DBNull.Value ? defaultValue : Convert.ToString(value);
-        }
-
-        /// <summary>
-        /// Lee un entero de un reader con tolerancia a columnas ausentes o valores nulos.
-        /// </summary>
-        private static int GetInt(IDataRecord reader, string columnName)
-        {
-            if (!HasColumn(reader, columnName))
-            {
-                return 0;
-            }
-
-            var value = reader[columnName];
-            return value == DBNull.Value ? 0 : Convert.ToInt32(value);
-        }
-
-        /// <summary>
-        /// Lee un entero nullable desde un reader.
-        /// Devuelve <c>null</c> cuando la columna no existe o no trae dato.
-        /// </summary>
-        private static int? GetNullableInt(IDataRecord reader, string columnName)
-        {
-            if (!HasColumn(reader, columnName))
-            {
-                return null;
-            }
-
-            var value = reader[columnName];
-            return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
-        }
-
-        /// <summary>
-        /// Lee un decimal nullable desde un reader con fallback seguro.
-        /// </summary>
-        private static decimal? GetNullableDecimal(IDataRecord reader, string columnName)
-        {
-            if (!HasColumn(reader, columnName))
-            {
-                return null;
-            }
-
-            var value = reader[columnName];
-            return value == DBNull.Value ? (decimal?)null : Convert.ToDecimal(value);
-        }
-
-        /// <summary>
-        /// Lee un booleano desde un reader sin asumir que la columna siempre existe.
-        /// </summary>
-        private static bool GetBoolean(IDataRecord reader, string columnName)
-        {
-            if (!HasColumn(reader, columnName))
-            {
+            if (items == null || nonInventoryItemTypes == null || nonInventoryItemTypes.Count == 0)
                 return false;
-            }
 
-            var value = reader[columnName];
-            return value != DBNull.Value && Convert.ToBoolean(value);
+            return items.Any(item => item != null && nonInventoryItemTypes.Contains(item.ItemType));
         }
 
-        /// <summary>
-        /// Localiza el batch abierto que debe usarse para registrar la venta.
-        /// Primero intenta con tienda+caja exactas, luego solo con tienda,
-        /// y por último toma cualquier batch abierto como último recurso.
-        /// </summary>
+        private static InventoryValidationResult ValidateInventoryItems(SqlConnection cn, SqlTransaction tx, IEnumerable<NovaRetailSaleItemDto> items, ISet<int> nonInventoryItemTypes)
+        {
+            var result = new InventoryValidationResult { StockOk = true };
+            if (items == null)
+                return result;
+
+            var requestedQuantities = items
+                .Where(item => item != null && item.ItemID > 0 && item.Quantity > 0)
+                .GroupBy(item => item.ItemID)
+                .Select(group => new RequestedItemQuantity
+                {
+                    ItemID = group.Key,
+                    Quantity = group.Sum(item => item.Quantity)
+                })
+                .ToList();
+
+            if (requestedQuantities.Count == 0)
+                return result;
+
+            var inventorySnapshot = LoadItemInventorySnapshot(cn, tx, requestedQuantities.Select(item => item.ItemID));
+            foreach (var requested in requestedQuantities)
+            {
+                ItemInventorySnapshot snapshot;
+                if (!inventorySnapshot.TryGetValue(requested.ItemID, out snapshot))
+                    continue;
+
+                if (nonInventoryItemTypes.Contains(snapshot.ItemType))
+                {
+                    result.HasNonInventoryItems = true;
+                    continue;
+                }
+
+                if (snapshot.Quantity < requested.Quantity)
+                {
+                    result.StockOk = false;
+                    return result;
+                }
+            }
+
+            return result;
+        }
+
+        private static Dictionary<int, ItemInventorySnapshot> LoadItemInventorySnapshot(SqlConnection cn, SqlTransaction tx, IEnumerable<int> itemIds)
+        {
+            var ids = itemIds == null
+                ? new List<int>()
+                : itemIds.Where(id => id > 0).Distinct().ToList();
+
+            var snapshot = new Dictionary<int, ItemInventorySnapshot>();
+            if (ids.Count == 0)
+                return snapshot;
+
+            using (var cmd = new SqlCommand())
+            {
+                cmd.Connection = cn;
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 30;
+
+                var parameterNames = new List<string>(ids.Count);
+                for (var index = 0; index < ids.Count; index++)
+                {
+                    var parameterName = "@ItemID" + index.ToString(CultureInfo.InvariantCulture);
+                    parameterNames.Add(parameterName);
+                    cmd.Parameters.AddWithValue(parameterName, ids[index]);
+                }
+
+                cmd.CommandText = @"SELECT I.ID,
+                                           CAST(ISNULL(I.Quantity, 0) AS decimal(18, 4)) AS Quantity,
+                                           ISNULL(I.ItemType, 0) AS ItemType
+                                    FROM dbo.Item I WITH (UPDLOCK, HOLDLOCK)
+                                    WHERE I.ID IN (" + string.Join(", ", parameterNames) + ")";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        snapshot[Convert.ToInt32(reader["ID"])] = new ItemInventorySnapshot
+                        {
+                            Quantity = reader["Quantity"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Quantity"]),
+                            ItemType = reader["ItemType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemType"])
+                        };
+                    }
+                }
+            }
+
+            return snapshot;
+        }
+
+        private static void SafeRollback(SqlTransaction tx)
+        {
+            if (tx == null)
+                return;
+
+            try
+            {
+                tx.Rollback();
+            }
+            catch
+            {
+            }
+        }
+
         private static ActiveBatchInfo ResolveActiveBatch(SqlConnection cn, int requestedStoreId, int requestedRegisterId, SqlTransaction tx = null)
         {
             var candidates = new List<Tuple<string, SqlParameter[]>>();
@@ -837,10 +745,6 @@ ORDER BY te.ID";
             return null;
         }
 
-        /// <summary>
-        /// Garantiza que la transacción recién creada quede asociada a un batch válido.
-        /// Si el stored procedure principal no lo asignó, este método intenta completarlo a posteriori.
-        /// </summary>
         private static int EnsureTransactionBatchNumber(SqlConnection cn, int transactionNumber, int storeId, int registerId, int fallbackBatchNumber)
         {
             using (var cmd = new SqlCommand("SELECT BatchNumber FROM dbo.[Transaction] WHERE TransactionNumber = @TransactionNumber", cn))
@@ -873,24 +777,20 @@ ORDER BY te.ID";
             return batchNumber;
         }
 
-        /// <summary>
-        /// Genera la clave de 50 dígitos y el consecutivo de 20 cuando el request no los trae.
-        /// Para eso busca la identificación del emisor en varias tablas compatibles con distintas instalaciones.
-        /// </summary>
         private static void EnsureClaves(NovaRetailCreateSaleRequest request, int transactionNumber, SqlConnection cn)
         {
             if (!string.IsNullOrWhiteSpace(request.CLAVE50) && !string.IsNullOrWhiteSpace(request.CLAVE20))
                 return;
 
-            // Leer cédula del emisor — intentar varias tablas posibles
+            // Leer cÃƒÆ’Ã‚Â©dula del emisor ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â intentar varias tablas posibles
             var cedulaEmisor = string.Empty;
             var cedulaQueries = new[]
             {
-                // VATDetailID almacena la cédula jurídica/física del emisor en RMH Costa Rica
+                // VATDetailID almacena la cÃƒÆ’Ã‚Â©dula jurÃƒÆ’Ã‚Â­dica/fÃƒÆ’Ã‚Â­sica del emisor en RMH Costa Rica
                 "SELECT TOP 1 ISNULL(CAST(VATDetailID AS NVARCHAR(20)),'')           FROM dbo.[Configuration]",
-                // VATRegistrationNumber puede contener un código interno (ej. "201"), no la cédula real
+                // VATRegistrationNumber puede contener un cÃƒÆ’Ã‚Â³digo interno (ej. "201"), no la cÃƒÆ’Ã‚Â©dula real
                 "SELECT TOP 1 ISNULL(CAST(VATRegistrationNumber AS NVARCHAR(20)),'') FROM dbo.[Configuration]",
-                // Fallbacks por si la instalación usa otra tabla/columna
+                // Fallbacks por si la instalaciÃƒÆ’Ã‚Â³n usa otra tabla/columna
                 "SELECT TOP 1 ISNULL(CAST(Valor AS NVARCHAR(20)),'') FROM dbo.AVS_Parametros WHERE UPPER(Nombre) LIKE '%CEDULA%' OR UPPER(Nombre) LIKE '%NIF%'",
                 "SELECT TOP 1 ISNULL(CAST(TaxNumber AS NVARCHAR(20)),'')     FROM dbo.[Configuration]",
                 "SELECT TOP 1 ISNULL(CAST(NIF AS NVARCHAR(20)),'')           FROM dbo.AVS_DATOS_EMISOR",
@@ -907,7 +807,7 @@ ORDER BY te.ID";
                         var val = cmd.ExecuteScalar();
                         if (val != null && val != DBNull.Value)
                         {
-                            // Normalizar: quitar guiones y espacios (ej. "3-101-639680" → "3101639680")
+                            // Normalizar: quitar guiones y espacios (ej. "3-101-639680" ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ "3101639680")
                             var candidate = new string(val.ToString().Where(char.IsDigit).ToArray());
                             if (!string.IsNullOrWhiteSpace(candidate) && candidate != "0")
                             {
@@ -926,7 +826,9 @@ ORDER BY te.ID";
             var sucursal  = (request.COD_SUCURSAL ?? "001").PadLeft(3, '0');
             var terminal  = (request.TERMINAL_POS ?? "00001").PadLeft(5, '0');
             var tipoCvta  = string.IsNullOrWhiteSpace(request.COMPROBANTE_TIPO) ? "04" : request.COMPROBANTE_TIPO.PadLeft(2, '0');
-            var consec    = transactionNumber.ToString().PadLeft(10, '0');
+            // Usar COMPROBANTE_INTERNO (consecutivo de AVS_INTEGRAFAST_02) si estÃƒÆ’Ã‚Â¡ disponible
+            var consec    = (!string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO)
+                ? request.COMPROBANTE_INTERNO : transactionNumber.ToString()).PadLeft(10, '0');
             var situacion = "1";   // Normal
             var seguridad = new Random().Next(10000000, 99999999).ToString("D8");
 
@@ -940,18 +842,12 @@ ORDER BY te.ID";
                 request.COMPROBANTE_SITUACION = situacion;
         }
 
-        /// <summary>
-        /// Inserta filas en <c>TaxEntry</c> para cada línea gravada de la transacción.
-        /// Esto completa la estructura fiscal de RMH cuando el SP principal no deja esos registros listos.
-        /// </summary>
         private static int EnsureTaxEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
         {
             if (request.Items == null || request.Items.Count == 0)
                 return 0;
 
-            var taxSystem = GetTaxSystem(cn);
-
-            // Cargar TransactionEntry: indexar por DetailID y por posición secuencial
+            // Cargar TransactionEntry: indexar por DetailID y por posiciÃƒÆ’Ã‚Â³n secuencial
             var entriesByDetailId = new Dictionary<int, int>();
             var entriesOrdered    = new List<(int EntryId, int DetailId, int ItemId)>();
 
@@ -981,7 +877,7 @@ ORDER BY te.ID";
                 if (!item.Taxable || !item.TaxID.HasValue)
                     continue;
 
-                // 1) Match por DetailID = RowNo - 1 (asignación estándar del SP)
+                // 1) Match por DetailID = RowNo - 1 (asignaciÃƒÆ’Ã‚Â³n estÃƒÆ’Ã‚Â¡ndar del SP)
                 var detailId = item.RowNo - 1;
                 int transactionEntryId = 0;
 
@@ -991,7 +887,7 @@ ORDER BY te.ID";
                 }
                 else
                 {
-                    // 2) Fallback: posición secuencial (índice RowNo-1 en la lista)
+                    // 2) Fallback: posiciÃƒÆ’Ã‚Â³n secuencial (ÃƒÆ’Ã‚Â­ndice RowNo-1 en la lista)
                     var idx = item.RowNo - 1;
                     if (idx >= 0 && idx < entriesOrdered.Count)
                         transactionEntryId = entriesOrdered[idx].EntryId;
@@ -1017,9 +913,7 @@ ORDER BY te.ID";
 
                 var lineAmount    = Math.Round(item.UnitPrice * item.Quantity, 4, MidpointRounding.AwayFromZero);
                 var taxAmount     = Math.Round(item.SalesTax,  4, MidpointRounding.AwayFromZero);
-                var taxableAmount = taxSystem == 1
-                    ? Math.Max(0m, Math.Round(lineAmount - taxAmount, 4, MidpointRounding.AwayFromZero))
-                    : Math.Max(0m, lineAmount);
+                var taxableAmount = Math.Max(0m, lineAmount);
 
                 using (var insertCmd = new SqlCommand(
                     @"INSERT INTO dbo.TaxEntry (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)
@@ -1039,323 +933,6 @@ ORDER BY te.ID";
             return inserted;
         }
 
-        /// <summary>
-        /// Garantiza que exista el encabezado fiscal en <c>AVS_INTEGRAFAST_01</c>.
-        /// Intenta primero con el SP heredado y, si no existe, hace un INSERT directo como fallback.
-        /// </summary>
-        private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
-        {
-            using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
-            {
-                existsCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
-                if (Convert.ToInt32(existsCmd.ExecuteScalar()) > 0)
-                    return;
-            }
-
-            var medioPagos = (request.Tenders ?? new List<NovaRetailSaleTenderDto>())
-                .OrderBy(t => t.RowNo)
-                .Select(t => string.IsNullOrWhiteSpace(t.MedioPagoCodigo) ? string.Empty : t.MedioPagoCodigo.Trim())
-                .Take(4)
-                .ToList();
-
-            while (medioPagos.Count < 4)
-                medioPagos.Add(string.Empty);
-
-            // Intentar primero via SP, si falla usar INSERT directo
-            try
-            {
-                using (var cmd = new SqlCommand("dbo.spAVS_InsertTiqueteEspera", cn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 120;
-                    cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TRANSACTIONNUMBER", transactionNumber.ToString());
-                    cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
-                    cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
-                    cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", request.NombreCliente ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@MEDIO_PAGO1", medioPagos[0]);
-                    cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
-                    cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
-                    cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
-                    cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
-                    cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
-                    cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch
-            {
-                // SP no existe — INSERT directo
-                InsertIntegraFast01Direct(cn, request, transactionNumber, medioPagos);
-            }
-        }
-
-        /// <summary>
-        /// Inserta directamente el encabezado de factura electrónica en <c>AVS_INTEGRAFAST_01</c>.
-        /// Se usa como plan B cuando el procedimiento heredado de IntegraFast no está disponible.
-        /// </summary>
-        private static void InsertIntegraFast01Direct(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, List<string> medioPagos)
-        {
-            using (var cmd = new SqlCommand(@"
-                INSERT INTO dbo.AVS_INTEGRAFAST_01
-                    (CLAVE50, CLAVE20, TRANSACTIONNUMBER, COD_SUCURSAL, TERMINAL_POS,
-                     COMPROBANTE_INTERNO, COMPROBANTE_SITUACION, COMPROBANTE_TIPO,
-                     COD_MONEDA, CONDICION_VENTA, COD_CLIENTE, NOMBRE_CLIENTE,
-                     MEDIO_PAGO1, MEDIO_PAGO2, MEDIO_PAGO3, MEDIO_PAGO4,
-                     TIPOCAMBIO, CEDULA_TRIBUTARIA, EXONERA,
-                     NC_TIPO_DOC, NC_REFERENCIA, NC_REFERENCIA_FECHA, NC_CODIGO, NC_RAZON,
-                     FECHA_TRANSAC, ESTADO_HACIENDA)
-                VALUES
-                    (@CLAVE50, @CLAVE20, @TN, @COD_SUCURSAL, @TERMINAL_POS,
-                     @COMPROBANTE_INTERNO, @COMPROBANTE_SITUACION, @COMPROBANTE_TIPO,
-                     @CURRENCYCODE, @CONDICIONVENTA, @COD_CLIENTE, @NOMBRE_CLIENTE,
-                     @MEDIO_PAGO1, @MEDIO_PAGO2, @MEDIO_PAGO3, @MEDIO_PAGO4,
-                     @TIPOCAMBIO, @CEDULA_TRIBUTARIA, @EXONERA,
-                     @NC_TIPO_DOC, @NC_REFERENCIA, @NC_REFERENCIA_FECHA, @NC_CODIGO, @NC_RAZON,
-                     GETDATE(), '00')", cn))
-            {
-                cmd.CommandTimeout = 60;
-                cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
-                cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                cmd.Parameters.AddWithValue("@COD_SUCURSAL", request.COD_SUCURSAL ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TERMINAL_POS", request.TERMINAL_POS ?? string.Empty);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", string.IsNullOrWhiteSpace(request.COMPROBANTE_INTERNO) ? transactionNumber.ToString() : request.COMPROBANTE_INTERNO);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
-                cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
-                cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
-                cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", request.NombreCliente ?? string.Empty);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO1", medioPagos[0]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
-                cmd.Parameters.AddWithValue("@TIPOCAMBIO", request.TipoCambio ?? "1");
-                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", request.CedulaTributaria ?? string.Empty);
-                cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
-                cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
-                cmd.ExecuteNonQuery();
-            }
-        }
-
-        /// <summary>
-        /// Inserta las líneas de detalle en AVS_INTEGRAFAST_05 para que fxAVS_GetLineaDetalle
-        /// pueda leer los datos fiscales (Cabys, IVA, etc.) al procesar con IntegraFast.
-        /// </summary>
-        private static void EnsureIntegraFast05(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
-        {
-            if (request.Items == null || request.Items.Count == 0)
-                return;
-
-            // Leer CLAVE50 ya generada en AVS_INTEGRAFAST_01
-            string clave50;
-            using (var cmd = new SqlCommand("SELECT TOP 1 CLAVE50 FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TN", cn))
-            {
-                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                var val = cmd.ExecuteScalar();
-                clave50 = val != null && val != DBNull.Value ? Convert.ToString(val) : string.Empty;
-            }
-
-            if (string.IsNullOrWhiteSpace(clave50))
-                return;
-
-            // Verificar si ya existen registros
-            using (var chk = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
-            {
-                chk.Parameters.AddWithValue("@CLAVE50", clave50);
-                try
-                {
-                    if (Convert.ToInt32(chk.ExecuteScalar()) > 0)
-                        return;
-                }
-                catch
-                {
-                    CreateIntegraFast05Table(cn);
-                }
-            }
-
-            var taxSystem = GetTaxSystem(cn);
-            int numLinea = 0;
-
-            // Cargar info de artículos (Cabys, Code) desde Item table
-            var itemInfoMap = new Dictionary<int, (string Cabys, string Code, string Description)>();
-            var itemIds = request.Items.Select(i => i.ItemID).Distinct().ToList();
-            if (itemIds.Count > 0)
-            {
-                var idList = string.Join(",", itemIds);
-                try
-                {
-                    using (var cmd = new SqlCommand(
-                        $"SELECT ID, ISNULL(CAST(ExtendedDescription AS NVARCHAR(20)),'') AS Cabys, ISNULL(ItemLookupCode,'') AS Code, ISNULL(Description,'') AS Desc1 FROM dbo.Item WHERE ID IN ({idList})", cn))
-                    using (var r = cmd.ExecuteReader())
-                    {
-                        while (r.Read())
-                        {
-                            var id = Convert.ToInt32(r["ID"]);
-                            var cabys = r["Cabys"]?.ToString() ?? string.Empty;
-                            var code = r["Code"]?.ToString() ?? string.Empty;
-                            var desc = r["Desc1"]?.ToString() ?? string.Empty;
-                            itemInfoMap[id] = (cabys, code, desc);
-                        }
-                    }
-                }
-                catch { /* tabla Item podría tener diferente esquema */ }
-            }
-
-            foreach (var item in request.Items.OrderBy(i => i.RowNo))
-            {
-                numLinea++;
-                var qty = item.Quantity <= 0 ? 1m : item.Quantity;
-                var unitPrice = item.UnitPrice;
-                var fullPrice = item.FullPrice ?? unitPrice;
-                var montoTotal = Math.Round(fullPrice * qty, 2);
-                var montoDescuento = Math.Round(item.LineDiscountAmount, 2);
-                if (montoDescuento == 0m && fullPrice > unitPrice)
-                    montoDescuento = Math.Round((fullPrice - unitPrice) * qty, 2);
-                var subTotal = montoTotal - montoDescuento;
-                var taxRate = item.SalesTax > 0 && subTotal > 0
-                    ? Math.Round(item.SalesTax / subTotal * 100m, 2)
-                    : 0m;
-                var montoImpuesto = Math.Round(item.SalesTax, 2);
-                var montoLinea = subTotal + montoImpuesto;
-
-                itemInfoMap.TryGetValue(item.ItemID, out var info);
-                var cabys = info.Cabys ?? string.Empty;
-                var codProducto = info.Code ?? item.ItemID.ToString();
-                var detalle = !string.IsNullOrWhiteSpace(item.ExtendedDescription)
-                    ? item.ExtendedDescription
-                    : !string.IsNullOrWhiteSpace(info.Description) ? info.Description
-                    : item.ItemID.ToString();
-
-                // Código de tarifa IVA según normativa CR
-                var codTarifaIVA = taxRate >= 13m ? "08" : taxRate >= 4m ? "04" : taxRate >= 2m ? "07" : taxRate >= 1m ? "06" : "01";
-                var codImpuesto = taxRate > 0 ? "01" : string.Empty;
-
-                var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
-
-                // Calcular porcentaje exoneración para EXONERA_PORCENTAJE_COMPRA
-                var exoneraPorcentaje = item.ExPorcentaje;
-
-                try
-                {
-                    using (var cmd = new SqlCommand(@"
-                        INSERT INTO dbo.AVS_INTEGRAFAST_05
-                            (CLAVE50, TRANSACTIONNUMBER, NUMLINEA, TIPOCOD, CABYS, CODARTICULO, DETALLE, UNIDAD,
-                             CANTIDAD, PRECIO_UNITARIO, MONTOTOTAL, MONTODESCUENTO, NATDESCUENTO, SUBTOTAL,
-                             CODIMPUESTO, TARIFAIVA, MONTOIMPUESTO, MONTOLINEA, TARIFA_IMPUESTO, CODTARIFAIMPUESTO,
-                             ID_PRODUCTO, SALESREPID, EXONERA_PORCENTAJE_COMPRA)
-                        VALUES
-                            (@CLAVE50, @TN, @NUMLINEA, @TIPOCOD, @CABYS, @CODART, @DETALLE, @UNIDAD,
-                             @CANTIDAD, @PRECIOUNIT, @MONTOTOTAL, @MONTODESC, @NATDESC, @SUBTOTAL,
-                             @CODIMP, @TARIFAIVA, @MONTOIMP, @MONTOLINEA, @TARIFAIMP, @CODTARIFAIMP,
-                             @IDPROD, @SALESREPID, @EXONERAPORC)", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@CLAVE50", clave50);
-                        cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                        cmd.Parameters.AddWithValue("@NUMLINEA", numLinea);
-                        cmd.Parameters.AddWithValue("@TIPOCOD", "01");
-                        cmd.Parameters.AddWithValue("@CABYS", Truncate(cabys, 20));
-                        cmd.Parameters.AddWithValue("@CODART", Truncate(codProducto, 20));
-                        cmd.Parameters.AddWithValue("@DETALLE", Truncate(detalle, 200));
-                        cmd.Parameters.AddWithValue("@UNIDAD", "Und");
-                        cmd.Parameters.AddWithValue("@CANTIDAD", qty);
-                        cmd.Parameters.AddWithValue("@PRECIOUNIT", Math.Round(fullPrice, 5));
-                        cmd.Parameters.AddWithValue("@MONTOTOTAL", montoTotal);
-                        cmd.Parameters.AddWithValue("@MONTODESC", montoDescuento);
-                        cmd.Parameters.AddWithValue("@NATDESC", Truncate(naturalezaDescuento, 100));
-                        cmd.Parameters.AddWithValue("@SUBTOTAL", subTotal);
-                        cmd.Parameters.AddWithValue("@CODIMP", codImpuesto);
-                        cmd.Parameters.AddWithValue("@TARIFAIVA", taxRate);
-                        cmd.Parameters.AddWithValue("@MONTOIMP", montoImpuesto);
-                        cmd.Parameters.AddWithValue("@MONTOLINEA", montoLinea);
-                        cmd.Parameters.AddWithValue("@TARIFAIMP", taxRate > 0 ? taxRate : 0m);
-                        cmd.Parameters.AddWithValue("@CODTARIFAIMP", codTarifaIVA);
-                        cmd.Parameters.AddWithValue("@IDPROD", item.ItemID);
-                        cmd.Parameters.AddWithValue("@SALESREPID", item.SalesRepID);
-                        cmd.Parameters.AddWithValue("@EXONERAPORC", exoneraPorcentaje);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-                catch { /* columna faltante o tipo incompatible - no bloquear venta */ }
-            }
-        }
-
-        /// <summary>Crea la tabla AVS_INTEGRAFAST_05 si no existe.</summary>
-        private static void CreateIntegraFast05Table(SqlConnection cn)
-        {
-            try
-            {
-                using (var cmd = new SqlCommand(@"
-                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'AVS_INTEGRAFAST_05')
-                    CREATE TABLE dbo.AVS_INTEGRAFAST_05 (
-                        ID                        INT IDENTITY(1,1) PRIMARY KEY,
-                        CLAVE50                   NVARCHAR(50)  NOT NULL DEFAULT '',
-                        TRANSACTIONNUMBER         NVARCHAR(20)  NOT NULL DEFAULT '',
-                        NUMLINEA                  INT           NOT NULL DEFAULT 0,
-                        TIPOCOD                   NVARCHAR(2)   NOT NULL DEFAULT '01',
-                        CABYS                     NVARCHAR(20)  NOT NULL DEFAULT '',
-                        CODARTICULO               NVARCHAR(20)  NOT NULL DEFAULT '',
-                        DETALLE                   NVARCHAR(200) NOT NULL DEFAULT '',
-                        UNIDAD                    NVARCHAR(5)   NOT NULL DEFAULT 'Und',
-                        CANTIDAD                  DECIMAL(18,4) NOT NULL DEFAULT 0,
-                        PRECIO_UNITARIO           DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        MONTOTOTAL                DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTODESCUENTO            DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        NATDESCUENTO              NVARCHAR(100) NOT NULL DEFAULT '',
-                        SUBTOTAL                  DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        CODIMPUESTO               NVARCHAR(2)   NOT NULL DEFAULT '',
-                        TARIFAIVA                 DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTOIMPUESTO             DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MONTOLINEA                DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        TARIFA_IMPUESTO           DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        CODTARIFAIMPUESTO         NVARCHAR(2)   NOT NULL DEFAULT '',
-                        ID_PRODUCTO               INT           NOT NULL DEFAULT 0,
-                        SALESREPID                INT           NOT NULL DEFAULT 0,
-                        EXONERA_PORCENTAJE_COMPRA DECIMAL(18,5) NOT NULL DEFAULT 0,
-                        SyncGuid                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID()
-                    )", cn))
-                {
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch { /* entorno sin permisos DDL */ }
-        }
-
-        /// <summary>
-        /// Lee el sistema de impuestos configurado en RMH.
-        /// Devuelve 0 para IVA excluido y 1 para IVA incluido, según la convención usada por la solución.
-        /// </summary>
-        private static int GetTaxSystem(SqlConnection cn)
-        {
-            using (var cmd = new SqlCommand("SELECT TOP 1 TaxSystem FROM dbo.[Configuration]", cn))
-            {
-                var value = cmd.ExecuteScalar();
-                return value == null || value == DBNull.Value ? 0 : Convert.ToInt32(value);
-            }
-        }
-
-        /// <summary>
-        /// Representa el batch abierto seleccionado para registrar la venta.
-        /// Encapsula número de lote, tienda y caja para reutilizar esos datos en varias etapas del flujo.
-        /// </summary>
         private sealed class ActiveBatchInfo
         {
             public int BatchNumber { get; set; }
@@ -1363,1146 +940,24 @@ ORDER BY te.ID";
             public int RegisterID { get; set; }
         }
 
-        /// <summary>
-        /// Inserta el detalle de exoneración por línea en la tabla auxiliar de IntegraFast.
-        /// Esto permite que el motor fiscal posterior conozca número de documento, institución y porcentaje aplicado.
-        /// </summary>
-        private static void EnsureExonerationEntries(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        private sealed class RequestedItemQuantity
         {
-            var exonerationItems = (request.Items ?? new List<NovaRetailSaleItemDto>())
-                .Where(i => !string.IsNullOrWhiteSpace(i.ExNumeroDoc))
-                .ToList();
-
-            if (exonerationItems.Count == 0)
-                return;
-
-            string clave50;
-            using (var cmd = new SqlCommand("SELECT TOP 1 CLAVE50 FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TN", cn))
-            {
-                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                var val = cmd.ExecuteScalar();
-                clave50 = val != null && val != DBNull.Value ? Convert.ToString(val) : string.Empty;
-            }
-
-            if (string.IsNullOrWhiteSpace(clave50))
-                return;
-
-            foreach (var item in exonerationItems)
-            {
-                using (var cmd = new SqlCommand(@"
-                    INSERT INTO dbo.AVS_INTEGRAFAST_01_EXONERA
-                        (CLAVE50, ITEMID, EX_TARIFA_PORC, EX_TARIFA_MONTO, EX_TIPODOC, EX_NUMERODOC, EX_INSTITUCION, EX_FECHA, EX_MONTO, EX_PORCENTAJE, SyncGuid)
-                    VALUES
-                        (@CLAVE50, @ITEMID, @EX_TARIFA_PORC, @EX_TARIFA_MONTO, @EX_TIPODOC, @EX_NUMERODOC, @EX_INSTITUCION, @EX_FECHA, @EX_MONTO, @EX_PORCENTAJE, NEWID())", cn))
-                {
-                    cmd.Parameters.AddWithValue("@CLAVE50", clave50);
-                    cmd.Parameters.AddWithValue("@ITEMID", item.ItemID);
-                    cmd.Parameters.AddWithValue("@EX_TARIFA_PORC", item.ExPorcentaje);
-                    cmd.Parameters.AddWithValue("@EX_TARIFA_MONTO", item.ExMonto);
-                    cmd.Parameters.AddWithValue("@EX_TIPODOC", Truncate(item.ExTipoDoc, 2));
-                    cmd.Parameters.AddWithValue("@EX_NUMERODOC", Truncate(item.ExNumeroDoc, 17));
-                    cmd.Parameters.AddWithValue("@EX_INSTITUCION", Truncate(item.ExInstitucion, 100));
-                    cmd.Parameters.AddWithValue("@EX_FECHA", (object)(item.ExFecha ?? DateTime.Today));
-                    cmd.Parameters.AddWithValue("@EX_MONTO", item.ExMonto);
-                    cmd.Parameters.AddWithValue("@EX_PORCENTAJE", item.ExPorcentaje);
-                    cmd.ExecuteNonQuery();
-                }
-            }
+            public int ItemID { get; set; }
+            public decimal Quantity { get; set; }
         }
-        /// <summary>
-        /// Recorta una cadena al tamaño máximo permitido por el esquema de IntegraFast.
-        /// Se usa para evitar errores al insertar textos en tablas fiscales auxiliares.
-        /// </summary>
-        private static string Truncate(string value, int maxLength)
+
+        private sealed class ItemInventorySnapshot
         {
-            var s = value ?? string.Empty;
-            return s.Length <= maxLength ? s : s.Substring(0, maxLength);
+            public decimal Quantity { get; set; }
+            public int ItemType { get; set; }
         }
 
-        /// <summary>
-        /// Crea una cotización o factura en espera en la tabla <c>Order</c> y sus <c>OrderEntry</c>.
-        /// Usa una transacción SQL para asegurar que encabezado y líneas queden persistidos juntos.
-        /// </summary>
-        [HttpPost]
-        [Route("create-quote")]
-        public HttpResponseMessage CreateQuote([FromBody] NovaRetailCreateQuoteRequest request)
+        private sealed class InventoryValidationResult
         {
-            if (request == null)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "Solicitud inválida."
-                });
-            }
-
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value != null && x.Value.Errors.Count > 0)
-                    .SelectMany(x => x.Value.Errors.Select(e => string.IsNullOrWhiteSpace(x.Key)
-                        ? e.ErrorMessage
-                        : $"{x.Key}: {e.ErrorMessage}"))
-                    .ToList();
-
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = errors.Count == 0
-                        ? "Solicitud inválida."
-                        : string.Join(" | ", errors)
-                });
-            }
-
-            if (request.Items == null || request.Items.Count == 0)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "La cotización no contiene ítems."
-                });
-            }
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-
-                    using (var tx = cn.BeginTransaction())
-                    {
-                        try
-                        {
-                            var now = DateTime.Now;
-                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(30);
-                            var syncGuid = Guid.NewGuid();
-
-                            // INSERT [Order] con Type=3 (Cotización)
-                            int orderID;
-                            using (var cmd = new SqlCommand(@"
-                                INSERT INTO [Order]
-                                    ([StoreID],[Closed],[Time],[Type],[Comment],[CustomerID],[ShipToID],
-                                     [DepositOverride],[Deposit],[Tax],[Total],[LastUpdated],
-                                     [ExpirationOrDueDate],[Taxable],[SalesRepID],[ReferenceNumber],
-                                     [ShippingChargeOnOrder],[ShippingChargeOverride],[ShippingServiceID],
-                                     [ShippingTrackingNumber],[ShippingNotes],[ReasonCodeID],[ExchangeID],
-                                     [ChannelType],[DefaultDiscountReasonCodeID],[DefaultReturnReasonCodeID],
-                                     [DefaultTaxChangeReasonCodeID],[SyncGuid])
-                                VALUES
-                                    (@StoreID,@Closed,@Time,@Type,@Comment,@CustomerID,@ShipToID,
-                                     @DepositOverride,@Deposit,@Tax,@Total,@LastUpdated,
-                                     @ExpirationOrDueDate,@Taxable,@SalesRepID,@ReferenceNumber,
-                                     @ShippingChargeOnOrder,@ShippingChargeOverride,@ShippingServiceID,
-                                     @ShippingTrackingNumber,@ShippingNotes,@ReasonCodeID,@ExchangeID,
-                                     @ChannelType,@DefaultDiscountReasonCodeID,@DefaultReturnReasonCodeID,
-                                     @DefaultTaxChangeReasonCodeID,@SyncGuid);
-                                SELECT SCOPE_IDENTITY();", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                cmd.Parameters.AddWithValue("@Closed", false);
-                                cmd.Parameters.AddWithValue("@Time", now);
-                                cmd.Parameters.AddWithValue("@Type", request.Type == 2 ? 2 : 3);
-                                cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
-                                cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
-                                cmd.Parameters.AddWithValue("@DepositOverride", false);
-                                cmd.Parameters.AddWithValue("@Deposit", 0m);
-                                cmd.Parameters.AddWithValue("@Tax", request.Tax);
-                                cmd.Parameters.AddWithValue("@Total", request.Total);
-                                cmd.Parameters.AddWithValue("@LastUpdated", now);
-                                cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
-                                cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
-                                cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@ShippingChargeOnOrder", 0m);
-                                cmd.Parameters.AddWithValue("@ShippingChargeOverride", false);
-                                cmd.Parameters.AddWithValue("@ShippingServiceID", 0);
-                                cmd.Parameters.AddWithValue("@ShippingTrackingNumber", string.Empty);
-                                cmd.Parameters.AddWithValue("@ShippingNotes", string.Empty);
-                                cmd.Parameters.AddWithValue("@ReasonCodeID", 0);
-                                cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
-                                cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
-                                cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultReturnReasonCodeID", request.DefaultReturnReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultTaxChangeReasonCodeID", request.DefaultTaxChangeReasonCodeID);
-                                cmd.Parameters.AddWithValue("@SyncGuid", syncGuid);
-
-                                var result = cmd.ExecuteScalar();
-                                orderID = Convert.ToInt32(result);
-                            }
-
-                            // INSERT [OrderEntry] por cada ítem
-                            foreach (var item in request.Items)
-                            {
-                                var entrySyncGuid = Guid.NewGuid();
-                                var entryTime = DateTime.Now;
-
-                                using (var cmd = new SqlCommand(@"
-                                    INSERT INTO [OrderEntry]
-                                        ([Cost],[StoreID],[OrderID],[ItemID],[FullPrice],[PriceSource],
-                                         [Price],[QuantityOnOrder],[SalesRepID],[Taxable],[DetailID],
-                                         [Description],[QuantityRTD],[LastUpdated],[Comment],
-                                         [DiscountReasonCodeID],[ReturnReasonCodeID],[TaxChangeReasonCodeID],
-                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
-                                    VALUES
-                                        (@Cost,@StoreID,@OrderID,@ItemID,@FullPrice,@PriceSource,
-                                         @Price,@QuantityOnOrder,@SalesRepID,@Taxable,@DetailID,
-                                         @Description,@QuantityRTD,@LastUpdated,@Comment,
-                                         @DiscountReasonCodeID,@ReturnReasonCodeID,@TaxChangeReasonCodeID,
-                                         @TransactionTime,@IsAddMoney,@VoucherID,@SyncGuid);", cn, tx))
-                                {
-                                    cmd.CommandTimeout = 60;
-                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
-                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                    cmd.Parameters.AddWithValue("@OrderID", orderID);
-                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
-                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
-                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
-                                    cmd.Parameters.AddWithValue("@Price", item.Price);
-                                    cmd.Parameters.AddWithValue("@QuantityOnOrder", Convert.ToDouble(item.QuantityOnOrder));
-                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
-                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
-                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
-                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 30));
-                                    cmd.Parameters.AddWithValue("@QuantityRTD", 0d);
-                                    cmd.Parameters.AddWithValue("@LastUpdated", entryTime);
-                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
-                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
-                                    cmd.Parameters.AddWithValue("@IsAddMoney", false);
-                                    cmd.Parameters.AddWithValue("@VoucherID", 0);
-                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-
-                            tx.Commit();
-
-                            response.Ok = true;
-                            response.OrderID = orderID;
-                            response.Tax = request.Tax;
-                            response.Total = request.Total;
-                            response.Message = request.Type == 2
-                                ? "Factura en espera creada exitosamente."
-                                : "Cotización creada exitosamente.";
-                        }
-                        catch
-                        {
-                            tx.Rollback();
-                            throw;
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
+            public bool StockOk { get; set; }
+            public bool HasNonInventoryItems { get; set; }
         }
 
-        /// <summary>
-        /// Actualiza una cotización existente reemplazando sus líneas completas.
-        /// Primero actualiza el encabezado, luego elimina el detalle previo y reinserta las nuevas líneas.
-        /// </summary>
-        [HttpPost]
-        [Route("update-quote")]
-        public HttpResponseMessage UpdateQuote([FromBody] NovaRetailCreateQuoteRequest request)
-        {
-            if (request == null || request.OrderID <= 0)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "Se requiere un OrderID válido para actualizar."
-                });
-            }
 
-            if (request.Items == null || request.Items.Count == 0)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "La cotización no contiene ítems."
-                });
-            }
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-
-                    using (var tx = cn.BeginTransaction())
-                    {
-                        try
-                        {
-                            var now = DateTime.Now;
-                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(30);
-
-                            using (var cmd = new SqlCommand(@"
-                                UPDATE [Order] SET
-                                    [Comment] = @Comment,
-                                    [CustomerID] = @CustomerID,
-                                    [ShipToID] = @ShipToID,
-                                    [Tax] = @Tax,
-                                    [Total] = @Total,
-                                    [LastUpdated] = @LastUpdated,
-                                    [ExpirationOrDueDate] = @ExpirationOrDueDate,
-                                    [Taxable] = @Taxable,
-                                    [SalesRepID] = @SalesRepID,
-                                    [ReferenceNumber] = @ReferenceNumber,
-                                    [ExchangeID] = @ExchangeID,
-                                    [ChannelType] = @ChannelType,
-                                    [DefaultDiscountReasonCodeID] = @DefaultDiscountReasonCodeID,
-                                    [DefaultReturnReasonCodeID] = @DefaultReturnReasonCodeID,
-                                    [DefaultTaxChangeReasonCodeID] = @DefaultTaxChangeReasonCodeID
-                                WHERE ID = @OrderID AND Closed = 0", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
-                                cmd.Parameters.AddWithValue("@Comment", request.Comment ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
-                                cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
-                                cmd.Parameters.AddWithValue("@Tax", request.Tax);
-                                cmd.Parameters.AddWithValue("@Total", request.Total);
-                                cmd.Parameters.AddWithValue("@LastUpdated", now);
-                                cmd.Parameters.AddWithValue("@ExpirationOrDueDate", expiration);
-                                cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
-                                cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
-                                cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
-                                cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultReturnReasonCodeID", request.DefaultReturnReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultTaxChangeReasonCodeID", request.DefaultTaxChangeReasonCodeID);
-
-                                var rowsAffected = cmd.ExecuteNonQuery();
-                                if (rowsAffected == 0)
-                                {
-                                    tx.Rollback();
-                                    response.Ok = false;
-                                    response.Message = $"No se encontró la orden #{request.OrderID} o ya está cerrada.";
-                                    return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-                                }
-                            }
-
-                            using (var cmd = new SqlCommand("DELETE FROM [OrderEntry] WHERE OrderID = @OrderID", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
-                                cmd.ExecuteNonQuery();
-                            }
-
-                            foreach (var item in request.Items)
-                            {
-                                var entrySyncGuid = Guid.NewGuid();
-                                var entryTime = DateTime.Now;
-
-                                using (var cmd = new SqlCommand(@"
-                                    INSERT INTO [OrderEntry]
-                                        ([Cost],[StoreID],[OrderID],[ItemID],[FullPrice],[PriceSource],
-                                         [Price],[QuantityOnOrder],[SalesRepID],[Taxable],[DetailID],
-                                         [Description],[QuantityRTD],[LastUpdated],[Comment],
-                                         [DiscountReasonCodeID],[ReturnReasonCodeID],[TaxChangeReasonCodeID],
-                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
-                                    VALUES
-                                        (@Cost,@StoreID,@OrderID,@ItemID,@FullPrice,@PriceSource,
-                                         @Price,@QuantityOnOrder,@SalesRepID,@Taxable,@DetailID,
-                                         @Description,@QuantityRTD,@LastUpdated,@Comment,
-                                         @DiscountReasonCodeID,@ReturnReasonCodeID,@TaxChangeReasonCodeID,
-                                         @TransactionTime,@IsAddMoney,@VoucherID,@SyncGuid);", cn, tx))
-                                {
-                                    cmd.CommandTimeout = 60;
-                                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
-                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                    cmd.Parameters.AddWithValue("@OrderID", request.OrderID);
-                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
-                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
-                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
-                                    cmd.Parameters.AddWithValue("@Price", item.Price);
-                                    cmd.Parameters.AddWithValue("@QuantityOnOrder", Convert.ToDouble(item.QuantityOnOrder));
-                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
-                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
-                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
-                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 30));
-                                    cmd.Parameters.AddWithValue("@QuantityRTD", 0d);
-                                    cmd.Parameters.AddWithValue("@LastUpdated", entryTime);
-                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
-                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
-                                    cmd.Parameters.AddWithValue("@IsAddMoney", false);
-                                    cmd.Parameters.AddWithValue("@VoucherID", 0);
-                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-
-                            tx.Commit();
-
-                            response.Ok = true;
-                            response.OrderID = request.OrderID;
-                            response.Tax = request.Tax;
-                            response.Total = request.Total;
-                            response.Message = request.Type == 2
-                                ? "Factura en espera actualizada exitosamente."
-                                : "Cotización actualizada exitosamente.";
-                        }
-                        catch
-                        {
-                            tx.Rollback();
-                            throw;
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
-        }
-
-        /// <summary>
-        /// Elimina una factura en espera y todas sus líneas asociadas.
-        /// Se usa tanto al borrar un hold manualmente como al convertirlo en venta final.
-        /// </summary>
-        private static void DeleteTransactionHold(SqlConnection cn, int holdId)
-        {
-            using (var cmd = new SqlCommand(
-                "DELETE FROM dbo.TransactionHoldEntry WHERE TransactionHoldID = @HoldID; " +
-                "DELETE FROM dbo.TransactionHold WHERE ID = @HoldID;", cn))
-            {
-                cmd.CommandTimeout = 30;
-                cmd.Parameters.AddWithValue("@HoldID", holdId);
-                cmd.ExecuteNonQuery();
-            }
-        }
-
-        /// <summary>
-        /// Guarda una factura en espera en <c>TransactionHold</c> y <c>TransactionHoldEntry</c>.
-        /// Este flujo permite pausar un carrito para retomarlo luego sin convertirlo todavía en venta.
-        /// </summary>
-        [HttpPost]
-        [Route("save-hold")]
-        public HttpResponseMessage SaveHold([FromBody] NovaRetailCreateQuoteRequest request)
-        {
-            if (request == null || request.Items == null || request.Items.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse { Ok = false, Message = "La factura en espera no contiene ítems." });
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    using (var tx = cn.BeginTransaction())
-                    {
-                        try
-                        {
-                            var now = DateTime.Now;
-                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(1);
-                            var syncGuid = Guid.NewGuid();
-                            var activeBatch = ResolveActiveBatch(cn, request.StoreID, 0, tx);
-                            var batchNumber = activeBatch?.BatchNumber ?? 0;
-
-                            int holdId;
-                            using (var cmd = new SqlCommand(@"
-                                INSERT INTO [TransactionHold]
-                                    ([StoreID],[TransactionType],[HoldComment],[RecallID],[Comment],[PriceLevel],
-                                     [DiscountMethod],[DiscountPercent],[Taxable],[CustomerID],[DeltaDeposit],
-                                     [DepositOverride],[DepositPrevious],[PaymentsPrevious],[TaxPrevious],[SalesRepID],
-                                     [ShipToID],[TransactionTime],[ExpirationOrDueDate],[ReturnMode],[ReferenceNumber],
-                                     [ShippingChargePurchased],[ShippingChargeOverride],[ShippingServiceID],
-                                     [ShippingTrackingNumber],[ShippingNotes],[ReasonCodeID],[ExchangeID],[ChannelType],
-                                     [DefaultDiscountReasonCodeID],[DefaultReturnReasonCodeID],[DefaultTaxChangeReasonCodeID],
-                                     [BatchNumber],[SyncGuid])
-                                VALUES
-                                    (@StoreID,1,@HoldComment,0,'',1,0,0,@Taxable,@CustomerID,0,0,0,0,0,
-                                     @SalesRepID,@ShipToID,@Time,@Expiration,0,@ReferenceNumber,0,0,0,'','',0,
-                                     @ExchangeID,@ChannelType,@DefaultDiscountReasonCodeID,@DefaultReturnReasonCodeID,
-                                     @DefaultTaxChangeReasonCodeID,@BatchNumber,@SyncGuid);
-                                SELECT SCOPE_IDENTITY();", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                cmd.Parameters.AddWithValue("@HoldComment", request.Comment ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@Taxable", request.Taxable);
-                                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
-                                cmd.Parameters.AddWithValue("@SalesRepID", request.SalesRepID);
-                                cmd.Parameters.AddWithValue("@ShipToID", request.ShipToID);
-                                cmd.Parameters.AddWithValue("@Time", now);
-                                cmd.Parameters.AddWithValue("@Expiration", expiration);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@ExchangeID", request.ExchangeID);
-                                cmd.Parameters.AddWithValue("@ChannelType", request.ChannelType);
-                                cmd.Parameters.AddWithValue("@DefaultDiscountReasonCodeID", request.DefaultDiscountReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultReturnReasonCodeID", request.DefaultReturnReasonCodeID);
-                                cmd.Parameters.AddWithValue("@DefaultTaxChangeReasonCodeID", request.DefaultTaxChangeReasonCodeID);
-                                cmd.Parameters.AddWithValue("@BatchNumber", batchNumber);
-                                cmd.Parameters.AddWithValue("@SyncGuid", syncGuid);
-                                holdId = Convert.ToInt32(cmd.ExecuteScalar());
-                            }
-
-                            foreach (var item in request.Items)
-                            {
-                                var entryTime = DateTime.Now;
-                                var entrySyncGuid = Guid.NewGuid();
-                                using (var cmd = new SqlCommand(@"
-                                    INSERT INTO [TransactionHoldEntry]
-                                        ([EntryKey],[StoreID],[TransactionHoldID],[RecallID],[Description],
-                                         [QuantityPurchased],[QuantityOnOrder],[QuantityRTD],[QuantityReserved],
-                                         [Price],[FullPrice],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
-                                         [SalesRepID],[SerialNumber1],[SerialNumber2],[SerialNumber3],[VoucherNumber],
-                                         [VoucherExpirationDate],[DiscountReasonCodeID],[ReturnReasonCodeID],
-                                         [TaxChangeReasonCodeID],[ItemTaxID],[ComponentQuantityReserved],
-                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
-                                    VALUES
-                                        ('',@StoreID,@HoldID,0,@Description,
-                                         0,0,0,@QuantityReserved,
-                                         @Price,@FullPrice,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
-                                         @SalesRepID,'','','','',
-                                         NULL,@DiscountReasonCodeID,@ReturnReasonCodeID,
-                                         @TaxChangeReasonCodeID,
-                                         ISNULL((SELECT TOP 1 TaxID FROM dbo.Item WHERE ID=@ItemID),0),0,
-                                         @TransactionTime,0,0,@SyncGuid);", cn, tx))
-                                {
-                                    cmd.CommandTimeout = 60;
-                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                    cmd.Parameters.AddWithValue("@HoldID", holdId);
-                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 80));
-                                    cmd.Parameters.AddWithValue("@QuantityReserved", Convert.ToDouble(item.QuantityOnOrder));
-                                    cmd.Parameters.AddWithValue("@Price", item.Price);
-                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
-                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
-                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
-                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
-                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
-                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
-                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
-                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
-                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-
-                            tx.Commit();
-                            response.Ok = true;
-                            response.OrderID = holdId;
-                            response.Tax = request.Tax;
-                            response.Total = request.Total;
-                            response.Message = "Factura en espera guardada exitosamente.";
-                        }
-                        catch
-                        {
-                            tx.Rollback();
-                            throw;
-                        }
-                    }
-                }
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
-        }
-
-        /// <summary>
-        /// Actualiza una factura en espera existente reemplazando sus líneas reservadas.
-        /// Se usa cuando un hold recuperado se modifica y se vuelve a guardar.
-        /// </summary>
-        [HttpPost]
-        [Route("update-hold")]
-        public HttpResponseMessage UpdateHold([FromBody] NovaRetailCreateQuoteRequest request)
-        {
-            if (request == null || request.OrderID <= 0)
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse { Ok = false, Message = "Se requiere un HoldID válido para actualizar." });
-
-            if (request.Items == null || request.Items.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse { Ok = false, Message = "La factura en espera no contiene ítems." });
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    using (var tx = cn.BeginTransaction())
-                    {
-                        try
-                        {
-                            var now = DateTime.Now;
-                            var expiration = request.ExpirationOrDueDate ?? now.AddDays(1);
-
-                            using (var cmd = new SqlCommand(@"
-                                UPDATE [TransactionHold] SET
-                                    [HoldComment] = @HoldComment,
-                                    [ReferenceNumber] = @ReferenceNumber,
-                                    [ExpirationOrDueDate] = @Expiration
-                                WHERE ID = @HoldID", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@HoldID", request.OrderID);
-                                cmd.Parameters.AddWithValue("@HoldComment", request.Comment ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@ReferenceNumber", request.ReferenceNumber ?? string.Empty);
-                                cmd.Parameters.AddWithValue("@Expiration", expiration);
-                                var rows = cmd.ExecuteNonQuery();
-                                if (rows == 0)
-                                {
-                                    tx.Rollback();
-                                    response.Ok = false;
-                                    response.Message = $"No se encontró la factura en espera #{request.OrderID}.";
-                                    return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-                                }
-                            }
-
-                            using (var cmd = new SqlCommand("DELETE FROM [TransactionHoldEntry] WHERE TransactionHoldID = @HoldID", cn, tx))
-                            {
-                                cmd.CommandTimeout = 60;
-                                cmd.Parameters.AddWithValue("@HoldID", request.OrderID);
-                                cmd.ExecuteNonQuery();
-                            }
-
-                            foreach (var item in request.Items)
-                            {
-                                var entryTime = DateTime.Now;
-                                var entrySyncGuid = Guid.NewGuid();
-                                using (var cmd = new SqlCommand(@"
-                                    INSERT INTO [TransactionHoldEntry]
-                                        ([EntryKey],[StoreID],[TransactionHoldID],[RecallID],[Description],
-                                         [QuantityPurchased],[QuantityOnOrder],[QuantityRTD],[QuantityReserved],
-                                         [Price],[FullPrice],[PriceSource],[Comment],[DetailID],[Taxable],[ItemID],
-                                         [SalesRepID],[SerialNumber1],[SerialNumber2],[SerialNumber3],[VoucherNumber],
-                                         [VoucherExpirationDate],[DiscountReasonCodeID],[ReturnReasonCodeID],
-                                         [TaxChangeReasonCodeID],[ItemTaxID],[ComponentQuantityReserved],
-                                         [TransactionTime],[IsAddMoney],[VoucherID],[SyncGuid])
-                                    VALUES
-                                        ('',@StoreID,@HoldID,0,@Description,
-                                         0,0,0,@QuantityReserved,
-                                         @Price,@FullPrice,@PriceSource,@Comment,@DetailID,@Taxable,@ItemID,
-                                         @SalesRepID,'','','','',
-                                         NULL,@DiscountReasonCodeID,@ReturnReasonCodeID,
-                                         @TaxChangeReasonCodeID,
-                                         ISNULL((SELECT TOP 1 TaxID FROM dbo.Item WHERE ID=@ItemID),0),0,
-                                         @TransactionTime,0,0,@SyncGuid);", cn, tx))
-                                {
-                                    cmd.CommandTimeout = 60;
-                                    cmd.Parameters.AddWithValue("@StoreID", request.StoreID);
-                                    cmd.Parameters.AddWithValue("@HoldID", request.OrderID);
-                                    cmd.Parameters.AddWithValue("@Description", Truncate(item.Description ?? string.Empty, 80));
-                                    cmd.Parameters.AddWithValue("@QuantityReserved", Convert.ToDouble(item.QuantityOnOrder));
-                                    cmd.Parameters.AddWithValue("@Price", item.Price);
-                                    cmd.Parameters.AddWithValue("@FullPrice", item.FullPrice);
-                                    cmd.Parameters.AddWithValue("@PriceSource", item.PriceSource);
-                                    cmd.Parameters.AddWithValue("@Comment", item.Comment ?? string.Empty);
-                                    cmd.Parameters.AddWithValue("@DetailID", item.DetailID);
-                                    cmd.Parameters.AddWithValue("@Taxable", item.Taxable ? 1 : 0);
-                                    cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
-                                    cmd.Parameters.AddWithValue("@SalesRepID", item.SalesRepID);
-                                    cmd.Parameters.AddWithValue("@DiscountReasonCodeID", item.DiscountReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@ReturnReasonCodeID", item.ReturnReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TaxChangeReasonCodeID", item.TaxChangeReasonCodeID);
-                                    cmd.Parameters.AddWithValue("@TransactionTime", entryTime);
-                                    cmd.Parameters.AddWithValue("@SyncGuid", entrySyncGuid);
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-
-                            tx.Commit();
-                            response.Ok = true;
-                            response.OrderID = request.OrderID;
-                            response.Message = "Factura en espera actualizada exitosamente.";
-                        }
-                        catch
-                        {
-                            tx.Rollback();
-                            throw;
-                        }
-                    }
-                }
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
-        }
-
-        /// <summary>
-        /// Lista facturas en espera activas filtradas por tienda y texto de búsqueda.
-        /// El frontend lo consume para mostrar el popup de recuperación de holds.
-        /// </summary>
-        [HttpGet]
-        [Route("list-holds")]
-        public HttpResponseMessage ListHolds(int storeId = 0, string search = "")
-        {
-            var connectionString = GetConnectionString();
-            try
-            {
-                var holds = new List<NovaRetailOrderSummaryDto>();
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    var sql = @"
-                        SELECT TOP 50
-                            th.ID AS OrderID, 2 AS Type, th.HoldComment AS Comment,
-                            0 AS Total, 0 AS Tax, th.TransactionTime AS Time,
-                            th.ExpirationOrDueDate, th.CustomerID, th.ReferenceNumber,
-                            '' AS CashierName,
-                            (SELECT COUNT(1) FROM dbo.TransactionHoldEntry the2
-                             WHERE the2.TransactionHoldID = th.ID) AS ItemCount
-                        FROM dbo.TransactionHold th
-                        WHERE (@StoreID = 0 OR th.StoreID = @StoreID)
-                          AND (@Search = '' OR th.HoldComment LIKE '%' + @Search + '%'
-                               OR CAST(th.ID AS NVARCHAR(20)) LIKE '%' + @Search + '%'
-                               OR th.ReferenceNumber LIKE '%' + @Search + '%')
-                        ORDER BY th.TransactionTime DESC";
-
-                    using (var cmd = new SqlCommand(sql, cn))
-                    {
-                        cmd.CommandTimeout = 30;
-                        cmd.Parameters.AddWithValue("@StoreID", storeId);
-                        cmd.Parameters.AddWithValue("@Search", search ?? string.Empty);
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                holds.Add(new NovaRetailOrderSummaryDto
-                                {
-                                    OrderID = Convert.ToInt32(reader["OrderID"]),
-                                    Type = 2,
-                                    Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
-                                    Total = 0m,
-                                    Tax = 0m,
-                                    Time = Convert.ToDateTime(reader["Time"]),
-                                    ExpirationOrDueDate = reader["ExpirationOrDueDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["ExpirationOrDueDate"]),
-                                    CustomerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]),
-                                    ItemCount = Convert.ToInt32(reader["ItemCount"]),
-                                    ReferenceNumber = reader["ReferenceNumber"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ReferenceNumber"]),
-                                    CashierName = string.Empty
-                                });
-                            }
-                        }
-                    }
-                }
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailListOrdersResponse
-                {
-                    Ok = true,
-                    Orders = holds
-                });
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailListOrdersResponse
-                {
-                    Ok = false,
-                    Message = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
-        /// Devuelve el detalle de una factura en espera específica.
-        /// Reconstruye encabezado y líneas para recargar el carrito en la aplicación MAUI.
-        /// </summary>
-        [HttpGet]
-        [Route("hold-detail/{holdId}")]
-        public HttpResponseMessage HoldDetail(int holdId)
-        {
-            var connectionString = GetConnectionString();
-            try
-            {
-                NovaRetailOrderDetailDto hold = null;
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    using (var cmd = new SqlCommand(
-                        "SELECT ID, HoldComment, TransactionTime FROM dbo.TransactionHold WHERE ID = @HoldID", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@HoldID", holdId);
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                hold = new NovaRetailOrderDetailDto
-                                {
-                                    OrderID = Convert.ToInt32(reader["ID"]),
-                                    Type = 2,
-                                    Comment = reader["HoldComment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["HoldComment"]),
-                                    Total = 0m,
-                                    Tax = 0m,
-                                    Time = Convert.ToDateTime(reader["TransactionTime"])
-                                };
-                            }
-                        }
-                    }
-
-                    if (hold == null)
-                        return Request.CreateResponse(HttpStatusCode.NotFound, new NovaRetailOrderDetailResponse { Ok = false, Message = "Factura en espera no encontrada." });
-
-                    using (var cmd = new SqlCommand(@"
-                        SELECT the.ID AS EntryID, the.ItemID,
-                               ISNULL(the.Description, '') AS Description,
-                               the.Price, the.FullPrice, 0 AS Cost,
-                               the.QuantityReserved AS QuantityOnOrder,
-                               the.Taxable,
-                               ISNULL(the.ItemTaxID, 0) AS TaxID
-                        FROM dbo.TransactionHoldEntry the
-                        WHERE the.TransactionHoldID = @HoldID
-                        ORDER BY the.ID", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@HoldID", holdId);
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                hold.Entries.Add(new NovaRetailOrderEntryDto
-                                {
-                                    EntryID = Convert.ToInt32(reader["EntryID"]),
-                                    ItemID = Convert.ToInt32(reader["ItemID"]),
-                                    Description = Convert.ToString(reader["Description"]),
-                                    Price = reader["Price"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Price"]),
-                                    FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
-                                    Cost = 0m,
-                                    QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 1m : Convert.ToDecimal(reader["QuantityOnOrder"]),
-                                    Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
-                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"])
-                                });
-                            }
-                        }
-                    }
-                }
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailOrderDetailResponse { Ok = true, Order = hold });
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse { Ok = false, Message = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Lista cotizaciones/órdenes abiertas desde la tabla <c>Order</c>.
-        /// Soporta filtro por tienda, tipo de orden y texto libre para la búsqueda en el POS.
-        /// </summary>
-        [HttpGet]
-        [Route("list-orders")]
-        public HttpResponseMessage ListOrders(int storeId = 0, int type = 3, string search = "")
-        {
-            var connectionString = GetConnectionString();
-            try
-            {
-                var orders = new List<NovaRetailOrderSummaryDto>();
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    var sql = @"
-                        SELECT TOP 50
-                            o.ID AS OrderID, o.[Type], o.Comment, o.Total, o.Tax,
-                            o.[Time], o.ExpirationOrDueDate, o.CustomerID, o.ReferenceNumber,
-                            ISNULL(c.Name, '') AS CashierName,
-                            (SELECT COUNT(1) FROM dbo.OrderEntry oe WHERE oe.OrderID = o.ID) AS ItemCount
-                        FROM dbo.[Order] o
-                        LEFT JOIN dbo.Cashier c ON c.ID = o.SalesRepID
-                        WHERE o.[Type] = @Type
-                          AND o.Closed = 0
-                          AND (@StoreID = 0 OR o.StoreID = @StoreID)
-                          AND (@Search = '' OR o.Comment LIKE '%' + @Search + '%'
-                               OR CAST(o.ID AS NVARCHAR(20)) LIKE '%' + @Search + '%'
-                               OR o.ReferenceNumber LIKE '%' + @Search + '%'
-                               OR c.Name LIKE '%' + @Search + '%')
-                        ORDER BY o.[Time] DESC";
-
-                    using (var cmd = new SqlCommand(sql, cn))
-                    {
-                        cmd.CommandTimeout = 30;
-                        cmd.Parameters.AddWithValue("@Type", type);
-                        cmd.Parameters.AddWithValue("@StoreID", storeId);
-                        cmd.Parameters.AddWithValue("@Search", search ?? string.Empty);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                orders.Add(new NovaRetailOrderSummaryDto
-                                {
-                                    OrderID = Convert.ToInt32(reader["OrderID"]),
-                                    Type = Convert.ToInt32(reader["Type"]),
-                                    Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
-                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
-                                    Tax = reader["Tax"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Tax"]),
-                                    Time = Convert.ToDateTime(reader["Time"]),
-                                    ExpirationOrDueDate = reader["ExpirationOrDueDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["ExpirationOrDueDate"]),
-                                    CustomerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]),
-                                    ItemCount = Convert.ToInt32(reader["ItemCount"]),
-                                    ReferenceNumber = reader["ReferenceNumber"] == DBNull.Value ? string.Empty : Convert.ToString(reader["ReferenceNumber"]),
-                                    CashierName = reader["CashierName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["CashierName"])
-                                });
-                            }
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailListOrdersResponse
-                {
-                    Ok = true,
-                    Orders = orders
-                });
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailListOrdersResponse
-                {
-                    Ok = false,
-                    Message = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
-        /// Obtiene el detalle completo de una cotización u orden temporal.
-        /// Se usa al recuperar una orden para volver a cargar sus líneas en el carrito.
-        /// </summary>
-        [HttpGet]
-        [Route("order-detail/{orderId}")]
-        public HttpResponseMessage OrderDetail(int orderId)
-        {
-            var connectionString = GetConnectionString();
-            try
-            {
-                NovaRetailOrderDetailDto order = null;
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-
-                    using (var cmd = new SqlCommand(@"
-                        SELECT ID, [Type], Comment, Total, Tax, [Time]
-                        FROM dbo.[Order]
-                        WHERE ID = @OrderID", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@OrderID", orderId);
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                order = new NovaRetailOrderDetailDto
-                                {
-                                    OrderID = Convert.ToInt32(reader["ID"]),
-                                    Type = Convert.ToInt32(reader["Type"]),
-                                    Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
-                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
-                                    Tax = reader["Tax"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Tax"]),
-                                    Time = Convert.ToDateTime(reader["Time"])
-                                };
-                            }
-                        }
-                    }
-
-                    if (order == null)
-                    {
-                        return Request.CreateResponse(HttpStatusCode.NotFound, new NovaRetailOrderDetailResponse
-                        {
-                            Ok = false,
-                            Message = "Orden no encontrada."
-                        });
-                    }
-
-                    using (var cmd = new SqlCommand(@"
-                        SELECT oe.ID AS EntryID, oe.ItemID, oe.Description, oe.Price, oe.FullPrice,
-                               oe.Cost, oe.QuantityOnOrder, oe.Taxable,
-                               ISNULL(i.TaxID, 0) AS TaxID
-                        FROM dbo.OrderEntry oe
-                        LEFT JOIN dbo.Item i ON i.ID = oe.ItemID
-                        WHERE oe.OrderID = @OrderID
-                        ORDER BY oe.ID", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@OrderID", orderId);
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                order.Entries.Add(new NovaRetailOrderEntryDto
-                                {
-                                    EntryID = Convert.ToInt32(reader["EntryID"]),
-                                    ItemID = Convert.ToInt32(reader["ItemID"]),
-                                    Description = reader["Description"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Description"]),
-                                    Price = reader["Price"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Price"]),
-                                    FullPrice = reader["FullPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["FullPrice"]),
-                                    Cost = reader["Cost"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Cost"]),
-                                    QuantityOnOrder = reader["QuantityOnOrder"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["QuantityOnOrder"]),
-                                    Taxable = reader["Taxable"] != DBNull.Value && Convert.ToInt32(reader["Taxable"]) != 0,
-                                    TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"])
-                                });
-                            }
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailOrderDetailResponse
-                {
-                    Ok = true,
-                    Order = order
-                });
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new NovaRetailOrderDetailResponse
-                {
-                    Ok = false,
-                    Message = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
-        /// Elimina una cotización y sus líneas asociadas.
-        /// Esta operación se usa cuando una orden temporal ya no debe seguir disponible.
-        /// </summary>
-        [HttpDelete]
-        [Route("delete-quote/{orderId}")]
-        public HttpResponseMessage DeleteQuote(int orderId)
-        {
-            if (orderId <= 0)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "Se requiere un OrderID válido."
-                });
-            }
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    using (var cmd = new SqlCommand(
-                        "DELETE FROM dbo.OrderEntry WHERE OrderID = @OrderID; " +
-                        "DELETE FROM dbo.[Order] WHERE ID = @OrderID;", cn))
-                    {
-                        cmd.CommandTimeout = 30;
-                        cmd.Parameters.AddWithValue("@OrderID", orderId);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-
-                response.Ok = true;
-                response.OrderID = orderId;
-                response.Message = "Cotización eliminada.";
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
-        }
-
-        /// <summary>
-        /// Elimina una factura en espera específica.
-        /// Internamente reutiliza el helper de borrado del flujo de holds.
-        /// </summary>
-        [HttpDelete]
-        [Route("delete-hold/{holdId}")]
-        public HttpResponseMessage DeleteHold(int holdId)
-        {
-            if (holdId <= 0)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, new NovaRetailCreateQuoteResponse
-                {
-                    Ok = false,
-                    Message = "Se requiere un HoldID válido."
-                });
-            }
-
-            var response = new NovaRetailCreateQuoteResponse();
-            var connectionString = GetConnectionString();
-
-            try
-            {
-                using (var cn = new SqlConnection(connectionString))
-                {
-                    cn.Open();
-                    DeleteTransactionHold(cn, holdId);
-                }
-
-                response.Ok = true;
-                response.OrderID = holdId;
-                response.Message = "Factura en espera eliminada.";
-                return Request.CreateResponse(HttpStatusCode.OK, response);
-            }
-            catch (SqlException ex)
-            {
-                response.Ok = false;
-                response.Message = $"[{GetConnectionTarget(connectionString)}] {ex.Message}";
-                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
-            }
-            catch (Exception ex)
-            {
-                response.Ok = false;
-                response.Message = ex.Message;
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, response);
-            }
-        }
-        }
     }
+}

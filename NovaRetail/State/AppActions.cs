@@ -1,6 +1,5 @@
 namespace NovaRetail.State;
 
-/// <summary>Marcador para todas las acciones despachables al <see cref="AppStore"/>.</summary>
 public interface IAppAction;
 
 // ── UI overlays ──
@@ -15,9 +14,18 @@ public sealed record SetManualExonerationVisibleAction(bool Value) : IAppAction;
 public sealed record SetOrderSearchVisibleAction(bool Value) : IAppAction;
 public sealed record SetQuoteReceiptVisibleAction(bool Value) : IAppAction;
 public sealed record SetSalesRepPickerVisibleAction(bool Value) : IAppAction;
+public sealed record SetCustomerSearchVisibleAction(bool Value) : IAppAction;
+public sealed record SetCreditPaymentSearchVisibleAction(bool Value) : IAppAction;
+public sealed record SetCreditPaymentDetailVisibleAction(bool Value) : IAppAction;
 
 // ── Cliente ──
-public sealed record SetCurrentClientAction(string ClientId, string ClientName, bool IsReceiver = false, string CustomerType = "") : IAppAction;
+public sealed record SetCurrentClientAction(
+	string ClientId,
+	string ClientName,
+	bool IsReceiver = false,
+	string CustomerType = "",
+	string AccountNumber = "",
+	int CustomerId = 0) : IAppAction;
 
 // ── Carrito: ordenamiento ──
 public sealed record SetCartSortFieldAction(string Field) : IAppAction;

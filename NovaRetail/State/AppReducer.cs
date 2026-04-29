@@ -1,9 +1,7 @@
+using NovaRetail;
+
 namespace NovaRetail.State;
 
-/// <summary>
-/// Función pura que transforma el estado actual + una acción en un nuevo estado.
-/// Cada tipo de <see cref="IAppAction"/> se mapea a una transformación específica del record <see cref="AppState"/>.
-/// </summary>
 public static class AppReducer
 {
     public static AppState Reduce(AppState state, IAppAction action) => action switch
@@ -20,11 +18,16 @@ public static class AppReducer
         SetOrderSearchVisibleAction a => state with { IsOrderSearchVisible = a.Value },
         SetQuoteReceiptVisibleAction a => state with { IsQuoteReceiptVisible = a.Value },
         SetSalesRepPickerVisibleAction a => state with { IsSalesRepPickerVisible = a.Value },
+        SetCustomerSearchVisibleAction a => state with { IsCustomerSearchVisible = a.Value },
+        SetCreditPaymentSearchVisibleAction a => state with { IsCreditPaymentSearchVisible = a.Value },
+        SetCreditPaymentDetailVisibleAction a => state with { IsCreditPaymentDetailVisible = a.Value },
 
         // ── Cliente ──
         SetCurrentClientAction a => state with
         {
             CurrentClientId = a.ClientId ?? string.Empty,
+            CurrentClientAccountNumber = a.AccountNumber ?? string.Empty,
+            CurrentClientCustomerId = a.CustomerId,
             CurrentClientName = a.ClientName ?? string.Empty,
             IsCurrentClientReceiver = a.IsReceiver,
             CurrentClientCustomerType = a.CustomerType ?? string.Empty
@@ -36,8 +39,8 @@ public static class AppReducer
 
         // ── Búsqueda de productos ──
         SetProductSearchTextAction a => state with { ProductSearchText = a.Text ?? string.Empty },
-        SetSelectedTabAction a => state with { SelectedTab = a.Tab ?? "Rápido" },
-        SetSelectedCategoryAction a => state with { SelectedCategory = a.Category ?? "Todos" },
+        SetSelectedTabAction a => state with { SelectedTab = a.Tab ?? TabKeys.Rapido },
+        SetSelectedCategoryAction a => state with { SelectedCategory = a.Category ?? CategoryKeys.Todos },
 
         // ── Descuento del ticket ──
         SetDiscountPercentAction a => state with { DiscountPercent = Math.Clamp(a.Percent, 0, 100) },

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Pages.MantenimientosPage"
+             Title="Mantenimientos"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *" Padding="24">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *" Margin="0,10,0,24">
+            <Border Grid.Column="0"
+                    BackgroundColor="#F1F5F9"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    HorizontalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Volver al POS" FontSize="14" FontAttributes="Bold" TextColor="#475569"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                <Label Text="🔧 Mantenimientos"
+                       FontSize="22" FontAttributes="Bold"
+                       TextColor="#1E293B" HorizontalTextAlignment="Center"/>
+                <Label Text="Administración y configuración del sistema"
+                       FontSize="12" TextColor="#64748B" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Cards grid -->
+        <FlexLayout Grid.Row="1"
+                     Wrap="Wrap"
+                     JustifyContent="Start"
+                     AlignItems="Start"
+                     Direction="Row">
+
+            <!-- Card: Parámetros -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 16"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0"
+                    WidthRequest="280"
+                    HeightRequest="200"
+                    Margin="10">
+                <Border.Shadow>
+                    <Shadow Brush="#20000000" Offset="0,4" Radius="12" Opacity="0.15"/>
+                </Border.Shadow>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NavigateToParametrosCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid RowDefinitions="Auto, *, Auto" Padding="0">
+
+                    <!-- Card header gradient -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#4F46E5"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16,16,0,0"
+                            Padding="20,16">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="⚙️" FontSize="28" VerticalOptions="Center"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Parámetros" FontSize="17"
+                                       FontAttributes="Bold" TextColor="White"/>
+                                <Label Text="del Sistema" FontSize="12"
+                                       TextColor="#C7D2FE"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- Card body -->
+                    <VerticalStackLayout Grid.Row="1" Padding="20,12" Spacing="6"
+                                         VerticalOptions="Center">
+                        <Label Text="Configuración general, IVA, tipo de cambio y formas de pago."
+                               FontSize="12" TextColor="#64748B"
+                               LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+
+                    <!-- Card footer -->
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,16,16"
+                            Padding="20,10">
+                        <HorizontalStackLayout HorizontalOptions="End" Spacing="6">
+                            <Label Text="Abrir" FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4F46E5" VerticalOptions="Center"/>
+                            <Label Text="→" FontSize="14" TextColor="#4F46E5"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Card: Usuarios -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 16"
+                    Stroke="#E2E8F0"
+                    StrokeThickness="1"
+                    Padding="0"
+                    WidthRequest="280"
+                    HeightRequest="200"
+                    Margin="10">
+                <Border.Shadow>
+                    <Shadow Brush="#20000000" Offset="0,4" Radius="12" Opacity="0.15"/>
+                </Border.Shadow>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NavigateToUsuariosCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid RowDefinitions="Auto, *, Auto" Padding="0">
+
+                    <!-- Card header gradient -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#0891B2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16,16,0,0"
+                            Padding="20,16">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="👤" FontSize="28" VerticalOptions="Center"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Usuarios" FontSize="17"
+                                       FontAttributes="Bold" TextColor="White"/>
+                                <Label Text="del Sistema" FontSize="12"
+                                       TextColor="#CFFAFE"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- Card body -->
+                    <VerticalStackLayout Grid.Row="1" Padding="20,12" Spacing="6"
+                                         VerticalOptions="Center">
+                        <Label Text="Gestión de usuarios, roles, permisos y estado de las cuentas."
+                               FontSize="12" TextColor="#64748B"
+                               LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+
+                    <!-- Card footer -->
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 0,0,16,16"
+                            Padding="20,10">
+                        <HorizontalStackLayout HorizontalOptions="End" Spacing="6">
+                            <Label Text="Abrir" FontSize="12" FontAttributes="Bold"
+                                   TextColor="#0891B2" VerticalOptions="Center"/>
+                            <Label Text="→" FontSize="14" TextColor="#0891B2"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Border>
+
+        </FlexLayout>
+    </Grid>
+
+</ContentPage>

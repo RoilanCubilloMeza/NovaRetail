@@ -35,16 +35,25 @@
                         <Label Text="Facturas locales y del servidor"
                                FontSize="11" TextColor="#93C5FD"/>
                     </VerticalStackLayout>
-                    <Button Grid.Column="2"
-                            Text="&#x1F5D1; Limpiar"
-                            Command="{Binding ClearAllCommand}"
-                            IsEnabled="{Binding HasLocalEntries}"
-                            BackgroundColor="#7F1D1D"
-                            TextColor="White"
-                            FontSize="11" FontAttributes="Bold"
-                            CornerRadius="10"
-                            HeightRequest="36"
-                            Padding="12,0"/>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="6">
+                        <Button Text="↩ NC por Clave"
+                                Command="{Binding StandaloneCreditNoteCommand}"
+                                BackgroundColor="#991B1B"
+                                TextColor="White"
+                                FontSize="11" FontAttributes="Bold"
+                                CornerRadius="10"
+                                HeightRequest="36"
+                                Padding="12,0"/>
+                        <Button Text="&#x1F5D1; Limpiar"
+                                Command="{Binding ClearAllCommand}"
+                                IsEnabled="{Binding HasLocalEntries}"
+                                BackgroundColor="#7F1D1D"
+                                TextColor="White"
+                                FontSize="11" FontAttributes="Bold"
+                                CornerRadius="10"
+                                HeightRequest="36"
+                                Padding="12,0"/>
+                    </HorizontalStackLayout>
                 </Grid>
             </Border>
 
@@ -55,39 +64,68 @@
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 0"
                     Padding="16,10">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <Label Grid.Column="0" Text="&#x1F50D;" FontSize="16" VerticalOptions="Center"/>
-                    <Entry Grid.Column="1"
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" RowSpacing="6">
+                    <Label Grid.Row="0" Grid.Column="0" Text="&#x1F50D;" FontSize="16" VerticalOptions="Center"/>
+                    <Entry Grid.Row="0" Grid.Column="1"
                            Text="{Binding SearchText, Mode=TwoWay}"
                            Placeholder="Buscar por cliente, cedula, No. o tipo..."
                            PlaceholderColor="#94A3B8"
                            FontSize="13"
                            BackgroundColor="Transparent"
                            VerticalOptions="Center"/>
+                    <Grid Grid.Row="0" Grid.Column="2"
+                          WidthRequest="40"
+                          HeightRequest="34">
+                        <Button Text="&#x21BB;"
+                                Command="{Binding LoadCommand}"
+                                BackgroundColor="#E2E8F0"
+                                TextColor="#0F172A"
+                                FontSize="16"
+                                CornerRadius="8"
+                                HeightRequest="34"
+                                WidthRequest="40"
+                                Padding="0">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button"
+                                             Binding="{Binding IsLoading}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="False"/>
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+                        <Border IsVisible="False"
+                                BackgroundColor="#E2E8F0"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                HeightRequest="34"
+                                WidthRequest="40"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsLoading}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="True"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                               IsVisible="{Binding IsLoading}"
+                                               Color="#0F172A"
+                                               HeightRequest="18"
+                                               WidthRequest="18"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                           Text="{Binding LastRefreshText}"
+                           IsVisible="{Binding HasLastRefreshText}"
+                           FontSize="11"
+                           TextColor="#64748B"/>
                 </Grid>
             </Border>
-
-            <!-- Indicador de carga -->
-            <VerticalStackLayout Grid.Row="2"
-                                 IsVisible="{Binding IsLoading}"
-                                 Spacing="10"
-                                 HorizontalOptions="Center"
-                                 VerticalOptions="Center">
-                <ActivityIndicator IsRunning="{Binding IsLoading}"
-                                   IsVisible="{Binding IsLoading}"
-                                   Color="#2563EB"
-                                   HeightRequest="40" WidthRequest="40"
-                                   HorizontalOptions="Center"/>
-                <Label Text="{Binding LoadingMessageText}"
-                       FontSize="14"
-                       FontAttributes="Bold"
-                       TextColor="#334155"
-                       HorizontalTextAlignment="Center"/>
-                <Label Text="Espere un momento..."
-                       FontSize="12"
-                       TextColor="#94A3B8"
-                       HorizontalTextAlignment="Center"/>
-            </VerticalStackLayout>
 
             <!-- Estado vacï¿½o -->
             <VerticalStackLayout Grid.Row="2"
@@ -162,6 +200,16 @@
                                     </HorizontalStackLayout>
                                     <Label Text="{Binding ClientMetaText}"
                                            FontSize="10" TextColor="#94A3B8"/>
+                                    <Border BackgroundColor="{Binding LifecycleBadgeBackground}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="8,3"
+                                            IsVisible="{Binding HasLifecycleBadge}"
+                                            HorizontalOptions="Start">
+                                        <Label Text="{Binding LifecycleBadgeText}"
+                                               FontSize="9" FontAttributes="Bold"
+                                               TextColor="{Binding LifecycleBadgeTextColor}"/>
+                                    </Border>
                                 </VerticalStackLayout>
 
                                 <!-- Total + botones -->
@@ -202,6 +250,39 @@
                     <BoxView HeightRequest="16" Color="Transparent"/>
                 </CollectionView.Footer>
             </CollectionView>
+
+            <!-- Indicador de carga -->
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsLoading}"
+                  BackgroundColor="#66FFFFFF">
+                <Border BackgroundColor="White"
+                        Stroke="#BFDBFE"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14"
+                        Padding="22,18"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="10"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                           IsVisible="{Binding IsLoading}"
+                                           Color="#2563EB"
+                                           HeightRequest="40"
+                                           WidthRequest="40"
+                                           HorizontalOptions="Center"/>
+                        <Label Text="{Binding LoadingMessageText}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#334155"
+                               HorizontalTextAlignment="Center"/>
+                        <Label Text="Espere un momento..."
+                               FontSize="12"
+                               TextColor="#94A3B8"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- DETALLE -->
@@ -293,6 +374,17 @@
                             <Label Text="{Binding SelectedEntry.Consecutivo}"
                                    FontSize="10" TextColor="#166534"/>
                         </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="{Binding SelectedEntry.LifecycleBadgeBackground}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10"
+                            Padding="12,8"
+                            IsVisible="{Binding SelectedEntry.HasLifecycleBadge}">
+                        <Label Text="{Binding SelectedEntry.LifecycleBadgeText}"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{Binding SelectedEntry.LifecycleBadgeTextColor}"/>
                     </Border>
 
                     <!-- Encabezado lï¿½neas -->
@@ -479,26 +571,33 @@
                 </VerticalStackLayout>
             </ScrollView>
 
-            <!-- Footer detalle con botï¿½n reimprimir -->
+            <!-- Footer detalle con botones -->
             <Border Grid.Row="2"
                     BackgroundColor="#F8FAFC"
                     Stroke="#E2E8F0"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 0"
                     Padding="16,12">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                     <Button Grid.Column="0"
+                            Text="↩ Nota Crédito"
+                            Command="{Binding CreditNoteCommand}"
+                            CommandParameter="{Binding SelectedEntry}"
+                            BackgroundColor="#991B1B" TextColor="White"
+                            FontAttributes="Bold" FontSize="13"
+                            CornerRadius="12" HeightRequest="48"/>
+                    <Button Grid.Column="1"
                             Text="&#x1F5A8; Reimprimir"
                             Command="{Binding ReprintCommand}"
                             CommandParameter="{Binding SelectedEntry}"
                             BackgroundColor="#2563EB" TextColor="White"
-                            FontAttributes="Bold" FontSize="14"
+                            FontAttributes="Bold" FontSize="13"
                             CornerRadius="12" HeightRequest="48"/>
-                    <Button Grid.Column="1"
+                    <Button Grid.Column="2"
                             Text="Cerrar"
                             Command="{Binding CloseDetailCommand}"
                             BackgroundColor="#0F172A" TextColor="White"
-                            FontAttributes="Bold" FontSize="14"
+                            FontAttributes="Bold" FontSize="13"
                             CornerRadius="12" HeightRequest="48"/>
                 </Grid>
             </Border>

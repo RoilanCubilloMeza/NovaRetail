@@ -4,11 +4,6 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-/// <summary>
-/// Implementación de <see cref="IStoreConfigService"/>.
-/// Descarga la configuración operativa de la tienda y las formas de pago activas
-/// necesarias para abrir el POS y calcular correctamente impuestos y checkout.
-/// </summary>
 public sealed class ApiStoreConfigService : IStoreConfigService
 {
     private const string ClientName = "NovaStoreConfig";
@@ -62,5 +57,98 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         }
 
         return [];
+    }
+
+    public async Task<List<CategoryModel>> GetCategoriesAsync(string? userName = null)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var url = string.IsNullOrWhiteSpace(userName)
+                    ? $"{baseUrl}/api/Categories"
+                    : $"{baseUrl}/api/Categories?userName={Uri.EscapeDataString(userName)}";
+                var result = await http.GetFromJsonAsync<List<CategoryModel>>(url);
+                if (result is not null && result.Count > 0)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener categorías desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return [];
+    }
+
+    public async Task<List<CategoryModel>> GetAllCategoriesAsync()
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var result = await http.GetFromJsonAsync<List<CategoryModel>>($"{baseUrl}/api/Categories/All");
+                if (result is not null && result.Count > 0)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener todos los departamentos desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return [];
+    }
+
+    public async Task<string> GetCategoryConfigAsync(string? userName = null)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var url = string.IsNullOrWhiteSpace(userName)
+                    ? $"{baseUrl}/api/Categories/Config"
+                    : $"{baseUrl}/api/Categories/Config?userName={Uri.EscapeDataString(userName)}";
+                var result = await http.GetFromJsonAsync<CategoryConfigResponse>(url);
+                if (result is not null)
+                    return result.SelectedIds ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener configuración de categorías desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    public async Task<bool> SaveCategoryConfigAsync(string selectedIds, string? userName = null)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var response = await http.PutAsJsonAsync(
+                    $"{baseUrl}/api/Categories/Config",
+                    new CategoryConfigResponse { SelectedIds = selectedIds, UserName = userName });
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al guardar configuración de categorías en {BaseUrl}", baseUrl);
+            }
+        }
+
+        return false;
+    }
+
+    private sealed class CategoryConfigResponse
+    {
+        public string SelectedIds { get; set; } = string.Empty;
+        public string? UserName { get; set; }
     }
 }

@@ -6,11 +6,6 @@ using Newtonsoft.Json;
 
 namespace NovaAPI.Models
 {
-    /// <summary>
-    /// Request principal para registrar una venta desde el cliente MAUI.
-    /// Agrupa datos de tienda, caja, cajero, cliente, artículos, medios de pago
-    /// y campos de facturación electrónica costarricense.
-    /// </summary>
     public class NovaRetailCreateSaleRequest : IValidatableObject
     {
         [Range(1, int.MaxValue)]
@@ -40,6 +35,7 @@ namespace NovaAPI.Models
         public string CodCliente { get; set; } = string.Empty;
         public string NombreCliente { get; set; } = string.Empty;
         public string CedulaTributaria { get; set; } = string.Empty;
+        public string CreditAccountNumber { get; set; } = string.Empty;
         public short Exonera { get; set; }
         public bool InsertarTiqueteEspera { get; set; }
         public string CLAVE50 { get; set; } = string.Empty;
@@ -78,26 +74,21 @@ namespace NovaAPI.Models
         }
     }
 
-    /// <summary>
-    /// Línea de detalle de una venta.
-    /// Representa un artículo del carrito ya transformado al formato que entiende el API,
-    /// incluyendo impuestos, descuento, vendedor y datos de exoneración por línea.
-    /// </summary>
     public class NovaRetailSaleItemDto : IValidatableObject
     {
         [Range(1, int.MaxValue)]
         public int RowNo { get; set; }
 
-        [Range(1, int.MaxValue)]
         public int ItemID { get; set; }
 
-        [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
         public decimal Quantity { get; set; }
 
-        [Range(typeof(decimal), "0", "999999999999999.9999")]
+        [Range(0, (double)decimal.MaxValue)]
         public decimal UnitPrice { get; set; }
 
         public decimal? FullPrice { get; set; }
+        public decimal? DisplayPrice { get; set; }
+        public decimal? DisplayFullPrice { get; set; }
         public decimal Cost { get; set; }
         public decimal Commission { get; set; }
         public int PriceSource { get; set; } = 1;
@@ -128,8 +119,6 @@ namespace NovaAPI.Models
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (Taxable && !TaxID.HasValue)
-                yield return new ValidationResult("TaxID es requerido cuando Taxable es true.", new[] { nameof(TaxID) });
 
             if (Cost < 0)
                 yield return new ValidationResult("Cost no puede ser negativo.", new[] { nameof(Cost) });
@@ -148,11 +137,6 @@ namespace NovaAPI.Models
         }
     }
 
-    /// <summary>
-    /// Medio de pago usado en la venta.
-    /// Se envía una fila por cada tender aplicado en checkout, incluyendo soporte
-    /// para pagos mixtos, moneda extranjera y metadatos de tarjeta.
-    /// </summary>
     public class NovaRetailSaleTenderDto : IValidatableObject
     {
         [Range(1, int.MaxValue)]
@@ -164,7 +148,6 @@ namespace NovaAPI.Models
         public int PaymentID { get; set; }
         public string Description { get; set; } = string.Empty;
 
-        [Range(typeof(decimal), "0.0001", "999999999999999.9999")]
         public decimal Amount { get; set; }
 
         public decimal? AmountForeign { get; set; }
@@ -190,8 +173,8 @@ namespace NovaAPI.Models
             if (string.IsNullOrWhiteSpace(Description))
                 yield return new ValidationResult("Description es requerido.", new[] { nameof(Description) });
 
-            if (AmountForeign.HasValue && AmountForeign.Value < 0)
-                yield return new ValidationResult("AmountForeign no puede ser negativo.", new[] { nameof(AmountForeign) });
+            if (Amount == 0)
+                yield return new ValidationResult("Amount no puede ser cero.", new[] { nameof(Amount) });
 
             if (RoundingError < 0)
                 yield return new ValidationResult("RoundingError no puede ser negativo.", new[] { nameof(RoundingError) });
@@ -204,11 +187,6 @@ namespace NovaAPI.Models
         }
     }
 
-    /// <summary>
-    /// Respuesta devuelta al registrar una venta.
-    /// Informa si la operación fue exitosa, cuál fue el número de transacción generado
-    /// y qué advertencias o datos fiscales adicionales produjo el backend.
-    /// </summary>
     public class NovaRetailCreateSaleResponse
     {
         [JsonProperty("ok")]
@@ -259,14 +237,19 @@ namespace NovaAPI.Models
         [JsonProperty("clave20")]
         public string Clave20 { get; set; } = string.Empty;
 
+        [JsonProperty("accountsReceivableEntryCreated")]
+        public bool AccountsReceivableEntryCreated { get; set; }
+
+        [JsonProperty("accountsReceivableApplied")]
+        public bool AccountsReceivableApplied { get; set; }
+
+        [JsonProperty("accountsReceivableAppliedAmount")]
+        public decimal AccountsReceivableAppliedAmount { get; set; }
+
         [JsonProperty("warnings")]
         public List<string> Warnings { get; set; } = new List<string>();
     }
 
-    /// <summary>
-    /// Respuesta del endpoint de búsqueda de historial de facturas.
-    /// Contiene una colección resumida de comprobantes listos para mostrar en la app.
-    /// </summary>
     public class NovaRetailInvoiceHistorySearchResponse
     {
         [JsonProperty("ok")]
@@ -279,10 +262,6 @@ namespace NovaAPI.Models
         public List<NovaRetailInvoiceHistoryEntryDto> Entries { get; set; } = new List<NovaRetailInvoiceHistoryEntryDto>();
     }
 
-    /// <summary>
-    /// Respuesta del detalle de una factura específica.
-    /// Incluye encabezado y líneas para reimpresión o consulta posterior.
-    /// </summary>
     public class NovaRetailInvoiceHistoryDetailResponse
     {
         [JsonProperty("ok")]
@@ -295,10 +274,6 @@ namespace NovaAPI.Models
         public NovaRetailInvoiceHistoryEntryDto Entry { get; set; }
     }
 
-    /// <summary>
-    /// Encabezado enriquecido de una factura del historial.
-    /// Combina datos de transacción, cliente, pagos y totales en colones.
-    /// </summary>
     public class NovaRetailInvoiceHistoryEntryDto
     {
         [JsonProperty("transactionNumber")]
@@ -361,16 +336,21 @@ namespace NovaAPI.Models
         [JsonProperty("secondTenderAmountColones")]
         public decimal SecondTenderAmountColones { get; set; }
 
+        [JsonProperty("creditAccountNumber")]
+        public string CreditAccountNumber { get; set; } = string.Empty;
+
         [JsonProperty("lines")]
         public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new List<NovaRetailInvoiceHistoryLineDto>();
     }
 
-    /// <summary>
-    /// Línea individual del historial de facturas.
-    /// Se usa para mostrar detalle de artículos, impuestos y descuentos al reimprimir.
-    /// </summary>
     public class NovaRetailInvoiceHistoryLineDto
     {
+        [JsonProperty("itemID")]
+        public int ItemID { get; set; }
+
+        [JsonProperty("taxID")]
+        public int TaxID { get; set; }
+
         [JsonProperty("displayName")]
         public string DisplayName { get; set; } = string.Empty;
 

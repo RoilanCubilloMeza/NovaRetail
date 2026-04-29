@@ -1,9 +1,5 @@
 namespace NovaRetail.Models;
 
-/// <summary>
-/// Representante de ventas (vendedor) asociado a la tienda.
-/// Se asigna a nivel de línea del carrito o a nivel de transacción.
-/// </summary>
 public class SalesRepModel
 {
     public int ID { get; set; }

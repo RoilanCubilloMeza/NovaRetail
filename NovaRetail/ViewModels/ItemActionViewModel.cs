@@ -7,11 +7,6 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
-    /// <summary>
-    /// ViewModel del popup de acciones sobre una línea del carrito.
-    /// Permite editar cantidad, precio, descripción, descuento y vendedor usando
-    /// un flujo pensado para pantalla táctil con teclado numérico propio.
-    /// </summary>
     public class ItemActionViewModel : INotifyPropertyChanged
     {
         private CartItemModel? _item;
@@ -19,6 +14,9 @@ namespace NovaRetail.ViewModels
         private decimal _maxStock = int.MaxValue;
         private string _activeField = "Cantidad";
         private string _inputBuffer = string.Empty;
+        private bool _isServiceMode;
+        private decimal _currentTaxPercentage;
+        private bool _isTaxIncludedMode;
 
         private string _tempQty = "1";
         private string _tempPrice = "0";
@@ -28,8 +26,11 @@ namespace NovaRetail.ViewModels
         private string _itemName = string.Empty;
         private string _itemCode = string.Empty;
         private string _precioText = string.Empty;
+        private string _priceWithoutTaxText = string.Empty;
+        private string _taxAmountText = string.Empty;
         private string _disponibleText = "N/D";
         private string _comprometidoText = "0";
+        private string _taxText = string.Empty;
 
         private bool _isDiscountVisible;
         private bool _isDiscountConfirmVisible;
@@ -59,6 +60,16 @@ namespace NovaRetail.ViewModels
             get => _precioText;
             private set { _precioText = value; OnPropertyChanged(); }
         }
+        public string PriceWithoutTaxText
+        {
+            get => _priceWithoutTaxText;
+            private set { _priceWithoutTaxText = value; OnPropertyChanged(); }
+        }
+        public string TaxAmountText
+        {
+            get => _taxAmountText;
+            private set { _taxAmountText = value; OnPropertyChanged(); }
+        }
         public string DisponibleText
         {
             get => _disponibleText;
@@ -68,6 +79,11 @@ namespace NovaRetail.ViewModels
         {
             get => _comprometidoText;
             private set { _comprometidoText = value; OnPropertyChanged(); }
+        }
+        public string TaxText
+        {
+            get => _taxText;
+            private set { _taxText = value; OnPropertyChanged(); }
         }
 
         // ── Editable field texts ──
@@ -88,7 +104,29 @@ namespace NovaRetail.ViewModels
         public string TempPrice
         {
             get => _tempPrice;
-            private set { if (_tempPrice != value) { _tempPrice = value; OnPropertyChanged(); } }
+            private set
+            {
+                if (_tempPrice != value)
+                {
+                    _tempPrice = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(EditablePriceText));
+                    UpdateLivePricePreview(value);
+                }
+            }
+        }
+        public string EditablePriceText
+        {
+            get => _tempPrice;
+            set
+            {
+                var normalized = NormalizeNumericInput(value);
+                if (_inputBuffer == normalized && _tempPrice == normalized)
+                    return;
+
+                _inputBuffer = normalized;
+                TempPrice = normalized;
+            }
         }
         public string TempExtPrice
         {
@@ -113,6 +151,28 @@ namespace NovaRetail.ViewModels
         public bool IsPrecioExtActive => _activeField == "PrecioExt";
         public bool IsDescripcionActive => _activeField == "Descripcion";
         public bool IsDescuentoPctActive => _activeField == "DescuentoPct";
+
+        /// <summary>True when the popup is used for non-inventory (service) price entry.</summary>
+        public bool IsServiceMode
+        {
+            get => _isServiceMode;
+            private set
+            {
+                if (_isServiceMode != value)
+                {
+                    _isServiceMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsNormalMode));
+                    OnPropertyChanged(nameof(TitleText));
+                    OnPropertyChanged(nameof(KeypadActionText));
+                    OnPropertyChanged(nameof(KeypadActionParameter));
+                }
+            }
+        }
+        public bool IsNormalMode => !_isServiceMode;
+        public string TitleText => _isServiceMode ? "Ingrese el Precio" : "Acción Sobre Artículo";
+        public string KeypadActionText => _isServiceMode ? "." : "ENT";
+        public string KeypadActionParameter => _isServiceMode ? "." : "ENT";
 
         // ── Discount panel ──
 
@@ -151,8 +211,7 @@ namespace NovaRetail.ViewModels
         public event Action? RequestAssignSalesRep;
 
         public decimal? PendingPriceColones =>
-            decimal.TryParse(_tempPrice, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : null;
+            TryParseInputDecimal(_tempPrice, out var p) && p > 0 ? p : null;
 
         // ── Commands ──
 
@@ -174,8 +233,7 @@ namespace NovaRetail.ViewModels
             OkCommand = new Command(() =>
             {
                 CommitCurrentBuffer();
-                var currentPrice = decimal.TryParse(_tempPrice, System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture, out var p) ? p : _originalPrice;
+                var currentPrice = TryParseInputDecimal(_tempPrice, out var p) ? p : _originalPrice;
 
                 if (_originalPrice > 0 && Math.Abs(currentPrice - _originalPrice) > 0.001m)
                 {
@@ -207,18 +265,22 @@ namespace NovaRetail.ViewModels
             AssignSalesRepCommand = new Command(() => RequestAssignSalesRep?.Invoke());
         }
 
-        public void LoadItem(CartItemModel item, IEnumerable<ReasonCodeModel> discountCodes)
+        public void LoadItem(CartItemModel item, IEnumerable<ReasonCodeModel> discountCodes, bool isTaxIncluded = false)
         {
             _item = item;
             _originalPrice = item.EffectivePriceColones;
             _maxStock = item.Stock > 0 ? item.Stock : int.MaxValue;
+            _currentTaxPercentage = item.EffectiveTaxPercentage;
+            _isTaxIncludedMode = isTaxIncluded;
+            IsServiceMode = false;
             ItemName = item.OverrideDescription ?? item.Name;
             ItemCode = item.Code;
 
             var ep = item.EffectivePriceColones;
-            PrecioText = $"₡{ep:N2}";
+            PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
             DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
             ComprometidoText = "0";
+            UpdatePriceBreakdown(ep, item.EffectiveTaxPercentage, isTaxIncluded);
 
             _tempQty = item.Quantity.ToString("0.##", CultureInfo.InvariantCulture);
             _tempPrice = ep.ToString("0.##", CultureInfo.InvariantCulture);
@@ -243,6 +305,55 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(string.Empty);
         }
 
+        /// <summary>
+        /// Opens the popup in service-price mode: only the price field and keypad
+        /// are shown. <paramref name="prefillPrice"/> pre-populates the field when
+        /// the product already has a known price.
+        /// </summary>
+        public void LoadServiceItem(ProductModel product, decimal prefillPrice = 0m, bool isTaxIncluded = false)
+        {
+            _item = null;
+            _originalPrice = 0m;
+            _maxStock = int.MaxValue;
+            _currentTaxPercentage = product.TaxPercentage;
+            _isTaxIncludedMode = isTaxIncluded;
+            IsServiceMode = true;
+            ItemName = product.Name;
+            ItemCode = product.Code;
+            PrecioText = prefillPrice > 0 ? $"{UiConfig.CurrencySymbol}{prefillPrice:N2}" : "Precio variable";
+            DisponibleText = "∞";
+            ComprometidoText = "0";
+            UpdatePriceBreakdown(prefillPrice, product.TaxPercentage, isTaxIncluded);
+
+            _tempQty = "1";
+            _tempPrice = prefillPrice > 0 ? prefillPrice.ToString("0.##", CultureInfo.InvariantCulture) : string.Empty;
+            _tempExtPrice = _tempPrice;
+            _tempDesc = product.Name;
+            _discountPercentText = "0";
+            _selectedDiscountCode = null;
+            _salesRepId = 0;
+            _salesRepName = string.Empty;
+
+            _activeField = "Precio";
+            _inputBuffer = _tempPrice;
+
+            IsDiscountVisible = false;
+            IsDiscountConfirmVisible = false;
+            DiscountCodes.Clear();
+
+            OnPropertyChanged(string.Empty);
+        }
+
+        /// <summary>Returns the validated price in colones entered in service mode, or null if invalid.</summary>
+        public decimal? ServicePriceColones
+        {
+            get
+            {
+                CommitCurrentBuffer();
+                return TryParseInputDecimal(TempPrice, out var p) && p > 0 ? p : null;
+            }
+        }
+
         public void RefreshSalesRep(SalesRepModel rep)
         {
             _salesRepId   = rep.ID;
@@ -254,6 +365,36 @@ namespace NovaRetail.ViewModels
             }
             OnPropertyChanged(nameof(SalesRepText));
             OnPropertyChanged(nameof(HasSalesRep));
+        }
+
+        private void UpdatePriceBreakdown(decimal priceColones, decimal taxPercentage, bool isTaxIncluded)
+        {
+            var safePrice = Math.Max(0m, priceColones);
+            var safeTaxPercentage = Math.Max(0m, taxPercentage);
+
+            if (safePrice <= 0m)
+            {
+                PriceWithoutTaxText = "—";
+                TaxAmountText = "—";
+                TaxText = safeTaxPercentage > 0 ? $"{safeTaxPercentage:0.##}%" : "Exento";
+                return;
+            }
+
+            var baseForTax = isTaxIncluded && safeTaxPercentage > 0
+                ? safePrice / (1m + (safeTaxPercentage / 100m))
+                : safePrice;
+
+            var taxAmount = safeTaxPercentage > 0
+                ? Math.Round(baseForTax * (safeTaxPercentage / 100m), 2)
+                : 0m;
+
+            var priceWithoutTax = isTaxIncluded
+                ? Math.Round(safePrice - taxAmount, 2)
+                : Math.Round(safePrice, 2);
+
+            PriceWithoutTaxText = $"{UiConfig.CurrencySymbol}{priceWithoutTax:N2}";
+            TaxAmountText = $"{UiConfig.CurrencySymbol}{taxAmount:N2}";
+            TaxText = safeTaxPercentage > 0 ? $"{safeTaxPercentage:0.##}%" : "Exento";
         }
 
         // ── Discount panel ──
@@ -327,7 +468,7 @@ namespace NovaRetail.ViewModels
                         NavigateNext();
                     return;
                 case ".":
-                    if (!_inputBuffer.Contains('.'))
+                    if (!_inputBuffer.Contains('.') && !_inputBuffer.Contains(','))
                         _inputBuffer += ".";
                     break;
                 default:
@@ -345,24 +486,24 @@ namespace NovaRetail.ViewModels
             switch (_activeField)
             {
                 case "Cantidad":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var qty) && qty > 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var qty) && qty > 0)
                     {
                         TempQty = Math.Min(qty, _maxStock).ToString("0.##", CultureInfo.InvariantCulture);
                         RecalcExtPrice();
                     }
                     break;
                 case "Precio":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) && price >= 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var price) && price >= 0)
                     {
                         TempPrice = price.ToString("G", CultureInfo.InvariantCulture);
                         RecalcExtPrice();
                     }
                     break;
                 case "PrecioExt":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var ext) && ext >= 0)
+                    if (TryParseInputDecimal(_inputBuffer, out var ext) && ext >= 0)
                     {
                         TempExtPrice = ext.ToString("G", CultureInfo.InvariantCulture);
-                        if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) && q > 0)
+                        if (TryParseInputDecimal(TempQty, out var q) && q > 0)
                             TempPrice = (ext / q).ToString("G", CultureInfo.InvariantCulture);
                     }
                     break;
@@ -370,7 +511,7 @@ namespace NovaRetail.ViewModels
                     TempDesc = _inputBuffer;
                     break;
                 case "DescuentoPct":
-                    if (decimal.TryParse(_inputBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out var pct)
+                    if (TryParseInputDecimal(_inputBuffer, out var pct)
                         && pct >= 0 && pct <= 100)
                         DiscountPercentText = ((int)pct).ToString();
                     break;
@@ -391,15 +532,15 @@ namespace NovaRetail.ViewModels
 
         private void RecalcExtPrice()
         {
-            if (decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q) &&
-                decimal.TryParse(TempPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+            if (TryParseInputDecimal(TempQty, out var q) &&
+                TryParseInputDecimal(TempPrice, out var p))
                 TempExtPrice = (q * p).ToString("G", CultureInfo.InvariantCulture);
         }
 
         private void AdjustQty(int delta)
         {
             CommitCurrentBuffer();
-            if (!decimal.TryParse(TempQty, NumberStyles.Any, CultureInfo.InvariantCulture, out var q)) q = 1;
+            if (!TryParseInputDecimal(TempQty, out var q)) q = 1;
             q = Math.Clamp(q + delta, 1m, _maxStock);
             TempQty = q.ToString("0.##", CultureInfo.InvariantCulture);
             _inputBuffer = TempQty;
@@ -409,7 +550,7 @@ namespace NovaRetail.ViewModels
         private void AdjustDiscountPct(int delta)
         {
             CommitCurrentBuffer();
-            if (!decimal.TryParse(DiscountPercentText, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)) p = 0;
+            if (!TryParseInputDecimal(DiscountPercentText, out var p)) p = 0;
             p = Math.Clamp(p + delta, 0, 100);
             DiscountPercentText = ((int)p).ToString();
             _inputBuffer = DiscountPercentText;
@@ -456,6 +597,37 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(IsPrecioExtActive));
             OnPropertyChanged(nameof(IsDescripcionActive));
             OnPropertyChanged(nameof(IsDescuentoPctActive));
+        }
+
+        private void UpdateLivePricePreview(string? rawValue)
+        {
+            if (TryParseInputDecimal(rawValue, out var price) && price >= 0)
+            {
+                UpdatePriceBreakdown(price, _currentTaxPercentage, _isTaxIncludedMode);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rawValue))
+                UpdatePriceBreakdown(0m, _currentTaxPercentage, _isTaxIncludedMode);
+        }
+
+        private static bool TryParseInputDecimal(string? value, out decimal result)
+        {
+            var normalized = NormalizeNumericInput(value);
+            return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out result)
+                || decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.CurrentCulture, out result);
+        }
+
+        private static string NormalizeNumericInput(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            return value
+                .Trim()
+                .Replace(UiConfig.CurrencySymbol, string.Empty)
+                .Replace(",", ".")
+                .Trim();
         }
 
         // ── Apply to item ──

@@ -3,11 +3,6 @@ using NovaRetail.ViewModels;
 
 namespace NovaRetail.Pages;
 
-/// <summary>
-/// Página principal del POS.
-/// Hospeda el catálogo, el carrito y los popups de trabajo, y además ajusta el layout
-/// según el ancho disponible para mantener una experiencia usable en distintas resoluciones.
-/// </summary>
 public partial class MainPage : ContentPage
 {
     private readonly MainViewModel _vm;
@@ -17,12 +12,32 @@ public partial class MainPage : ContentPage
         _vm = vm;
         BindingContext = _vm;
         InitializeComponent();
+        Loaded += OnPageLoaded;
+        Unloaded += OnPageUnloaded;
         _vm.PropertyChanged += OnViewModelPropertyChanged;
+        _vm.ProductCatalog.PropertyChanged += OnProductCatalogPropertyChanged;
+    }
+
+    partial void RegisterPlatformKeyboardHooks();
+    partial void UnregisterPlatformKeyboardHooks();
+
+    private void OnPageLoaded(object? sender, EventArgs e)
+        => RegisterPlatformKeyboardHooks();
+
+    private void OnPageUnloaded(object? sender, EventArgs e)
+    {
+        UnregisterPlatformKeyboardHooks();
+        _vm.PropertyChanged -= OnViewModelPropertyChanged;
+        _vm.ProductCatalog.PropertyChanged -= OnProductCatalogPropertyChanged;
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.IsProductsPanelVisible))
+    }
+
+    private void OnProductCatalogPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ProductCatalogViewModel.IsProductsPanelVisible))
             ApplyLayout(MainGrid.Width);
     }
 
@@ -33,7 +48,7 @@ public partial class MainPage : ContentPage
     {
         if (width <= 0) return;
 
-        if (!_vm.IsProductsPanelVisible)
+        if (!_vm.ProductCatalog.IsProductsPanelVisible)
         {
             MainGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             MainGrid.ColumnDefinitions[1].Width = new GridLength(56);

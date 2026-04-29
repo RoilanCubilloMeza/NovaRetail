@@ -10,18 +10,11 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de pagos. Registra pagos de clientes en la BD AppCentral
-    /// mediante <c>spAVSCrea_Payment</c>.
-    /// </summary>
     public class PaymentController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        //dbAppCentral = AppConfig.ConnectionString("AppCentralConnectionString");
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
-        /// <summary>
-        /// Inserta una colección de pagos en AppCentral.
-        /// Se usa para mantener sincronizados los movimientos de cobro asociados a clientes.
-        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<Payment> Payments)
         {
@@ -35,9 +28,9 @@ namespace NovaAPI.Controllers
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al registrar pagos.");
             }
 
             return msg;

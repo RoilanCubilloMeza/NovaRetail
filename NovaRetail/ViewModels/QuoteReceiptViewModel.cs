@@ -1,4 +1,5 @@
 using NovaRetail.Models;
+using NovaRetail.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Net;
@@ -8,11 +9,6 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels
 {
-    /// <summary>
-    /// ViewModel del comprobante de cotización.
-    /// Prepara la información mostrada al usuario después de guardar una cotización
-    /// o una factura en espera, incluyendo encabezado, líneas y totales.
-    /// </summary>
     public sealed class QuoteReceiptViewModel : INotifyPropertyChanged
     {
         public event Action? RequestClose;
@@ -83,6 +79,7 @@ namespace NovaRetail.ViewModels
         public string TaxText           { get; private set; } = string.Empty;
         public string TotalText         { get; private set; } = string.Empty;
         public string TotalColonesText  { get; private set; } = string.Empty;
+        public string CurrencyZeroText   => $"{UiConfig.CurrencySymbol}0.00";
         public bool   HasDiscount       { get; private set; }
         public string DiscountText      { get; private set; } = string.Empty;
         public bool   HasExoneration    { get; private set; }
@@ -157,15 +154,15 @@ namespace NovaRetail.ViewModels
                     Code                  = item.Code ?? string.Empty,
                     Quantity              = item.Quantity,
                     TaxPercentage         = item.TaxPercentage,
-                    UnitPriceColonesText  = $"₡{(item.HasDiscount ? netUnit : gross):N2}",
-                    LineTotalText         = $"₡{(item.HasDiscount ? netLine : gross * item.Quantity):N2}",
+                    UnitPriceColonesText  = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netUnit : gross):N2}",
+                    LineTotalText         = $"{UiConfig.CurrencySymbol}{(item.HasDiscount ? netLine : gross * item.Quantity):N2}",
                     HasOverridePrice      = item.HasDownwardPriceOverride,
                     PriceChangeDetailText = item.HasDownwardPriceOverride
-                        ? $"Cambio precio: de ₡{item.UnitPriceColones:N2} a ₡{gross:N2}"
+                        ? $"Cambio precio: de {UiConfig.CurrencySymbol}{item.UnitPriceColones:N2} a {UiConfig.CurrencySymbol}{gross:N2}"
                         : string.Empty,
                     HasDiscount           = item.HasDiscount,
                     DiscountDetailText    = item.HasDiscount
-                        ? $"Desc. {item.DiscountPercent:0.##}%: de ₡{gross:N2} a ₡{netUnit:N2}"
+                        ? $"Desc. {item.DiscountPercent:0.##}%: de {UiConfig.CurrencySymbol}{gross:N2} a {UiConfig.CurrencySymbol}{netUnit:N2}"
                         : string.Empty,
                     HasExoneration        = item.HasExoneration,
                     ExonerationDetailText = item.HasExoneration
@@ -195,8 +192,7 @@ namespace NovaRetail.ViewModels
             }
             catch (Exception ex)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                    Application.Current?.MainPage?.DisplayAlert("Error al imprimir", ex.Message, "OK") ?? Task.CompletedTask);
+                await UiPage.AlertAsync("Error al imprimir", ex.Message);
             }
             finally { IsBusy = false; }
         }
@@ -207,18 +203,14 @@ namespace NovaRetail.ViewModels
             IsBusy = true;
             try
             {
-                var path = Path.Combine(FileSystem.CacheDirectory, $"Proforma-{OrderID}.html");
-                File.WriteAllText(path, BuildHtml(false), Encoding.UTF8);
-                await Share.RequestAsync(new ShareFileRequest
-                {
-                    Title = $"Guardar Proforma #{OrderID}",
-                    File  = new ShareFile(path, "text/html")
-                });
+                await DocumentSaveService.SaveHtmlAsync(
+                    title: $"Guardar Proforma #{OrderID}",
+                    suggestedFileName: $"Proforma-{OrderID}.html",
+                    htmlContent: BuildHtml(false));
             }
             catch (Exception ex)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                    Application.Current?.MainPage?.DisplayAlert("Error al guardar", ex.Message, "OK") ?? Task.CompletedTask);
+                await UiPage.AlertAsync("Error al guardar", ex.Message);
             }
             finally { IsBusy = false; }
         }
@@ -327,10 +319,10 @@ namespace NovaRetail.ViewModels
 </table>
 <hr class='sep'>
 <table class='totals'>
-  <tr><td>Deposito Pagos</td><td class='r'>₡0.00</td></tr>
-  <tr><td>Total Comprado</td><td class='r'>₡0.00</td></tr>
+  <tr><td>Deposito Pagos</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
+  <tr><td>Total Comprado</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
   <tr><td>Total Pendiente</td><td class='r'>{Esc(TotalColonesText)}</td></tr>
-  <tr><td>CAMBIO</td><td class='r'>₡0.00</td></tr>
+  <tr><td>CAMBIO</td><td class='r'>{UiConfig.CurrencySymbol}0.00</td></tr>
   <tr><td>Saldo</td><td class='r'>{Esc(TotalColonesText)}</td></tr>
 </table>
 <hr class='sep'>

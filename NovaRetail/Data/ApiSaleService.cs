@@ -5,11 +5,6 @@ using NovaRetail.Models;
 
 namespace NovaRetail.Data;
 
-/// <summary>
-/// Implementación de <see cref="ISaleService"/>.
-/// Envía ventas al endpoint de facturación, y además consulta historial y detalle
-/// de facturas ya registradas en la base de datos de RMH.
-/// </summary>
 public sealed class ApiSaleService : ISaleService
 {
     private const string SalesClientName = "NovaSales";
@@ -23,6 +18,12 @@ public sealed class ApiSaleService : ISaleService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _baseUrls = settings.BaseUrls;
+    }
+
+    private static string AppendNoCacheToken(string url)
+    {
+        var separator = url.Contains('?') ? "&" : "?";
+        return $"{url}{separator}_ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
     }
 
     public async Task<NovaRetailCreateSaleResponse> CreateSaleAsync(NovaRetailCreateSaleRequest request, CancellationToken cancellationToken = default)
@@ -83,8 +84,8 @@ public sealed class ApiSaleService : ISaleService
             try
             {
                 var http = _httpClientFactory.CreateClient(SalesClientName);
-                var top = 200;
-                var url = $"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(search ?? string.Empty)}&top={top}";
+                var top = 100;
+                var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(search ?? string.Empty)}&top={top}");
                 using var response = await http.GetAsync(url, cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 var trimmedContent = content?.TrimStart();
@@ -140,7 +141,7 @@ public sealed class ApiSaleService : ISaleService
             try
             {
                 var http = _httpClientFactory.CreateClient(SalesClientName);
-                using var response = await http.GetAsync($"{baseUrl}/api/NovaRetailSales/invoice-history-detail/{transactionNumber}", cancellationToken);
+                using var response = await http.GetAsync(AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/invoice-history-detail/{transactionNumber}"), cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 var trimmedContent = content?.TrimStart();
 

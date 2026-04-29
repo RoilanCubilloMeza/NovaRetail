@@ -1,9 +1,7 @@
+using NovaRetail;
+
 namespace NovaRetail.State;
 
-/// <summary>
-/// Record inmutable que representa el estado global de la UI.
-/// Se modifica únicamente a través de <see cref="AppReducer.Reduce"/> al despachar acciones.
-/// </summary>
 public sealed record AppState(
     // ── UI overlays ──
     bool IsItemActionVisible = false,
@@ -17,9 +15,14 @@ public sealed record AppState(
     bool IsOrderSearchVisible = false,
     bool IsQuoteReceiptVisible = false,
     bool IsSalesRepPickerVisible = false,
+    bool IsCustomerSearchVisible = false,
+    bool IsCreditPaymentSearchVisible = false,
+    bool IsCreditPaymentDetailVisible = false,
 
     // ── Cliente ──
     string CurrentClientId = "",
+    string CurrentClientAccountNumber = "",
+    int CurrentClientCustomerId = 0,
     string CurrentClientName = "",
     bool IsCurrentClientReceiver = false,
     string CurrentClientCustomerType = "",
@@ -30,8 +33,8 @@ public sealed record AppState(
 
     // ── Búsqueda de productos ──
     string ProductSearchText = "",
-    string SelectedTab = "Rápido",
-    string SelectedCategory = "Todos",
+    string SelectedTab = TabKeys.Rapido,
+    string SelectedCategory = CategoryKeys.Todos,
 
     // ── Descuento del ticket ──
     int DiscountPercent = 0);

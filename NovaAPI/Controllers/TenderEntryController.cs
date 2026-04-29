@@ -9,18 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de entradas de formas de pago (TenderEntry).
-    /// Registra los detalles de pago de cada transacción en la BD AppCentral.
-    /// </summary>
     public class TenderEntryController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
-        /// <summary>
-        /// Inserta una colección de líneas de tender entry.
-        /// Cada registro describe cómo se pagó una transacción específica.
-        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<TenderEntry> TenderEntries)
         {
@@ -34,9 +26,9 @@ namespace NovaAPI.Controllers
                     msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar tender entries: " + ex.Message);
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al registrar pagos.");
             }
 
             return msg;

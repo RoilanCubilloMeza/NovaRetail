@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.CustomerSearchPopup">
+
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <Border BackgroundColor="White"
+                StrokeShape="RoundRectangle 14"
+                Stroke="#E2E8F0"
+                StrokeThickness="1"
+                MaximumWidthRequest="1100"
+                MaximumHeightRequest="720"
+                Margin="20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Shadow="{x:Null}">
+
+            <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="0">
+
+                <!-- ══════ Row 0: Title bar ══════ -->
+                <Border Grid.Row="0"
+                        BackgroundColor="#1E293B"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 14,14,0,0"
+                        Padding="20,14">
+                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+                        <Border Grid.Column="0"
+                                BackgroundColor="#334155"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10"
+                                WidthRequest="40" HeightRequest="40"
+                                VerticalOptions="Center">
+                            <Label Text="&#x1F465;" FontSize="17"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Búsqueda de Cliente"
+                                   FontSize="17" FontAttributes="Bold"
+                                   TextColor="White"/>
+                            <Label Text="Buscar por cuenta, nombre, teléfono, correo, dirección, ciudad, estado o código postal"
+                                   FontSize="11"
+                                   TextColor="#94A3B8"/>
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2"
+                                BackgroundColor="#334155"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="12,6"
+                                VerticalOptions="Center">
+                            <Label Text="{Binding CountText}"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#CBD5E1"
+                                   HorizontalTextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- ══════ Row 1: Search bar ══════ -->
+                <Border Grid.Row="1"
+                        BackgroundColor="#F8FAFC"
+                        StrokeThickness="0"
+                        Padding="20,14">
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="10">
+
+                        <Border Grid.Row="0"
+                                BackgroundColor="White"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                HeightRequest="46"
+                                Padding="14,0">
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="10">
+                                <Label Grid.Column="0"
+                                       Text="&#x1F50D;"
+                                       FontSize="15"
+                                       TextColor="#94A3B8"
+                                       VerticalOptions="Center"/>
+                                <Entry Grid.Column="1"
+                                       Text="{Binding SearchText}"
+                                       Placeholder="Buscar por cuenta, nombre, teléfono, correo o dirección"
+                                       ReturnCommand="{Binding SearchCommand}"
+                                       ClearButtonVisibility="WhileEditing"
+                                       FontSize="13"
+                                       TextColor="#0F172A"
+                                       BackgroundColor="Transparent"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1" ColumnDefinitions="*, Auto, Auto" ColumnSpacing="10">
+                            <Label Grid.Column="0"
+                                   Text="Presione Enter o use los botones para actualizar la lista."
+                                   FontSize="11"
+                                   TextColor="#64748B"
+                                   VerticalOptions="Center"/>
+
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#2563EB"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 8"
+                                    HeightRequest="38"
+                                    MinimumWidthRequest="110"
+                                    Padding="18,0"
+                                    HorizontalOptions="End">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SearchCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="Buscar"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="White"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    BackgroundColor="White"
+                                    Stroke="#CBD5E1"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 8"
+                                    HeightRequest="38"
+                                    MinimumWidthRequest="110"
+                                    Padding="18,0"
+                                    HorizontalOptions="End">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ClearSearchCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto, Auto"
+                                      ColumnSpacing="8"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center">
+                                    <Label Grid.Column="0"
+                                           Text="&#x21BB;"
+                                           FontSize="14"
+                                           TextColor="#64748B"
+                                           VerticalOptions="Center"/>
+                                    <Label Grid.Column="1"
+                                           Text="Recargar"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#475569"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- ══════ Row 2: Table ══════ -->
+                <Grid Grid.Row="2" RowDefinitions="Auto, *" Padding="0">
+
+                    <!-- Table header -->
+                    <Border Grid.Row="0"
+                            BackgroundColor="#F1F5F9"
+                            StrokeThickness="0"
+                            Padding="20,8">
+                        <Grid ColumnDefinitions="135, 1.8*, *, *, 2*, *, 2*, 110"
+                              ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="Cuenta" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="1" Text="Apellido" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="2" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="3" Text="Dirección" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="4" Text="Ciudad" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="5" Text="Estado" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="6" Text="Correo" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="7" Text="Teléfono" FontSize="11" FontAttributes="Bold" TextColor="#475569" HorizontalTextAlignment="End"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Customer list -->
+                    <CollectionView Grid.Row="1"
+                                    ItemsSource="{Binding Customers}"
+                                    SelectionMode="None">
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout HorizontalOptions="Center"
+                                                 VerticalOptions="Center"
+                                                 Padding="20,40">
+                                <Label Text="&#x1F50D;" FontSize="28"
+                                       HorizontalTextAlignment="Center" Margin="0,0,0,8"/>
+                                <Label Text="{Binding StatusMessage}"
+                                       FontSize="14"
+                                       TextColor="#94A3B8"
+                                       HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border StrokeThickness="0"
+                                        BackgroundColor="White"
+                                        Padding="20,10">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="135, 1.8*, *, *, 2*, *, 2*, 110"
+                                          ColumnSpacing="10">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding AccountNumber}"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#1D4ED8"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding LastName}"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#1E293B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="2"
+                                               Text="{Binding FirstName}"
+                                               FontSize="12"
+                                               TextColor="#334155"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="3"
+                                               Text="{Binding Address}"
+                                               FontSize="11" TextColor="#64748B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="4"
+                                               Text="{Binding City}"
+                                               FontSize="11" TextColor="#64748B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="5"
+                                               Text="{Binding State}"
+                                               FontSize="11" TextColor="#64748B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="6"
+                                               Text="{Binding Email}"
+                                               FontSize="11" TextColor="#64748B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="7"
+                                               Text="{Binding Phone}"
+                                               FontSize="12" TextColor="#334155"
+                                               LineBreakMode="TailTruncation"
+                                               HorizontalTextAlignment="End"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <!-- Loading overlay -->
+                    <ActivityIndicator Grid.Row="1"
+                                       IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#3B82F6"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Start"
+                                       Margin="0,30"/>
+                </Grid>
+
+                <!-- ══════ Row 3: Footer ══════ -->
+                <Border Grid.Row="3"
+                        BackgroundColor="#F8FAFC"
+                        StrokeThickness="0"
+                        Padding="20,12">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Grid.Column="0"
+                               Text="Toque un cliente para seleccionarlo"
+                               FontSize="12"
+                               TextColor="#94A3B8"
+                               VerticalOptions="Center"/>
+                        <Border Grid.Column="1"
+                                BackgroundColor="#F1F5F9"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 9"
+                                Padding="24,0"
+                                HeightRequest="40">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancelar"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="#475569"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentView>

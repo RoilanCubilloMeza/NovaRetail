@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Pages.ManagerDashboardPage"
+             Title="Dashboard Jefe"
+             BackgroundColor="#EAF0F6"
+             Shell.NavBarIsVisible="False">
+    <Grid RowDefinitions="Auto,*" Padding="18" RowSpacing="14">
+        <Border Grid.Row="0" BackgroundColor="#0B1220" StrokeThickness="0" StrokeShape="RoundRectangle 26" Padding="18">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14" RowDefinitions="Auto">
+                <Border Grid.Column="0" BackgroundColor="#18233A" StrokeThickness="0" StrokeShape="RoundRectangle 14" Padding="14,10" VerticalOptions="Center">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="Volver al POS" FontSize="13" FontAttributes="Bold" TextColor="#DDE7F3"/>
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                    <Label Text="Dashboard para jefe" FontSize="28" FontAttributes="Bold" TextColor="White"/>
+                    <Label Text="{Binding StoreScopeText}" FontSize="13" TextColor="#AFC0D5"/>
+                </VerticalStackLayout>
+
+                <Border Grid.Column="2" BackgroundColor="#111C31" Stroke="#27364F" StrokeShape="RoundRectangle 18" Padding="16,10" VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="1">
+                        <Label Text="Fecha del tablero" FontSize="11" TextColor="#8FA2BC"/>
+                        <Label Text="{Binding SelectedDateLabelText}" FontSize="15" FontAttributes="Bold" TextColor="White"/>
+                        <Label Text="{Binding BusinessMonthText}" FontSize="11" TextColor="#8FA2BC"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Button Grid.Column="3"
+                        Text="{Binding RefreshButtonText}"
+                        Command="{Binding RefreshCommand}"
+                        BackgroundColor="#14B8A6"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="14"
+                        Padding="18,12"
+                        VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="16">
+                <Border BackgroundColor="White" Stroke="#D8E1EC" StrokeShape="RoundRectangle 22" Padding="16">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" Spacing="1">
+                            <Label Text="Filtros rapidos" FontSize="16" FontAttributes="Bold" TextColor="#0F172A"/>
+                            <Label Text="{Binding SearchSummaryText}" FontSize="12" TextColor="#64748B"/>
+                        </VerticalStackLayout>
+
+                        <Label Grid.Row="1" Grid.Column="0" Text="Fecha" FontAttributes="Bold" TextColor="#334155" VerticalOptions="Center"/>
+                        <DatePicker Grid.Row="1" Grid.Column="1"
+                                    Date="{Binding SelectedDate}"
+                                    Format="dd/MM/yyyy"
+                                    BackgroundColor="#F8FAFC"
+                                    TextColor="#0F172A"
+                                    HeightRequest="42"/>
+                        <Button Grid.Row="1" Grid.Column="2" Text="Dia anterior" Command="{Binding PreviousDayCommand}" BackgroundColor="#EEF2F7" TextColor="#334155" CornerRadius="12"/>
+                        <Button Grid.Row="1" Grid.Column="3" Text="Hoy" Command="{Binding TodayCommand}" BackgroundColor="#DCFCE7" TextColor="#166534" FontAttributes="Bold" CornerRadius="12"/>
+                        <Button Grid.Row="1" Grid.Column="4" Text="Dia siguiente" Command="{Binding NextDayCommand}" BackgroundColor="#EEF2F7" TextColor="#334155" CornerRadius="12"/>
+
+                        <SearchBar Grid.Row="0" Grid.RowSpan="2" Grid.Column="5"
+                                   Text="{Binding SearchText}"
+                                   SearchCommand="{Binding SearchCommand}"
+                                   Placeholder="Buscar vendedor, accion, documento o detalle..."
+                                   BackgroundColor="#F8FAFC"
+                                   TextColor="#0F172A"
+                                   PlaceholderColor="#94A3B8"
+                                   HeightRequest="48"
+                                   VerticalOptions="End"/>
+                        <Button Grid.Row="1" Grid.Column="6" Text="Buscar" Command="{Binding SearchCommand}" BackgroundColor="#0F766E" TextColor="White" FontAttributes="Bold" CornerRadius="12"/>
+                        <Button Grid.Row="1" Grid.Column="7" Text="Limpiar" Command="{Binding ClearSearchCommand}" BackgroundColor="#FEE2E2" TextColor="#991B1B" FontAttributes="Bold" CornerRadius="12"/>
+                    </Grid>
+                </Border>
+
+                <Label Text="{Binding Message}" IsVisible="{Binding HasMessage}" TextColor="#B91C1C" FontAttributes="Bold"/>
+
+                <FlexLayout Wrap="Wrap" Direction="Row" AlignItems="Stretch" JustifyContent="Start" Margin="-6,0">
+                    <Border BackgroundColor="#0B1220" StrokeThickness="0" StrokeShape="RoundRectangle 22" WidthRequest="310" HeightRequest="150" Padding="20" Margin="6">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Ventas del dia" TextColor="#BAE6FD" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding SalesTodayText}" TextColor="White" FontSize="29" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                            <Label Text="{Binding SalesTodayCountText}" TextColor="#CBD5E1" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="#FFF7D6" Stroke="#F7CF57" StrokeShape="RoundRectangle 22" WidthRequest="250" HeightRequest="150" Padding="20" Margin="6">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Cotizaciones creadas" TextColor="#92400E" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding QuotesCreatedText}" TextColor="#78350F" FontSize="34" FontAttributes="Bold"/>
+                            <Label Text="Nuevas propuestas" TextColor="#A16207" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="#DCFCE7" Stroke="#86EFAC" StrokeShape="RoundRectangle 22" WidthRequest="250" HeightRequest="150" Padding="20" Margin="6">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Cotizaciones convertidas" TextColor="#166534" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding QuotesConvertedText}" TextColor="#14532D" FontSize="34" FontAttributes="Bold"/>
+                            <Label Text="Pasaron a venta" TextColor="#15803D" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="#FFE4E6" Stroke="#FDA4AF" StrokeShape="RoundRectangle 22" WidthRequest="250" HeightRequest="150" Padding="20" Margin="6">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Ordenes pendientes" TextColor="#9F1239" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding PendingWorkOrdersText}" TextColor="#881337" FontSize="34" FontAttributes="Bold"/>
+                            <Label Text="Por atender" TextColor="#BE123C" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border BackgroundColor="#E0F2FE" Stroke="#7DD3FC" StrokeShape="RoundRectangle 22" WidthRequest="310" HeightRequest="150" Padding="20" Margin="6">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Abonos recibidos" TextColor="#075985" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding PaymentsReceivedText}" TextColor="#0C4A6E" FontSize="29" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                            <Label Text="{Binding PaymentsReceivedCountText}" TextColor="#0369A1" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </FlexLayout>
+
+                <Border BackgroundColor="White" Stroke="#D8E1EC" StrokeShape="RoundRectangle 22" Padding="0">
+                    <Grid RowDefinitions="Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="18,16" BackgroundColor="#F8FAFC">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Historial de acciones" FontSize="21" FontAttributes="Bold" TextColor="#0F172A"/>
+                                <Label Text="{Binding ActionsSummaryText}" FontSize="12" TextColor="#64748B"/>
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" BackgroundColor="#E6F7F4" StrokeThickness="0" StrokeShape="RoundRectangle 14" Padding="12,8" VerticalOptions="Center">
+                                <Label Text="{Binding SelectedDateCompactText}" FontAttributes="Bold" TextColor="#0F766E" FontSize="13"/>
+                            </Border>
+                        </Grid>
+
+                        <CollectionView Grid.Row="1" ItemsSource="{Binding Actions}" HeightRequest="520" Margin="16">
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout Spacing="6" Margin="0,52">
+                                    <Label Text="Sin acciones registradas todavia." TextColor="#0F172A" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                                    <Label Text="Cambie la fecha o limpie la busqueda para revisar otro resultado." TextColor="#64748B" HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Stroke="#E2E8F0" BackgroundColor="#FFFFFF" StrokeShape="RoundRectangle 16" Padding="0" Margin="0,0,0,10">
+                                        <Grid ColumnDefinitions="6,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="14" Padding="0,14,14,14">
+                                            <BoxView Grid.RowSpan="3" Grid.Column="0" BackgroundColor="#0F766E" WidthRequest="6" HorizontalOptions="Start"/>
+
+                                            <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="8">
+                                                <Label Text="{Binding ActionDisplayName}" FontAttributes="Bold" TextColor="#111827" FontSize="15" VerticalOptions="Center"/>
+                                                <Border BackgroundColor="#F1F5F9" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,4">
+                                                    <Label Text="{Binding EntityText}" TextColor="#475569" FontSize="11"/>
+                                                </Border>
+                                            </HorizontalStackLayout>
+
+                                            <Label Grid.Row="0" Grid.Column="2" Text="{Binding AmountText}" TextColor="#0F766E" FontAttributes="Bold" FontSize="14" HorizontalTextAlignment="End"/>
+                                            <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Detail}" TextColor="#475569" FontSize="12" Margin="0,4,0,0"/>
+
+                                            <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="12" Margin="0,8,0,0">
+                                                <Label Text="{Binding SellerText}" TextColor="#334155" FontSize="12" FontAttributes="Bold"/>
+                                                <Label Text="{Binding ActionDateText}" TextColor="#94A3B8" FontSize="12"/>
+                                            </HorizontalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

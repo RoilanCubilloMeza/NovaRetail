@@ -3,11 +3,6 @@ using Microsoft.Maui.Controls.Shapes;
 namespace NovaRetail.Controls;
 
 [ContentProperty(nameof(CardContent))]
-/// <summary>
-/// Tarjeta visual para agrupar una sección del formulario.
-/// Se usa como contenedor con título opcional y contenido interno
-/// para mantener una presentación uniforme en toda la app.
-/// </summary>
 public class SectionCard : ContentView
 {
     private readonly VerticalStackLayout _stack;

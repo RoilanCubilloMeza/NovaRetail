@@ -1,13 +1,20 @@
 namespace NovaRetail.Models;
 
-/// <summary>
-/// Datos del cajero/usuario autenticado en el POS.
-/// Se obtiene del endpoint <c>api/Login</c> y se mantiene en <see cref="State.UserSession"/>.
-/// </summary>
 public class LoginUserModel
 {
     public int ClientId { get; set; }
     public string UserName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public int StoreId { get; set; }
+    public string RoleCode { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+    public short SecurityLevel { get; set; }
+    public int Privileges { get; set; }
+    public string RolePrivileges { get; set; } = string.Empty;
+
+    public bool IsAdmin => string.Equals(RoleCode, "Admin", StringComparison.OrdinalIgnoreCase)
+                        || SecurityLevel >= 99;
+
+    public bool HasRole(string roleCode) =>
+        string.Equals(RoleCode, roleCode, StringComparison.OrdinalIgnoreCase);
 }

@@ -234,7 +234,7 @@
 
                                 <!-- Totales -->
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="2" ColumnSpacing="8">
-                                    <Label Grid.Row="0" Grid.Column="0" Text="Sub Total" FontSize="11" TextColor="#374151"/>
+                                    <Label Grid.Row="0" Grid.Column="0" Text="Subtotal" FontSize="11" TextColor="#374151"/>
                                     <Label Grid.Row="0" Grid.Column="1" Text="{Binding SubtotalText}" FontSize="11" TextColor="#374151" HorizontalTextAlignment="End"/>
 
                                     <Label Grid.Row="1" Grid.Column="0"
@@ -270,14 +270,14 @@
 
                                 <!-- Sección pagos (ceros para proforma) -->
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="2" ColumnSpacing="8">
-                                    <Label Grid.Row="0" Grid.Column="0" Text="Deposito Pagos" FontSize="10" TextColor="#9CA3AF"/>
-                                    <Label Grid.Row="0" Grid.Column="1" Text="₡0.00" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
+                                    <Label Grid.Row="0" Grid.Column="0" Text="Depósito Pagos" FontSize="10" TextColor="#9CA3AF"/>
+                                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding CurrencyZeroText}" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
                                     <Label Grid.Row="1" Grid.Column="0" Text="Total Comprado" FontSize="10" TextColor="#9CA3AF"/>
-                                    <Label Grid.Row="1" Grid.Column="1" Text="₡0.00" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding CurrencyZeroText}" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
                                     <Label Grid.Row="2" Grid.Column="0" Text="Total Pendiente" FontSize="11" FontAttributes="Bold" TextColor="#374151"/>
                                     <Label Grid.Row="2" Grid.Column="1" Text="{Binding TotalColonesText}" FontSize="11" FontAttributes="Bold" TextColor="#374151" HorizontalTextAlignment="End"/>
                                     <Label Grid.Row="3" Grid.Column="0" Text="CAMBIO" FontSize="10" TextColor="#9CA3AF"/>
-                                    <Label Grid.Row="3" Grid.Column="1" Text="₡0.00" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
+                                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding CurrencyZeroText}" FontSize="10" TextColor="#9CA3AF" HorizontalTextAlignment="End"/>
                                     <Label Grid.Row="4" Grid.Column="0" Text="Saldo" FontSize="11" FontAttributes="Bold" TextColor="#1D4ED8"/>
                                     <Label Grid.Row="4" Grid.Column="1" Text="{Binding TotalColonesText}" FontSize="11" FontAttributes="Bold" TextColor="#1D4ED8" HorizontalTextAlignment="End"/>
                                 </Grid>

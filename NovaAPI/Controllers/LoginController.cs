@@ -5,23 +5,19 @@ using System.Data.SqlClient;
 using System.Net;
 using System.Net.Http;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Web.Http;
 using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de autenticación de cajeros.
-    /// Consulta la tabla <c>Cashier</c> de la BD RMH POS con detección automática de columnas
-    /// para soportar distintas versiones del esquema.
-    /// </summary>
     public class LoginController : ApiController
     {
-        readonly string rmhConnectionString = ConfigurationManager.ConnectionStrings["RMHPOS"].ConnectionString;
+        readonly string rmhConnectionString = AppConfig.ConnectionString("RMHPOS");
      
 
-        [HttpGet]
-        public Cliente_App Get(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
+        private Cliente_App AuthenticateUser(int ID_CLIENTE, string LOGIN, string CLAVE, string TOKEN)
         {
             if (string.IsNullOrWhiteSpace(LOGIN))
                 return null;
@@ -37,6 +33,8 @@ namespace NovaAPI.Controllers
                     var idColumn = GetFirstExistingColumn(columns, "ID", "CashierID");
                     var nameColumn = GetFirstExistingColumn(columns, "Name", "FullName", "Description", "Login", "Number");
                     var storeColumn = GetFirstExistingColumn(columns, "StoreID", "ID_STORE", "Store");
+                    var securityLevelColumn = GetFirstExistingColumn(columns, "SecurityLevel");
+                    var privilegesColumn = GetFirstExistingColumn(columns, "Privileges");
 
                     if (string.IsNullOrWhiteSpace(loginColumn))
                         return null;
@@ -45,32 +43,44 @@ namespace NovaAPI.Controllers
                               BuildSelectColumn(idColumn, "ID_CLIENTE", "1") + ", " +
                               BuildSelectColumn(loginColumn, "US_LOGIN", "''") + ", " +
                               BuildSelectColumn(nameColumn, "US_NOMBRE", "''") + ", " +
-                              BuildSelectColumn(storeColumn, "US_ID_STORE", "0") +
+                              BuildSelectColumn(storeColumn, "US_ID_STORE", "0") + ", " +
+                              BuildSelectColumn(securityLevelColumn, "US_SECURITY_LEVEL", "0") + ", " +
+                              BuildSelectColumn(privilegesColumn, "US_PRIVILEGES", "0") + ", " +
+                              (string.IsNullOrWhiteSpace(passwordColumn)
+                                  ? "'' AS [US_PWD_STORED]"
+                                  : "ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(500), [" + passwordColumn + "]))), '') AS [US_PWD_STORED]") +
                               " FROM [Cashier] WHERE LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + loginColumn + "]))) = @login";
-
-                    if (!string.IsNullOrWhiteSpace(passwordColumn))
-                        sql += " AND ISNULL(LTRIM(RTRIM(CONVERT(NVARCHAR(100), [" + passwordColumn + "]))), '') = @password";
 
                     using (var command = new SqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@login", LOGIN.Trim());
-                        if (!string.IsNullOrWhiteSpace(passwordColumn))
-                            command.Parameters.AddWithValue("@password", (CLAVE ?? string.Empty).Trim());
 
                         using (var reader = command.ExecuteReader())
                         {
                             if (!reader.Read())
                                 return null;
 
-                            return new Cliente_App
+                            var storedPassword = ReadString(reader, "US_PWD_STORED", string.Empty);
+                            var inputPassword = (CLAVE ?? string.Empty).Trim();
+
+                            if (!PasswordMatches(inputPassword, storedPassword))
+                                return null;
+
+                            var clienteApp = new Cliente_App
                             {
                                 ID_CLIENTE = ReadInt(reader, "ID_CLIENTE", ID_CLIENTE),
                                 US_LOGIN = ReadString(reader, "US_LOGIN", LOGIN.Trim()),
                                 US_NOMBRE = ReadString(reader, "US_NOMBRE", LOGIN.Trim()),
                                 US_CLAVE = CLAVE,
                                 US_ID_STORE = ReadNullableInt(reader, "US_ID_STORE"),
-                                US_ESTADO = 1
+                                US_ESTADO = 1,
+                                US_SECURITY_LEVEL = (short)ReadInt(reader, "US_SECURITY_LEVEL", 0),
+                                US_PRIVILEGES = ReadInt(reader, "US_PRIVILEGES", 0)
                             };
+
+                            reader.Close();
+                            FillRoleInfo(connection, clienteApp.ID_CLIENTE, clienteApp);
+                            return clienteApp;
                         }
                     }
                 }
@@ -133,6 +143,103 @@ namespace NovaAPI.Controllers
             return int.TryParse(Convert.ToString(value), out parsed) ? parsed : (int?)null;
         }
 
+        static void FillRoleInfo(SqlConnection connection, int cashierId, Cliente_App cliente)
+        {
+            // Intenta PosRoleID primero, luego ManagerRoleID
+            const string sql =
+                "SELECT TOP 1 ar.Code, ar.Name, ar.Privileges " +
+                "FROM [RMH_LoginRole] lr " +
+                "INNER JOIN [RMH_ApplicationRole] ar " +
+                "    ON ar.ID = CASE WHEN lr.PosRoleID > 0 THEN lr.PosRoleID ELSE lr.ManagerRoleID END " +
+                "WHERE lr.CashierID = @cashierId";
+
+            try
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@cashierId", cashierId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            cliente.US_ROLE_CODE = ReadString(reader, "Code", string.Empty);
+                            cliente.US_ROLE_NAME = ReadString(reader, "Name", string.Empty);
+                            cliente.US_ROLE_PRIVILEGES = ReadString(reader, "Privileges", string.Empty);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Si las tablas de roles no existen, el login sigue funcionando sin rol asignado
+            }
+        }
+
+        static bool PasswordMatches(string inputPassword, string storedPassword)
+        {
+            // Sin contraseña: acceso libre
+            if (string.IsNullOrEmpty(storedPassword))
+                return true;
+
+            if (string.IsNullOrEmpty(inputPassword))
+                return false;
+
+            // Solo se aceptan contraseñas cifradas con AES por RMH Store Manager
+            string decrypted;
+            if (TryDecryptRmhPassword(storedPassword, out decrypted))
+                return string.Equals(inputPassword, decrypted, StringComparison.Ordinal);
+
+            return false;
+        }
+
+        // Default encryption key used by RMH.APP.Core.Cryptographer
+        private static readonly byte[] RmhAesKey = BuildRmhKey("eddef4dd187aa3a3660c76ec9");
+
+        static byte[] BuildRmhKey(string secret)
+        {
+            var utf16 = Encoding.Unicode.GetBytes(secret);
+            var key = new byte[32];
+            Array.Copy(utf16, 0, key, 0, 32);
+            return key;
+        }
+
+        static bool TryDecryptRmhPassword(string encryptedBase64, out string decrypted)
+        {
+            decrypted = null;
+            try
+            {
+                var allBytes = Convert.FromBase64String(encryptedBase64);
+                if (allBytes.Length < 32)
+                    return false;
+
+                var iv = new byte[16];
+                var cipher = new byte[allBytes.Length - 16];
+                Array.Copy(allBytes, 0, iv, 0, 16);
+                Array.Copy(allBytes, 16, cipher, 0, cipher.Length);
+
+                using (var aes = new RijndaelManaged())
+                {
+                    aes.KeySize = 256;
+                    aes.Key = RmhAesKey;
+                    aes.IV = iv;
+                    aes.Mode = CipherMode.CBC;
+                    aes.Padding = PaddingMode.PKCS7;
+
+                    using (var decryptor = aes.CreateDecryptor())
+                    {
+                        var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
+                        decrypted = Encoding.Unicode.GetString(plainBytes);
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
         [Route("api/Login")]
         [HttpPost]
@@ -141,7 +248,7 @@ namespace NovaAPI.Controllers
             if (request == null || string.IsNullOrWhiteSpace(request.LOGIN))
                 return null;
 
-            return Get(request.ID_CLIENTE, request.LOGIN, request.CLAVE ?? string.Empty, request.TOKEN ?? string.Empty);
+            return AuthenticateUser(request.ID_CLIENTE, request.LOGIN, request.CLAVE ?? string.Empty, request.TOKEN ?? string.Empty);
         }
 
         [Route("api/Login/PostUpdate")]
@@ -149,7 +256,6 @@ namespace NovaAPI.Controllers
         public HttpResponseMessage PostUpdate(Cliente_App Cliente)
         {
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
                 using (var wsCliente = new wsSecurityMain.FacturaMeCrContractClient())
@@ -160,9 +266,9 @@ namespace NovaAPI.Controllers
                 msg = Request.CreateResponse(HttpStatusCode.OK, resultado);
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al actualizar registro.");
             }
 
             return msg;

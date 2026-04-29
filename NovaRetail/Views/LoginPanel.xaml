@@ -25,7 +25,7 @@
             <BoxView Style="{StaticResource FormDivider}" Margin="0,0,0,0"/>
 
             <VerticalStackLayout Spacing="6">
-                <Label Text="Inicio Sesión"
+                <Label Text="Inicio de Sesión"
                        Style="{StaticResource LoginTitle}"/>
                 <Label Text="Acceso seguro al sistema Nova Retail"
                        Style="{StaticResource LoginSubtitle}"/>
@@ -72,9 +72,33 @@
                    IsVisible="{Binding HasError}"/>
 
             <VerticalStackLayout Spacing="10" Margin="0,10,0,0">
-                <Button Text="Iniciar Sesión"
-                        Command="{Binding LoginCommand}"
-                        Style="{StaticResource PrimaryActionButton}"/>
+                <Grid>
+                    <Button Text="Iniciar Sesión"
+                            Command="{Binding LoginCommand}"
+                            Style="{StaticResource PrimaryActionButton}"
+                            IsVisible="{Binding IsBusy, Converter={StaticResource InvertBoolConverter}}"/>
+
+                    <Border IsVisible="{Binding IsBusy}"
+                            BackgroundColor="{DynamicResource AccentBlue}"
+                            StrokeShape="RoundRectangle 8"
+                            StrokeThickness="0"
+                            HeightRequest="48"
+                            HorizontalOptions="Fill">
+                        <HorizontalStackLayout HorizontalOptions="Center"
+                                               VerticalOptions="Center"
+                                               Spacing="10">
+                            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                               Color="White"
+                                               WidthRequest="22"
+                                               HeightRequest="22"/>
+                            <Label Text="Iniciando sesión..."
+                                   TextColor="White"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
 
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                     <Button Grid.Column="0" Text="Cancelar"

@@ -9,27 +9,21 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de transacciones de venta.
-    /// Sincroniza transacciones y sus líneas de detalle hacia la BD AppCentral
-    /// mediante stored procedures (<c>spAVSCreaTransaction</c>, <c>spAVSCreaTransactionEntry</c>).
-    /// </summary>
     public class TransactionController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
-        /// <summary>
-        /// Sincroniza encabezados y detalles de transacciones de venta hacia AppCentral.
-        /// Es el endpoint de replicación cuando otra app necesita exportar ventas completas.
-        /// </summary>
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
         [HttpPost]
         public HttpResponseMessage Post(SyncTransaction syncTransactions)
         {
             List<Transaction> transactions = syncTransactions.transactions;
             List<TransactionEntry> TransactionEntry = syncTransactions.transactionEntries;
             HttpResponseMessage msg = null;
-            string registroActual = "";
             try
             {
+                if (db.Connection.State != System.Data.ConnectionState.Open)
+                    db.Connection.Open();
+                db.Transaction = db.Connection.BeginTransaction();
+
                 for (int i = 0; i <= transactions.Count() - 1; i++)
                 {
                     db.spAVSCreaTransaction(transactions[i].ShipToID, transactions[i].StoreID, transactions[i].TransactionNumber, transactions[i].BatchNumber, transactions[i].Time,
@@ -45,12 +39,15 @@ namespace NovaAPI.Controllers
                             Convert.ToDecimal(EntriesByTransactionID[j].SalesTax), EntriesByTransactionID[j].QuantityDiscountID, EntriesByTransactionID[j].ItemType, EntriesByTransactionID[j].ComputedQuantity, EntriesByTransactionID[j].TransactionTime,
                             Convert.ToBoolean(EntriesByTransactionID[j].IsAddMoney), EntriesByTransactionID[j].VoucherID, EntriesByTransactionID[j].PrecioEditado);
                     }
-                    msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
                 }
+
+                db.Transaction.Commit();
+                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
-            catch (Exception ex)
+            catch
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar transacciones: " + registroActual + " / " + ex.Message);
+                try { db.Transaction?.Rollback(); } catch { }
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error interno al sincronizar transacciones.");
             }
 
             return msg;

@@ -129,7 +129,7 @@ public static class TicketReceiptBuilder
             var taxPct = item.EffectiveTaxPercentage;
             if (taxPct > 0)
             {
-                var baseForTax = taxSystem == 1
+                var baseForTax = taxSystem > 0
                     ? netLine / (1m + taxPct / 100m)
                     : netLine;
                 var taxAmt = Math.Round(baseForTax * (taxPct / 100m), 2);

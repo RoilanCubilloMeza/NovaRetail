@@ -5,7 +5,7 @@ public class StoreConfigModel
     public int StoreID { get; set; }
     public int RegisterID { get; set; }
     public int BatchNumber { get; set; }
-    /// <summary>0 = IVA Excluido, 1 = IVA Incluido</summary>
+    /// <summary>0 = IVA Excluido, valores mayores a 0 = IVA Incluido. Controlado por TX-01 en AVS_Parametros (TX-01: 0=Incluido, 1=Excluido).</summary>
     public int TaxSystem { get; set; }
     public int QuoteExpirationDays { get; set; }
     public int DefaultTenderID { get; set; }
@@ -13,7 +13,9 @@ public class StoreConfigModel
     public string StoreAddress { get; set; } = string.Empty;
     public string StorePhone { get; set; } = string.Empty;
 
-    public string TaxSystemText => TaxSystem == 1 ? "IVA Incluido" : "IVA Excluido";
+    public bool IsTaxIncluded => TaxSystem > 0;
+
+    public string TaxSystemText => IsTaxIncluded ? "IVA Incluido" : "IVA Excluido";
 
     /// <summary>PriceSource a usar cuando el precio se sobreescribe hacia arriba (valor de PR-01 en AVS_Parametros).</summary>
     public int PriceOverridePriceSource { get; set; } = 1;
@@ -23,6 +25,21 @@ public class StoreConfigModel
 
     /// <summary>VE-02: Si el vendedor es obligatorio para facturar.</summary>
     public bool RequireSalesRep { get; set; }
+
+    /// <summary>Porcentaje de impuesto por defecto (primer registro de Tax en la DB).</summary>
+    public decimal DefaultTaxPercentage { get; set; } = 13m;
+
+    /// <summary>Tipo de cambio por defecto (TC-01 en AVS_Parametros).</summary>
+    public decimal DefaultExchangeRate { get; set; }
+
+    /// <summary>Código del cliente contado por defecto (CL-01 en AVS_Parametros).</summary>
+    public string DefaultClientId { get; set; } = "00001";
+
+    /// <summary>Nombre del cliente contado por defecto (CL-02 en AVS_Parametros).</summary>
+    public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
+
+    /// <summary>IT-01: IDs de ItemType no inventariables separados por coma (ej: "7,5,9").</summary>
+    public string NonInventoryItemTypes { get; set; } = string.Empty;
 }
 
 public class TenderModel : System.ComponentModel.INotifyPropertyChanged
@@ -32,18 +49,44 @@ public class TenderModel : System.ComponentModel.INotifyPropertyChanged
 
     public int ID { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     public int CurrencyID { get; set; }
     public int DisplayOrder { get; set; }
+
+    /// <summary>Código de medio de pago para facturación electrónica (01=Efectivo, 02=Tarjeta, 04=Transferencia, etc.).</summary>
+    public string MedioPagoCodigo { get; set; } = string.Empty;
 
     /// <summary>Símbolo de moneda para mostrar en UI</summary>
     public string CurrencySymbol => CurrencyID switch
     {
-        1 => "₡",
+        1 => UiConfig.CurrencySymbol,
         2 => "$",
         _ => "#"
     };
 
     public string DisplayText => $"{Description}  ({CurrencySymbol})";
+
+    public string ResolveFiscalMedioPagoCodigo()
+    {
+        if (!string.IsNullOrWhiteSpace(MedioPagoCodigo))
+            return MedioPagoCodigo.Trim();
+
+        var description = (Description ?? string.Empty).Trim().ToUpperInvariant();
+        if (description.Contains("CRÉDITO") || description.Contains("CREDITO"))
+            return "99";
+
+        var tenderCode = (Code ?? string.Empty).Trim();
+        if (tenderCode.Length >= 2 && char.IsDigit(tenderCode[0]) && char.IsDigit(tenderCode[1]))
+            return tenderCode.Substring(0, 2);
+
+        if (description.Contains("EFECTIVO") || description.Contains("CONTADO"))
+            return "01";
+        if (description.Contains("TARJETA"))
+            return "02";
+        if (description.Contains("TRANSFER") || description.Contains("SINPE"))
+            return "04";
+        return string.Empty;
+    }
 
     /// <summary>True si este medio de pago es de tipo crédito (cuenta corriente del cliente).</summary>
     public bool IsCredit => (Description ?? string.Empty).Contains("crédito", StringComparison.OrdinalIgnoreCase)

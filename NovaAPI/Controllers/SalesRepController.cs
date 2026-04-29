@@ -5,23 +5,15 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Web.Http;
+using NovaAPI;
 
-/// <summary>
-/// Controlador de representantes de ventas.
-/// Consulta la tabla <c>SalesRep</c> con detección automática de columnas
-/// para soportar distintas versiones del esquema RMH.
-/// </summary>
 public class SalesRepController : ApiController
 {
-    /// <summary>
-    /// Devuelve la lista de vendedores configurados en RMH.
-    /// Hace detección dinámica de columnas para tolerar variaciones entre instalaciones y versiones.
-    /// </summary>
     [HttpGet]
     [Route("api/SalesRep/Get")]
     public IHttpActionResult Get()
     {
-        var connectionString = ConfigurationManager.ConnectionStrings["RMHPOS"]?.ConnectionString;
+        var connectionString = AppConfig.ConnectionString("RMHPOS");
         if (string.IsNullOrWhiteSpace(connectionString))
             return Content(HttpStatusCode.InternalServerError, "Connection string RMHPOS not configured.");
 
@@ -94,9 +86,9 @@ public class SalesRepController : ApiController
 
             return Ok(list);
         }
-        catch (Exception ex)
+        catch
         {
-            return Content(HttpStatusCode.InternalServerError, $"Error al obtener vendedores: {ex.Message}");
+            return Content(HttpStatusCode.InternalServerError, "Error interno al obtener vendedores.");
         }
     }
 

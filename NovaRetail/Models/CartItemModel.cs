@@ -3,11 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace NovaRetail.Models
 {
-    /// <summary>
-    /// Línea del carrito de compras. Contiene el artículo, cantidad, precio override,
-    /// descuento por línea, exoneración fiscal y vendedor asignado.
-    /// Expone propiedades calculadas para totales, textos de presentación e indicadores de estado.
-    /// </summary>
     public class CartItemModel : INotifyPropertyChanged
     {
         private decimal _quantity = 1m;
@@ -24,15 +19,18 @@ namespace NovaRetail.Models
         private string _salesRepName = string.Empty;
 
         public int ItemID { get; set; }
+        public int SourceOrderEntryID { get; set; }
         public string Emoji { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public decimal UnitPriceColones { get; set; }
+        public decimal Cost { get; set; }
         public decimal TaxPercentage { get; set; }
         public int TaxID { get; set; }
         public string Cabys { get; set; } = string.Empty;
         public decimal Stock { get; set; }
+        public int ItemType { get; set; }
 
         public decimal? OverridePriceColones
         {
@@ -217,11 +215,25 @@ namespace NovaRetail.Models
 
         public string QuantityText => $"{Quantity:0.##} ×";
         public string QuantityPrefix => $"x{Quantity:0.##}";
-        public string UnitPriceColonesText => $"₡{EffectivePriceColones:N2}";
-        public string OriginalPriceColonesText => $"₡{UnitPriceColones:N2}";
-        public string TotalColonesText => $"₡{EffectivePriceColones * Quantity * DiscountFactor:N2}";
+        public string UnitPriceColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones:N2}";
+        public string OriginalPriceColonesText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
+        public string TotalColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones * Quantity * DiscountFactor:N2}";
         public string UnitPriceUsdText => $"${UnitPrice:F2}";
         public string TotalUsdText => $"${EffectiveUnitPriceUsd * Quantity * DiscountFactor:F2}";
+
+        /// <summary>
+        /// Fires property-changed notifications for all price-derived fields.
+        /// Call after directly updating <see cref="UnitPriceColones"/> or <see cref="UnitPrice"/>.
+        /// </summary>
+        public void NotifyPriceChanged()
+        {
+            OnPropertyChanged(nameof(EffectivePriceColones));
+            OnPropertyChanged(nameof(UnitPriceColonesText));
+            OnPropertyChanged(nameof(OriginalPriceColonesText));
+            OnPropertyChanged(nameof(UnitPriceUsdText));
+            OnPropertyChanged(nameof(TotalColonesText));
+            OnPropertyChanged(nameof(TotalUsdText));
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)

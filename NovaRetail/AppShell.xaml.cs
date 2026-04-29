@@ -3,9 +3,6 @@ using NovaRetail.Pages;
 
 namespace NovaRetail;
 
-/// <summary>
-/// Define el shell principal y registra las rutas navegables de la aplicación.
-/// </summary>
 public partial class AppShell : Shell
 {
     public AppShell(IServiceProvider services)
@@ -14,5 +11,11 @@ public partial class AppShell : Shell
         MainContent.ContentTemplate = new DataTemplate(() => services.GetRequiredService<MainPage>());
         Routing.RegisterRoute(nameof(ClientePage), typeof(ClientePage));
         Routing.RegisterRoute(nameof(InvoiceHistoryPage), typeof(InvoiceHistoryPage));
+        Routing.RegisterRoute(nameof(CreditNotePage), typeof(CreditNotePage));
+        Routing.RegisterRoute(nameof(CategoryConfigPage), typeof(CategoryConfigPage));
+        Routing.RegisterRoute(nameof(ParametrosPage), typeof(ParametrosPage));
+        Routing.RegisterRoute(nameof(MantenimientosPage), typeof(MantenimientosPage));
+        Routing.RegisterRoute(nameof(UsuariosPage), typeof(UsuariosPage));
+        Routing.RegisterRoute(nameof(ManagerDashboardPage), typeof(ManagerDashboardPage));
     }
 }

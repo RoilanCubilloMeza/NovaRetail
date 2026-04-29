@@ -10,5 +10,11 @@ public interface IClienteService
     Task<bool> GuardarAsync(ClienteModel cliente);
     Task<string> BuscarActividadAsync(string codActividad);
     Task<IReadOnlyList<string>> ObtenerTiposClienteAsync();
+    Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync();
+    Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria);
+    Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria);
+    Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber);
+    Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber);
+    Task<(bool Success, string Message)> RegistrarAbonoAsync(AbonoPaymentRequest request);
 }
 

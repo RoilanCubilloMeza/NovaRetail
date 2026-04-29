@@ -13,7 +13,7 @@
                 VerticalOptions="Center"
                 Padding="24">
 
-            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="14">
 
                 <!-- Titulo -->
                 <Label Grid.Row="0"
@@ -22,7 +22,7 @@
                        TextColor="#111827"/>
 
                 <!-- Barra de busqueda -->
-                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <Entry Grid.Column="0"
                            Placeholder="Buscar por # orden, cliente o cajero..."
                            Text="{Binding SearchText}"
@@ -30,7 +30,7 @@
                            FontSize="13"
                            BackgroundColor="#F9FAFB"
                            HeightRequest="40"/>
-                    <Button Grid.Column="1"
+                        <Button Grid.Column="1"
                             Text="Buscar"
                             Command="{Binding SearchCommand}"
                             FontSize="12"
@@ -39,10 +39,63 @@
                             HeightRequest="40"
                             CornerRadius="8"
                             Padding="16,0"/>
+                    <Grid Grid.Column="2"
+                          WidthRequest="44"
+                          HeightRequest="40">
+                        <Button Text="&#x21BB;"
+                                Command="{Binding RefreshCommand}"
+                                FontSize="18"
+                                BackgroundColor="#E5E7EB"
+                                TextColor="#111827"
+                                HeightRequest="40"
+                                WidthRequest="44"
+                                CornerRadius="8"
+                                Padding="0">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button"
+                                             Binding="{Binding IsBusy}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="False"/>
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+
+                        <Border IsVisible="False"
+                                BackgroundColor="#E5E7EB"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                HeightRequest="40"
+                                WidthRequest="44"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsBusy}"
+                                             Value="True">
+                                    <Setter Property="IsVisible"
+                                            Value="True"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                               IsVisible="{Binding IsBusy}"
+                                               Color="#111827"
+                                               HeightRequest="22"
+                                               WidthRequest="22"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
                 </Grid>
 
+                      <Label Grid.Row="2"
+                          Text="{Binding LastRefreshText}"
+                          IsVisible="{Binding HasLastRefreshText}"
+                          FontSize="11"
+                          TextColor="#6B7280"/>
+
                 <!-- Lista de resultados -->
-                <CollectionView Grid.Row="2"
+                      <CollectionView Grid.Row="3"
                                 ItemsSource="{Binding Orders}"
                                 SelectionMode="None">
                     <CollectionView.EmptyView>
@@ -65,7 +118,7 @@
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.SelectCommand}"
                                         CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
 
                                     <!-- Titulo + Total -->
                                     <Label Grid.Row="0" Grid.Column="0"
@@ -109,6 +162,21 @@
                                         </Label.FormattedText>
                                     </Label>
 
+                                        <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                            Text="{Binding CancelActionText}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.CancelOrderCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding CanCancel}"
+                                            FontSize="12"
+                                            BackgroundColor="#FEF2F2"
+                                            TextColor="#B91C1C"
+                                            BorderColor="#FCA5A5"
+                                            BorderWidth="1"
+                                            CornerRadius="8"
+                                            HorizontalOptions="Start"
+                                            Padding="12,6"
+                                            Margin="0,8,0,0"/>
+
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -116,16 +184,34 @@
                 </CollectionView>
 
                 <!-- ActivityIndicator -->
-                <ActivityIndicator Grid.Row="2"
-                                   IsRunning="{Binding IsBusy}"
-                                   IsVisible="{Binding IsBusy}"
-                                   Color="#3B82F6"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Start"
-                                   Margin="0,20"/>
+                <Grid Grid.Row="3"
+                      IsVisible="{Binding IsBusy}"
+                      BackgroundColor="#66FFFFFF">
+                    <Border BackgroundColor="White"
+                            Stroke="#BFDBFE"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14"
+                            Padding="20,16"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="10">
+                            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                               IsVisible="{Binding IsBusy}"
+                                               Color="#2563EB"
+                                               HeightRequest="34"
+                                               WidthRequest="34"
+                                               HorizontalOptions="Center"/>
+                            <Label Text="Actualizando órdenes..."
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#1F2937"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
 
                 <!-- Boton Cerrar -->
-                <Button Grid.Row="3"
+                <Button Grid.Row="4"
                         Text="Cerrar"
                         Command="{Binding CloseCommand}"
                         FontSize="13"

@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NovaRetail.ViewModels"
+             x:Class="NovaRetail.Pages.ParametrosPage"
+             x:Name="ParametrosPageRoot"
+             Title="Parámetros del Sistema"
+             BackgroundColor="{DynamicResource PageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Padding="20">
+
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+            <Border Grid.Column="0"
+                    BackgroundColor="{DynamicResource PageBackground}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    HorizontalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Volver"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource SlateActive}"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                <Label Text="⚙️ Parámetros del Sistema"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource PanelNavy}"
+                       HorizontalTextAlignment="Center"/>
+                <Label Text="Configuración general y formas de pago"
+                       FontSize="{DynamicResource UIFontSM}"
+                       TextColor="{DynamicResource Gray500}"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <Border Grid.Column="2"
+                    BackgroundColor="{DynamicResource GreenSurface}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="14,8"
+                    HorizontalOptions="End"
+                    IsVisible="{Binding HasStatus}">
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="{DynamicResource UIFontSM}"
+                       FontAttributes="Bold"
+                       TextColor="#166534"/>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1"
+                BackgroundColor="White"
+                Stroke="{DynamicResource Gray200Brush}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 20"
+                Padding="18">
+            <VerticalStackLayout Spacing="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Configura por sección"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{DynamicResource PanelNavy}"/>
+                        <Label Text="{Binding DashboardResumen}"
+                               FontSize="13"
+                               TextColor="{DynamicResource Gray500}"/>
+                    </VerticalStackLayout>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#F8FAFC"
+                            Stroke="#E2E8F0"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="12,8"
+                            VerticalOptions="Center">
+                        <Label Text="{Binding OperacionResumen}"
+                               FontSize="11"
+                               TextColor="{DynamicResource Gray500}"/>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#EFF6FF"
+                            Stroke="#BFDBFE"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16"
+                            Padding="16,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ShowParametrosSectionCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsParametrosSectionActive}" Value="False">
+                                <Setter Property="BackgroundColor" Value="White"/>
+                                <Setter Property="Stroke" Value="#E2E8F0"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border BackgroundColor="#DBEAFE"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 10"
+                                    Padding="8,6"
+                                    VerticalOptions="Start">
+                                <Label Text="⚙️" FontSize="14"/>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Parámetros"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource PanelNavy}"/>
+                                <Label Text="Editar y guardar uno por uno"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource Gray500}"/>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="2" Spacing="0" HorizontalOptions="End">
+                                <Label Text="{Binding ParametrosCount}"
+                                       FontSize="26"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource AccentBlue}"
+                                       HorizontalTextAlignment="End"/>
+                                <Label Text="activos"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource Gray500}"
+                                       HorizontalTextAlignment="End"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="White"
+                            Stroke="#E2E8F0"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16"
+                            Padding="16,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ShowTendersSectionCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsTendersSectionActive}" Value="True">
+                                <Setter Property="BackgroundColor" Value="#FFF7ED"/>
+                                <Setter Property="Stroke" Value="#FED7AA"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border BackgroundColor="#FFEDD5"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 10"
+                                    Padding="8,6"
+                                    VerticalOptions="Start">
+                                <Label Text="💳" FontSize="14"/>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Tenders"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource PanelNavy}"/>
+                                <Label Text="Revisar y guardar por bloque"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource Gray500}"/>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="2" Spacing="0" HorizontalOptions="End">
+                                <Label Text="{Binding TendersConfiguradosCount}"
+                                       FontSize="26"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource AccentOrange}"
+                                       HorizontalTextAlignment="End"/>
+                                <Label Text="cargados"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource Gray500}"
+                                       HorizontalTextAlignment="End"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <ActivityIndicator Grid.Row="2"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{DynamicResource AccentBlue}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"
+                           WidthRequest="40"
+                           HeightRequest="40"/>
+
+                <Grid Grid.Row="2"
+                            IsVisible="{Binding IsBusy, Converter={StaticResource InvertBoolConverter}}">
+
+                        <Border Style="{StaticResource PanelCard}"
+                                        IsVisible="{Binding IsParametrosSectionActive}">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Border Grid.Row="0" Style="{StaticResource PanelHeaderBar}" Padding="18,14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="📋 Parámetros Generales"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                                <Label Text="Edite un valor y guárdelo sin salir del panel."
+                                       FontSize="11"
+                                       TextColor="#CBD5E1"/>
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#334155"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 999"
+                                    Padding="12,6"
+                                    VerticalOptions="Center">
+                                <Label Text="Guardado individual"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            BackgroundColor="#F8FAFC"
+                            StrokeThickness="0"
+                            Padding="18,12">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Border BackgroundColor="#DBEAFE"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 10"
+                                    Padding="8,6"
+                                    VerticalOptions="Center">
+                                <Label Text="i"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource AccentBlue}"/>
+                            </Border>
+                            <Label Grid.Column="1"
+                                   Text="Los cambios pendientes se resaltan visualmente para que puedas detectar qué falta guardar antes de salir."
+                                   FontSize="12"
+                                   TextColor="{DynamicResource Gray500}"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="12,12,12,14">
+                        <Label x:Name="ParametrosEmptyLabel"
+                               Text="No se encontraron parámetros generales."
+                               FontSize="{DynamicResource UIFontMD}"
+                               TextColor="{DynamicResource Gray400}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Margin="20"
+                               IsVisible="False"/>
+
+                        <ScrollView x:Name="ParametrosScrollView" IsVisible="False">
+                            <VerticalStackLayout x:Name="ParametrosListHost"
+                                                 Spacing="10"
+                                                 Padding="2,0,2,4"/>
+                        </ScrollView>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelCard}"
+                    IsVisible="{Binding IsTendersSectionActive}">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Style="{StaticResource PanelHeaderBar}" Padding="18,14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="💳 Formas de Pago"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                                <Label Text="Mapa de códigos tender para ventas, pagos y notas de crédito."
+                                       FontSize="11"
+                                       TextColor="#CBD5E1"/>
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#7C2D12"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 999"
+                                    Padding="12,6"
+                                    VerticalOptions="Center">
+                                <Label Text="Guardado por bloque"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <ScrollView Grid.Row="1" Padding="16,16,16,18">
+                        <VerticalStackLayout Spacing="14">
+                            <Border BackgroundColor="#F0FDF4"
+                                    Stroke="#BBF7D0"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14"
+                                    Padding="16,14">
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="💡 Cómo usar esta pantalla"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#166534"/>
+                                    <Label Text="Toque una etiqueta de color para activarla o desactivarla en cada forma de pago. Cuando está activa se muestra con color sólido. Guarde al finalizar."
+                                           FontSize="12"
+                                           TextColor="#166534"
+                                           LineBreakMode="WordWrap"/>
+                                    <FlexLayout Wrap="Wrap" Direction="Row" JustifyContent="Start" Margin="0,4,0,0">
+                                        <Border BackgroundColor="#2563EB" StrokeThickness="0" StrokeShape="RoundRectangle 999" Padding="12,6" Margin="0,0,8,0">
+                                            <Label Text="● Ventas" FontSize="11" FontAttributes="Bold" TextColor="White"/>
+                                        </Border>
+                                        <Border BackgroundColor="#EA580C" StrokeThickness="0" StrokeShape="RoundRectangle 999" Padding="12,6" Margin="0,0,8,0">
+                                            <Label Text="● Pagos" FontSize="11" FontAttributes="Bold" TextColor="White"/>
+                                        </Border>
+                                        <Border BackgroundColor="#DC2626" StrokeThickness="0" StrokeShape="RoundRectangle 999" Padding="12,6" Margin="0,0,8,0">
+                                            <Label Text="● Nota de Crédito" FontSize="11" FontAttributes="Bold" TextColor="White"/>
+                                        </Border>
+                                    </FlexLayout>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Tender rows rendered in code-behind -->
+                            <VerticalStackLayout x:Name="TenderCheckHost" Spacing="6"/>
+
+                            <!-- Guardar tenders button -->
+                            <Border BackgroundColor="{DynamicResource AccentBlue}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12"
+                                    Padding="16,12"
+                                    Margin="0,4,0,0">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SaveTenderSettingsCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Border BackgroundColor="#1D4ED8"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 10"
+                                            Padding="8,5"
+                                            VerticalOptions="Center">
+                                        <Label Text="💾" FontSize="15"/>
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="Guardar tenders"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <ActivityIndicator IsRunning="{Binding IsSaving}"
+                                               IsVisible="{Binding IsSaving}"
+                                               Color="{DynamicResource AccentBlue}"
+                                               WidthRequest="24"
+                                               HeightRequest="24"
+                                               HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+
+</ContentPage>

@@ -151,6 +151,9 @@
     <Compile Include="AppCentral.cs">
       <DependentUpon>AppCentral.dbml</DependentUpon>
     </Compile>
+    <Compile Include="AppConfig.cs" />
+    <Compile Include="Security\ApiKeyHandler.cs" />
+    <Compile Include="SearchSynonyms.cs" />
     <Compile Include="AppCentral.designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -171,6 +174,7 @@
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Compile>
     <Compile Include="Controllers\AR_LedgerEntryController.cs" />
+    <Compile Include="Controllers\CategoriesController.cs" />
     <Compile Include="Controllers\CustomersController.cs" />
     <Compile Include="Controllers\AR_TransactionController.cs" />
     <Compile Include="Controllers\EmailController.cs" />
@@ -181,6 +185,13 @@
     <Compile Include="Controllers\LocationController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\MediaController.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.Holds.cs" />
+    <Compile Include="Controllers\NovaRetailManagerController.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.AccountsReceivable.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.InvoiceHistory.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.IntegraFast.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.Orders.cs" />
+    <Compile Include="Controllers\NovaRetailSalesController.Quotes.cs" />
     <Compile Include="Controllers\NovaRetailSalesController.cs" />
     <Compile Include="Controllers\OrdersController.cs" />
     <Compile Include="Controllers\OrderEntrysController.cs" />
@@ -191,6 +202,8 @@
     <Compile Include="Controllers\TenderEntryController.cs" />
     <Compile Include="Controllers\TransactionController.cs" />
     <Compile Include="Controllers\UtilidadesController.cs" />
+    <Compile Include="Controllers\ParametrosController.cs" />
+    <Compile Include="Controllers\UsuariosController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -199,9 +212,12 @@
     <Compile Include="Models\AR_Transaction.cs" />
     <Compile Include="Models\Cliente_App.cs" />
     <Compile Include="Models\Customer.cs" />
+    <Compile Include="Models\CustomerCreditInfoDto.cs" />
+    <Compile Include="Models\CreditPaymentModels.cs" />
     <Compile Include="Models\CustomerLookupDto.cs" />
     <Compile Include="Models\LoginRequest.cs" />
     <Compile Include="Models\NovaRetailCreateQuoteModels.cs" />
+    <Compile Include="Models\NovaRetailManagerModels.cs" />
     <Compile Include="Models\NovaRetailCreateSaleModels.cs" />
     <Compile Include="Models\Payment.cs" />
     <Compile Include="Models\PickingOrderEntry.cs" />
@@ -220,6 +236,8 @@
     <Compile Include="Models\TransactionEntry.cs" />
     <Compile Include="Models\UserLogin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\NovaRetailSalesSqlMapper.cs" />
+    <Compile Include="Services\NovaRetailAuditLogger.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -578,7 +596,9 @@
     <Content Include="Scripts\umd\popper-utils.min.js" />
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
-    <Content Include="SQL\setup_novaretail_sale.sql" />
+    <Content Include="Deployment\Script\Script.sql">
+      <Link>Deployment\Scripts\Script.sql</Link>
+    </Content>
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>

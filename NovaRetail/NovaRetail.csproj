@@ -63,10 +63,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="RetailHero.POS.Core">
+	  <Reference Include="RetailHero.POS.Core" Condition="Exists('..\..\..\CIFASA\RMH POS\RMH POS SDK\Libs\RetailHero.POS.Core.dll')">
 	    <HintPath>..\..\..\CIFASA\RMH POS\RMH POS SDK\Libs\RetailHero.POS.Core.dll</HintPath>
 	  </Reference>
-	  <Reference Include="RetailHero.POS.Core.Shared">
+	  <Reference Include="RetailHero.POS.Core.Shared" Condition="Exists('..\..\..\CIFASA\RMH POS\RMH POS SDK\Libs\RetailHero.POS.Core.Shared.dll')">
 	    <HintPath>..\..\..\CIFASA\RMH POS\RMH POS SDK\Libs\RetailHero.POS.Core.Shared.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
@@ -138,6 +138,12 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\SalesRepPickerPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\WorkOrderActionPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\WorkOrderPartialPickupPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>

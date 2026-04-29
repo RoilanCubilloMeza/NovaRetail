@@ -1,8 +1,5 @@
 namespace NovaRetail.State;
 
-/// <summary>
-/// Store liviano inspirado en Redux para centralizar el estado compartido de la UI.
-/// </summary>
 public sealed class AppStore
 {
     private readonly object _sync = new();
@@ -19,9 +16,6 @@ public sealed class AppStore
 
     public event Action<AppState>? StateChanged;
 
-    /// <summary>
-    /// Aplica una acción al estado actual y notifica a los suscriptores cuando hay cambios.
-    /// </summary>
     public void Dispatch(IAppAction action)
     {
         AppState nextState;
@@ -36,5 +30,13 @@ public sealed class AppStore
         }
 
         StateChanged?.Invoke(nextState);
+    }
+
+    public void Reset()
+    {
+        lock (_sync)
+            _state = new AppState();
+
+        StateChanged?.Invoke(_state);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.Common;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -9,18 +10,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de entradas del libro mayor de cuentas por cobrar.
-    /// Sincroniza entradas y sus detalles hacia la BD AppCentral.
-    /// </summary>
     public class AR_LedgerEntryController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
-        /// <summary>
-        /// Recibe una sincronización compuesta por encabezados y detalles de ledger.
-        /// Inserta ambos bloques en AppCentral mediante stored procedures para mantener consistencia contable.
-        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(SyncLedgerEntry SyncLedgerEntry)
         {
@@ -30,6 +23,10 @@ namespace NovaAPI.Controllers
             string registroActual = "";
             try
             {
+                if (db.Connection.State != System.Data.ConnectionState.Open)
+                    db.Connection.Open();
+                db.Transaction = db.Connection.BeginTransaction();
+
                 for (int i = 0; i <= LedgerEntries.Count() - 1; i++)
                 {
                     string ClosedDate = LedgerEntries[i].ClosingDate == null ? "" : LedgerEntries[i].ClosingDate.Value.ToString("yyyy-MM-dd HH:mm:ss");
@@ -39,15 +36,21 @@ namespace NovaAPI.Controllers
                     {
                         db.spAVSCrea_AR_LedgerEntryDetail(DetailsByLedgerEntryID[j].ID, DetailsByLedgerEntryID[j].LedgerEntryID, DetailsByLedgerEntryID[j].LedgerType, DetailsByLedgerEntryID[j].DueDate, DetailsByLedgerEntryID[j].PostingDate, DetailsByLedgerEntryID[j].DetailType, DetailsByLedgerEntryID[j].Amount, DetailsByLedgerEntryID[j].AmountLCY, DetailsByLedgerEntryID[j].AmountACY, DetailsByLedgerEntryID[j].AppliedEntryID, DetailsByLedgerEntryID[j].AppliedAmount, DetailsByLedgerEntryID[j].UnapplyEntryID, DetailsByLedgerEntryID[j].UnapplyReasonID, DetailsByLedgerEntryID[j].AppReference, DetailsByLedgerEntryID[j].CashierID, DetailsByLedgerEntryID[j].StoreID);
                     }
-                    msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
+                    registroActual = "Registro " + i.ToString();
                 }
+
+                db.Transaction.Commit();
+                msg = Request.CreateResponse(HttpStatusCode.OK, "Registro actualizado");
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar ledger entries: " + registroActual + " / " + ex.Message);
+                try { db.Transaction?.Rollback(); } catch { }
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + registroActual + " / " + ex.Message.ToString());
             }
 
             return msg;
         }
     }
-}
+}   
+
+

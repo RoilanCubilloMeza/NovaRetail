@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NovaRetail.Views.WorkOrderPartialPickupPopup">
+
+    <Grid>
+        <BoxView Color="#000000" Opacity="0.55"/>
+
+        <Border BackgroundColor="White"
+                Stroke="#E2E8F0"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 16"
+                MaximumWidthRequest="760"
+                MaximumHeightRequest="780"
+                Margin="20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Padding="0"
+                Shadow="{x:Null}">
+
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="0">
+
+                <Border Grid.Row="0"
+                        BackgroundColor="#0F172A"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 16,16,0,0"
+                        Padding="22,16">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding Title}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"/>
+                        <Label Text="{Binding Subtitle}"
+                               FontSize="12"
+                               TextColor="#CBD5E1"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <CollectionView Grid.Row="1"
+                                ItemsSource="{Binding Lines}"
+                                SelectionMode="None"
+                                Margin="16,14,16,0">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout HorizontalOptions="Center"
+                                             VerticalOptions="Center"
+                                             Padding="20,40">
+                            <Label Text="No hay líneas disponibles para recoger parcialmente."
+                                   FontSize="13"
+                                   TextColor="#94A3B8"
+                                   HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,10"
+                                    Padding="16,14"
+                                    BackgroundColor="#F8FAFC"
+                                    Stroke="#E2E8F0"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 12">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      RowDefinitions="Auto,Auto"
+                                      ColumnSpacing="16"
+                                      RowSpacing="8">
+                                    <VerticalStackLayout Grid.Row="0"
+                                                         Grid.Column="0"
+                                                         Spacing="4">
+                                        <Label Text="{Binding Description}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="#0F172A"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Text="{Binding CodeText}"
+                                               FontSize="11"
+                                                 TextColor="#64748B"/>
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Grid.Row="0"
+                                                         Grid.Column="1"
+                                                         Spacing="4"
+                                                         HorizontalOptions="End">
+                                        <Label Text="{Binding AvailableQuantityText}"
+                                               FontSize="11"
+                                               TextColor="#475569"
+                                               HorizontalTextAlignment="End"/>
+                                        <Label Text="{Binding RemainingQuantityText}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="#1D4ED8"
+                                               HorizontalTextAlignment="End"/>
+                                    </VerticalStackLayout>
+
+                                    <Grid Grid.Row="1"
+                                          Grid.Column="0"
+                                          Grid.ColumnSpan="2"
+                                          ColumnDefinitions="44,110,44,*"
+                                          ColumnSpacing="10">
+                                        <Button Grid.Column="0"
+                                                Text="-"
+                                                Command="{Binding DecreaseCommand}"
+                                                BackgroundColor="#E2E8F0"
+                                                TextColor="#0F172A"
+                                                FontAttributes="Bold"
+                                                CornerRadius="10"
+                                                HeightRequest="42"/>
+
+                                        <Entry Grid.Column="1"
+                                               Text="{Binding SelectedQuantityText}"
+                                               Keyboard="Numeric"
+                                               HorizontalTextAlignment="Center"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="#0F172A"
+                                               BackgroundColor="White"
+                                               HeightRequest="42"/>
+
+                                        <Button Grid.Column="2"
+                                                Text="+"
+                                                Command="{Binding IncreaseCommand}"
+                                                BackgroundColor="#DBEAFE"
+                                                TextColor="#1D4ED8"
+                                                FontAttributes="Bold"
+                                                CornerRadius="10"
+                                                HeightRequest="42"/>
+
+                                        <Label Grid.Column="3"
+                                               Text="Cantidad a llevar ahora"
+                                               FontSize="12"
+                                               TextColor="#64748B"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <VerticalStackLayout Grid.Row="2"
+                                     Spacing="10"
+                                     Padding="20,14,20,20">
+                    <Border BackgroundColor="#EFF6FF"
+                            Stroke="#BFDBFE"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10"
+                            Padding="14,10">
+                        <Label Text="{Binding SummaryText}"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="#1D4ED8"/>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Grid.Column="0"
+                                Text="Cancelar"
+                                Command="{Binding CancelCommand}"
+                                BackgroundColor="#F1F5F9"
+                                TextColor="#334155"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                CornerRadius="10"
+                                HeightRequest="46"/>
+
+                        <Button Grid.Column="1"
+                                Text="Continuar"
+                                Command="{Binding ConfirmCommand}"
+                                IsEnabled="{Binding CanConfirm}"
+                                BackgroundColor="#2563EB"
+                                TextColor="White"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                CornerRadius="10"
+                                HeightRequest="46"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

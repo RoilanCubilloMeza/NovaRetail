@@ -9,7 +9,7 @@
     <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0"
           SizeChanged="OnMainGridSizeChanged">
         <views:CartPanel     Grid.Column="0"/>
-        <views:ProductsPanel Grid.Column="1"/>
+        <views:ProductsPanel Grid.Column="1" BindingContext="{Binding ProductCatalog}"/>
         <views:ActionsPanel  Grid.Column="2"/>
 
         <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->
@@ -53,6 +53,18 @@
             <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
         </Grid>
 
+        <!-- Work-order action overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsWorkOrderActionVisible}">
+            <views:WorkOrderActionPopup BindingContext="{Binding WorkOrderActionVm}"/>
+        </Grid>
+
+        <!-- Work-order partial pickup overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsWorkOrderPartialPickupVisible}">
+            <views:WorkOrderPartialPickupPopup BindingContext="{Binding WorkOrderPartialPickupVm}"/>
+        </Grid>
+
         <!-- Quote receipt overlay (Proforma) -->
         <Grid Grid.Column="0" Grid.ColumnSpan="3"
               IsVisible="{Binding IsQuoteReceiptVisible}">
@@ -63,6 +75,24 @@
         <Grid Grid.Column="0" Grid.ColumnSpan="3"
               IsVisible="{Binding IsSalesRepPickerVisible}">
             <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
+        </Grid>
+
+        <!-- Customer search overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCustomerSearchVisible}">
+            <views:CustomerSearchPopup BindingContext="{Binding CustomerSearchVm}"/>
+        </Grid>
+
+        <!-- Credit payment search overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCreditPaymentSearchVisible}">
+            <views:CreditPaymentSearchPopup BindingContext="{Binding CreditPaymentSearchVm}"/>
+        </Grid>
+
+        <!-- Credit payment detail overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              IsVisible="{Binding IsCreditPaymentDetailVisible}">
+            <views:CreditPaymentDetailPopup BindingContext="{Binding CreditPaymentDetailVm}"/>
         </Grid>
     </Grid>
 

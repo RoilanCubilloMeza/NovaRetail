@@ -6,10 +6,6 @@ using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
 
-/// <summary>
-/// Elemento seleccionable que envuelve un <see cref="ReasonCodeModel"/> para presentarlo en la UI.
-/// Separa la información de negocio del estado de selección visual del popup.
-/// </summary>
 public class SelectableReasonCode : INotifyPropertyChanged
 {
     private bool _isSelected;
@@ -30,11 +26,6 @@ public class SelectableReasonCode : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-/// <summary>
-/// ViewModel del popup de justificación de precio.
-/// Presenta los códigos de motivo disponibles para cambios de precio o descuentos
-/// y devuelve el código seleccionado al flujo principal del POS.
-/// </summary>
 public class PriceJustificationViewModel : INotifyPropertyChanged
 {
     private readonly List<SelectableReasonCode> _allItems = [];

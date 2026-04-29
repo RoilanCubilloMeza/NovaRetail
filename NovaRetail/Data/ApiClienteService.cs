@@ -9,11 +9,7 @@ using NovaRetail.Services;
 
 namespace NovaRetail.Data
 {
-    /// <summary>
-    /// Implementación HTTP de <see cref="IClienteService"/>.
-    /// Consulta, sincroniza y guarda clientes usando el API local, y además apoya
-    /// el enriquecimiento del formulario con datos externos de identificación y actividad económica.
-    /// </summary>
+
     public sealed class ApiClienteService : IClienteService
     {
         private const string ClientName = "NovaCustomers";
@@ -68,6 +64,212 @@ namespace NovaRetail.Data
         }
 
         // ──────── Sincronizar con Hacienda / GoMeta ────────
+
+        public async Task<IReadOnlyList<CustomerLookupModel>> BuscarClientesAsync(string? criteria)
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    string url;
+
+                    if (string.IsNullOrWhiteSpace(criteria))
+                        url = $"{baseUrl}/api/Customers";
+                    else
+                        url = $"{baseUrl}/api/Customers?criteria={Uri.EscapeDataString(criteria.Trim())}";
+
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<ApiCustomer>>(json);
+
+                    if (results is null)
+                        continue;
+
+                    return results.Select(c => new CustomerLookupModel
+                    {
+                        CustomerId = c.ID,
+                        AccountNumber = c.AccountNumber ?? string.Empty,
+                        TaxNumber = c.TaxNumber ?? string.Empty,
+                        FirstName = c.FirstName ?? string.Empty,
+                        LastName = c.LastName ?? string.Empty,
+                        Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
+                        Email = c.EmailAddress ?? string.Empty,
+                        Address = c.Address ?? string.Empty,
+                        City = FirstNonEmpty(c.City, c.CITY) ?? string.Empty,
+                        State = FirstNonEmpty(c.State, c.STATE) ?? string.Empty,
+                        Zip = FirstNonEmpty(c.Zip, c.ZIP) ?? string.Empty,
+                        AccountTypeID = c.AccountTypeID > 0 ? c.AccountTypeID : c.PriceLevel
+                    }).ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al buscar clientes desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<CustomerLookupModel>();
+        }
+
+        // ──────── Obtener información de crédito del cliente ────────
+
+        public async Task<CustomerCreditInfo?> ObtenerCreditoAsync(string accountNumber)
+        {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return null;
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/CreditInfo?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var result = JsonConvert.DeserializeObject<CustomerCreditInfo>(json);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener crédito desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return null;
+        }
+
+        // ──────── Buscar clientes con crédito ────────
+
+        public async Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria)
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    string url;
+
+                    if (string.IsNullOrWhiteSpace(criteria))
+                        url = $"{baseUrl}/api/Customers/CreditCustomers";
+                    else
+                        url = $"{baseUrl}/api/Customers/CreditCustomers?criteria={Uri.EscapeDataString(criteria.Trim())}";
+
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<CustomerCreditInfo>>(json);
+                    return results ?? (IReadOnlyList<CustomerCreditInfo>)Array.Empty<CustomerCreditInfo>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al buscar clientes crédito desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<CustomerCreditInfo>();
+        }
+
+        // ──────── Obtener cuentas por cobrar abiertas ────────
+
+        public async Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber)
+        {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return Array.Empty<OpenLedgerEntryModel>();
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/OpenLedgerEntries?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var results = JsonConvert.DeserializeObject<List<OpenLedgerEntryModel>>(json);
+                    return results ?? (IReadOnlyList<OpenLedgerEntryModel>)Array.Empty<OpenLedgerEntryModel>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener cuentas abiertas desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return Array.Empty<OpenLedgerEntryModel>();
+        }
+
+        // ──────── Registrar abono a cuenta de crédito ────────
+
+        public async Task<(bool Success, string Message)> RegistrarAbonoAsync(AbonoPaymentRequest request)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.AccountNumber) || request.TotalAmount <= 0)
+                return (false, "Datos de abono inválidos (cuenta o monto vacío).");
+
+            var apiRequest = new
+            {
+                AccountNumber = request.AccountNumber.Trim(),
+                Amount = request.TotalAmount,
+                CashierID = request.CashierId,
+                StoreID = request.StoreId,
+                TenderID = request.TenderId,
+                Comment = (request.Comment ?? string.Empty).Trim(),
+                Reference = (request.Reference ?? string.Empty).Trim(),
+                Applications = request.Applications.Select(a => new
+                {
+                    a.LedgerEntryID,
+                    a.Amount,
+                    a.EntryBalance
+                }).ToList()
+            };
+
+            string lastError = "No se pudo conectar con el servidor.";
+
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Customers/CreditPayment";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var payload = JsonConvert.SerializeObject(apiRequest,
+                        new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+                    using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                    var response = await http.PostAsync(url, content);
+
+                    var body = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        try
+                        {
+                            var okObj = JsonConvert.DeserializeAnonymousType(body, new { Ok = false, Message = "", RmhposOk = false, AppCentralOk = false, AppCentralMessage = "" });
+                            string msg = "Abono registrado correctamente.";
+                            if (okObj != null && !okObj.AppCentralOk && !string.IsNullOrWhiteSpace(okObj.AppCentralMessage))
+                                msg += $" (AppCentral: {okObj.AppCentralMessage})";
+                            return (true, msg);
+                        }
+                        catch
+                        {
+                            return (true, "Abono registrado correctamente.");
+                        }
+                    }
+
+                    // Try to extract server error message
+                    try
+                    {
+                        var errObj = JsonConvert.DeserializeAnonymousType(body, new { Ok = false, Message = "" });
+                        lastError = errObj?.Message ?? $"Error del servidor ({(int)response.StatusCode})";
+                    }
+                    catch
+                    {
+                        lastError = $"Error del servidor ({(int)response.StatusCode}): {body}";
+                    }
+                    _logger.LogWarning("CreditPayment failed on {BaseUrl}: {Status} - {Body}", baseUrl, (int)response.StatusCode, body);
+                    return (false, lastError);
+                }
+                catch (Exception ex)
+                {
+                    lastError = $"Error de conexión: {ex.Message}";
+                    _logger.LogWarning(ex, "Error al registrar abono en {BaseUrl}", baseUrl);
+                }
+            }
+
+            return (false, lastError);
+        }
+
+        // ──────── Sincronizar con Hacienda / GoMeta (original) ────────
 
         public async Task<ClienteModel?> SincronizarHaciendaAsync(string clienteId)
         {
@@ -212,6 +414,40 @@ namespace NovaRetail.Data
             return Task.FromResult(tipos);
         }
 
+        // ──────── Tipos de identificación (desde BD) ────────
+
+        public async Task<IReadOnlyList<string>> ObtenerTiposIdentificacionAsync()
+        {
+            foreach (var baseUrl in _baseUrls)
+            {
+                try
+                {
+                    var url = $"{baseUrl}/api/Utilidades/GetTipoIdentificacion";
+                    var http = _httpClientFactory.CreateClient(ClientName);
+                    var json = await http.GetStringAsync(url);
+                    var items = JsonConvert.DeserializeObject<List<CommondEntitieDto>>(json);
+                    if (items is { Count: > 0 })
+                        return items.Select(i => i.StrDescripcion ?? string.Empty)
+                                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                                    .ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al obtener tipos de identificación desde {BaseUrl}", baseUrl);
+                }
+            }
+
+            return new[]
+            {
+                "Cédula Física",
+                "Cédula Jurídica",
+                "DIMEX",
+                "NITE",
+                "Extranjero No Domiciliado",
+                "No Contribuyente"
+            };
+        }
+
         // ──────── Mapeo API → ClienteModel ────────
 
         private static ClienteModel MapToClienteModel(ApiCustomer c)
@@ -222,7 +458,10 @@ namespace NovaRetail.Data
 
             return new ClienteModel
             {
+                CustomerId = c.ID,
                 ClientId = c.AccountNumber ?? string.Empty,
+                AccountNumber = c.AccountNumber ?? string.Empty,
+                TaxNumber = c.TaxNumber ?? string.Empty,
                 IdType = ResolveIdType(null, c.AccountNumber),
                 Name = name,
                 Phone = c.PhoneNumber1 ?? c.PhoneNumber ?? string.Empty,
@@ -350,6 +589,9 @@ namespace NovaRetail.Data
 
             [JsonProperty("AccountNumber")]
             public string? AccountNumber { get; set; }
+
+            [JsonProperty("TaxNumber")]
+            public string? TaxNumber { get; set; }
 
             [JsonProperty("FirstName")]
             public string? FirstName { get; set; }

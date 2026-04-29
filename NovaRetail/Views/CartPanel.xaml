@@ -12,7 +12,7 @@
 
             <!-- Row 0: Client Info Header -->
             <Grid Grid.Row="0"
-                  ColumnDefinitions="Auto, *, Auto, Auto, Auto"
+                  ColumnDefinitions="Auto, *, Auto, Auto, Auto, Auto"
                   ColumnSpacing="8"
                   Padding="14,12,14,10">
                 <Border Grid.Column="0"
@@ -39,6 +39,16 @@
                            FontSize="12" VerticalOptions="Center"/>
                 </Border>
                 <Border Grid.Column="3"
+                        BackgroundColor="#0D9488"
+                        StrokeShape="RoundRectangle 6" StrokeThickness="0"
+                        Padding="10,6" HeightRequest="32">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.OpenCustomerSearchCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="F7 Buscar" TextColor="White" FontAttributes="Bold"
+                           FontSize="12" VerticalOptions="Center"/>
+                </Border>
+                <Border Grid.Column="4"
                         BackgroundColor="{DynamicResource InputBackground}"
                         StrokeShape="RoundRectangle 6" StrokeThickness="1"
                         Stroke="{DynamicResource Gray200Brush}"
@@ -46,7 +56,7 @@
                     <Label Text="F3" TextColor="{DynamicResource Gray600}"
                            FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
                 </Border>
-                <Border Grid.Column="4"
+                <Border Grid.Column="5"
                         StrokeShape="RoundRectangle 6" StrokeThickness="1"
                         Padding="10,6" HeightRequest="32">
                     <Border.Triggers>

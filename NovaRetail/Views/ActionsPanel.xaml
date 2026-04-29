@@ -92,11 +92,13 @@
                                             SurfaceColor="#FEF3C7" StrokeColor="#FDE68A"
                                             IconColor="#D97706" LabelColor="#92400E" ArrowColor="#D97706"/>
 
-                    <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Orden Pedido"
+                    <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Ord. Trabajo"
+                                            Command="{Binding SaveWorkOrderCommand}"
                                             SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
                                             IconColor="#6366F1" LabelColor="#3730A3" ArrowColor="#6366F1"/>
 
-                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Pedido"
+                    <controls:ActionLinkRow Icon="&#x1F4E5;" Text="Rec. Trabajo"
+                                            Command="{Binding RecallWorkOrderCommand}"
                                             SurfaceColor="#F8FAFC" StrokeColor="#CBD5E1"
                                             IconColor="#64748B" LabelColor="#334155" ArrowColor="#64748B"/>
 
@@ -104,6 +106,35 @@
                                             Command="{Binding ShowInvoiceHistoryCommand}"
                                             SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
                                             IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4B3;" Text="Abonos"
+                                            Command="{Binding ShowCreditPaymentCommand}"
+                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
+                                            IconColor="#4F46E5" LabelColor="#3730A3" ArrowColor="#4F46E5"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4CA;" Text="Dashboard"
+                                            Command="{Binding ShowManagerDashboardCommand}"
+                                            IsVisible="{Binding CanViewManagerDashboard}"
+                                            SurfaceColor="#ECFEFF" StrokeColor="#A5F3FC"
+                                            IconColor="#0891B2" LabelColor="#155E75" ArrowColor="#0891B2"/>
+
+                    <BoxView Style="{DynamicResource FormDivider}" Margin="0,8,0,8"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F4C2;" Text="Categorías"
+                                            Command="{Binding NavigateToCategoryConfigCommand}"
+                                            SurfaceColor="#FFF7ED" StrokeColor="#FED7AA"
+                                            IconColor="#EA580C" LabelColor="#9A3412" ArrowColor="#EA580C"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F527;" Text="Mantenimientos"
+                                            Command="{Binding NavigateToMantenimientosCommand}"
+                                            IsVisible="{Binding CanAccessParametros}"
+                                            SurfaceColor="#FDF2F8" StrokeColor="#FBCFE8"
+                                            IconColor="#DB2777" LabelColor="#9D174D" ArrowColor="#DB2777"/>
+
+                    <controls:ActionLinkRow Icon="&#x1F6AA;" Text="Cerrar sesión"
+                                            Command="{Binding LogoutCommand}"
+                                            SurfaceColor="#FEF2F2" StrokeColor="#FECACA"
+                                            IconColor="#DC2626" LabelColor="#991B1B" ArrowColor="#DC2626"/>
 
                 </VerticalStackLayout>
 

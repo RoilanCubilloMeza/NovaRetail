@@ -3,16 +3,12 @@ using System.Runtime.CompilerServices;
 
 namespace NovaRetail.Models;
 
-/// <summary>
-/// Representa un producto del catálogo del POS.
-/// Contiene información de precio en USD y colones, impuesto, CABYS, stock y categoría.
-/// Implementa <see cref="INotifyPropertyChanged"/> para la propiedad <see cref="CartQuantity"/>.
-/// </summary>
 public class ProductModel : INotifyPropertyChanged
 {
     private decimal _cartQuantity;
 
     public int     ItemID          { get; set; }
+    public int     DepartmentID    { get; set; }
     public string  Emoji           { get; set; } = string.Empty;
     public string  Name            { get; set; } = string.Empty;
     public string  Code            { get; set; } = string.Empty;
@@ -20,12 +16,15 @@ public class ProductModel : INotifyPropertyChanged
     public string  OldPrice        { get; set; } = string.Empty;
     public decimal PriceValue      { get; set; }
     public decimal PriceColonesValue { get; set; }
+    public decimal Cost            { get; set; }
     public decimal TaxPercentage   { get; set; }
     public int TaxId              { get; set; }
     public string Cabys           { get; set; } = string.Empty;
-    public string  PriceColonesText => $"₡{PriceColonesValue:N2}";
+    public string  PriceColonesText => $"{UiConfig.CurrencySymbol}{PriceColonesValue:N2}";
     public string  Category        { get; set; } = string.Empty;
     public decimal     Stock           { get; set; }
+    public int     ItemType        { get; set; }
+    public bool    IsNonInventory  { get; set; }
 
     public decimal CartQuantity
     {

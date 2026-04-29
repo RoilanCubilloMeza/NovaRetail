@@ -9,18 +9,10 @@ using NovaAPI.Models;
 
 namespace NovaAPI.Controllers
 {
-    /// <summary>
-    /// Controlador de transacciones de cuentas por cobrar (Accounts Receivable).
-    /// Sincroniza transacciones AR hacia la BD AppCentral.
-    /// </summary>
     public class AR_TransactionController : ApiController
     {
-        readonly AppCentralDataContext db = new AppCentralDataContext(ConfigurationManager.ConnectionStrings["AppCentralConnectionString"].ConnectionString);
+        readonly AppCentralDataContext db = new AppCentralDataContext(AppConfig.ConnectionString("AppCentralConnectionString"));
 
-        /// <summary>
-        /// Inserta una colección de transacciones de cuentas por cobrar.
-        /// Se usa cuando otra aplicación necesita replicar movimientos AR en AppCentral.
-        /// </summary>
         [HttpPost]
         public HttpResponseMessage Post(List<AR_Transaction> ARTransactions)
         {
@@ -38,7 +30,7 @@ namespace NovaAPI.Controllers
             }
             catch (Exception ex)
             {
-                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error al sincronizar transacciones AR: " + ex.Message);
+                msg = Request.CreateResponse(HttpStatusCode.InternalServerError, "Error: " + " / " + ex.Message.ToString());
             }
 
             return msg;

@@ -13,18 +13,9 @@ using NovaRetail.State;
 
 namespace NovaRetail.ViewModels
 {
-    /// <summary>
-    /// Estado del proceso de sincronización del cliente contra fuentes externas.
-    /// Se usa para reflejar en la UI si la búsqueda está pendiente, en progreso,
-    /// completada o sin resultados.
-    /// </summary>
     public enum SyncStatus { Idle, Syncing, Synced, NotFound }
+    public enum FormMessageKind { None, Info, Warning, Error }
 
-    /// <summary>
-    /// ViewModel de mantenimiento de clientes.
-    /// Resuelve validación de cédula, autocompletado desde GoMeta/Hacienda,
-    /// manejo de ubicación y persistencia del cliente que luego se usa al facturar.
-    /// </summary>
     public class ClienteViewModel : INotifyPropertyChanged
     {
         private readonly IClienteService _clienteService;
@@ -49,10 +40,15 @@ namespace NovaRetail.ViewModels
         private string _activityDescription = string.Empty;
         private SyncStatus _syncStatus = SyncStatus.Idle;
         private string _validationMessage = string.Empty;
+        private FormMessageKind _validationMessageKind = FormMessageKind.None;
         private string _lastSyncedClientId = string.Empty;
         private string _lastAutoSyncedClientId = string.Empty;
+        private string _selectedAccountNumber = string.Empty;
+        private string _selectedTaxNumber = string.Empty;
+        private int _selectedCustomerId;
         private bool _isAutoSyncInProgress;
         private bool _isExistingCustomer;
+        private bool _existingCustomerUpdateConfirmed;
         private ClienteModel? _pendingLocationModel;
 
 
@@ -65,9 +61,18 @@ namespace NovaRetail.ViewModels
                 if (_clientId == sanitized) return;
                 _clientId = sanitized;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ClientStatusTitle));
+                OnPropertyChanged(nameof(ClientStatusHint));
+                OnPropertyChanged(nameof(ClientStatusBackgroundColor));
+                OnPropertyChanged(nameof(ClientStatusBorderColor));
+                OnPropertyChanged(nameof(ClientStatusTitleColor));
 
                 if (!string.Equals(_clientId, _lastSyncedClientId, StringComparison.Ordinal))
+                {
                     IsExistingCustomer = false;
+                    _existingCustomerUpdateConfirmed = false;
+                    ResetSelectedClientIdentity();
+                }
 
                 if (ShouldAutoSyncClientId(_clientId))
                     _ = TryAutoSyncAsync(_clientId);
@@ -97,9 +102,15 @@ namespace NovaRetail.ViewModels
                 if (_isExistingCustomer == value) return;
                 _isExistingCustomer = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ClientStatusTitle));
                 OnPropertyChanged(nameof(ClientStatusHint));
+                OnPropertyChanged(nameof(ClientStatusBackgroundColor));
+                OnPropertyChanged(nameof(ClientStatusBorderColor));
+                OnPropertyChanged(nameof(ClientStatusTitleColor));
                 OnPropertyChanged(nameof(SaveButtonText));
                 OnPropertyChanged(nameof(SaveAndReturnButtonText));
+                OnPropertyChanged(nameof(SaveActionTitle));
+                OnPropertyChanged(nameof(SaveActionHint));
             }
         }
 
@@ -118,6 +129,8 @@ namespace NovaRetail.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ShowTaxData));
                 OnPropertyChanged(nameof(IsNotReceiver));
+                OnPropertyChanged(nameof(TaxSectionTitle));
+                OnPropertyChanged(nameof(TaxSectionHint));
             }
         }
 
@@ -239,6 +252,11 @@ namespace NovaRetail.ViewModels
                 OnPropertyChanged(nameof(IsNotSyncing));
                 OnPropertyChanged(nameof(SyncButtonBackground));
                 OnPropertyChanged(nameof(SyncButtonTextColor));
+                OnPropertyChanged(nameof(ClientStatusTitle));
+                OnPropertyChanged(nameof(ClientStatusHint));
+                OnPropertyChanged(nameof(ClientStatusBackgroundColor));
+                OnPropertyChanged(nameof(ClientStatusBorderColor));
+                OnPropertyChanged(nameof(ClientStatusTitleColor));
             }
         }
 
@@ -286,11 +304,35 @@ namespace NovaRetail.ViewModels
             SyncStatus.NotFound => "No encontrado",
             _                   => "🔄 Sincronizar"
         };
+        public string ClientStatusTitle => _syncStatus switch
+        {
+            SyncStatus.Syncing => "Buscando cliente...",
+            SyncStatus.NotFound => "No se pudo completar la consulta",
+            SyncStatus.Synced when IsExistingCustomer => "Cliente existente listo para actualizar",
+            SyncStatus.Synced when !string.IsNullOrWhiteSpace(ClientId) => "Cliente listo para guardar",
+            _ => "Ingrese la identificación para continuar"
+        };
         public string ClientStatusHint => IsExistingCustomer
-            ? "Cliente ya existe. Se cargó la información y no se agregará duplicado."
-            : "Crea un registro nuevo para el cliente.";
+            ? "Ya existe en su base. Revise los datos, corrija lo necesario y luego actualice."
+            : _syncStatus switch
+            {
+                SyncStatus.Syncing => "Buscamos primero en su base y luego en Hacienda para completar información automáticamente.",
+                SyncStatus.Synced when !string.IsNullOrWhiteSpace(ClientId) => "No existe como cliente guardado. Complete los datos faltantes y luego guarde.",
+                SyncStatus.NotFound => "No fue posible traer datos automáticos. Puede completar la información manualmente.",
+                _ => "Ingrese la identificación y sincronice para saber si es un cliente nuevo o existente."
+            };
         public string SaveButtonText => IsExistingCustomer ? "Actualizar" : "Guardar";
         public string SaveAndReturnButtonText => IsExistingCustomer ? "Actualizar y facturar" : "Guardar y facturar";
+        public string SaveActionTitle => IsExistingCustomer ? "Actualizar cliente" : "Guardar cliente";
+        public string TaxSectionTitle => IsReceiver
+            ? "Datos para factura electrónica"
+            : "Factura electrónica opcional";
+        public string TaxSectionHint => IsReceiver
+            ? "Complete esta sección solo si el cliente recibirá la factura por correo electrónico."
+            : "Actívelo solo si este cliente necesita factura electrónica o envío por correo.";
+        public string SaveActionHint => IsExistingCustomer
+            ? "Se actualizará la información de este cliente actual."
+            : "Se creará un cliente nuevo con la información ingresada.";
 
         // ──────── Computed (Color) — Sync button ────────
 
@@ -301,6 +343,51 @@ namespace NovaRetail.ViewModels
             _                   => Color.FromArgb("#22C55E")
         };
         public Color SyncButtonTextColor => Colors.White;
+        public Color ClientStatusBackgroundColor => _syncStatus switch
+        {
+            SyncStatus.Syncing => Color.FromArgb("#EFF6FF"),
+            SyncStatus.NotFound => Color.FromArgb("#FFFBEB"),
+            SyncStatus.Synced when IsExistingCustomer => Color.FromArgb("#ECFDF5"),
+            SyncStatus.Synced => Color.FromArgb("#F0FDF4"),
+            _ => Color.FromArgb("#F8FAFC")
+        };
+        public Color ClientStatusBorderColor => _syncStatus switch
+        {
+            SyncStatus.Syncing => Color.FromArgb("#93C5FD"),
+            SyncStatus.NotFound => Color.FromArgb("#FCD34D"),
+            SyncStatus.Synced when IsExistingCustomer => Color.FromArgb("#86EFAC"),
+            SyncStatus.Synced => Color.FromArgb("#BBF7D0"),
+            _ => Color.FromArgb("#CBD5E1")
+        };
+        public Color ClientStatusTitleColor => _syncStatus switch
+        {
+            SyncStatus.Syncing => Color.FromArgb("#1D4ED8"),
+            SyncStatus.NotFound => Color.FromArgb("#92400E"),
+            SyncStatus.Synced when IsExistingCustomer => Color.FromArgb("#166534"),
+            SyncStatus.Synced => Color.FromArgb("#15803D"),
+            _ => Color.FromArgb("#334155")
+        };
+        public Color ValidationMessageTextColor => _validationMessageKind switch
+        {
+            FormMessageKind.Info => Color.FromArgb("#065F46"),
+            FormMessageKind.Warning => Color.FromArgb("#92400E"),
+            FormMessageKind.Error => Color.FromArgb("#B91C1C"),
+            _ => Color.FromArgb("#475569")
+        };
+        public Color ValidationMessageBackgroundColor => _validationMessageKind switch
+        {
+            FormMessageKind.Info => Color.FromArgb("#ECFDF5"),
+            FormMessageKind.Warning => Color.FromArgb("#FFFBEB"),
+            FormMessageKind.Error => Color.FromArgb("#FEF2F2"),
+            _ => Color.FromArgb("#F8FAFC")
+        };
+        public Color ValidationMessageBorderColor => _validationMessageKind switch
+        {
+            FormMessageKind.Info => Color.FromArgb("#86EFAC"),
+            FormMessageKind.Warning => Color.FromArgb("#FCD34D"),
+            FormMessageKind.Error => Color.FromArgb("#FCA5A5"),
+            _ => Color.FromArgb("#CBD5E1")
+        };
 
         // ──────── Collections ────────
 
@@ -312,15 +399,7 @@ namespace NovaRetail.ViewModels
 
         private readonly List<ProvinciaNode> _provinciasData = new();
 
-        public IReadOnlyList<string> IdentificationTypes { get; } = new[]
-        {
-            "Cédula Física",
-            "Cédula Jurídica",
-            "DIMEX",
-            "NITE",
-            "Extranjero No Domiciliado",
-            "No Contribuyente"
-        };
+        public ObservableCollection<string> IdentificationTypes { get; } = new();
 
         // ──────── Commands ────────
 
@@ -343,6 +422,7 @@ namespace NovaRetail.ViewModels
 
             _ = LoadLocationsAsync();
             _ = LoadCustomerTypesAsync();
+            _ = LoadIdentificationTypesAsync();
         }
 
         // ──────── Data Loaders ────────
@@ -358,7 +438,7 @@ namespace NovaRetail.ViewModels
             }
             catch
             {
-                LoadFallbackLocations();
+                await _dialogService.AlertAsync("Advertencia", "No se pudieron cargar las ubicaciones geográficas. Las listas de provincia, cantón y distrito estarán vacías.", "OK");
             }
 
             RefreshProvinceCollection(_provinciasData);
@@ -479,13 +559,6 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private void LoadFallbackLocations()
-        {
-            _provinciasData.Clear();
-            _provinciasData.Add(new ProvinciaNode { Codigo = "6", Nombre = "PUNTARENAS", Cantones = { new CantonNode { Codigo = "06", Nombre = "QUEPOS", Distritos = { new DistritoNode { Codigo = "01", Nombre = "QUEPOS", Barrios = { "QUEPOS centro", "Manuel Antonio", "Paquita" } }, new DistritoNode { Codigo = "02", Nombre = "SAVEGRE", Barrios = { "MATAPALO", "Hatillo", "Portalón" } } } } } });
-            _provinciasData.Add(new ProvinciaNode { Codigo = "1", Nombre = "SAN JOSÉ", Cantones = { new CantonNode { Codigo = "01", Nombre = "SAN JOSÉ", Distritos = { new DistritoNode { Codigo = "01", Nombre = "CARMEN", Barrios = { "Amón", "Aranjuez", "Escalante" } } } } } });
-        }
-
         private void ApplyLocationSearch(string? search)
         {
             if (_provinciasData.Count == 0) return;
@@ -540,6 +613,17 @@ namespace NovaRetail.ViewModels
                 SelectedCustomerType = CustomerTypes[0];
         }
 
+        private async Task LoadIdentificationTypesAsync()
+        {
+            var tipos = await _clienteService.ObtenerTiposIdentificacionAsync();
+            IdentificationTypes.Clear();
+            foreach (var tipo in tipos)
+                IdentificationTypes.Add(tipo);
+
+            if (string.IsNullOrWhiteSpace(IdType) && IdentificationTypes.Count > 0)
+                IdType = IdentificationTypes[0];
+        }
+
         // ──────── Command Handlers ────────
 
         private async Task ExecuteSync()
@@ -550,16 +634,38 @@ namespace NovaRetail.ViewModels
             _lastAutoSyncedClientId = ClientId;
 
             SyncStatus = SyncStatus.Syncing;
-            ValidationMessage = string.Empty;
+            ClearValidationMessage();
 
             var local = await _clienteService.BuscarPorIdAsync(ClientId);
             if (local is not null)
             {
+                SyncStatus = SyncStatus.Synced;
+                _lastSyncedClientId = ClientId;
+
+                var wantsToUpdate = await _dialogService.ConfirmAsync(
+                    "Cliente existente",
+                    "Este cliente ya existe. ¿Desea actualizar sus datos?",
+                    "Sí, actualizar",
+                    "No, usar en compra");
+
                 LoadFromModel(local);
                 IsExistingCustomer = true;
-                SyncStatus = SyncStatus.Synced;
-                ValidationMessage = "Cliente existente cargado para edición.";
-                _lastSyncedClientId = ClientId;
+
+                if (!wantsToUpdate)
+                {
+                    _existingCustomerUpdateConfirmed = false;
+                    SetValidationMessage("Cliente existente seleccionado para esta compra.", FormMessageKind.Info);
+                    SelectCurrentClient();
+                    await _dialogService.AlertAsync(
+                        "Cliente seleccionado",
+                        "Este cliente ya quedó seleccionado para realizar la compra.",
+                        "OK");
+                    await TryNavigateBack();
+                    return;
+                }
+
+                _existingCustomerUpdateConfirmed = true;
+                SetValidationMessage("Cliente existente cargado para edición.", FormMessageKind.Info);
 
                 var remote = await _clienteService.SincronizarHaciendaAsync(ClientId);
                 if (remote is not null)
@@ -574,9 +680,11 @@ namespace NovaRetail.ViewModels
                 if (string.IsNullOrWhiteSpace(ActivityCode))
                     hints.Add("código de actividad vacío (ingrese manualmente)");
 
-                ValidationMessage = hints.Count > 0
-                    ? $"Cliente existente cargado. Nota: {string.Join(", ", hints)}."
-                    : "Cliente existente cargado para edición.";
+                SetValidationMessage(
+                    hints.Count > 0
+                        ? $"Cliente existente cargado. Revise estos datos antes de actualizar: {string.Join(", ", hints)}."
+                        : "Cliente existente cargado para edición.",
+                    hints.Count > 0 ? FormMessageKind.Warning : FormMessageKind.Info);
 
                 return;
             }
@@ -587,15 +695,17 @@ namespace NovaRetail.ViewModels
             {
                 LoadFromModel(result);
                 IsExistingCustomer = false;
+                _existingCustomerUpdateConfirmed = false;
                 SyncStatus = SyncStatus.Synced;
-                ValidationMessage = string.Empty;
+                ClearValidationMessage();
                 _lastSyncedClientId = ClientId;
             }
             else
             {
                 IsExistingCustomer = false;
+                _existingCustomerUpdateConfirmed = false;
                 SyncStatus = SyncStatus.NotFound;
-                ValidationMessage = "Consulta de API con Hacienda no disponible, ingrese los datos manualmente";
+                SetValidationMessage("No fue posible consultar Hacienda. Puede completar los datos manualmente.", FormMessageKind.Warning);
             }
         }
 
@@ -615,6 +725,16 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (IsExistingCustomer && !_existingCustomerUpdateConfirmed)
+            {
+                var confirm = await _dialogService.ConfirmAsync(
+                    "Cliente existente",
+                    "Este cliente ya existe. ¿Desea actualizar la información?",
+                    "Actualizar", "Cancelar");
+                if (!confirm) return;
+                _existingCustomerUpdateConfirmed = true;
+            }
+
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
             {
@@ -624,7 +744,7 @@ namespace NovaRetail.ViewModels
             }
             else
             {
-                ValidationMessage = "⚠️ No se pudo guardar el cliente. Verifique la conexión con el servidor.";
+                SetValidationMessage("No se pudo guardar el cliente. Verifique la conexión con el servidor.", FormMessageKind.Error);
             }
         }
 
@@ -637,6 +757,16 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (IsExistingCustomer && !_existingCustomerUpdateConfirmed)
+            {
+                var confirm = await _dialogService.ConfirmAsync(
+                    "Cliente existente",
+                    "Este cliente ya existe. ¿Desea actualizar la información?",
+                    "Actualizar", "Cancelar");
+                if (!confirm) return;
+                _existingCustomerUpdateConfirmed = true;
+            }
+
             var saved = await _clienteService.GuardarAsync(ToModel());
             if (saved)
             {
@@ -646,13 +776,16 @@ namespace NovaRetail.ViewModels
             }
             else
             {
-                ValidationMessage = "⚠️ No se pudo guardar el cliente. Verifique la conexión con el servidor.";
+                SetValidationMessage("No se pudo guardar el cliente. Verifique la conexión con el servidor.", FormMessageKind.Error);
             }
         }
 
         private ClienteModel ToModel() => new()
         {
+            CustomerId          = _selectedCustomerId,
             ClientId            = ClientId,
+            AccountNumber       = string.IsNullOrWhiteSpace(_selectedAccountNumber) ? ClientId : _selectedAccountNumber,
+            TaxNumber           = string.IsNullOrWhiteSpace(_selectedTaxNumber) ? ClientId : _selectedTaxNumber,
             IdType              = IdType,
             Name                = Name,
             IsReceiver          = IsReceiver,
@@ -675,12 +808,38 @@ namespace NovaRetail.ViewModels
             if (string.IsNullOrWhiteSpace(ClientId))
                 return;
 
-            _appStore.Dispatch(new SetCurrentClientAction(ClientId.Trim(), (Name ?? string.Empty).Trim(), IsReceiver, SelectedCustomerType ?? string.Empty));
+            var selectedClientId = !string.IsNullOrWhiteSpace(_selectedTaxNumber)
+                ? _selectedTaxNumber.Trim()
+                : ClientId.Trim();
+
+            var selectedAccountNumber = !string.IsNullOrWhiteSpace(_selectedAccountNumber)
+                ? _selectedAccountNumber.Trim()
+                : ClientId.Trim();
+
+            _appStore.Dispatch(new SetCurrentClientAction(
+                selectedClientId,
+                (Name ?? string.Empty).Trim(),
+                IsReceiver,
+                SelectedCustomerType ?? string.Empty,
+                selectedAccountNumber,
+                _selectedCustomerId));
+        }
+
+        public void ApplyCurrentClientSelection()
+        {
+            SelectCurrentClient();
         }
 
         private void LoadFromModel(ClienteModel model)
         {
             ClientId = model.ClientId;
+            _selectedCustomerId = model.CustomerId;
+            _selectedAccountNumber = !string.IsNullOrWhiteSpace(model.AccountNumber)
+                ? model.AccountNumber
+                : model.ClientId;
+            _selectedTaxNumber = !string.IsNullOrWhiteSpace(model.TaxNumber)
+                ? model.TaxNumber
+                : string.Empty;
             IdType = ResolveLoadedIdType(model);
             Name = model.Name;
             IsReceiver = model.IsReceiver;
@@ -712,6 +871,15 @@ namespace NovaRetail.ViewModels
 
         private void MergeRemoteTaxData(ClienteModel model)
         {
+            if (_selectedCustomerId <= 0 && model.CustomerId > 0)
+                _selectedCustomerId = model.CustomerId;
+
+            if (string.IsNullOrWhiteSpace(_selectedTaxNumber) && !string.IsNullOrWhiteSpace(model.TaxNumber))
+                _selectedTaxNumber = model.TaxNumber;
+
+            if (string.IsNullOrWhiteSpace(_selectedAccountNumber) && !string.IsNullOrWhiteSpace(model.AccountNumber))
+                _selectedAccountNumber = model.AccountNumber;
+
             var remoteIdType = ResolveLoadedIdType(model);
             if (!string.Equals(IdType, remoteIdType, StringComparison.Ordinal))
                 IdType = remoteIdType;
@@ -757,6 +925,13 @@ namespace NovaRetail.ViewModels
                 12 => "DIMEX",
                 _ => string.IsNullOrWhiteSpace(model.IdType) ? "Cédula Física" : model.IdType
             };
+        }
+
+        private void ResetSelectedClientIdentity()
+        {
+            _selectedCustomerId = 0;
+            _selectedAccountNumber = string.Empty;
+            _selectedTaxNumber = string.Empty;
         }
 
         private static string BuildLocationSummary(string? province, string? canton, string? district, string? barrio, string? address)
@@ -942,7 +1117,7 @@ namespace NovaRetail.ViewModels
 
         private async Task ExecuteCancel()
         {
-            ValidationMessage = string.Empty;
+            ClearValidationMessage();
             await TryNavigateBack();
         }
 
@@ -1016,11 +1191,23 @@ namespace NovaRetail.ViewModels
                 }
             }
 
-            ValidationMessage = errors.Count > 0
-                ? string.Join("\n", errors)
-                : string.Empty;
+            SetValidationMessage(
+                errors.Count > 0 ? string.Join("\n", errors) : string.Empty,
+                errors.Count > 0 ? FormMessageKind.Error : FormMessageKind.None);
 
             return errors.Count == 0;
+        }
+
+        private void ClearValidationMessage()
+            => SetValidationMessage(string.Empty, FormMessageKind.None);
+
+        private void SetValidationMessage(string message, FormMessageKind kind)
+        {
+            _validationMessageKind = string.IsNullOrWhiteSpace(message) ? FormMessageKind.None : kind;
+            ValidationMessage = message;
+            OnPropertyChanged(nameof(ValidationMessageTextColor));
+            OnPropertyChanged(nameof(ValidationMessageBackgroundColor));
+            OnPropertyChanged(nameof(ValidationMessageBorderColor));
         }
 
         private static readonly Regex _emailRegex =

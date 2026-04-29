@@ -1,10 +1,5 @@
 namespace NovaRetail.Models;
 
-/// <summary>
-/// Request para crear una venta en el backend (<c>api/NovaRetailSales</c>).
-/// Incluye datos de tienda, cajero, cliente, líneas de artículo, formas de pago
-/// y campos de facturación electrónica costarricense (clave 50, consecutivo, tipo de comprobante).
-/// </summary>
 public sealed class NovaRetailCreateSaleRequest
 {
     public int StoreID { get; set; }
@@ -28,6 +23,7 @@ public sealed class NovaRetailCreateSaleRequest
     public string CodCliente { get; set; } = string.Empty;
     public string NombreCliente { get; set; } = string.Empty;
     public string CedulaTributaria { get; set; } = string.Empty;
+    public string CreditAccountNumber { get; set; } = string.Empty;
     public short Exonera { get; set; }
     public bool InsertarTiqueteEspera { get; set; }
     public string CLAVE50 { get; set; } = string.Empty;
@@ -54,6 +50,8 @@ public sealed class NovaRetailSaleItemRequest
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal? FullPrice { get; set; }
+    public decimal? DisplayPrice { get; set; }
+    public decimal? DisplayFullPrice { get; set; }
     public decimal Cost { get; set; }
     public decimal Commission { get; set; }
     public int PriceSource { get; set; } = 1;
@@ -127,6 +125,9 @@ public sealed class NovaRetailCreateSaleResponse
     public bool TiqueteEsperaOk { get; set; }
     public string Clave50 { get; set; } = string.Empty;
     public string Clave20 { get; set; } = string.Empty;
+    public bool AccountsReceivableEntryCreated { get; set; }
+    public bool AccountsReceivableApplied { get; set; }
+    public decimal AccountsReceivableAppliedAmount { get; set; }
     public List<string> Warnings { get; set; } = new();
 }
 
@@ -166,11 +167,14 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
     public decimal TenderTotalColones { get; set; }
     public string SecondTenderDescription { get; set; } = string.Empty;
     public decimal SecondTenderAmountColones { get; set; }
+    public string CreditAccountNumber { get; set; } = string.Empty;
     public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new();
 }
 
 public sealed class NovaRetailInvoiceHistoryLineDto
 {
+    public int ItemID { get; set; }
+    public int TaxID { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
