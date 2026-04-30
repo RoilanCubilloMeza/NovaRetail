@@ -12,8 +12,8 @@ public class LoginUserModel
     public int Privileges { get; set; }
     public string RolePrivileges { get; set; } = string.Empty;
 
-    public bool IsAdmin => string.Equals(RoleCode, "Admin", StringComparison.OrdinalIgnoreCase)
-                        || SecurityLevel >= 99;
+    // Solo el rol Admin debe abrir vistas de administración sensibles.
+    public bool IsAdmin => string.Equals(RoleCode, "Admin", StringComparison.OrdinalIgnoreCase);
 
     public bool HasRole(string roleCode) =>
         string.Equals(RoleCode, roleCode, StringComparison.OrdinalIgnoreCase);

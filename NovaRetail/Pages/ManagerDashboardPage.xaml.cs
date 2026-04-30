@@ -17,6 +17,13 @@ public partial class ManagerDashboardPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (!_vm.CanViewDashboard)
+        {
+            await Shell.Current.GoToAsync("..");
+            return;
+        }
+
         await _vm.LoadAsync();
         StartAutoRefresh();
     }

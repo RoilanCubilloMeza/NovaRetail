@@ -178,9 +178,9 @@ namespace NovaAPI.Controllers
 
         static bool PasswordMatches(string inputPassword, string storedPassword)
         {
-            // Sin contraseña: acceso libre
+            // Sin contraseña guardada: solo permite entrar dejando la clave vacía.
             if (string.IsNullOrEmpty(storedPassword))
-                return true;
+                return string.IsNullOrEmpty(inputPassword);
 
             if (string.IsNullOrEmpty(inputPassword))
                 return false;

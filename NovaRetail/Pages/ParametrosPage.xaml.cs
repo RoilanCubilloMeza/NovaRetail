@@ -2,16 +2,20 @@ using System.Collections.Specialized;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
+using NovaRetail.State;
 using NovaRetail.ViewModels;
 
 namespace NovaRetail.Pages;
 
 public partial class ParametrosPage : ContentPage
 {
-    public ParametrosPage(ParametrosViewModel vm)
+    private readonly UserSession _userSession;
+
+    public ParametrosPage(ParametrosViewModel vm, UserSession userSession)
     {
         InitializeComponent();
         BindingContext = vm;
+        _userSession = userSession;
         vm.Parametros.CollectionChanged += OnParametrosChanged;
         vm.TenderOptions.CollectionChanged += OnTenderOptionsChanged;
     }
@@ -19,6 +23,13 @@ public partial class ParametrosPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (_userSession.CurrentUser?.IsAdmin != true)
+        {
+            await Shell.Current.GoToAsync("..");
+            return;
+        }
+
         if (BindingContext is ParametrosViewModel vm)
         {
             vm.Parametros.CollectionChanged -= OnParametrosChanged;

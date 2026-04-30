@@ -673,7 +673,15 @@ namespace NovaRetail.ViewModels
                 },
                 () => CanViewManagerDashboard);
             NavigateToCategoryConfigCommand = new Command(async () => await Shell.Current.GoToAsync("CategoryConfigPage"));
-            NavigateToMantenimientosCommand = new Command(async () => await Shell.Current.GoToAsync("MantenimientosPage"));
+            NavigateToMantenimientosCommand = new Command(
+                async () =>
+                {
+                    if (!CanAccessParametros)
+                        return;
+
+                    await Shell.Current.GoToAsync("MantenimientosPage");
+                },
+                () => CanAccessParametros);
             LogoutCommand = new Command(async () => await LogoutAsync());
             SaveQuoteCommand = new Command(async () => await SaveQuoteAsync());
             SaveWorkOrderCommand = new Command(async () => await SaveWorkOrderAsync());
@@ -902,6 +910,7 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(CanAccessParametros));
             OnPropertyChanged(nameof(CanViewManagerDashboard));
             ((Command)ShowManagerDashboardCommand).ChangeCanExecute();
+            ((Command)NavigateToMantenimientosCommand).ChangeCanExecute();
 
             if (_userSession.CurrentUser is not null)
                 _ = ReloadSessionContextAsync();

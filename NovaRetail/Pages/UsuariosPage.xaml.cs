@@ -1,13 +1,17 @@
 using System.ComponentModel;
+using NovaRetail.State;
 using NovaRetail.ViewModels;
 
 namespace NovaRetail.Pages;
 
 public partial class UsuariosPage : ContentPage
 {
-    public UsuariosPage(UsuariosViewModel vm)
+    private readonly UserSession _userSession;
+
+    public UsuariosPage(UsuariosViewModel vm, UserSession userSession)
     {
         InitializeComponent();
+        _userSession = userSession;
         BindingContext = vm;
         vm.PropertyChanged += OnViewModelPropertyChanged;
         UpdateLayout(vm.IsEditing);
@@ -16,6 +20,13 @@ public partial class UsuariosPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (_userSession.CurrentUser?.IsAdmin != true)
+        {
+            await Shell.Current.GoToAsync("..");
+            return;
+        }
+
         if (BindingContext is UsuariosViewModel vm)
         {
             vm.PropertyChanged -= OnViewModelPropertyChanged;
