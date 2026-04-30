@@ -333,7 +333,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (!forceRefresh && _remoteSearchCache.TryGetValue(search, out var cachedEntries))
         {
             _remoteEntries.Clear();
-            _remoteEntries.AddRange(cachedEntries.Select(CloneEntry));
+            _remoteEntries.AddRange(cachedEntries.Select(entry => CloneEntry(entry)));
             _lastRemoteSearch = search;
             return;
         }
@@ -358,7 +358,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         }
 
         var mappedEntries = result.Entries.Select(MapRemoteEntry).ToList();
-        _remoteEntries.AddRange(mappedEntries.Select(CloneEntry));
+        _remoteEntries.AddRange(mappedEntries.Select(entry => CloneEntry(entry)));
         _remoteSearchCache[search] = mappedEntries;
         _lastRemoteSearch = search;
     }
@@ -373,7 +373,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             return entry;
 
         MarkRemoteRefresh();
-        var detailedEntry = MapRemoteEntry(result.Entry);
+        var detailedEntry = await Task.Run(() => MapRemoteEntry(result.Entry));
         detailedEntry.ClosedByCreditNoteTransactionNumber = entry.ClosedByCreditNoteTransactionNumber;
         detailedEntry.LastAppliedCreditNoteTransactionNumber = entry.LastAppliedCreditNoteTransactionNumber;
         detailedEntry.SourceTransactionNumber = entry.SourceTransactionNumber;
@@ -393,7 +393,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         {
             var cacheIndex = cacheEntry.FindIndex(x => x.TransactionNumber == detailedEntry.TransactionNumber);
             if (cacheIndex >= 0)
-                cacheEntry[cacheIndex] = CloneEntry(detailedEntry);
+                cacheEntry[cacheIndex] = CloneEntry(detailedEntry, includeLines: false);
         }
 
         var currentIndex = Entries.ToList().FindIndex(x => x.TransactionNumber == detailedEntry.TransactionNumber && !x.IsLocalEntry);
@@ -411,7 +411,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         return search.Length >= 3;
     }
 
-    private static InvoiceHistoryEntry CloneEntry(InvoiceHistoryEntry entry)
+    private static InvoiceHistoryEntry CloneEntry(InvoiceHistoryEntry entry, bool includeLines = true)
     {
         return new InvoiceHistoryEntry
         {
@@ -443,7 +443,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             TenderTotalColones = entry.TenderTotalColones,
             SecondTenderDescription = entry.SecondTenderDescription,
             SecondTenderAmountColones = entry.SecondTenderAmountColones,
-            Lines = entry.Lines.Select(line => new InvoiceHistoryLine
+            Lines = includeLines ? entry.Lines.Select(line => new InvoiceHistoryLine
             {
                 ItemID = line.ItemID,
                 TaxID = line.TaxID,
@@ -458,7 +458,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 HasExoneration = line.HasExoneration,
                 ExonerationPercent = line.ExonerationPercent,
                 HasOverridePrice = line.HasOverridePrice
-            }).ToList()
+            }).ToList() : new List<InvoiceHistoryLine>()
         };
     }
 

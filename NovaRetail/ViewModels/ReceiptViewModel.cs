@@ -38,6 +38,8 @@ namespace NovaRetail.ViewModels
 
     public sealed class ReceiptViewModel : INotifyPropertyChanged
     {
+        private const int MaxPreviewItems = 250;
+
         public event Action? RequestClose;
         public ICommand CloseCommand { get; }
         public ICommand PrintCommand { get; }
@@ -85,6 +87,11 @@ namespace NovaRetail.ViewModels
         public string RegisterText => $"Reg.POS #: {RegisterNumber}";
 
         public ObservableCollection<ReceiptLineItem> Items { get; } = new();
+        public ObservableCollection<ReceiptLineItem> PreviewItems { get; } = new();
+        public bool HasHiddenPreviewItems => Items.Count > PreviewItems.Count;
+        public string HiddenPreviewItemsText => HasHiddenPreviewItems
+            ? $"Vista previa limitada a {PreviewItems.Count:N0} lineas. Imprimir/guardar incluye las {Items.Count:N0} lineas."
+            : string.Empty;
 
         public string SubtotalText { get; private set; } = string.Empty;
         public string TaxText { get; private set; } = string.Empty;
@@ -206,6 +213,7 @@ namespace NovaRetail.ViewModels
                         : string.Empty
                 });
             }
+            SyncPreviewItems();
 
             var effectiveTenderTotal = tenderTotalColones > 0m ? tenderTotalColones : 0m;
             TenderTotalText = effectiveTenderTotal > 0m ? $"{UiConfig.CurrencySymbol}{effectiveTenderTotal:N2}" : totalColonesText;
@@ -277,6 +285,7 @@ namespace NovaRetail.ViewModels
                         : string.Empty
                 });
             }
+            SyncPreviewItems();
 
             var signedTenderTotal = entry.TenderTotalColones > 0 ? entry.TenderTotalColones : entry.TotalColones;
             if (IsCreditNote)
@@ -307,6 +316,16 @@ namespace NovaRetail.ViewModels
                 : string.Empty;
 
             OnPropertyChanged(string.Empty);
+        }
+
+        private void SyncPreviewItems()
+        {
+            PreviewItems.Clear();
+            foreach (var item in Items.Take(MaxPreviewItems))
+                PreviewItems.Add(item);
+
+            OnPropertyChanged(nameof(HasHiddenPreviewItems));
+            OnPropertyChanged(nameof(HiddenPreviewItemsText));
         }
 
 

@@ -175,7 +175,18 @@
                         <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"/>
 
                         <!-- ── Líneas de artículos ── -->
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="0">
+                        <Border BackgroundColor="#EFF6FF"
+                                Stroke="#BFDBFE"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="10,8"
+                                IsVisible="{Binding HasHiddenPreviewItems}">
+                            <Label Text="{Binding HiddenPreviewItemsText}"
+                                   FontSize="11"
+                                   TextColor="#1D4ED8"/>
+                        </Border>
+
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding PreviewItems}" Spacing="0">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate>
                                     <VerticalStackLayout Spacing="0">

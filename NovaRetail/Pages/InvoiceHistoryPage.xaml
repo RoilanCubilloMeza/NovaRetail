@@ -325,8 +325,12 @@
             </Border>
 
             <!-- Cuerpo del detalle -->
-            <ScrollView Grid.Row="1">
-                <VerticalStackLayout Padding="16,14,16,16" Spacing="12">
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding SelectedEntry.Lines}"
+                            SelectionMode="None"
+                            ItemSizingStrategy="MeasureFirstItem">
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="16,14,16,0" Spacing="12">
 
                     <!-- Tarjeta cliente / cajero -->
                     <Border BackgroundColor="White"
@@ -402,66 +406,65 @@
                                HorizontalTextAlignment="End" CharacterSpacing="0.5"/>
                     </Grid>
                     <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"/>
-
-                    <!-- Lï¿½neas de artï¿½culos -->
-                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedEntry.Lines}" Spacing="0">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="m:InvoiceHistoryLine">
-                                <VerticalStackLayout Spacing="0">
-                                    <Grid ColumnDefinitions="*,54,94,100" ColumnSpacing="4" Padding="4,10,4,10">
-                                        <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                            <Label Text="{Binding DisplayName}"
-                                                   FontSize="12" FontAttributes="Bold"
-                                                   TextColor="#0F172A" LineBreakMode="WordWrap"/>
-                                            <HorizontalStackLayout Spacing="6">
-                                                <Label Text="{Binding Code}"
-                                                       FontSize="10" TextColor="#94A3B8"/>
-                                                <Border BackgroundColor="#F0FDF4"
-                                                        StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 4"
-                                                        Padding="5,1"
-                                                        IsVisible="{Binding HasTax}">
-                                                    <Label Text="{Binding TaxPercentageText}"
-                                                           FontSize="9" FontAttributes="Bold" TextColor="#16A34A"/>
-                                                </Border>
-                                            </HorizontalStackLayout>
-                                            <Border BackgroundColor="#FEF2F2"
-                                                    StrokeThickness="0"
-                                                    StrokeShape="RoundRectangle 4"
-                                                    Padding="5,2"
-                                                    IsVisible="{Binding HasDiscount}">
-                                                <Label Text="{Binding DiscountText}"
-                                                       FontSize="9" TextColor="#DC2626"/>
-                                            </Border>
-                                            <Border BackgroundColor="#F0FDFA"
-                                                    StrokeThickness="0"
-                                                    StrokeShape="RoundRectangle 4"
-                                                    Padding="5,2"
-                                                    IsVisible="{Binding HasExoneration}">
-                                                <Label Text="{Binding ExonerationText}"
-                                                       FontSize="9" TextColor="#0D9488"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-                                        <Label Grid.Column="1"
-                                               Text="{Binding QuantityText}"
-                                               FontSize="12" TextColor="#334155"
-                                               HorizontalTextAlignment="End" VerticalOptions="Start"/>
-                                        <Label Grid.Column="2"
-                                               Text="{Binding UnitPriceText}"
-                                               FontSize="12" TextColor="#334155"
-                                               HorizontalTextAlignment="End" VerticalOptions="Start"/>
-                                        <Label Grid.Column="3"
-                                               Text="{Binding LineTotalText}"
-                                               FontSize="12" FontAttributes="Bold"
-                                               TextColor="#0F172A"
-                                               HorizontalTextAlignment="End" VerticalOptions="Start"/>
-                                    </Grid>
-                                    <BoxView HeightRequest="1" BackgroundColor="#F1F5F9" Margin="4,0"/>
-                                </VerticalStackLayout>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
-
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:InvoiceHistoryLine">
+                        <VerticalStackLayout Spacing="0" Padding="16,0">
+                            <Grid ColumnDefinitions="*,54,94,100" ColumnSpacing="4" Padding="4,10,4,10">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding DisplayName}"
+                                           FontSize="12" FontAttributes="Bold"
+                                           TextColor="#0F172A" LineBreakMode="WordWrap"/>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{Binding Code}"
+                                               FontSize="10" TextColor="#94A3B8"/>
+                                        <Border BackgroundColor="#F0FDF4"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4"
+                                                Padding="5,1"
+                                                IsVisible="{Binding HasTax}">
+                                            <Label Text="{Binding TaxPercentageText}"
+                                                   FontSize="9" FontAttributes="Bold" TextColor="#16A34A"/>
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Border BackgroundColor="#FEF2F2"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 4"
+                                            Padding="5,2"
+                                            IsVisible="{Binding HasDiscount}">
+                                        <Label Text="{Binding DiscountText}"
+                                               FontSize="9" TextColor="#DC2626"/>
+                                    </Border>
+                                    <Border BackgroundColor="#F0FDFA"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 4"
+                                            Padding="5,2"
+                                            IsVisible="{Binding HasExoneration}">
+                                        <Label Text="{Binding ExonerationText}"
+                                               FontSize="9" TextColor="#0D9488"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="{Binding QuantityText}"
+                                       FontSize="12" TextColor="#334155"
+                                       HorizontalTextAlignment="End" VerticalOptions="Start"/>
+                                <Label Grid.Column="2"
+                                       Text="{Binding UnitPriceText}"
+                                       FontSize="12" TextColor="#334155"
+                                       HorizontalTextAlignment="End" VerticalOptions="Start"/>
+                                <Label Grid.Column="3"
+                                       Text="{Binding LineTotalText}"
+                                       FontSize="12" FontAttributes="Bold"
+                                       TextColor="#0F172A"
+                                       HorizontalTextAlignment="End" VerticalOptions="Start"/>
+                            </Grid>
+                            <BoxView HeightRequest="1" BackgroundColor="#F1F5F9" Margin="4,0"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <VerticalStackLayout Padding="16,0,16,16" Spacing="12">
                     <!-- Totales -->
                     <Border BackgroundColor="#F8FAFC"
                             Stroke="#E2E8F0"
@@ -568,8 +571,9 @@
                         </VerticalStackLayout>
                     </Border>
 
-                </VerticalStackLayout>
-            </ScrollView>
+                    </VerticalStackLayout>
+                </CollectionView.Footer>
+            </CollectionView>
 
             <!-- Footer detalle con botones -->
             <Border Grid.Row="2"
