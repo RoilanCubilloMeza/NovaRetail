@@ -92,7 +92,7 @@ public sealed class ApiProductService : IProductService
             try
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
-                var url = $"{baseUrl}/api/Items/Search?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
+                var url = $"{baseUrl}/api/Items/SearchDirect?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
                 var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
 
                 if (apiItems is null || apiItems.Count == 0)

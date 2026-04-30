@@ -196,11 +196,19 @@ namespace NovaAPI.Controllers
         [HttpGet]
         [Route("api/Items/Search")]
         public IEnumerable<ProductSearchDto> Search(string criteria, int top = 300)
+            => SearchDirect(criteria, top);
+
+        [HttpGet]
+        [Route("api/Items/SearchDirect")]
+        public IEnumerable<ProductSearchDto> SearchDirect(string criteria, int top = 300)
         {
             try
             {
                 var safeTop = top < 1 ? 100 : (top > 1000 ? 1000 : top);
-                return SmartSearch(criteria, safeTop);
+                var results = DirectProductSearch(criteria, safeTop);
+                return results.Count > 0
+                    ? results
+                    : SpFallbackSearch(criteria, safeTop);
             }
             catch
             {
@@ -208,39 +216,32 @@ namespace NovaAPI.Controllers
             }
         }
 
-        // Palabras vacías que no aportan al filtrado de productos.
-        // Sinónimos, stop words y lógica de expansión → ver SearchSynonyms.cs
-
-        private List<ProductSearchDto> SmartSearch(string criteria, int top)
+        private List<ProductSearchDto> DirectProductSearch(string criteria, int top)
         {
-            if (string.IsNullOrWhiteSpace(criteria))
-                return new List<ProductSearchDto>();
-
-            var words = criteria.Trim()
-                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var words = (criteria ?? string.Empty)
+                .Trim()
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => !string.IsNullOrWhiteSpace(w))
+                .Take(8)
+                .ToArray();
 
             if (words.Length == 0)
                 return new List<ProductSearchDto>();
 
-            // Filtrar stop words, pero conservar todas si al hacerlo quedaría vacío
-            var filtered = SearchSynonyms.RemoveStopWords(words);
-            if (filtered.Length == 0) filtered = words;
-
             var connectionString = AppConfig.ConnectionString("RMHPOS");
             if (string.IsNullOrWhiteSpace(connectionString))
-                return SpFallbackSearch(criteria, top);
-
-            // Expandir cada palabra con sinónimos de unidad y separación número+unidad
-            var wordGroups = SearchSynonyms.ExpandSearchWords(filtered);
+                return new List<ProductSearchDto>();
 
             var results = new List<ProductSearchDto>();
-            var searchFields = new[] { "i.Description", "i.ItemLookupCode", "i.ExtendedDescription",
-                                       "i.SubDescription1", "i.SubDescription2", "i.SubDescription3" };
-
-            // Para queries de 3+ conceptos se permite 1 sin match (e.g. "coca cola 3 litros"
-            // encuentra "COCA COLA 3L" aunque "litros" no aparezca literalmente).
-            var totalConcepts = wordGroups.Count;
-            var minMatch = totalConcepts <= 2 ? totalConcepts : totalConcepts - 1;
+            var searchFields = new[]
+            {
+                "i.Description",
+                "i.ItemLookupCode",
+                "i.ExtendedDescription",
+                "i.SubDescription1",
+                "i.SubDescription2",
+                "i.SubDescription3"
+            };
 
             using (var cn = new System.Data.SqlClient.SqlConnection(connectionString))
             {
@@ -249,47 +250,35 @@ namespace NovaAPI.Controllers
                 {
                     cmd.Connection = cn;
 
-                    // Cada grupo de variantes cuenta como 1 punto si alguna variante
-                    // aparece en algún campo. COLLATE CI_AI ignora mayúsculas/acentos.
-                    var scoreExpressions = new List<string>();
-                    for (int i = 0; i < wordGroups.Count; i++)
+                    var wordConditions = new List<string>();
+                    for (var i = 0; i < words.Length; i++)
                     {
-                        var allConditions = new List<string>();
-                        for (int v = 0; v < wordGroups[i].Count; v++)
-                        {
-                            var paramName = $"@w{i}_{v}";
-                            cmd.Parameters.AddWithValue(paramName, "%" + wordGroups[i][v] + "%");
-                            foreach (var f in searchFields)
-                                allConditions.Add($"ISNULL({f}, '') COLLATE SQL_Latin1_General_CP1_CI_AI LIKE {paramName}");
-                        }
-                        scoreExpressions.Add($"CASE WHEN ({string.Join(" OR ", allConditions)}) THEN 1 ELSE 0 END");
+                        var paramName = "@w" + i;
+                        cmd.Parameters.AddWithValue(paramName, "%" + words[i] + "%");
+
+                        var fieldConditions = searchFields
+                            .Select(f => "ISNULL(" + f + ", '') COLLATE SQL_Latin1_General_CP1_CI_AI LIKE " + paramName);
+
+                        wordConditions.Add("(" + string.Join(" OR ", fieldConditions) + ")");
                     }
 
-                    var scoreExpr = string.Join(" + ", scoreExpressions);
-
-                    cmd.CommandText = $@"
+                    cmd.CommandText = @"
                         SELECT TOP (@top)
-                            s.ID, s.ItemLookupCode, s.Description, s.Quantity,
-                            s.DepartmentID, s.CategoryID, s.Price, s.PriceA, s.PriceB, s.PriceC,
-                            s.TaxID, s.Cost, s.ExtendedDescription,
-                            s.SubDescription1, s.SubDescription2, s.SubDescription3, s.WebItem,
-                            s.ItemType, s.Percentage
-                        FROM (
-                            SELECT
-                                i.ID, i.ItemLookupCode, i.Description, i.Quantity,
-                                i.DepartmentID, i.CategoryID, i.Price, i.PriceA, i.PriceB, i.PriceC,
-                                i.TaxID, i.Cost, i.ExtendedDescription,
-                                i.SubDescription1, i.SubDescription2, i.SubDescription3, i.WebItem,
-                                i.ItemType, ISNULL(t.Percentage, 0) AS Percentage,
-                                {scoreExpr} AS MatchScore
-                            FROM dbo.Item i
-                            LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
-                        ) s
-                        WHERE s.MatchScore >= @minMatch
-                        ORDER BY s.MatchScore DESC, s.Quantity DESC, s.Description";
+                            i.ID, i.ItemLookupCode, i.Description, i.ExtendedDescription,
+                            i.Quantity, i.DepartmentID, i.CategoryID,
+                            i.Price, i.PriceA, i.PriceB, i.PriceC,
+                            i.TaxID, i.Cost,
+                            i.SubDescription1, i.SubDescription2, i.SubDescription3,
+                            i.WebItem, i.ItemType,
+                            ISNULL(t.Percentage, 0) AS Percentage
+                        FROM dbo.Item i
+                        LEFT JOIN dbo.Tax t ON t.ID = i.TaxID
+                        WHERE " + string.Join(" AND ", wordConditions) + @"
+                        ORDER BY
+                            CASE WHEN ISNULL(i.Quantity, 0) > 0 THEN 0 ELSE 1 END,
+                            i.Description";
 
                     cmd.Parameters.AddWithValue("@top", top);
-                    cmd.Parameters.AddWithValue("@minMatch", minMatch);
 
                     using (var reader = cmd.ExecuteReader())
                     {
@@ -321,11 +310,6 @@ namespace NovaAPI.Controllers
                     }
                 }
             }
-
-            // Fallback: si la consulta expandida no trajo nada y hay 1 sola palabra,
-            // intentar con el stored procedure original por compatibilidad.
-            if (results.Count == 0 && words.Length == 1)
-                return SpFallbackSearch(criteria, top);
 
             return results;
         }

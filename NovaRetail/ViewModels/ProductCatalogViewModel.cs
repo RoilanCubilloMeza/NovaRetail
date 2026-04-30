@@ -20,6 +20,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private readonly UserSession _userSession;
     private readonly List<ProductModel> _allProducts = new();
     private const int ProductsPageSize = 500;
+    private const int SearchResultLimit = 1000;
     private const string ProductViewList = "List";
     private const string ProductViewCards = "Cards";
     private int _loadedItemsPage;
@@ -96,6 +97,12 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             if (ProductSearchText != value)
             {
                 _appStore.Dispatch(new SetProductSearchTextAction(value));
+                if (!string.IsNullOrWhiteSpace(value) &&
+                    !string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
+                {
+                    _appStore.Dispatch(new SetSelectedCategoryAction(CategoryKeys.Todos));
+                }
+
                 FilterProducts();
 
                 var cts = ResetSearchCts();
@@ -437,9 +444,9 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
             var deptId = CategoryKeys.GetDepartmentID(category);
             if (deptId > 0)
-                products = await _productService.SearchByDepartmentAsync(deptId, 300, _exchangeRate);
+                products = await _productService.SearchByDepartmentAsync(deptId, SearchResultLimit, _exchangeRate);
             else
-                products = await _productService.SearchAsync(category, 300, _exchangeRate);
+                products = await _productService.SearchAsync(category, SearchResultLimit, _exchangeRate);
 
             if (products.Count == 0)
                 return;
@@ -595,32 +602,27 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     internal void FilterProducts(bool skipSearchFilter = false)
     {
         var query = _allProducts.AsEnumerable();
+        var hasSearchText = !string.IsNullOrWhiteSpace(ProductSearchText);
 
-        if (SelectedCategory != CategoryKeys.Todos)
+        if (!hasSearchText && SelectedCategory != CategoryKeys.Todos)
         {
             query = query.Where(p => MatchesCategory(p.Category, SelectedCategory));
         }
 
-        if (!skipSearchFilter && !string.IsNullOrWhiteSpace(ProductSearchText))
+        if (!skipSearchFilter && hasSearchText)
         {
             var words = NormalizeText(ProductSearchText)
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             if (words.Length > 0)
             {
-                var searchWords = SearchSynonyms.RemoveStopWords(words);
-                if (searchWords.Length == 0) searchWords = words;
-
-                var wordGroups = SearchSynonyms.ExpandSearchWords(searchWords);
-                var totalConcepts = wordGroups.Count;
-                var minMatch = totalConcepts <= 2 ? totalConcepts : totalConcepts - 1;
                 query = query.Where(p =>
                 {
                     var name = NormalizeText(p.Name);
                     var code = NormalizeText(p.Code ?? string.Empty);
-                    return wordGroups.Count(g => g.Any(variant =>
-                        SearchSynonyms.ContainsWord(name, variant) ||
-                        SearchSynonyms.ContainsWord(code, variant))) >= minMatch;
+                    return words.All(word =>
+                        name.Contains(word, StringComparison.OrdinalIgnoreCase) ||
+                        code.Contains(word, StringComparison.OrdinalIgnoreCase));
                 });
             }
         }
@@ -674,7 +676,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = true);
         try
         {
-            var products = await _productService.SearchAsync(normalized, 300, _exchangeRate);
+            var products = await _productService.SearchAsync(normalized, SearchResultLimit, _exchangeRate);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (products.Count == 0)
