@@ -6,6 +6,7 @@ namespace NovaRetail.Pages;
 public partial class MainPage : ContentPage
 {
     private readonly MainViewModel _vm;
+    private bool _statusLoaded;
 
     public MainPage(MainViewModel vm)
     {
@@ -21,12 +22,22 @@ public partial class MainPage : ContentPage
     partial void RegisterPlatformKeyboardHooks();
     partial void UnregisterPlatformKeyboardHooks();
 
-    private void OnPageLoaded(object? sender, EventArgs e)
-        => RegisterPlatformKeyboardHooks();
+    private async void OnPageLoaded(object? sender, EventArgs e)
+    {
+        RegisterPlatformKeyboardHooks();
+        _vm.StartClock();
+
+        if (!_statusLoaded)
+        {
+            _statusLoaded = true;
+            await _vm.LoadStatusAsync();
+        }
+    }
 
     private void OnPageUnloaded(object? sender, EventArgs e)
     {
         UnregisterPlatformKeyboardHooks();
+        _vm.StopClock();
         _vm.PropertyChanged -= OnViewModelPropertyChanged;
         _vm.ProductCatalog.PropertyChanged -= OnProductCatalogPropertyChanged;
     }

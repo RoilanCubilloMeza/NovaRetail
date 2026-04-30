@@ -6,93 +6,100 @@
              BackgroundColor="{DynamicResource PageBackground}"
              Shell.NavBarIsVisible="False">
 
-    <Grid x:Name="MainGrid" ColumnDefinitions="10*, 7*, 3*" ColumnSpacing="0"
-          SizeChanged="OnMainGridSizeChanged">
-        <views:CartPanel     Grid.Column="0"/>
-        <views:ProductsPanel Grid.Column="1" BindingContext="{Binding ProductCatalog}"/>
-        <views:ActionsPanel  Grid.Column="2"/>
+    <Grid RowDefinitions="Auto,*">
+        <views:LoginStatusBar />
 
-        <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsItemActionVisible}">
-            <views:ItemActionPopup BindingContext="{Binding ItemActionVm}"/>
-        </Grid>
+        <Grid x:Name="MainGrid"
+              Grid.Row="1"
+              ColumnDefinitions="10*, 7*, 3*"
+              ColumnSpacing="0"
+              SizeChanged="OnMainGridSizeChanged">
+            <views:CartPanel     Grid.Column="0"/>
+            <views:ProductsPanel Grid.Column="1" BindingContext="{Binding ProductCatalog}"/>
+            <views:ActionsPanel  Grid.Column="2"/>
 
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsDiscountPopupVisible}">
-            <views:DiscountPopup BindingContext="{Binding DiscountVm}"/>
-        </Grid>
+            <!-- Item action overlay (Grid keeps MainViewModel BC for IsVisible) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsItemActionVisible}">
+                <views:ItemActionPopup BindingContext="{Binding ItemActionVm}"/>
+            </Grid>
 
-        <!-- Price justification overlay (Grid keeps MainViewModel BC for IsVisible) -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsPriceJustVisible}">
-            <views:PriceJustificationPopup BindingContext="{Binding PriceJustVm}"/>
-        </Grid>
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsDiscountPopupVisible}">
+                <views:DiscountPopup BindingContext="{Binding DiscountVm}"/>
+            </Grid>
 
-        <!-- Checkout overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsCheckoutVisible}">
-            <views:CheckoutPopup BindingContext="{Binding CheckoutVm}"/>
-        </Grid>
+            <!-- Price justification overlay (Grid keeps MainViewModel BC for IsVisible) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsPriceJustVisible}">
+                <views:PriceJustificationPopup BindingContext="{Binding PriceJustVm}"/>
+            </Grid>
 
-        <!-- Receipt overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsReceiptVisible}">
-            <views:ReceiptPopup BindingContext="{Binding ReceiptVm}"/>
-        </Grid>
+            <!-- Checkout overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsCheckoutVisible}">
+                <views:CheckoutPopup BindingContext="{Binding CheckoutVm}"/>
+            </Grid>
 
-        <!-- Manual exoneration overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsManualExonerationVisible}">
-            <views:ManualExonerationPopup BindingContext="{Binding ManualExonerationVm}"/>
-        </Grid>
+            <!-- Receipt overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsReceiptVisible}">
+                <views:ReceiptPopup BindingContext="{Binding ReceiptVm}"/>
+            </Grid>
 
-        <!-- Order search overlay (Rec. Cotización / Rec. Espera) -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsOrderSearchVisible}">
-            <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
-        </Grid>
+            <!-- Manual exoneration overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsManualExonerationVisible}">
+                <views:ManualExonerationPopup BindingContext="{Binding ManualExonerationVm}"/>
+            </Grid>
 
-        <!-- Work-order action overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsWorkOrderActionVisible}">
-            <views:WorkOrderActionPopup BindingContext="{Binding WorkOrderActionVm}"/>
-        </Grid>
+            <!-- Order search overlay (Rec. Cotización / Rec. Espera) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsOrderSearchVisible}">
+                <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
+            </Grid>
 
-        <!-- Work-order partial pickup overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsWorkOrderPartialPickupVisible}">
-            <views:WorkOrderPartialPickupPopup BindingContext="{Binding WorkOrderPartialPickupVm}"/>
-        </Grid>
+            <!-- Work-order action overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsWorkOrderActionVisible}">
+                <views:WorkOrderActionPopup BindingContext="{Binding WorkOrderActionVm}"/>
+            </Grid>
 
-        <!-- Quote receipt overlay (Proforma) -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsQuoteReceiptVisible}">
-            <views:QuoteReceiptPopup BindingContext="{Binding QuoteReceiptVm}"/>
-        </Grid>
+            <!-- Work-order partial pickup overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsWorkOrderPartialPickupVisible}">
+                <views:WorkOrderPartialPickupPopup BindingContext="{Binding WorkOrderPartialPickupVm}"/>
+            </Grid>
 
-        <!-- Sales rep picker overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsSalesRepPickerVisible}">
-            <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
-        </Grid>
+            <!-- Quote receipt overlay (Proforma) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsQuoteReceiptVisible}">
+                <views:QuoteReceiptPopup BindingContext="{Binding QuoteReceiptVm}"/>
+            </Grid>
 
-        <!-- Customer search overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsCustomerSearchVisible}">
-            <views:CustomerSearchPopup BindingContext="{Binding CustomerSearchVm}"/>
-        </Grid>
+            <!-- Sales rep picker overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsSalesRepPickerVisible}">
+                <views:SalesRepPickerPopup BindingContext="{Binding SalesRepPickerVm}"/>
+            </Grid>
 
-        <!-- Credit payment search overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsCreditPaymentSearchVisible}">
-            <views:CreditPaymentSearchPopup BindingContext="{Binding CreditPaymentSearchVm}"/>
-        </Grid>
+            <!-- Customer search overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsCustomerSearchVisible}">
+                <views:CustomerSearchPopup BindingContext="{Binding CustomerSearchVm}"/>
+            </Grid>
 
-        <!-- Credit payment detail overlay -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              IsVisible="{Binding IsCreditPaymentDetailVisible}">
-            <views:CreditPaymentDetailPopup BindingContext="{Binding CreditPaymentDetailVm}"/>
+            <!-- Credit payment search overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsCreditPaymentSearchVisible}">
+                <views:CreditPaymentSearchPopup BindingContext="{Binding CreditPaymentSearchVm}"/>
+            </Grid>
+
+            <!-- Credit payment detail overlay -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsCreditPaymentDetailVisible}">
+                <views:CreditPaymentDetailPopup BindingContext="{Binding CreditPaymentDetailVm}"/>
+            </Grid>
         </Grid>
     </Grid>
 

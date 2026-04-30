@@ -1,5 +1,6 @@
 ﻿using NovaRetail.Data;
 using NovaRetail.Messages;
+using Microsoft.Maui.ApplicationModel;
 using NovaRetail.Models;
 using NovaRetail.Services;
 using NovaRetail.State;
@@ -18,6 +19,7 @@ namespace NovaRetail.ViewModels
         private readonly IProductService _productService;
         private readonly IExonerationService _exonerationService;
         private readonly IDialogService _dialogService;
+        private readonly ILoginService _loginService;
         private readonly ISaleService _saleService;
         private readonly IQuoteService _quoteService;
         private readonly IStoreConfigService _storeConfigService;
@@ -36,6 +38,7 @@ namespace NovaRetail.ViewModels
         private const int HoldRecallType = 1;
         private const int WorkOrderType = 2;
         private const int QuoteRecallType = 3;
+        private IDispatcherTimer? _clockTimer;
         private int _storeTaxSystem;
         private int _storeIdFromConfig;
         private int _registerIdFromConfig = 1;
@@ -76,12 +79,56 @@ namespace NovaRetail.ViewModels
         private bool _isWorkOrderActionVisible;
         private bool _isWorkOrderPartialPickupVisible;
         private List<CartItemModel>? _workOrderPartialCartBackup;
+        private string _databaseStatusText = "Base de datos: verificando...";
+        private string _dateText = string.Empty;
+        private string _timeText = string.Empty;
 
         private enum SalesRepPickerContext { Session, BulkCart, SingleItem, Checkout, BeforeCheckout }
         private enum WorkOrderCheckoutMode { None, Complete, Partial }
         private SalesRepPickerContext _salesRepPickerContext = SalesRepPickerContext.Session;
         private CartItemModel? _pendingRepItem;
         private WorkOrderCheckoutMode _workOrderCheckoutMode = WorkOrderCheckoutMode.None;
+
+        public string AppVersionText { get; } = $"Version {AppInfo.Current.VersionString}";
+
+        public string DatabaseStatusText
+        {
+            get => _databaseStatusText;
+            private set
+            {
+                if (_databaseStatusText != value)
+                {
+                    _databaseStatusText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string DateText
+        {
+            get => _dateText;
+            private set
+            {
+                if (_dateText != value)
+                {
+                    _dateText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string TimeText
+        {
+            get => _timeText;
+            private set
+            {
+                if (_timeText != value)
+                {
+                    _timeText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         private string _taxSystemText = string.Empty;
         public string TaxSystemText
@@ -564,11 +611,12 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ILoginService loginService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
             _dialogService = dialogService;
+            _loginService = loginService;
             _saleService = saleService;
             _quoteService = quoteService;
             _storeConfigService = storeConfigService;
@@ -702,6 +750,52 @@ namespace NovaRetail.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[MainVM] InitializeAsync failed: {ex.Message}");
             }
+        }
+
+        public void StartClock()
+        {
+            if (_clockTimer is not null)
+                return;
+
+            UpdateClock();
+            _clockTimer = Application.Current?.Dispatcher.CreateTimer();
+            if (_clockTimer is null)
+                return;
+
+            _clockTimer.Interval = TimeSpan.FromSeconds(1);
+            _clockTimer.Tick += (_, _) => UpdateClock();
+            _clockTimer.Start();
+        }
+
+        public void StopClock()
+        {
+            if (_clockTimer is null)
+                return;
+
+            _clockTimer.Stop();
+            _clockTimer = null;
+        }
+
+        public async Task LoadStatusAsync()
+        {
+            var connectionInfo = await _loginService.GetConnectionInfoAsync();
+            if (connectionInfo is not null)
+            {
+                var databaseName = string.IsNullOrWhiteSpace(connectionInfo.DatabaseName)
+                    ? "BM"
+                    : connectionInfo.DatabaseName;
+
+                DatabaseStatusText = connectionInfo.IsConnected
+                    ? $"Base {databaseName} @ {connectionInfo.DatabaseServer}"
+                    : $"Base {databaseName} sin conexion";
+
+                return;
+            }
+
+            var isConnected = await _loginService.IsDatabaseConnectedAsync();
+            DatabaseStatusText = isConnected
+                ? "Base BM conectada"
+                : "Base BM sin conexion";
         }
 
         public async Task ReloadTendersAsync()
@@ -1072,6 +1166,13 @@ namespace NovaRetail.ViewModels
         private static bool TryParseDecimal(string? value, out decimal result)
             => decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result)
                 || decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
+
+        private void UpdateClock()
+        {
+            var now = DateTime.Now;
+            DateText = now.ToString("dd/MM/yyyy");
+            TimeText = now.ToString("HH:mm:ss");
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
