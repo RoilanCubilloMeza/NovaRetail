@@ -24,9 +24,11 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private const string ProductViewList = "List";
     private const string ProductViewCards = "Cards";
     private int _loadedItemsPage;
+    private int _prefetchedItemsPage;
     private bool _canLoadMoreFromApi;
     private bool _isLoadingItems;
     private bool _isSearchingByCode;
+    private Task<List<ProductModel>>? _prefetchedItemsTask;
     private CancellationTokenSource _searchCts = new();
     private decimal _exchangeRate;
     private int _storeIdFromConfig;
@@ -97,6 +99,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             if (ProductSearchText != value)
             {
                 _appStore.Dispatch(new SetProductSearchTextAction(value));
+                ClearProductsPrefetch();
                 if (!string.IsNullOrWhiteSpace(value) &&
                     !string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase))
                 {
@@ -166,6 +169,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                 _appStore.Dispatch(new SetSelectedCategoryAction(value));
 
                 ResetSearchCts();
+                ClearProductsPrefetch();
 
                 _ = SafeLoadCategoryAsync(value);
 
@@ -557,7 +561,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
         try
         {
-            var products = await _productService.GetProductsAsync(nextPage, ProductsPageSize, _exchangeRate, _storeIdFromConfig > 0 ? _storeIdFromConfig : 1);
+            var products = await GetProductsPageAsync(nextPage, usePrefetch: loadMore);
 
             if (products.Count == 0)
             {
@@ -587,6 +591,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                 FilterProducts();
 
             RefreshProductCountText();
+            StartProductsPrefetch(nextPage + 1);
             _isLoadingItems = false;
             if (!loadMore) IsSearchingProducts = false;
             return true;
@@ -597,6 +602,59 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             IsSearchingProducts = false;
             return false;
         }
+    }
+
+    private async Task<List<ProductModel>> GetProductsPageAsync(int page, bool usePrefetch)
+    {
+        if (usePrefetch && _prefetchedItemsPage == page && _prefetchedItemsTask is not null)
+        {
+            var prefetched = await _prefetchedItemsTask;
+            ClearProductsPrefetch();
+            return prefetched;
+        }
+
+        ClearProductsPrefetch();
+        return await FetchProductsPageAsync(page);
+    }
+
+    private Task<List<ProductModel>> FetchProductsPageAsync(int page)
+        => _productService.GetProductsAsync(
+            page,
+            ProductsPageSize,
+            _exchangeRate,
+            _storeIdFromConfig > 0 ? _storeIdFromConfig : 1);
+
+    private void StartProductsPrefetch(int page)
+    {
+        if (!_canLoadMoreFromApi || !CanAppendPagedProductsDirectly())
+        {
+            ClearProductsPrefetch();
+            return;
+        }
+
+        if (_prefetchedItemsPage == page && _prefetchedItemsTask is not null)
+            return;
+
+        _prefetchedItemsPage = page;
+        _prefetchedItemsTask = PrefetchProductsPageAsync(page);
+    }
+
+    private async Task<List<ProductModel>> PrefetchProductsPageAsync(int page)
+    {
+        try
+        {
+            return await FetchProductsPageAsync(page);
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private void ClearProductsPrefetch()
+    {
+        _prefetchedItemsPage = 0;
+        _prefetchedItemsTask = null;
     }
 
     internal void FilterProducts(bool skipSearchFilter = false)
@@ -657,14 +715,18 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             .Select(p => p.Code ?? string.Empty)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        var newProducts = new List<ProductModel>();
+
         foreach (var product in page
             .OrderByDescending(p => p.Stock > 0)
             .ThenBy(p => p.Name))
         {
             var code = product.Code ?? string.Empty;
             if (existingCodes.Add(code))
-                Products.Add(product);
+                newProducts.Add(product);
         }
+
+        Products.AddRange(newProducts);
     }
 
     private async Task SearchFromApiAsync(string term, CancellationToken cancellationToken = default)

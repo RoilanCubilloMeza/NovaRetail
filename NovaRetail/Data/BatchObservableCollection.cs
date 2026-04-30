@@ -27,4 +27,23 @@ public sealed class BatchObservableCollection<T> : ObservableCollection<T>
         OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(Count)));
         OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs("Item[]"));
     }
+
+    public void AddRange(IEnumerable<T> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var changed = false;
+        foreach (var item in items)
+        {
+            Items.Add(item);
+            changed = true;
+        }
+
+        if (!changed)
+            return;
+
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(Count)));
+        OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs("Item[]"));
+    }
 }

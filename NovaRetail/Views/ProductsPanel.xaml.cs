@@ -112,7 +112,10 @@ public partial class ProductsPanel : ContentView
     }
 
     private void OnProductsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => QueueLayoutRefresh(immediate: true);
+    {
+        if (_subscribedVm?.IsProductCardView == true)
+            QueueLayoutRefresh(immediate: true);
+    }
 
     partial void SaveNativeScrollPosition();
     partial void RestoreNativeScrollPosition();
