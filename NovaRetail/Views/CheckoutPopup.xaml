@@ -316,7 +316,8 @@
                                 StrokeThickness="1"
                                 StrokeShape="RoundRectangle 10"
                                 Padding="14,12"
-                                Margin="0,14,0,0">
+                                Margin="0,14,0,0"
+                                IsVisible="{Binding ShowTenderedSection}">
                             <VerticalStackLayout Spacing="10">
 
                                 <Label Text="MONTO ENTREGADO"

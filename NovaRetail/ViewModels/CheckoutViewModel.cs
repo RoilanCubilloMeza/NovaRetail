@@ -9,6 +9,7 @@ namespace NovaRetail.ViewModels
 {
     public class CheckoutViewModel : INotifyPropertyChanged
     {
+        private static readonly CultureInfo CostaRicaCulture = new("es-CR");
         private TenderModel? _selectedTender;
         private string _subtotalText = string.Empty;
         private string _discountText = string.Empty;
@@ -46,6 +47,8 @@ namespace NovaRetail.ViewModels
                     foreach (var t in Tenders) t.IsSelected = false;
                     _selectedTender = value;
                     if (_selectedTender != null) _selectedTender.IsSelected = true;
+                    if (!SupportsCashChange(_selectedTender))
+                        TenderedText = string.Empty;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(SelectedTenderText));
                     OnPropertyChanged(nameof(SelectedTenderName));
@@ -65,12 +68,13 @@ namespace NovaRetail.ViewModels
                 : $"Pago seleccionado: {SelectedTender.Description}";
 
         public bool PrimaryTenderAllowsChange => SupportsCashChange(SelectedTender);
+        public bool ShowTenderedSection => PrimaryTenderAllowsChange;
 
         public string PrimaryAmountSummaryTitle => HasSecondTender
             ? "Monto que cubre el primer pago"
             : "Monto total a cobrar";
 
-        public string AmountDueForPrimaryText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount:N2}";
+        public string AmountDueForPrimaryText => FormatColones(FirstTenderAmount);
 
         // ── Monto entregado y cambio ─────────────────────────────────────
         public string TenderedText
@@ -116,16 +120,16 @@ namespace NovaRetail.ViewModels
 
         public decimal TenderedColones => TryParseColones(_tenderedText);
         public decimal FirstTenderAmount => Math.Max(0m, _totalColonesValue - (HasSecondTender ? SecondAmount : 0m));
-        public string FirstTenderAmountText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount:N2}";
-        public string TenderedAmountText => $"{UiConfig.CurrencySymbol}{TenderedColones:N2}";
+        public string FirstTenderAmountText => FormatColones(FirstTenderAmount);
+        public string TenderedAmountText => FormatColones(TenderedColones);
         public decimal RemainingColones => TenderedColones > 0m ? Math.Max(0m, FirstTenderAmount - TenderedColones) : 0m;
-        public string RemainingText => $"{UiConfig.CurrencySymbol}{RemainingColones:N2}";
+        public string RemainingText => FormatColones(RemainingColones);
         public bool HasTenderedAmount => TenderedColones > 0m;
         public bool HasRemainingAmount => HasTenderedAmount && RemainingColones > 0m;
         public bool HasExactAmount => HasTenderedAmount && RemainingColones == 0m && ChangeColones == 0m;
         public decimal ChangeColones => PrimaryTenderAllowsChange && TenderedColones > 0m ? Math.Max(0m, TenderedColones - FirstTenderAmount) : 0m;
         public bool HasChange => ChangeColones > 0m;
-        public string ChangeText => $"{UiConfig.CurrencySymbol}{ChangeColones:N2}";
+        public string ChangeText => FormatColones(ChangeColones);
         public bool ShowCashChangeGuidance => HasTenderedAmount && !PrimaryTenderAllowsChange;
 
         // ── Segundo medio de pago ────────────────────────────────────────
@@ -192,7 +196,7 @@ namespace NovaRetail.ViewModels
 
         public decimal SecondAmount => TryParseColones(_secondAmountText);
         public string SplitSummaryText => HasSecondTender && SecondAmount > 0m
-            ? $"1er pago: {UiConfig.CurrencySymbol}{FirstTenderAmount:N2}   2do pago: {UiConfig.CurrencySymbol}{SecondAmount:N2}"
+            ? $"1er pago: {FormatColones(FirstTenderAmount)}   2do pago: {FormatColones(SecondAmount)}"
             : string.Empty;
 
         public string SelectedTenderName => SelectedTender?.Description ?? "1er pago";
@@ -203,23 +207,23 @@ namespace NovaRetail.ViewModels
         public bool ClientHasCredit => _creditInfo is not null && _creditInfo.HasCredit;
         public bool HasResolvedCreditInfo => _creditInfoLookupCompleted;
         public string CreditClientName => _creditInfo?.FullName ?? string.Empty;
-        public string CreditLimitText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.CreditLimit:N2}" : string.Empty;
-        public string CreditBalanceText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.ClosingBalance:N2}" : string.Empty;
-        public string CreditAvailableText => _creditInfo is not null ? $"{UiConfig.CurrencySymbol}{_creditInfo.Available:N2}" : string.Empty;
+        public string CreditLimitText => _creditInfo is not null ? FormatColones(_creditInfo.CreditLimit) : string.Empty;
+        public string CreditBalanceText => _creditInfo is not null ? FormatColones(_creditInfo.ClosingBalance) : string.Empty;
+        public string CreditAvailableText => _creditInfo is not null ? FormatColones(_creditInfo.Available) : string.Empty;
         public string CreditAfterSaleText
         {
             get
             {
                 if (_creditInfo is null) return string.Empty;
                 var newAvailable = _creditInfo.Available - _totalColonesValue;
-                return $"{UiConfig.CurrencySymbol}{newAvailable:N2}";
+                return FormatColones(newAvailable);
             }
         }
         public bool CreditInsufficient => _creditInfo is not null && _totalColonesValue > _creditInfo.Available
             && (_selectedTender?.IsCredit == true || (HasSecondTender && _secondTender?.IsCredit == true));
         public string CreditDaysText => _creditInfo?.CreditDays is > 0 ? $"{_creditInfo.CreditDays} días" : "N/A";
-        public string SecondAmountFormattedText => SecondAmount > 0m ? $"{UiConfig.CurrencySymbol}{SecondAmount:N2}" : $"{UiConfig.CurrencySymbol}0.00";
-        public string SplitTotalText => $"{UiConfig.CurrencySymbol}{FirstTenderAmount + SecondAmount:N2}";
+        public string SecondAmountFormattedText => SecondAmount > 0m ? FormatColones(SecondAmount) : FormatColones(0m);
+        public string SplitTotalText => FormatColones(FirstTenderAmount + SecondAmount);
 
         public string SubtotalText
         {
@@ -359,7 +363,7 @@ namespace NovaRetail.ViewModels
             SelectedTender is not null &&
             !IsSubmitting &&
             (!HasSecondTender || (SecondTender is not null && SecondAmount > 0m && SecondAmount < _totalColonesValue)) &&
-            (TenderedColones == 0m || TenderedColones >= FirstTenderAmount);
+            (!ShowTenderedSection || TenderedColones == 0m || TenderedColones >= FirstTenderAmount);
         public bool CanCancel => !IsSubmitting;
         public bool CanSelectTender => !IsSubmitting;
         public bool CanValidateExoneration => !IsBusy && !string.IsNullOrWhiteSpace(ExonerationAuthorization);
@@ -532,6 +536,7 @@ namespace NovaRetail.ViewModels
         private void RefreshDerivedAmounts()
         {
             OnPropertyChanged(nameof(PrimaryTenderAllowsChange));
+            OnPropertyChanged(nameof(ShowTenderedSection));
             OnPropertyChanged(nameof(PrimaryAmountSummaryTitle));
             OnPropertyChanged(nameof(AmountDueForPrimaryText));
             OnPropertyChanged(nameof(TenderedSectionTitle));
@@ -559,11 +564,29 @@ namespace NovaRetail.ViewModels
             ((Command)ToggleSecondTenderCommand).ChangeCanExecute();
         }
 
+        private static string FormatColones(decimal amount)
+            => string.Concat(UiConfig.CurrencySymbol, amount.ToString("N2", CostaRicaCulture));
+
         private static decimal TryParseColones(string text)
         {
-            if (string.IsNullOrWhiteSpace(text)) return 0m;
-            var cleaned = text.Replace(UiConfig.CurrencySymbol, string.Empty).Replace(",", string.Empty).Trim();
-            return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+            if (string.IsNullOrWhiteSpace(text))
+                return 0m;
+
+            var cleaned = text
+                .Replace(UiConfig.CurrencySymbol, string.Empty)
+                .Replace("$", string.Empty)
+                .Trim();
+
+            if (decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CostaRicaCulture, out var localValue))
+                return localValue;
+
+            if (decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CultureInfo.CurrentCulture, out var currentValue))
+                return currentValue;
+
+            cleaned = cleaned.Replace(" ", string.Empty).Replace(",", string.Empty);
+            return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.InvariantCulture, out var invariantValue)
+                ? invariantValue
+                : 0m;
         }
 
         private static bool SupportsCashChange(TenderModel? tender)

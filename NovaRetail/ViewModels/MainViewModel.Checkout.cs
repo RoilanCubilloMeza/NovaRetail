@@ -189,10 +189,10 @@ namespace NovaRetail.ViewModels
         private async void OpenCheckoutPopup()
         {
             CheckoutVm.Load(
-                subtotalText: SubtotalText,
-                discountAmountText: DiscountAmountText,
-                taxText: TaxText,
-                totalText: TotalText,
+                subtotalText: SubtotalColonesText,
+                discountAmountText: DiscountColonesText,
+                taxText: TaxColonesText,
+                totalText: TotalColonesText,
                 totalColonesText: TotalColonesText,
                 totalColonesValue: _totalColones,
                 taxSystemText: TaxSystemText,
@@ -766,7 +766,7 @@ namespace NovaRetail.ViewModels
 
         private void RefreshCheckoutPopup()
         {
-            CheckoutVm.UpdateTotals(SubtotalText, DiscountAmountText, TaxText, TotalText, TotalColonesText, _totalColones, DiscountAmount > 0);
+            CheckoutVm.UpdateTotals(SubtotalColonesText, DiscountColonesText, TaxColonesText, TotalColonesText, TotalColonesText, _totalColones, DiscountAmount > 0);
             CheckoutVm.SetExonerationState(BuildCheckoutExonerationState());
         }
     }
