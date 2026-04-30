@@ -8,12 +8,12 @@ namespace NovaRetail.Views;
 
 public partial class ProductsPanel : ContentView
 {
-    private const double CardLayoutHorizontalPadding = 28;
+    private const double CardLayoutHorizontalPadding = 36;
     private const double CardSpacing = 12;
-    private const double MinCardWidth = 150;
-    private const double TwoColumnBreakpoint = 500;
-    private const double ThreeColumnBreakpoint = 780;
-    private const double FourColumnBreakpoint = 1080;
+    private const double MinCardWidth = 132;
+    private const double TwoColumnBreakpoint = 320;
+    private const double ThreeColumnBreakpoint = 620;
+    private const double FourColumnBreakpoint = 980;
     private static readonly TimeSpan ResizeDebounceDelay = TimeSpan.FromMilliseconds(140);
 
     private int _preLoadProductCount;
@@ -134,7 +134,7 @@ public partial class ProductsPanel : ContentView
             return;
 
         var useCards = _subscribedVm?.IsProductCardView == true;
-        var availableWidth = Math.Max(0, Width - CardLayoutHorizontalPadding);
+        var availableWidth = GetCardsAvailableWidth();
         var span = CalculateCardSpan(availableWidth);
 
         var newCardWidth = Math.Max(MinCardWidth, (availableWidth - (CardSpacing * Math.Max(0, span - 1))) / span);
@@ -147,7 +147,7 @@ public partial class ProductsPanel : ContentView
 
         _lastAppliedCardMode = useCards;
         _lastAppliedCardSpan = span;
-        CardItemWidth = newCardWidth;
+        CardItemWidth = Math.Floor(newCardWidth);
 
         if (force || spanChanged || modeChanged)
             RebuildCardRows(span);
@@ -196,6 +196,15 @@ public partial class ProductsPanel : ContentView
         if (availableWidth >= TwoColumnBreakpoint)
             return 2;
         return 1;
+    }
+
+    private double GetCardsAvailableWidth()
+    {
+        var width = ProductsCardsCollectionView?.Width > 0
+            ? ProductsCardsCollectionView.Width
+            : Width;
+
+        return Math.Max(0, width - CardLayoutHorizontalPadding);
     }
 
     private async Task RestoreScrollPositionAsync(int scrollTarget, int productCount)

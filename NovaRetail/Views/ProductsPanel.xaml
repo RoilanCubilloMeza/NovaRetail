@@ -44,7 +44,7 @@
                                    TextColor="White"
                                    FontSize="13"
                                    FontAttributes="Bold"/>
-                            <Label Text="Lista rÃ¡pida para venta"
+                            <Label Text="Lista rápida para venta"
                                    FontSize="10"
                                    TextColor="#CBD5E1"/>
                         </VerticalStackLayout>
@@ -458,7 +458,7 @@
                                 <Label Text="&#x1F4E6;"
                                        FontSize="14"
                                        VerticalOptions="Center"/>
-                                <Label Text="Cargar mÃ¡s productos"
+                                <Label Text="Cargar más productos"
                                        FontSize="13"
                                        FontAttributes="Bold"
                                        TextColor="White"
