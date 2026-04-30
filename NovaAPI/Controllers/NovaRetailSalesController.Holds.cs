@@ -311,7 +311,12 @@ namespace NovaAPI.Controllers
                     var sql = @"
                         SELECT TOP 50
                             th.ID AS OrderID, 1 AS Type, th.HoldComment AS Comment,
-                            0 AS Total, 0 AS Tax, th.TransactionTime AS Time,
+                            ISNULL((
+                                SELECT SUM(ISNULL(the2.Price, 0) * ISNULL(the2.QuantityReserved, 0))
+                                FROM dbo.TransactionHoldEntry the2
+                                WHERE the2.TransactionHoldID = th.ID
+                            ), 0) AS Total,
+                            0 AS Tax, th.TransactionTime AS Time,
                             th.ExpirationOrDueDate, th.CustomerID, th.ReferenceNumber,
                             '' AS CashierName,
                             (SELECT COUNT(1) FROM dbo.TransactionHoldEntry the2
@@ -337,7 +342,7 @@ namespace NovaAPI.Controllers
                                     OrderID = Convert.ToInt32(reader["OrderID"]),
                                     Type = HoldRecallType,
                                     Comment = reader["Comment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["Comment"]),
-                                    Total = 0m,
+                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
                                     Tax = 0m,
                                     Time = Convert.ToDateTime(reader["Time"]),
                                     ExpirationOrDueDate = reader["ExpirationOrDueDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["ExpirationOrDueDate"]),
@@ -380,7 +385,17 @@ namespace NovaAPI.Controllers
                 {
                     cn.Open();
                     using (var cmd = new SqlCommand(
-                        "SELECT ID, HoldComment, TransactionTime FROM dbo.TransactionHold WHERE ID = @HoldID", cn))
+                        @"SELECT
+                            th.ID,
+                            th.HoldComment,
+                            th.TransactionTime,
+                            ISNULL((
+                                SELECT SUM(ISNULL(the2.Price, 0) * ISNULL(the2.QuantityReserved, 0))
+                                FROM dbo.TransactionHoldEntry the2
+                                WHERE the2.TransactionHoldID = th.ID
+                            ), 0) AS Total
+                        FROM dbo.TransactionHold th
+                        WHERE th.ID = @HoldID", cn))
                     {
                         cmd.Parameters.AddWithValue("@HoldID", holdId);
                         using (var reader = cmd.ExecuteReader())
@@ -392,7 +407,7 @@ namespace NovaAPI.Controllers
                                     OrderID = Convert.ToInt32(reader["ID"]),
                                     Type = HoldRecallType,
                                     Comment = reader["HoldComment"] == DBNull.Value ? string.Empty : Convert.ToString(reader["HoldComment"]),
-                                    Total = 0m,
+                                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
                                     Tax = 0m,
                                     Time = Convert.ToDateTime(reader["TransactionTime"])
                                 };
