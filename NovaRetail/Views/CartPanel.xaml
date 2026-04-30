@@ -48,14 +48,6 @@
                     <Label Text="F7 Buscar" TextColor="White" FontAttributes="Bold"
                            FontSize="12" VerticalOptions="Center"/>
                 </Border>
-                <Border Grid.Column="4"
-                        BackgroundColor="{DynamicResource InputBackground}"
-                        StrokeShape="RoundRectangle 6" StrokeThickness="1"
-                        Stroke="{DynamicResource Gray200Brush}"
-                        Padding="10,6" HeightRequest="32">
-                    <Label Text="F3" TextColor="{DynamicResource Gray600}"
-                           FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
-                </Border>
                 <Border Grid.Column="5"
                         StrokeShape="RoundRectangle 6" StrokeThickness="1"
                         Padding="10,6" HeightRequest="32">
