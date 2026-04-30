@@ -58,16 +58,22 @@ public partial class MainPage : ContentPage
         }
 
         // Breakpoints: wide / medium / narrow / very-narrow
-        if (width >= 1400)
+        if (width >= 1650)
         {
-            MainGrid.ColumnDefinitions[0].Width = new GridLength(10, GridUnitType.Star);
-            MainGrid.ColumnDefinitions[1].Width = new GridLength(7, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[0].Width = new GridLength(8.5, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[1].Width = new GridLength(10.5, GridUnitType.Star);
             MainGrid.ColumnDefinitions[2].Width = new GridLength(3, GridUnitType.Star);
+        }
+        else if (width >= 1400)
+        {
+            MainGrid.ColumnDefinitions[0].Width = new GridLength(9, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[1].Width = new GridLength(8.5, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[2].Width = new GridLength(2.8, GridUnitType.Star);
         }
         else if (width >= 1100)
         {
-            MainGrid.ColumnDefinitions[0].Width = new GridLength(10, GridUnitType.Star);
-            MainGrid.ColumnDefinitions[1].Width = new GridLength(7, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[0].Width = new GridLength(9.5, GridUnitType.Star);
+            MainGrid.ColumnDefinitions[1].Width = new GridLength(7.5, GridUnitType.Star);
             MainGrid.ColumnDefinitions[2].Width = new GridLength(2.5, GridUnitType.Star);
         }
         else if (width >= 820)

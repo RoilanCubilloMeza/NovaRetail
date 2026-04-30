@@ -12,6 +12,8 @@ namespace NovaRetail.ViewModels;
 public class CategoryConfigViewModel : INotifyPropertyChanged
 {
     private const int MaxCategories = 6;
+    private const string ProductViewList = "List";
+    private const string ProductViewCards = "Cards";
 
     private readonly IStoreConfigService _configService;
     private readonly IDialogService _dialogService;
@@ -20,6 +22,8 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
 
     private bool _isBusy;
     private bool _isSaving;
+    private PersonalizationSection _activeSection = PersonalizationSection.Categories;
+    private string _productViewMode = ProductViewList;
 
     public ObservableCollection<SelectableCategoryItem> AllCategories { get; } = new();
     public ObservableCollection<SelectableCategoryItem> SelectedCategories { get; } = new();
@@ -40,12 +44,45 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
     public string SelectedCountText => $"{SelectedCategories.Count} / {MaxCategories} seleccionadas";
     public bool CanAddMore => SelectedCategories.Count < MaxCategories;
 
+    public bool IsCategoriesSectionActive => _activeSection == PersonalizationSection.Categories;
+    public bool IsProductViewSectionActive => _activeSection == PersonalizationSection.ProductView;
+    public bool IsCategoriesSectionVisible => IsCategoriesSectionActive;
+    public bool IsProductViewSectionVisible => IsProductViewSectionActive;
+
+    public string ProductViewMode
+    {
+        get => _productViewMode;
+        private set
+        {
+            var normalized = NormalizeProductViewMode(value);
+            if (_productViewMode != normalized)
+            {
+                _productViewMode = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsProductListView));
+                OnPropertyChanged(nameof(IsProductCardView));
+                OnPropertyChanged(nameof(ProductViewModeTitle));
+                OnPropertyChanged(nameof(ProductViewModeDescription));
+            }
+        }
+    }
+
+    public bool IsProductListView => ProductViewMode == ProductViewList;
+    public bool IsProductCardView => ProductViewMode == ProductViewCards;
+    public string ProductViewModeTitle => IsProductCardView ? "Vista carta" : "Vista lista";
+    public string ProductViewModeDescription => IsProductCardView
+        ? "Tarjetas visuales para navegar productos con mas espacio."
+        : "Lista compacta y rapida para cobrar con menos desplazamiento.";
+
     public ICommand ToggleCategoryCommand { get; }
     public ICommand MoveUpCommand { get; }
     public ICommand MoveDownCommand { get; }
     public ICommand RemoveCategoryCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand GoBackCommand { get; }
+    public ICommand ShowCategoriesSectionCommand { get; }
+    public ICommand ShowProductViewSectionCommand { get; }
+    public ICommand SelectProductViewModeCommand { get; }
 
     public CategoryConfigViewModel(IStoreConfigService configService, IDialogService dialogService, MainViewModel mainVm, UserSession userSession)
     {
@@ -60,6 +97,9 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
         RemoveCategoryCommand = new Command<SelectableCategoryItem>(RemoveCategory);
         SaveCommand = new Command(async () => await SaveAsync());
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        ShowCategoriesSectionCommand = new Command(() => SetActiveSection(PersonalizationSection.Categories));
+        ShowProductViewSectionCommand = new Command(() => SetActiveSection(PersonalizationSection.ProductView));
+        SelectProductViewModeCommand = new Command<string>(SetProductViewMode);
     }
 
     public async Task LoadAsync()
@@ -69,20 +109,22 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
 
         try
         {
-            var allTask = _configService.GetAllCategoriesAsync();
             var userName = _userSession.CurrentUser?.UserName;
+            var allTask = _configService.GetAllCategoriesAsync();
             var configTask = _configService.GetCategoryConfigAsync(userName);
-            await Task.WhenAll(allTask, configTask);
+            var productViewTask = _configService.GetProductViewModeAsync(userName);
+            await Task.WhenAll(allTask, configTask, productViewTask);
 
             var allDepts = allTask.Result;
             var currentConfig = configTask.Result;
+            ProductViewMode = string.IsNullOrWhiteSpace(productViewTask.Result) ? ProductViewList : productViewTask.Result;
 
-            var selectedIds = new HashSet<int>();
+            var selectedIds = new List<int>();
             if (!string.IsNullOrWhiteSpace(currentConfig))
             {
                 foreach (var s in currentConfig.Split(',', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    if (int.TryParse(s.Trim(), out var id))
+                    if (int.TryParse(s.Trim(), out var id) && !selectedIds.Contains(id))
                         selectedIds.Add(id);
                 }
             }
@@ -90,44 +132,56 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
             AllCategories.Clear();
             SelectedCategories.Clear();
 
-            // Primero agregar las seleccionadas en orden del parámetro
             var deptMap = new Dictionary<int, CategoryModel>();
             foreach (var d in allDepts)
             {
                 if (!deptMap.ContainsKey(d.ID))
                     deptMap[d.ID] = d;
             }
+
             foreach (var id in selectedIds)
             {
                 if (deptMap.TryGetValue(id, out var dept))
-                {
-                    var item = new SelectableCategoryItem { ID = dept.ID, Name = dept.Name, IsSelected = true };
-                    SelectedCategories.Add(item);
-                }
+                    SelectedCategories.Add(new SelectableCategoryItem { ID = dept.ID, Name = dept.Name, IsSelected = true });
             }
 
-            // Todas las categorías disponibles
             foreach (var dept in allDepts)
             {
-                var item = new SelectableCategoryItem
+                AllCategories.Add(new SelectableCategoryItem
                 {
                     ID = dept.ID,
                     Name = dept.Name,
                     IsSelected = selectedIds.Contains(dept.ID)
-                };
-                AllCategories.Add(item);
+                });
             }
 
             RefreshCounters();
         }
         catch (Exception)
         {
-            await _dialogService.AlertAsync("Error", "No se pudieron cargar las categorías.", "OK");
+            await _dialogService.AlertAsync("Error", "No se pudo cargar la personalizacion.", "OK");
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private void SetActiveSection(PersonalizationSection section)
+    {
+        if (_activeSection == section)
+            return;
+
+        _activeSection = section;
+        OnPropertyChanged(nameof(IsCategoriesSectionActive));
+        OnPropertyChanged(nameof(IsProductViewSectionActive));
+        OnPropertyChanged(nameof(IsCategoriesSectionVisible));
+        OnPropertyChanged(nameof(IsProductViewSectionVisible));
+    }
+
+    private void SetProductViewMode(string? mode)
+    {
+        ProductViewMode = NormalizeProductViewMode(mode);
     }
 
     private void ToggleCategory(SelectableCategoryItem? item)
@@ -136,7 +190,6 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
 
         if (item.IsSelected)
         {
-            // Deseleccionar
             item.IsSelected = false;
             var toRemove = SelectedCategories.FirstOrDefault(c => c.ID == item.ID);
             if (toRemove is not null)
@@ -147,7 +200,6 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
             if (SelectedCategories.Count >= MaxCategories)
                 return;
 
-            // Seleccionar
             item.IsSelected = true;
             SelectedCategories.Add(new SelectableCategoryItem { ID = item.ID, Name = item.Name, IsSelected = true });
         }
@@ -195,21 +247,25 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
         {
             var ids = string.Join(",", SelectedCategories.Select(c => c.ID));
             var userName = _userSession.CurrentUser?.UserName;
-            var success = await _configService.SaveCategoryConfigAsync(ids, userName);
 
-            if (success)
+            var categoryTask = _configService.SaveCategoryConfigAsync(ids, userName);
+            var viewModeTask = _configService.SaveProductViewModeAsync(ProductViewMode, userName);
+            await Task.WhenAll(categoryTask, viewModeTask);
+
+            if (categoryTask.Result && viewModeTask.Result)
             {
                 await _mainVm.ReloadCategoriesAsync();
+                await _mainVm.ProductCatalog.RefreshProductViewModeAsync();
                 await Shell.Current.GoToAsync("..");
             }
             else
             {
-                await _dialogService.AlertAsync("Error", "No se pudo guardar la configuración.", "OK");
+                await _dialogService.AlertAsync("Error", "No se pudo guardar la personalizacion.", "OK");
             }
         }
         catch (Exception)
         {
-            await _dialogService.AlertAsync("Error", "Ocurrió un error al guardar.", "OK");
+            await _dialogService.AlertAsync("Error", "Ocurrio un error al guardar.", "OK");
         }
         finally
         {
@@ -224,9 +280,20 @@ public class CategoryConfigViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanAddMore));
     }
 
+    private static string NormalizeProductViewMode(string? mode)
+        => string.Equals(mode, ProductViewCards, StringComparison.OrdinalIgnoreCase)
+            ? ProductViewCards
+            : ProductViewList;
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private enum PersonalizationSection
+    {
+        Categories,
+        ProductView
+    }
 }
 
 public class SelectableCategoryItem : INotifyPropertyChanged

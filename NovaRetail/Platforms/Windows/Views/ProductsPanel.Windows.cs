@@ -24,7 +24,8 @@ public partial class ProductsPanel
 
     private ScrollViewer? GetNativeScrollViewer()
     {
-        if (ProductsCollectionView.Handler?.PlatformView is not UIElement nativeView)
+        var activeCollectionView = GetActiveCollectionView();
+        if (activeCollectionView?.Handler?.PlatformView is not UIElement nativeView)
             return null;
 
         return FindDescendant<ScrollViewer>(nativeView);

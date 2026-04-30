@@ -8,7 +8,6 @@
 
     <Grid>
 
-        <!-- Collapsed state: slim expand bar -->
         <Border Style="{DynamicResource PanelCollapseSliver}"
                 Margin="6,10,6,10"
                 IsVisible="False">
@@ -28,27 +27,28 @@
             </VerticalStackLayout>
         </Border>
 
-        <!-- Expanded state: full products panel -->
         <Border Style="{DynamicResource PanelCard}"
                 Margin="6,10,6,10"
                 IsVisible="{Binding IsProductsPanelVisible}">
 
             <Grid RowDefinitions="Auto, *" RowSpacing="0">
 
-                <!-- Panel header -->
-                <Border Grid.Row="0"
-                        Style="{DynamicResource PanelHeaderBar}">
-                    <Grid ColumnDefinitions="Auto, Auto, *, Auto"
-                          ColumnSpacing="6">
+                <Border Grid.Row="0" Style="{DynamicResource PanelHeaderBar}">
+                    <Grid ColumnDefinitions="Auto, Auto, *, Auto" ColumnSpacing="8">
                         <Label Grid.Column="0" Text="&#x1F4E6;"
-                               FontSize="14" TextColor="White"
+                               FontSize="14"
+                               TextColor="White"
                                VerticalOptions="Center"/>
-                        <Label Grid.Column="1" Text="Productos"
-                               TextColor="White" FontSize="13"
-                               FontAttributes="Bold"
-                               VerticalOptions="Center"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                            <Label Text="Productos"
+                                   TextColor="White"
+                                   FontSize="13"
+                                   FontAttributes="Bold"/>
+                            <Label Text="Lista rÃ¡pida para venta"
+                                   FontSize="10"
+                                   TextColor="#CBD5E1"/>
+                        </VerticalStackLayout>
 
-                        <!-- Product count badge -->
                         <Border Grid.Column="2"
                                 BackgroundColor="#475569"
                                 StrokeShape="RoundRectangle 10"
@@ -58,47 +58,54 @@
                                 VerticalOptions="Center"
                                 IsVisible="{Binding HasProductCount}">
                             <Label Text="{Binding ProductCountText}"
-                                   FontSize="10" TextColor="#94A3B8"
+                                   FontSize="10"
+                                   TextColor="#E2E8F0"
                                    VerticalOptions="Center"/>
                         </Border>
 
-                        <!-- Collapse button -->
                         <Border Grid.Column="3"
                                 BackgroundColor="#475569"
                                 StrokeShape="RoundRectangle 5"
                                 StrokeThickness="0"
-                                WidthRequest="28" HeightRequest="28"
+                                WidthRequest="28"
+                                HeightRequest="28"
                                 Padding="0">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding ToggleProductsPanelCommand}"/>
                             </Border.GestureRecognizers>
-                            <Label Text="&#x25C0;" FontSize="11" TextColor="White"
-                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="&#x25C0;"
+                                   FontSize="11"
+                                   TextColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
                         </Border>
                     </Grid>
                 </Border>
 
-                <!-- Panel content -->
-                <Grid x:Name="ProductsPanelGrid" Grid.Row="1"
-                      RowDefinitions="Auto, Auto, *, Auto, Auto"
-                      RowSpacing="0" Padding="10,8,10,10">
+                <Grid Grid.Row="1"
+                      RowDefinitions="Auto, Auto, Auto, *, Auto, Auto"
+                      RowSpacing="0"
+                      Padding="10,8,10,10">
 
-                    <!-- Row 0: Search bar -->
                     <Border Grid.Row="0" Style="{DynamicResource InputBox}" Margin="0,2,0,8">
                         <Grid ColumnDefinitions="Auto, *">
-                            <Label Grid.Column="0" Text="&#x1F50D;&#xFE0E;" FontSize="15"
+                            <Label Grid.Column="0"
+                                   Text="&#x1F50D;&#xFE0E;"
+                                   FontSize="15"
                                    TextColor="{DynamicResource Gray400}"
-                                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                                   VerticalOptions="Center"
+                                   Margin="0,0,6,0"/>
                             <Entry Grid.Column="1"
                                    Placeholder="Buscar o escanear producto..."
                                    Text="{Binding ProductSearchText, Mode=TwoWay}"
                                    ReturnCommand="{Binding SearchProductCommand}"
-                                   FontSize="13" BackgroundColor="Transparent"/>
+                                   FontSize="13"
+                                   BackgroundColor="Transparent"/>
                         </Grid>
                     </Border>
 
-                    <!-- Row 1: Category tabs -->
-                    <ScrollView Grid.Row="1" Orientation="Horizontal"
+                    <ScrollView Grid.Row="1"
+                                Orientation="Horizontal"
                                 HorizontalScrollBarVisibility="Never"
                                 Margin="0,0,0,8">
                         <HorizontalStackLayout Spacing="6"
@@ -114,39 +121,286 @@
                         </HorizontalStackLayout>
                     </ScrollView>
 
-                    <!-- Row 2: Product Grid (no footer to avoid WinUI scroll reset) -->
-                    <Grid Grid.Row="2">
-                        <CollectionView x:Name="ProductsCollectionView"
-                                    ItemsSource="{Binding Products}"
-                                    ItemSizingStrategy="MeasureAllItems"
-                                    SelectionMode="None"
-                                    RemainingItemsThreshold="8"
-                                    Scrolled="ProductsCollectionView_Scrolled"
-                                    RemainingItemsThresholdReachedCommand="{Binding LoadMoreProductsCommand}">
-                        <CollectionView.ItemsLayout>
-                            <GridItemsLayout x:Name="ProductsItemsLayout" Orientation="Vertical" Span="2"
-                                             HorizontalItemSpacing="10" VerticalItemSpacing="10"/>
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <controls:ProductCard Emoji="{Binding Emoji}"
-                                                      ProductName="{Binding Name}"
-                                                      Code="{Binding Code}"
-                                                      Price="{Binding Price}"
-                                                      PriceColones="{Binding PriceColonesText}"
-                                                      OldPrice="{Binding OldPrice}"
-                                                      Stock="{Binding Stock}"
-                                                      IsNonInventory="{Binding IsNonInventory}"
-                                                      Quantity="{Binding CartQuantity}"
-                                                      Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
-                                                      CommandParameter="{Binding .}"
-                                                      DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
-                                                      DecrementCommandParameter="{Binding .}"/>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                    <Border Grid.Row="2"
+                            BackgroundColor="#F8FAFC"
+                            Stroke="#E2E8F0"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10"
+                            Padding="10,8"
+                            Margin="0,0,0,6"
+                            IsVisible="{Binding IsProductListView}">
+                        <Grid ColumnDefinitions="1.25*, 1.05*, 2.7*, 1.1*, Auto"
+                              ColumnSpacing="10">
+                            <Label Grid.Column="0"
+                                   Text="CÃ³digo"
+                                   Style="{DynamicResource TableHeaderLabel}"/>
+                            <Label Grid.Column="1"
+                                   Text="Precio"
+                                   Style="{DynamicResource TableHeaderLabel}"/>
+                            <Label Grid.Column="2"
+                                   Text="Producto"
+                                   Style="{DynamicResource TableHeaderLabel}"/>
+                            <Label Grid.Column="3"
+                                   Text="Disponibilidad"
+                                   Style="{DynamicResource TableHeaderLabel}"
+                                   HorizontalTextAlignment="Center"/>
+                            <Label Grid.Column="4"
+                                   Text="AcciÃ³n"
+                                   Style="{DynamicResource TableHeaderLabel}"
+                                   HorizontalTextAlignment="Center"/>
+                        </Grid>
+                    </Border>
 
-                        <!-- Search overlay -->
+                    <Grid Grid.Row="3">
+                        <CollectionView x:Name="ProductsListCollectionView"
+                                        ItemsSource="{Binding Products}"
+                                        ItemSizingStrategy="MeasureAllItems"
+                                        SelectionMode="None"
+                                        RemainingItemsThreshold="8"
+                                        Scrolled="ProductsCollectionView_Scrolled"
+                                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreProductsCommand}"
+                                        IsVisible="{Binding IsProductListView}">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="4"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="White"
+                                            Stroke="#E5E7EB"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 10"
+                                            Padding="10,8">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding HasCartQuantity}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="#F0FDF4"/>
+                                                <Setter Property="Stroke" Value="#86EFAC"/>
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                                  CommandParameter="{Binding .}"/>
+                                            <TapGestureRecognizer Buttons="Secondary"
+                                                                  Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                                  CommandParameter="{Binding .}"/>
+                                        </Border.GestureRecognizers>
+
+                                        <Grid ColumnDefinitions="1.25*, 1.05*, 2.7*, 1.1*, Auto"
+                                              ColumnSpacing="10">
+                                            <VerticalStackLayout Grid.Column="0"
+                                                                 Spacing="1"
+                                                                 VerticalOptions="Center">
+                                                <Label Text="{Binding Code}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{DynamicResource Gray900}"
+                                                       LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding CartQuantityText}"
+                                                       FontSize="9"
+                                                       TextColor="#2563EB"
+                                                       LineBreakMode="TailTruncation"
+                                                       IsVisible="{Binding HasCartQuantity}"/>
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 Spacing="1"
+                                                                 VerticalOptions="Center">
+                                                <Label Text="{Binding PriceColonesText}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{DynamicResource Gray900}"
+                                                       LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding Price}"
+                                                       FontSize="10"
+                                                       TextColor="#64748B"
+                                                       LineBreakMode="TailTruncation"/>
+                                            </VerticalStackLayout>
+
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding Name}"
+                                                   FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource Gray900}"
+                                                   VerticalTextAlignment="Center"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"/>
+
+                                            <Border Grid.Column="3"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 12"
+                                                    Padding="8,4"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsNonInventory}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="#DBEAFE"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsOutOfStock}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="#FEE2E2"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsLowStock}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="#FEF3C7"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsOutOfStock}" Value="False">
+                                                        <Setter Property="BackgroundColor" Value="#ECFDF5"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                                <Label Text="{Binding StockDisplayText}"
+                                                       FontSize="10"
+                                                       FontAttributes="Bold"
+                                                       HorizontalTextAlignment="Center">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNonInventory}" Value="True">
+                                                            <Setter Property="TextColor" Value="#1D4ED8"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsOutOfStock}" Value="True">
+                                                            <Setter Property="TextColor" Value="#B91C1C"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsLowStock}" Value="True">
+                                                            <Setter Property="TextColor" Value="#B45309"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsOutOfStock}" Value="False">
+                                                            <Setter Property="TextColor" Value="#047857"/>
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </Border>
+
+                                            <Grid Grid.Column="4"
+                                                  ColumnDefinitions="Auto, Auto"
+                                                  ColumnSpacing="6"
+                                                  VerticalOptions="Center">
+                                                <Border Grid.Column="0"
+                                                        BackgroundColor="#F97316"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 8"
+                                                        HeightRequest="30"
+                                                        WidthRequest="30"
+                                                        IsVisible="{Binding HasCartQuantity}">
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                                              CommandParameter="{Binding .}"/>
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="-"
+                                                           FontSize="16"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"/>
+                                                </Border>
+
+                                                <Border Grid.Column="1"
+                                                        BackgroundColor="#22C55E"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 8"
+                                                        HeightRequest="30"
+                                                        WidthRequest="30">
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                                              CommandParameter="{Binding .}"/>
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="+"
+                                                           FontSize="16"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                            <CollectionView.EmptyView>
+                                <Label Text="No hay productos para mostrar"
+                                       Style="{DynamicResource EmptyCollectionLabel}"/>
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+
+                        <CollectionView x:Name="ProductsCardsCollectionView"
+                                        ItemsSource="{Binding Source={x:Reference ThisPanel}, Path=CardRows}"
+                                        ItemSizingStrategy="MeasureFirstItem"
+                                        SelectionMode="None"
+                                        RemainingItemsThreshold="8"
+                                        Scrolled="ProductsCollectionView_Scrolled"
+                                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreProductsCommand}"
+                                        IsVisible="{Binding IsProductCardView}">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <HorizontalStackLayout Spacing="12">
+                                        <controls:ProductCard WidthRequest="{Binding Source={x:Reference ThisPanel}, Path=CardItemWidth}"
+                                                              Emoji="{Binding Product1.Emoji}"
+                                                              ProductName="{Binding Product1.Name}"
+                                                              Code="{Binding Product1.Code}"
+                                                              Price="{Binding Product1.Price}"
+                                                              PriceColones="{Binding Product1.PriceColonesText}"
+                                                              OldPrice="{Binding Product1.OldPrice}"
+                                                              Stock="{Binding Product1.Stock}"
+                                                              IsNonInventory="{Binding Product1.IsNonInventory}"
+                                                              Quantity="{Binding Product1.CartQuantity}"
+                                                              Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                              CommandParameter="{Binding Product1}"
+                                                              DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                              DecrementCommandParameter="{Binding Product1}"/>
+
+                                        <controls:ProductCard WidthRequest="{Binding Source={x:Reference ThisPanel}, Path=CardItemWidth}"
+                                                              IsVisible="{Binding HasProduct2}"
+                                                              Emoji="{Binding Product2.Emoji}"
+                                                              ProductName="{Binding Product2.Name}"
+                                                              Code="{Binding Product2.Code}"
+                                                              Price="{Binding Product2.Price}"
+                                                              PriceColones="{Binding Product2.PriceColonesText}"
+                                                              OldPrice="{Binding Product2.OldPrice}"
+                                                              Stock="{Binding Product2.Stock}"
+                                                              IsNonInventory="{Binding Product2.IsNonInventory}"
+                                                              Quantity="{Binding Product2.CartQuantity}"
+                                                              Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                              CommandParameter="{Binding Product2}"
+                                                              DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                              DecrementCommandParameter="{Binding Product2}"/>
+
+                                        <controls:ProductCard WidthRequest="{Binding Source={x:Reference ThisPanel}, Path=CardItemWidth}"
+                                                              IsVisible="{Binding HasProduct3}"
+                                                              Emoji="{Binding Product3.Emoji}"
+                                                              ProductName="{Binding Product3.Name}"
+                                                              Code="{Binding Product3.Code}"
+                                                              Price="{Binding Product3.Price}"
+                                                              PriceColones="{Binding Product3.PriceColonesText}"
+                                                              OldPrice="{Binding Product3.OldPrice}"
+                                                              Stock="{Binding Product3.Stock}"
+                                                              IsNonInventory="{Binding Product3.IsNonInventory}"
+                                                              Quantity="{Binding Product3.CartQuantity}"
+                                                              Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                              CommandParameter="{Binding Product3}"
+                                                              DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                              DecrementCommandParameter="{Binding Product3}"/>
+
+                                        <controls:ProductCard WidthRequest="{Binding Source={x:Reference ThisPanel}, Path=CardItemWidth}"
+                                                              IsVisible="{Binding HasProduct4}"
+                                                              Emoji="{Binding Product4.Emoji}"
+                                                              ProductName="{Binding Product4.Name}"
+                                                              Code="{Binding Product4.Code}"
+                                                              Price="{Binding Product4.Price}"
+                                                              PriceColones="{Binding Product4.PriceColonesText}"
+                                                              OldPrice="{Binding Product4.OldPrice}"
+                                                              Stock="{Binding Product4.Stock}"
+                                                              IsNonInventory="{Binding Product4.IsNonInventory}"
+                                                              Quantity="{Binding Product4.CartQuantity}"
+                                                              Command="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.AddProductCommand}"
+                                                              CommandParameter="{Binding Product4}"
+                                                              DecrementCommand="{Binding Source={x:Reference ThisPanel}, Path=BindingContext.DecrementProductCommand}"
+                                                              DecrementCommandParameter="{Binding Product4}"/>
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                            <CollectionView.EmptyView>
+                                <Label Text="No hay productos para mostrar"
+                                       Style="{DynamicResource EmptyCollectionLabel}"/>
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+
                         <Border BackgroundColor="#CCFFFFFF"
                                 StrokeThickness="0"
                                 IsVisible="{Binding IsSearchingProducts}"
@@ -166,11 +420,7 @@
                         </Border>
                     </Grid>
 
-                    <!-- Row 3: Load progress (outside CollectionView to preserve scroll) -->
-                    <VerticalStackLayout Grid.Row="3" Spacing="6"
-                                         Margin="0,8,0,0">
-
-                        <!-- Loading spinner -->
+                    <VerticalStackLayout Grid.Row="4" Spacing="6" Margin="0,8,0,0">
                         <Border BackgroundColor="#F8FAFC"
                                 Stroke="#E2E8F0"
                                 StrokeThickness="1"
@@ -193,7 +443,6 @@
                             </HorizontalStackLayout>
                         </Border>
 
-                        <!-- Load more button -->
                         <Border BackgroundColor="{DynamicResource AccentBlue}"
                                 StrokeShape="RoundRectangle 10"
                                 StrokeThickness="0"
@@ -206,16 +455,17 @@
                             <HorizontalStackLayout Spacing="8"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center">
-                                <Label Text="&#x1F4E6;" FontSize="14"
+                                <Label Text="&#x1F4E6;"
+                                       FontSize="14"
                                        VerticalOptions="Center"/>
-                                <Label Text="Cargar más productos"
-                                       FontSize="13" FontAttributes="Bold"
+                                <Label Text="Cargar mÃ¡s productos"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
                                        TextColor="White"
                                        VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Border>
 
-                        <!-- Progress bar + count -->
                         <VerticalStackLayout Spacing="4"
                                              IsVisible="{Binding HasProductCount}"
                                              Padding="10,0">
@@ -227,15 +477,12 @@
                                    TextColor="{DynamicResource Gray400}"
                                    HorizontalTextAlignment="Center"/>
                         </VerticalStackLayout>
-
                     </VerticalStackLayout>
 
-                    <!-- Row 4: Exonerar + Cobrar -->
-                    <Grid Grid.Row="4"
+                    <Grid Grid.Row="5"
                           ColumnDefinitions="Auto, *"
                           ColumnSpacing="8"
                           Margin="0,8,0,0">
-
                         <Border Grid.Column="0"
                                 BackgroundColor="#DBEAFE"
                                 StrokeShape="RoundRectangle 10"
@@ -248,10 +495,15 @@
                             <HorizontalStackLayout HorizontalOptions="Center"
                                                    VerticalOptions="Center"
                                                    Spacing="6">
-                                <Label Text="%" FontSize="16" TextColor="#1D4ED8"
+                                <Label Text="%"
+                                       FontSize="16"
+                                       TextColor="#1D4ED8"
                                        VerticalOptions="Center"/>
-                                <Label Text="Exonerar" FontSize="15" FontAttributes="Bold"
-                                       TextColor="#1D4ED8" VerticalOptions="Center"/>
+                                <Label Text="Exonerar"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="#1D4ED8"
+                                       VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Border>
 
@@ -260,14 +512,19 @@
                                 <TapGestureRecognizer Command="{Binding InvoiceCommand}"/>
                             </Border.GestureRecognizers>
                             <HorizontalStackLayout HorizontalOptions="Center"
-                                                   VerticalOptions="Center" Spacing="8">
-                                <Label Text="&#x2611;" FontSize="18" TextColor="White"
+                                                   VerticalOptions="Center"
+                                                   Spacing="8">
+                                <Label Text="&#x2611;"
+                                       FontSize="18"
+                                       TextColor="White"
                                        VerticalOptions="Center"/>
-                                <Label Text="Cobrar" FontSize="17" FontAttributes="Bold"
-                                       TextColor="White" VerticalOptions="Center"/>
+                                <Label Text="Cobrar"
+                                       FontSize="17"
+                                       FontAttributes="Bold"
+                                       TextColor="White"
+                                       VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Border>
-
                     </Grid>
                 </Grid>
             </Grid>

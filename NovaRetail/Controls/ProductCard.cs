@@ -4,25 +4,24 @@ using System.Windows.Input;
 namespace NovaRetail.Controls
 {
     /// <summary>
-    /// Card reutilizable para artículos del catálogo POS.
+    /// Tarjeta del catalogo POS con prioridad visual:
+    /// codigo -> precio -> nombre -> disponibilidad.
     /// </summary>
     public class ProductCard : ContentView
     {
-        private readonly HorizontalStackLayout _codeLayout;
-        private readonly Label                 _regularPrice;
-        private readonly HorizontalStackLayout _offerLayout;
-        private readonly Border                _imageBorder;
-        private readonly Label                 _emojiLabel;
-        private readonly Label                 _initialsLabel;
-        private readonly Label                 _stockLabel;
-        private readonly Label                 _colonesLabel;
-        private readonly ColumnDefinition      _imageColumn;
-
-        // ──────── Bindable Properties ────────
+        private readonly Border _cardBorder;
+        private readonly Border _codeBadge;
+        private readonly Label _codeLabel;
+        private readonly Label _colonesLabel;
+        private readonly Label _usdLabel;
+        private readonly Label _nameLabel;
+        private readonly Border _stockBadge;
+        private readonly Label _stockLabel;
+        private readonly Border _cartBadge;
+        private readonly Label _cartBadgeLabel;
 
         public static readonly BindableProperty EmojiProperty =
-            BindableProperty.Create(nameof(Emoji), typeof(string), typeof(ProductCard), string.Empty,
-                propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
+            BindableProperty.Create(nameof(Emoji), typeof(string), typeof(ProductCard), string.Empty);
 
         public static readonly BindableProperty ProductNameProperty =
             BindableProperty.Create(nameof(ProductName), typeof(string), typeof(ProductCard), string.Empty,
@@ -33,11 +32,11 @@ namespace NovaRetail.Controls
                 propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
 
         public static readonly BindableProperty PriceProperty =
-            BindableProperty.Create(nameof(Price), typeof(string), typeof(ProductCard), string.Empty);
+            BindableProperty.Create(nameof(Price), typeof(string), typeof(ProductCard), string.Empty,
+                propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
 
         public static readonly BindableProperty OldPriceProperty =
-            BindableProperty.Create(nameof(OldPrice), typeof(string), typeof(ProductCard), string.Empty,
-                propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
+            BindableProperty.Create(nameof(OldPrice), typeof(string), typeof(ProductCard), string.Empty);
 
         public static readonly BindableProperty StockProperty =
             BindableProperty.Create(nameof(Stock), typeof(decimal), typeof(ProductCard), 0m,
@@ -48,7 +47,8 @@ namespace NovaRetail.Controls
                 propertyChanged: (b, _, __) => ((ProductCard)b).RefreshStock());
 
         public static readonly BindableProperty PriceColonesProperty =
-            BindableProperty.Create(nameof(PriceColones), typeof(string), typeof(ProductCard), string.Empty);
+            BindableProperty.Create(nameof(PriceColones), typeof(string), typeof(ProductCard), string.Empty,
+                propertyChanged: (b, _, __) => ((ProductCard)b).Refresh());
 
         public static readonly BindableProperty CommandProperty =
             BindableProperty.Create(nameof(Command), typeof(ICommand), typeof(ProductCard), null);
@@ -57,7 +57,8 @@ namespace NovaRetail.Controls
             BindableProperty.Create(nameof(CommandParameter), typeof(object), typeof(ProductCard), null);
 
         public static readonly BindableProperty QuantityProperty =
-            BindableProperty.Create(nameof(Quantity), typeof(decimal), typeof(ProductCard), 0m);
+            BindableProperty.Create(nameof(Quantity), typeof(decimal), typeof(ProductCard), 0m,
+                propertyChanged: (b, _, __) => ((ProductCard)b).RefreshQuantity());
 
         public static readonly BindableProperty DecrementCommandProperty =
             BindableProperty.Create(nameof(DecrementCommand), typeof(ICommand), typeof(ProductCard), null);
@@ -65,259 +66,210 @@ namespace NovaRetail.Controls
         public static readonly BindableProperty DecrementCommandParameterProperty =
             BindableProperty.Create(nameof(DecrementCommandParameter), typeof(object), typeof(ProductCard), null);
 
-        public string    Emoji                     { get => (string)GetValue(EmojiProperty);                    set => SetValue(EmojiProperty, value); }
-        public string    ProductName               { get => (string)GetValue(ProductNameProperty);              set => SetValue(ProductNameProperty, value); }
-        public string    Code                      { get => (string)GetValue(CodeProperty);                     set => SetValue(CodeProperty, value); }
-        public string    Price                     { get => (string)GetValue(PriceProperty);                    set => SetValue(PriceProperty, value); }
-        public string    OldPrice                  { get => (string)GetValue(OldPriceProperty);                 set => SetValue(OldPriceProperty, value); }
-        public decimal       Stock                     { get => (decimal)GetValue(StockProperty);                       set => SetValue(StockProperty, value); }
-        public bool          IsNonInventory            { get => (bool)GetValue(IsNonInventoryProperty);                 set => SetValue(IsNonInventoryProperty, value); }
-        public string    PriceColones              { get => (string)GetValue(PriceColonesProperty);             set => SetValue(PriceColonesProperty, value); }
-        public ICommand? Command                   { get => (ICommand?)GetValue(CommandProperty);               set => SetValue(CommandProperty, value); }
-        public object?   CommandParameter          { get => GetValue(CommandParameterProperty);                 set => SetValue(CommandParameterProperty, value); }
-        public decimal       Quantity                  { get => (decimal)GetValue(QuantityProperty);                    set => SetValue(QuantityProperty, value); }
-        public ICommand? DecrementCommand          { get => (ICommand?)GetValue(DecrementCommandProperty);      set => SetValue(DecrementCommandProperty, value); }
-        public object?   DecrementCommandParameter { get => GetValue(DecrementCommandParameterProperty);        set => SetValue(DecrementCommandParameterProperty, value); }
-
-        // ──────── Constructor ────────
+        public string Emoji { get => (string)GetValue(EmojiProperty); set => SetValue(EmojiProperty, value); }
+        public string ProductName { get => (string)GetValue(ProductNameProperty); set => SetValue(ProductNameProperty, value); }
+        public string Code { get => (string)GetValue(CodeProperty); set => SetValue(CodeProperty, value); }
+        public string Price { get => (string)GetValue(PriceProperty); set => SetValue(PriceProperty, value); }
+        public string OldPrice { get => (string)GetValue(OldPriceProperty); set => SetValue(OldPriceProperty, value); }
+        public decimal Stock { get => (decimal)GetValue(StockProperty); set => SetValue(StockProperty, value); }
+        public bool IsNonInventory { get => (bool)GetValue(IsNonInventoryProperty); set => SetValue(IsNonInventoryProperty, value); }
+        public string PriceColones { get => (string)GetValue(PriceColonesProperty); set => SetValue(PriceColonesProperty, value); }
+        public ICommand? Command { get => (ICommand?)GetValue(CommandProperty); set => SetValue(CommandProperty, value); }
+        public object? CommandParameter { get => GetValue(CommandParameterProperty); set => SetValue(CommandParameterProperty, value); }
+        public decimal Quantity { get => (decimal)GetValue(QuantityProperty); set => SetValue(QuantityProperty, value); }
+        public ICommand? DecrementCommand { get => (ICommand?)GetValue(DecrementCommandProperty); set => SetValue(DecrementCommandProperty, value); }
+        public object? DecrementCommandParameter { get => GetValue(DecrementCommandParameterProperty); set => SetValue(DecrementCommandParameterProperty, value); }
 
         public ProductCard()
         {
-            // ── Emoji (visible cuando hay imagen) ──
-            _emojiLabel = new Label
+            _codeLabel = new Label
             {
-                FontSize          = 30,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions   = LayoutOptions.Center
-            };
-            _emojiLabel.SetBinding(Label.TextProperty, new Binding(nameof(Emoji), source: this));
-
-            // ── Iniciales placeholder (visible cuando NO hay imagen) ──
-            _initialsLabel = new Label
-            {
-                FontSize          = 22,
-                FontAttributes    = FontAttributes.Bold,
-                TextColor         = UiConfig.AccentBlue,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions   = LayoutOptions.Center,
-                CharacterSpacing  = 1
-            };
-
-            // Grid que contiene ambos para que solo uno sea visible a la vez
-            var imageGrid = new Grid
-            {
-                Children = { _emojiLabel, _initialsLabel }
-            };
-
-            _imageBorder = new Border
-            {
-                BackgroundColor = UiConfig.InputBackground,
-                StrokeShape     = new RoundRectangle { CornerRadius = UiConfig.CornerRadiusMd },
-                StrokeThickness = 0,
-                WidthRequest    = 62,
-                VerticalOptions = LayoutOptions.Fill,
-                Padding         = Thickness.Zero,
-                Content         = imageGrid
-            };
-
-            // ── Nombre ──
-            var nameLabel = new Label
-            {
-                FontSize       = 10,
+                FontSize = 9,
                 FontAttributes = FontAttributes.Bold,
-                TextColor      = UiConfig.TextPrimary,
-                LineBreakMode  = LineBreakMode.WordWrap,
-                MaxLines       = 3
+                TextColor = UiConfig.TextGray500,
+                LineBreakMode = LineBreakMode.TailTruncation
             };
-            nameLabel.SetBinding(Label.TextProperty, new Binding(nameof(ProductName), source: this));
 
-            // ── Precio colones ──
+            _codeBadge = new Border
+            {
+                BackgroundColor = Color.FromArgb("#F8FAFC"),
+                Stroke = new SolidColorBrush(Color.FromArgb("#E2E8F0")),
+                StrokeThickness = 1,
+                StrokeShape = new RoundRectangle { CornerRadius = 10 },
+                Padding = new Thickness(7, 2),
+                Content = _codeLabel,
+                HorizontalOptions = LayoutOptions.Start
+            };
+
             _colonesLabel = new Label
             {
-                FontSize   = 12,
-                FontFamily = "OpenSansSemibold",
-                TextColor  = UiConfig.TextDarkBlue
-            };
-            _colonesLabel.SetBinding(Label.TextProperty, new Binding(nameof(PriceColones), source: this));
-
-            // ── Código ──
-            var codeLabel = new Label { FontSize = 10, TextColor = UiConfig.TextSecondary };
-            codeLabel.SetBinding(Label.TextProperty, new Binding(nameof(Code), source: this));
-            _codeLayout = new HorizontalStackLayout { Spacing = 4, Children = { codeLabel } };
-
-            // ── Precio normal ──
-            _regularPrice = new Label
-            {
-                FontSize       = 13,
+                FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
-                TextColor      = UiConfig.TextPrimary
+                TextColor = UiConfig.TextDarkBlue,
+                LineBreakMode = LineBreakMode.TailTruncation
             };
-            _regularPrice.SetBinding(Label.TextProperty, new Binding(nameof(Price), source: this));
 
-            // ── Precio oferta: tachado + naranja ──
-            var oldLabel = new Label
+            _usdLabel = new Label
             {
-                FontSize        = 10,
-                TextColor       = UiConfig.TextSecondary,
-                TextDecorations = TextDecorations.Strikethrough,
-                VerticalOptions = LayoutOptions.Center
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = UiConfig.TextPrimary,
+                LineBreakMode = LineBreakMode.TailTruncation
             };
-            oldLabel.SetBinding(Label.TextProperty, new Binding(nameof(OldPrice), source: this));
 
-            var newLabel = new Label
+            _nameLabel = new Label
             {
-                FontSize        = 14,
-                FontAttributes  = FontAttributes.Bold,
-                TextColor       = UiConfig.AccentOrange,
-                VerticalOptions = LayoutOptions.Center
-            };
-            newLabel.SetBinding(Label.TextProperty, new Binding(nameof(Price), source: this));
-
-            _offerLayout = new HorizontalStackLayout
-            {
-                Spacing         = 6,
-                VerticalOptions = LayoutOptions.Center,
-                Children        = { oldLabel, newLabel }
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = UiConfig.TextPrimary,
+                LineBreakMode = LineBreakMode.WordWrap,
+                MaxLines = 2
             };
 
-            // ── Stock ──
             _stockLabel = new Label
             {
-                FontSize  = 10,
-                TextColor = UiConfig.TextSecondary,
-                Margin    = new Thickness(0, 2, 0, 3)
+                FontSize = 9,
+                FontAttributes = FontAttributes.Bold,
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+
+            _stockBadge = new Border
+            {
+                StrokeThickness = 0,
+                StrokeShape = new RoundRectangle { CornerRadius = 12 },
+                Padding = new Thickness(7, 3),
+                Content = _stockLabel,
+                HorizontalOptions = LayoutOptions.Start
+            };
+
+            _cartBadgeLabel = new Label
+            {
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1D4ED8")
+            };
+
+            _cartBadge = new Border
+            {
+                BackgroundColor = Color.FromArgb("#EFF6FF"),
+                StrokeThickness = 0,
+                StrokeShape = new RoundRectangle { CornerRadius = 12 },
+                Padding = new Thickness(8, 4),
+                Content = _cartBadgeLabel,
+                HorizontalOptions = LayoutOptions.Start,
+                IsVisible = false
             };
 
             var contentStack = new VerticalStackLayout
             {
-                Spacing         = 3,
-                Padding         = new Thickness(0, 0, 0, 3),
-                VerticalOptions = LayoutOptions.Start,
-                Children        = { nameLabel, _colonesLabel, _codeLayout, _regularPrice, _offerLayout, _stockLabel }
-            };
-
-            _imageColumn = new ColumnDefinition { Width = 62 };
-
-            var cardGrid = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitionCollection
+                Spacing = 4,
+                Children =
                 {
-                    _imageColumn,
-                    new ColumnDefinition { Width = GridLength.Star }
-                },
-                ColumnSpacing = 8
+                    _codeBadge,
+                    _colonesLabel,
+                    _usdLabel,
+                    _nameLabel,
+                    _stockBadge,
+                    _cartBadge
+                }
             };
-            cardGrid.Add(_imageBorder, 0, 0);
-            cardGrid.Add(contentStack, 1, 0);
 
-            var outerBorder = new Border
+            _cardBorder = new Border
             {
                 BackgroundColor = Colors.White,
-                StrokeShape     = new RoundRectangle { CornerRadius = UiConfig.CornerRadiusLg },
-                Stroke          = new SolidColorBrush(UiConfig.BorderGray),
-                StrokeThickness = UiConfig.StrokeThin,
-                Padding         = new Thickness(8, 8, 8, 12),
-                MinimumHeightRequest = 118,
-                Content         = cardGrid
+                Stroke = new SolidColorBrush(UiConfig.BorderGray),
+                StrokeThickness = 1,
+                StrokeShape = new RoundRectangle { CornerRadius = 16 },
+                Padding = new Thickness(10, 8, 10, 10),
+                MinimumHeightRequest = 112,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Start,
+                Content = contentStack,
+                Shadow = new Shadow
+                {
+                    Brush = new SolidColorBrush(Color.FromArgb("#0F172A")),
+                    Offset = new Point(0, 4),
+                    Radius = 10,
+                    Opacity = 0.08f
+                }
             };
 
             var tap = new TapGestureRecognizer();
-            tap.SetBinding(TapGestureRecognizer.CommandProperty,
-                new Binding(nameof(Command), source: this));
-            tap.SetBinding(TapGestureRecognizer.CommandParameterProperty,
-                new Binding(nameof(CommandParameter), source: this));
+            tap.SetBinding(TapGestureRecognizer.CommandProperty, new Binding(nameof(Command), source: this));
+            tap.SetBinding(TapGestureRecognizer.CommandParameterProperty, new Binding(nameof(CommandParameter), source: this));
             tap.Tapped += async (_, _) =>
             {
-                await outerBorder.ScaleToAsync(0.93, 70, Easing.CubicIn);
-                await outerBorder.ScaleToAsync(1.00, 90, Easing.CubicOut);
+                await _cardBorder.ScaleToAsync(0.97, 60, Easing.CubicIn);
+                await _cardBorder.ScaleToAsync(1.00, 80, Easing.CubicOut);
             };
-            outerBorder.GestureRecognizers.Add(tap);
+            _cardBorder.GestureRecognizers.Add(tap);
 
-            base.Content = outerBorder;
+            Content = _cardBorder;
 
             Refresh();
             RefreshStock();
+            RefreshQuantity();
         }
-
-        // ──────── Helpers ────────
 
         private void Refresh()
         {
-            if (_codeLayout is null) return;
+            _codeLabel.Text = string.IsNullOrWhiteSpace(Code) ? "Sin código" : Code.Trim();
+            _colonesLabel.Text = IsNonInventory ? "Precio variable" : PriceColones;
+            _usdLabel.Text = IsNonInventory ? "Servicio" : Price;
+            _nameLabel.Text = string.IsNullOrWhiteSpace(ProductName) ? "Producto sin nombre" : ProductName.Trim();
 
-            var hasEmoji = !string.IsNullOrEmpty(Emoji);
+            _colonesLabel.TextColor = IsNonInventory ? UiConfig.TextGray500 : UiConfig.TextDarkBlue;
+            _colonesLabel.FontAttributes = IsNonInventory ? FontAttributes.Italic : FontAttributes.Bold;
+            _usdLabel.TextColor = IsNonInventory ? UiConfig.AccentBlue : UiConfig.TextPrimary;
+        }
 
-            _emojiLabel.IsVisible    = hasEmoji;
-            _initialsLabel.IsVisible = false;
-            _imageBorder.IsVisible   = hasEmoji;
-            _imageColumn.Width       = hasEmoji ? new GridLength(62) : new GridLength(0);
-
-            if (hasEmoji)
-                _imageBorder.BackgroundColor = UiConfig.InputBackground;
-
-            _codeLayout.IsVisible   = !string.IsNullOrEmpty(Code);
-
-            // Non-inventory cards manage price visibility in RefreshStock
-            if (!IsNonInventory)
+        private void RefreshQuantity()
+        {
+            if (Quantity > 0)
             {
-                _regularPrice.IsVisible = string.IsNullOrEmpty(OldPrice);
-                _offerLayout.IsVisible  = !string.IsNullOrEmpty(OldPrice);
+                _cartBadge.IsVisible = true;
+                _cartBadgeLabel.Text = $"{Quantity:0.##} en carrito";
+                _cardBorder.Stroke = new SolidColorBrush(Color.FromArgb("#BFDBFE"));
+            }
+            else
+            {
+                _cartBadge.IsVisible = false;
+                _cartBadgeLabel.Text = string.Empty;
+                _cardBorder.Stroke = new SolidColorBrush(UiConfig.BorderGray);
             }
         }
 
         private void RefreshStock()
         {
-            if (_stockLabel is null) return;
-
             if (IsNonInventory)
             {
-                _stockLabel.Text           = "\u2699 Servicio";
-                _stockLabel.TextColor      = UiConfig.AccentBlue;
-                _stockLabel.FontAttributes = FontAttributes.Bold;
-
-                // Replace catalog price with "Precio variable" for service items
-                _colonesLabel.Text           = "Precio variable";
-                _colonesLabel.TextColor      = UiConfig.TextGray500;
-                _colonesLabel.FontAttributes = FontAttributes.Italic;
-                _colonesLabel.FontSize       = 11;
-                _regularPrice.IsVisible      = false;
-                _offerLayout.IsVisible       = false;
+                _stockBadge.BackgroundColor = Color.FromArgb("#DBEAFE");
+                _stockLabel.TextColor = Color.FromArgb("#1D4ED8");
+                _stockLabel.Text = "Servicio";
+                Refresh();
                 return;
             }
 
-            // Restore normal price display for inventory products
-            _colonesLabel.SetBinding(Label.TextProperty, new Binding(nameof(PriceColones), source: this));
-            _colonesLabel.TextColor      = UiConfig.TextDarkBlue;
-            _colonesLabel.FontAttributes = FontAttributes.None;
-            _colonesLabel.FontSize       = 12;
-            _regularPrice.IsVisible      = string.IsNullOrEmpty(OldPrice);
-            _offerLayout.IsVisible       = !string.IsNullOrEmpty(OldPrice);
+            Refresh();
 
             if (Stock <= 0)
             {
-                _stockLabel.Text           = "Agotado";
-                _stockLabel.TextColor      = UiConfig.ErrorRed;
-                _stockLabel.FontAttributes = FontAttributes.Bold;
+                _stockBadge.BackgroundColor = Color.FromArgb("#FEE2E2");
+                _stockLabel.TextColor = UiConfig.ErrorRed;
+                _stockLabel.Text = "Agotado";
             }
             else if (Stock <= 4)
             {
-                _stockLabel.Text           = $"Disp: {Stock:0.##} (bajo)";
-                _stockLabel.TextColor      = UiConfig.ErrorRed;
-                _stockLabel.FontAttributes = FontAttributes.None;
-            }
-            else if (Stock <= 9)
-            {
-                _stockLabel.Text           = $"Disp: {Stock:0.##}";
-                _stockLabel.TextColor      = UiConfig.AccentOrange;
-                _stockLabel.FontAttributes = FontAttributes.None;
+                _stockBadge.BackgroundColor = Color.FromArgb("#FEF3C7");
+                _stockLabel.TextColor = Color.FromArgb("#B45309");
+                _stockLabel.Text = $"Disponibilidad baja: {Stock:0.##}";
             }
             else
             {
-                _stockLabel.Text           = $"Disp: {Stock:0.##}";
-                _stockLabel.TextColor      = UiConfig.TextSecondary;
-                _stockLabel.FontAttributes = FontAttributes.None;
+                _stockBadge.BackgroundColor = Color.FromArgb("#ECFDF5");
+                _stockLabel.TextColor = Color.FromArgb("#047857");
+                _stockLabel.Text = $"Disponible: {Stock:0.##}";
             }
         }
     }
 }
-

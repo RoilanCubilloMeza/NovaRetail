@@ -1057,13 +1057,20 @@ GO
 -- ─────────────────────────────────────────────────────────────────────
 -- 32. AVS_UserPreferences (Preferencias por usuario)
 -- ─────────────────────────────────────────────────────────────────────
-IF OBJECT_ID(N'dbo.AVS_UserPreferences', N'U') IS NULL
-CREATE TABLE dbo.AVS_UserPreferences (
-    UserName    NVARCHAR(100)   NOT NULL,
-    PrefKey     NVARCHAR(50)    NOT NULL,
-    PrefValue   NVARCHAR(500)   NOT NULL DEFAULT '',
-    CONSTRAINT PK_AVS_UserPreferences PRIMARY KEY (UserName, PrefKey)
-);
+IF NOT EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = 'dbo'
+      AND TABLE_NAME = 'AVS_UserPreferences'
+)
+BEGIN
+    CREATE TABLE dbo.AVS_UserPreferences (
+        UserName  NVARCHAR(100) NOT NULL,
+        PrefKey   NVARCHAR(50)  NOT NULL,
+        PrefValue NVARCHAR(500) NOT NULL CONSTRAINT DF_AVS_UserPreferences_PrefValue DEFAULT (''),
+        CONSTRAINT PK_AVS_UserPreferences PRIMARY KEY (UserName, PrefKey)
+    );
+END;
 GO
 
 -- ─────────────────────────────────────────────────────────────────────

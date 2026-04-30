@@ -25,6 +25,21 @@ public class ProductModel : INotifyPropertyChanged
     public decimal     Stock           { get; set; }
     public int     ItemType        { get; set; }
     public bool    IsNonInventory  { get; set; }
+    public string DepartmentDisplayName => string.IsNullOrWhiteSpace(Category) ? "Sin categoría" : Category;
+    public string CategoryDisplayName => string.IsNullOrWhiteSpace(Category) ? "Sin categoría" : Category;
+    public string TypeDisplayName => IsNonInventory ? "Servicio" : "Estándar";
+    public bool IsOutOfStock => !IsNonInventory && Stock <= 0;
+    public bool IsLowStock => !IsNonInventory && Stock > 0 && Stock <= 4;
+    public string StockDisplayText => IsNonInventory
+        ? "Servicio"
+        : IsOutOfStock
+            ? "Agotado"
+            : IsLowStock
+                ? $"Bajo ({Stock:0.##})"
+                : $"{Stock:0.##} disp.";
+    public string CartQuantityText => HasCartQuantity ? $"{CartQuantity:0.##} en carrito" : "Listo para agregar";
+    public bool HasCartQuantity => CartQuantity > 0;
+    public string CabysDisplayText => string.IsNullOrWhiteSpace(Cabys) ? "Sin CABYS" : $"CABYS {Cabys}";
 
     public decimal CartQuantity
     {
@@ -35,6 +50,8 @@ public class ProductModel : INotifyPropertyChanged
             {
                 _cartQuantity = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCartQuantity));
+                OnPropertyChanged(nameof(CartQuantityText));
             }
         }
     }

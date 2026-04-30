@@ -146,9 +146,59 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         return false;
     }
 
+    public async Task<string> GetProductViewModeAsync(string? userName = null)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var url = string.IsNullOrWhiteSpace(userName)
+                    ? $"{baseUrl}/api/StoreConfig/ProductViewMode"
+                    : $"{baseUrl}/api/StoreConfig/ProductViewMode?userName={Uri.EscapeDataString(userName)}";
+                var result = await http.GetFromJsonAsync<ProductViewModeResponse>(url);
+                if (result is not null)
+                    return result.ViewMode ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al obtener configuracion de vista de productos desde {BaseUrl}", baseUrl);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    public async Task<bool> SaveProductViewModeAsync(string viewMode, string? userName = null)
+    {
+        foreach (var baseUrl in _baseUrls)
+        {
+            try
+            {
+                var http = _httpClientFactory.CreateClient(ClientName);
+                var response = await http.PutAsJsonAsync(
+                    $"{baseUrl}/api/StoreConfig/ProductViewMode",
+                    new ProductViewModeResponse { ViewMode = viewMode, UserName = userName });
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al guardar configuracion de vista de productos en {BaseUrl}", baseUrl);
+            }
+        }
+
+        return false;
+    }
+
     private sealed class CategoryConfigResponse
     {
         public string SelectedIds { get; set; } = string.Empty;
+        public string? UserName { get; set; }
+    }
+
+    private sealed class ProductViewModeResponse
+    {
+        public string ViewMode { get; set; } = string.Empty;
         public string? UserName { get; set; }
     }
 }

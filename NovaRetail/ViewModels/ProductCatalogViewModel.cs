@@ -16,8 +16,12 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private readonly IProductService _productService;
     private readonly IDialogService _dialogService;
     private readonly AppStore _appStore;
+    private readonly IStoreConfigService _storeConfigService;
+    private readonly UserSession _userSession;
     private readonly List<ProductModel> _allProducts = new();
     private const int ProductsPageSize = 500;
+    private const string ProductViewList = "List";
+    private const string ProductViewCards = "Cards";
     private int _loadedItemsPage;
     private bool _canLoadMoreFromApi;
     private bool _isLoadingItems;
@@ -27,6 +31,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private int _storeIdFromConfig;
     private HashSet<int> _nonInventoryItemTypes = new();
     private AppState _previousState = new();
+    private bool _isLoadingProductViewMode;
 
     private CancellationTokenSource ResetSearchCts()
     {
@@ -60,12 +65,15 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
     public BatchObservableCollection<ProductModel> Products { get; } = new();
 
-    public ProductCatalogViewModel(IProductService productService, IDialogService dialogService, AppStore appStore)
+    public ProductCatalogViewModel(IProductService productService, IDialogService dialogService, AppStore appStore, IStoreConfigService storeConfigService, UserSession userSession)
     {
         _productService = productService;
         _dialogService = dialogService;
         _appStore = appStore;
+        _storeConfigService = storeConfigService;
+        _userSession = userSession;
         _appStore.StateChanged += OnAppStateChanged;
+        _userSession.CurrentUserChanged += OnCurrentUserChanged;
 
         AddProductCommand = new Command<ProductModel>(p => _ = AddProductAsync(p));
         DecrementProductCommand = new Command<ProductModel>(p => ProductDecrementRequested?.Invoke(p!));
@@ -75,6 +83,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         ToggleProductsPanelCommand = new Command(() => IsProductsPanelVisible = !IsProductsPanelVisible);
         LoadMoreProductsCommand = new Command(async () => await LoadMoreProductsAsync());
         SelectSpanCommand = new Command<string>(s => { if (int.TryParse(s, out var n)) PreferredSpan = n; });
+        _ = LoadProductViewModeAsync();
     }
 
     // ── AppStore-backed properties ──
@@ -183,6 +192,23 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
     // ── Span columns ──
 
+    private string _productViewMode = ProductViewList;
+    public string ProductViewMode
+    {
+        get => _productViewMode;
+        private set
+        {
+            var normalized = NormalizeProductViewMode(value);
+            if (_productViewMode != normalized)
+            {
+                _productViewMode = normalized;
+                OnProductViewModeChanged();
+            }
+        }
+    }
+
+    public bool IsProductListView => ProductViewMode == ProductViewList;
+    public bool IsProductCardView => ProductViewMode == ProductViewCards;
     private int _preferredSpan = 2;
     public int PreferredSpan
     {
@@ -304,6 +330,9 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(CategoryTabs));
     }
+
+    public Task RefreshProductViewModeAsync()
+        => LoadProductViewModeAsync();
 
     public ProductModel? FindProduct(int itemId, string code)
     {
@@ -736,6 +765,55 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
         return Math.Floor(stock);
     }
+
+    private void OnProductViewModeChanged()
+    {
+        OnPropertyChanged(nameof(ProductViewMode));
+        OnPropertyChanged(nameof(IsProductListView));
+        OnPropertyChanged(nameof(IsProductCardView));
+    }
+
+    private void OnCurrentUserChanged(object? sender, EventArgs e)
+        => _ = LoadProductViewModeAsync();
+
+    private async Task LoadProductViewModeAsync()
+    {
+        if (_isLoadingProductViewMode)
+            return;
+
+        _isLoadingProductViewMode = true;
+        try
+        {
+            var userName = _userSession.CurrentUser?.UserName;
+            var mode = await _storeConfigService.GetProductViewModeAsync(userName);
+            ProductViewMode = string.IsNullOrWhiteSpace(mode) ? ProductViewList : mode;
+        }
+        catch
+        {
+            ProductViewMode = ProductViewList;
+        }
+        finally
+        {
+            _isLoadingProductViewMode = false;
+        }
+    }
+
+    private async Task SaveProductViewModeAsync(string mode)
+    {
+        try
+        {
+            var userName = _userSession.CurrentUser?.UserName;
+            await _storeConfigService.SaveProductViewModeAsync(mode, userName);
+        }
+        catch
+        {
+        }
+    }
+
+    private static string NormalizeProductViewMode(string? mode)
+        => string.Equals(mode, ProductViewCards, StringComparison.OrdinalIgnoreCase)
+            ? ProductViewCards
+            : ProductViewList;
 
     private void OnAppStateChanged(AppState state)
     {

@@ -13,6 +13,8 @@ namespace NovaAPI.Controllers
     /// </summary>
     public class StoreConfigController : ApiController
     {
+        private const string ProductViewPrefKey = "PROD-VIEW-01";
+
         readonly RMHCDataContext db = new RMHCDataContext(
             AppConfig.ConnectionString("RMHPOS"));
 
@@ -320,6 +322,122 @@ namespace NovaAPI.Controllers
                 return new ConnectionInfoDto();
             }
         }
+
+        [HttpGet]
+        [Route("api/StoreConfig/ProductViewMode")]
+        public IHttpActionResult GetProductViewMode(string userName = null)
+        {
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                return Ok(new ProductViewModeDto());
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+
+                    if (!string.IsNullOrWhiteSpace(userName))
+                    {
+                        EnsureUserPreferencesTable(cn);
+                        var userVal = ReadUserPreference(cn, userName.Trim(), ProductViewPrefKey);
+                        if (userVal != null)
+                            return Ok(new ProductViewModeDto { ViewMode = NormalizeProductViewMode(userVal) });
+                    }
+                }
+
+                return Ok(new ProductViewModeDto());
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpPut]
+        [Route("api/StoreConfig/ProductViewMode")]
+        public IHttpActionResult PutProductViewMode([FromBody] ProductViewModeDto dto)
+        {
+            var connectionString = AppConfig.ConnectionString("RMHPOS");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                return BadRequest("No hay cadena de conexion configurada.");
+
+            if (string.IsNullOrWhiteSpace(dto?.UserName))
+                return BadRequest("UserName es requerido.");
+
+            var cleanValue = NormalizeProductViewMode(dto.ViewMode);
+
+            try
+            {
+                using (var cn = new SqlConnection(connectionString))
+                {
+                    cn.Open();
+                    EnsureUserPreferencesTable(cn);
+                    SaveUserPreference(cn, dto.UserName.Trim(), ProductViewPrefKey, cleanValue);
+                }
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        private static string NormalizeProductViewMode(string viewMode)
+            => string.Equals(viewMode, "Cards", StringComparison.OrdinalIgnoreCase) ? "Cards" : "List";
+
+        private static void EnsureUserPreferencesTable(SqlConnection cn)
+        {
+            const string sql = @"
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'AVS_UserPreferences')
+                BEGIN
+                    CREATE TABLE dbo.AVS_UserPreferences (
+                        UserName  NVARCHAR(100) NOT NULL,
+                        PrefKey   NVARCHAR(50)  NOT NULL,
+                        PrefValue NVARCHAR(500) NOT NULL DEFAULT '',
+                        CONSTRAINT PK_AVS_UserPreferences PRIMARY KEY (UserName, PrefKey)
+                    );
+                END";
+
+            using (var cmd = new SqlCommand(sql, cn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private static string ReadUserPreference(SqlConnection cn, string userName, string prefKey)
+        {
+            using (var cmd = new SqlCommand(
+                "SELECT TOP 1 LTRIM(RTRIM(PrefValue)) FROM dbo.AVS_UserPreferences WHERE UserName = @user AND PrefKey = @key", cn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.Parameters.AddWithValue("@key", prefKey);
+                var val = cmd.ExecuteScalar();
+                if (val != null && val != DBNull.Value)
+                {
+                    var result = Convert.ToString(val);
+                    return string.IsNullOrWhiteSpace(result) ? null : result;
+                }
+            }
+
+            return null;
+        }
+
+        private static void SaveUserPreference(SqlConnection cn, string userName, string prefKey, string prefValue)
+        {
+            const string sql = @"
+                IF EXISTS (SELECT 1 FROM dbo.AVS_UserPreferences WHERE UserName = @user AND PrefKey = @key)
+                    UPDATE dbo.AVS_UserPreferences SET PrefValue = @val WHERE UserName = @user AND PrefKey = @key
+                ELSE
+                    INSERT INTO dbo.AVS_UserPreferences (UserName, PrefKey, PrefValue) VALUES (@user, @key, @val)";
+
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.Parameters.AddWithValue("@key", prefKey);
+                cmd.Parameters.AddWithValue("@val", prefValue ?? string.Empty);
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 
     public class StoreConfigDto
@@ -371,5 +489,11 @@ namespace NovaAPI.Controllers
     public class TaxSystemUpdateDto
     {
         public int TaxSystem { get; set; }
+    }
+
+    public class ProductViewModeDto
+    {
+        public string ViewMode { get; set; } = string.Empty;
+        public string UserName { get; set; }
     }
 }
