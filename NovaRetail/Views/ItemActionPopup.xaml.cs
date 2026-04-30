@@ -12,6 +12,8 @@ public partial class ItemActionPopup : ContentView
         InitializeComponent();
         BindingContextChanged += OnBindingContextChanged;
         PropertyChanged += OnPopupPropertyChanged;
+        HandlerChanged += OnPopupHandlerChanged;
+        Unloaded += OnPopupUnloaded;
     }
 
     private void OnBindingContextChanged(object? sender, EventArgs e)
@@ -24,26 +26,54 @@ public partial class ItemActionPopup : ContentView
         if (_viewModel is not null)
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-        TryFocusServicePriceEntry();
+        if (IsVisible)
+            RegisterPlatformKeyboardHooks();
+
+        TryFocusActiveInput();
     }
 
     private void OnPopupPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(IsVisible))
-            TryFocusServicePriceEntry();
+        {
+            if (IsVisible)
+                RegisterPlatformKeyboardHooks();
+            else
+                UnregisterPlatformKeyboardHooks();
+
+            TryFocusActiveInput();
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ItemActionViewModel.IsServiceMode))
-            TryFocusServicePriceEntry();
+            TryFocusActiveInput();
     }
 
-    private void TryFocusServicePriceEntry()
+    private void OnPopupHandlerChanged(object? sender, EventArgs e)
     {
-        if (!IsVisible || _viewModel?.IsServiceMode != true)
+        if (IsVisible)
+            RegisterPlatformKeyboardHooks();
+    }
+
+    private void OnPopupUnloaded(object? sender, EventArgs e)
+    {
+        UnregisterPlatformKeyboardHooks();
+    }
+
+    private void TryFocusActiveInput()
+    {
+        if (!IsVisible)
             return;
 
-        Dispatcher.Dispatch(() => ServicePriceEntry.Focus());
+        if (_viewModel?.IsServiceMode == true)
+            Dispatcher.Dispatch(() => ServicePriceEntry.Focus());
+        else
+            FocusPlatformKeyboardTarget();
     }
+
+    partial void RegisterPlatformKeyboardHooks();
+    partial void UnregisterPlatformKeyboardHooks();
+    partial void FocusPlatformKeyboardTarget();
 }

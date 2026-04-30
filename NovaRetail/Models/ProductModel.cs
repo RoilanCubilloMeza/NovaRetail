@@ -35,9 +35,9 @@ public class ProductModel : INotifyPropertyChanged
         : IsOutOfStock
             ? "Agotado"
             : IsLowStock
-                ? $"Bajo ({Stock:0.##})"
-                : $"{Stock:0.##} disp.";
-    public string CartQuantityText => HasCartQuantity ? $"{CartQuantity:0.##} en carrito" : "Listo para agregar";
+                ? $"Bajo ({Stock:0.###})"
+                : $"{Stock:0.###} disp.";
+    public string CartQuantityText => HasCartQuantity ? $"{CartQuantity:0.###} en carrito" : "Listo para agregar";
     public bool HasCartQuantity => CartQuantity > 0;
     public string CabysDisplayText => string.IsNullOrWhiteSpace(Cabys) ? "Sin CABYS" : $"CABYS {Cabys}";
 

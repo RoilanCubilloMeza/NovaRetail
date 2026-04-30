@@ -817,7 +817,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         var safeProductName = string.IsNullOrWhiteSpace(productName) ? "este producto" : productName.Trim();
         var message = stock <= 0m
             ? $"El producto \"{safeProductName}\" está agotado."
-            : $"Solo hay {stock:0.##} unidad(es) disponibles de \"{safeProductName}\".";
+            : $"Solo hay {stock:0.###} unidad(es) disponibles de \"{safeProductName}\".";
 
         _ = _dialogService.AlertAsync("Stock insuficiente", message, "OK");
     }
@@ -827,7 +827,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         if (stock <= 0m)
             return 0m;
 
-        return Math.Floor(stock);
+        return stock;
     }
 
     private void OnProductViewModeChanged()
@@ -969,9 +969,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         {
             if (parsed > 0)
             {
-                quantity = Math.Floor(parsed);
-                if (quantity < 1m)
-                    quantity = 1m;
+                quantity = parsed;
                 return true;
             }
         }

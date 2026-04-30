@@ -171,8 +171,8 @@ namespace NovaRetail.ViewModels
         }
         public bool IsNormalMode => !_isServiceMode;
         public string TitleText => _isServiceMode ? "Ingrese el Precio" : "Acción Sobre Artículo";
-        public string KeypadActionText => _isServiceMode ? "." : "ENT";
-        public string KeypadActionParameter => _isServiceMode ? "." : "ENT";
+        public string KeypadActionText => ".";
+        public string KeypadActionParameter => ".";
 
         // ── Discount panel ──
 
@@ -278,13 +278,13 @@ namespace NovaRetail.ViewModels
 
             var ep = item.EffectivePriceColones;
             PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
-            DisponibleText = item.Stock > 0 ? item.Stock.ToString("0.##") : "N/D";
+            DisponibleText = item.Stock > 0 ? FormatQuantity(item.Stock) : "N/D";
             ComprometidoText = "0";
             UpdatePriceBreakdown(ep, item.EffectiveTaxPercentage, isTaxIncluded);
 
-            _tempQty = item.Quantity.ToString("0.##", CultureInfo.InvariantCulture);
-            _tempPrice = ep.ToString("0.##", CultureInfo.InvariantCulture);
-            _tempExtPrice = (ep * item.Quantity).ToString("0.##", CultureInfo.InvariantCulture);
+            _tempQty = FormatQuantity(item.Quantity);
+            _tempPrice = FormatMoneyInput(ep);
+            _tempExtPrice = FormatMoneyInput(ep * item.Quantity);
             _tempDesc = item.OverrideDescription ?? item.Name;
             _discountPercentText = item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F0", CultureInfo.InvariantCulture) : "0";
             _selectedDiscountCode = null;
@@ -326,7 +326,7 @@ namespace NovaRetail.ViewModels
             UpdatePriceBreakdown(prefillPrice, product.TaxPercentage, isTaxIncluded);
 
             _tempQty = "1";
-            _tempPrice = prefillPrice > 0 ? prefillPrice.ToString("0.##", CultureInfo.InvariantCulture) : string.Empty;
+            _tempPrice = prefillPrice > 0 ? FormatMoneyInput(prefillPrice) : string.Empty;
             _tempExtPrice = _tempPrice;
             _tempDesc = product.Name;
             _discountPercentText = "0";
@@ -488,23 +488,23 @@ namespace NovaRetail.ViewModels
                 case "Cantidad":
                     if (TryParseInputDecimal(_inputBuffer, out var qty) && qty > 0)
                     {
-                        TempQty = Math.Min(qty, _maxStock).ToString("0.##", CultureInfo.InvariantCulture);
+                        TempQty = FormatQuantity(Math.Min(qty, _maxStock));
                         RecalcExtPrice();
                     }
                     break;
                 case "Precio":
                     if (TryParseInputDecimal(_inputBuffer, out var price) && price >= 0)
                     {
-                        TempPrice = price.ToString("G", CultureInfo.InvariantCulture);
+                        TempPrice = FormatMoneyInput(price);
                         RecalcExtPrice();
                     }
                     break;
                 case "PrecioExt":
                     if (TryParseInputDecimal(_inputBuffer, out var ext) && ext >= 0)
                     {
-                        TempExtPrice = ext.ToString("G", CultureInfo.InvariantCulture);
+                        TempExtPrice = FormatMoneyInput(ext);
                         if (TryParseInputDecimal(TempQty, out var q) && q > 0)
-                            TempPrice = (ext / q).ToString("G", CultureInfo.InvariantCulture);
+                            TempPrice = FormatMoneyInput(ext / q);
                     }
                     break;
                 case "Descripcion":
@@ -534,7 +534,7 @@ namespace NovaRetail.ViewModels
         {
             if (TryParseInputDecimal(TempQty, out var q) &&
                 TryParseInputDecimal(TempPrice, out var p))
-                TempExtPrice = (q * p).ToString("G", CultureInfo.InvariantCulture);
+                TempExtPrice = FormatMoneyInput(q * p);
         }
 
         private void AdjustQty(int delta)
@@ -542,7 +542,7 @@ namespace NovaRetail.ViewModels
             CommitCurrentBuffer();
             if (!TryParseInputDecimal(TempQty, out var q)) q = 1;
             q = Math.Clamp(q + delta, 1m, _maxStock);
-            TempQty = q.ToString("0.##", CultureInfo.InvariantCulture);
+            TempQty = FormatQuantity(q);
             _inputBuffer = TempQty;
             RecalcExtPrice();
         }
@@ -629,6 +629,12 @@ namespace NovaRetail.ViewModels
                 .Replace(",", ".")
                 .Trim();
         }
+
+        private static string FormatQuantity(decimal value)
+            => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+        private static string FormatMoneyInput(decimal value)
+            => value.ToString("0.##", CultureInfo.InvariantCulture);
 
         // ── Apply to item ──
 

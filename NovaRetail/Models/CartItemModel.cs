@@ -213,8 +213,8 @@ namespace NovaRetail.Models
             ? Math.Round(EffectivePriceColones * UnitPrice / UnitPriceColones, 2)
             : UnitPrice;
 
-        public string QuantityText => $"{Quantity:0.##} ×";
-        public string QuantityPrefix => $"x{Quantity:0.##}";
+        public string QuantityText => $"{Quantity:0.###} ×";
+        public string QuantityPrefix => $"x{Quantity:0.###}";
         public string UnitPriceColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones:N2}";
         public string OriginalPriceColonesText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{EffectivePriceColones * Quantity * DiscountFactor:N2}";

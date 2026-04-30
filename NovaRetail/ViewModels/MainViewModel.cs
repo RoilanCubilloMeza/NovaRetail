@@ -451,7 +451,7 @@ namespace NovaRetail.ViewModels
         public string CodeHeaderText => GetCartSortHeaderText("Código", IsCartSortByCode);
         public string QuantityHeaderText => GetCartSortHeaderText("Cant.", IsCartSortByUnits);
         public string PriceHeaderText => GetCartSortHeaderText("Precio", IsCartSortByPrice);
-        public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.##} artículo(s) · {CartItems.Count} línea(s)";
+        public string CartItemsSummaryText => $"{CartItems.Sum(c => c.Quantity):0.###} artículo(s) · {CartItems.Count} línea(s)";
         public string CartEmptyText => "Carrito vacío";
 
         public ICommand IncrementCommand { get; }

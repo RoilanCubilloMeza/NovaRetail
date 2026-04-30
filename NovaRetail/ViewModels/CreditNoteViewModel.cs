@@ -57,8 +57,8 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
     public decimal UnitTotal => OriginalQuantity != 0 ? LineTotalColones / OriginalQuantity : 0;
     public decimal ReturnTotal => UnitTotal * _returnQuantity;
 
-    public string ReturnQuantityText => $"{_returnQuantity:0.##}";
-    public string OriginalQuantityText => $"{AvailableQuantity:0.##} / {OriginalQuantity:0.##}";
+    public string ReturnQuantityText => $"{_returnQuantity:0.###}";
+    public string OriginalQuantityText => $"{AvailableQuantity:0.###} / {OriginalQuantity:0.###}";
     public string UnitPriceText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
     public string LineTotalText => $"{UiConfig.CurrencySymbol}{LineTotalColones:N2}";
     public string ReturnTotalText => $"{UiConfig.CurrencySymbol}{ReturnTotal:N2}";

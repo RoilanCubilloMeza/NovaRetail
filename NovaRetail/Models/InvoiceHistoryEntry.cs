@@ -170,7 +170,7 @@ public sealed class InvoiceHistoryLine
     public bool IsCreditNote { get; set; }
 
     public bool HasTax => TaxPercentage > 0;
-    public string QuantityText => Quantity.ToString("0.##");
+    public string QuantityText => Quantity.ToString("0.###");
     public string TaxPercentageText => $"{TaxPercentage:0.##} %";
     public string UnitPriceText => $"{UiConfig.CurrencySymbol}{DisplayAmount(UnitPriceColones):N2}";
     public string LineTotalText => $"{UiConfig.CurrencySymbol}{DisplayAmount(LineTotalColones):N2}";

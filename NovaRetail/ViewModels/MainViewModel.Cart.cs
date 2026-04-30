@@ -111,7 +111,7 @@ namespace NovaRetail.ViewModels
             if (product is null) return;
 
             var isNonInventory = IsNonInventoryItem(product.ItemType);
-            var safeQuantity = quantityToAdd <= 0m ? 1m : Math.Floor(quantityToAdd);
+            var safeQuantity = quantityToAdd <= 0m ? 1m : quantityToAdd;
             var existing = CartItems.FirstOrDefault(c => c.ItemID == product.ItemID && string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
 
             decimal quantityToApply;

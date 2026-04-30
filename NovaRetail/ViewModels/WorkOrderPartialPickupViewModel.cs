@@ -159,7 +159,7 @@ public sealed class WorkOrderPartialPickupViewModel : INotifyPropertyChanged
     }
 
     private static string FormatQuantity(decimal quantity)
-        => quantity.ToString("0.##", CultureInfo.InvariantCulture);
+        => quantity.ToString("0.###", CultureInfo.InvariantCulture);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -223,11 +223,11 @@ public sealed class WorkOrderPartialPickupLineViewModel : INotifyPropertyChanged
         Code = code ?? string.Empty;
         AvailableQuantity = Math.Max(0m, availableQuantity);
 
-        IncreaseCommand = new Command(() => ApplySelectedQuantity((_selectedQuantity + ResolveStep()).ToString("0.##", CultureInfo.InvariantCulture)));
-        DecreaseCommand = new Command(() => ApplySelectedQuantity((_selectedQuantity - ResolveStep()).ToString("0.##", CultureInfo.InvariantCulture)));
+        IncreaseCommand = new Command(() => ApplySelectedQuantity((_selectedQuantity + ResolveStep()).ToString("0.###", CultureInfo.InvariantCulture)));
+        DecreaseCommand = new Command(() => ApplySelectedQuantity((_selectedQuantity - ResolveStep()).ToString("0.###", CultureInfo.InvariantCulture)));
 
         _selectedQuantityText = "0";
-        ApplySelectedQuantity(selectedQuantity.ToString("0.##", CultureInfo.InvariantCulture));
+        ApplySelectedQuantity(selectedQuantity.ToString("0.###", CultureInfo.InvariantCulture));
     }
 
     private void ApplySelectedQuantity(string? rawValue)
@@ -263,7 +263,7 @@ public sealed class WorkOrderPartialPickupLineViewModel : INotifyPropertyChanged
     }
 
     private static string FormatQuantity(decimal quantity)
-        => quantity.ToString("0.##", CultureInfo.InvariantCulture);
+        => quantity.ToString("0.###", CultureInfo.InvariantCulture);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

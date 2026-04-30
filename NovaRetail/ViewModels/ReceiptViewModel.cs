@@ -17,7 +17,7 @@ namespace NovaRetail.ViewModels
         public decimal TaxPercentage { get; init; }
         public string UnitPriceColonesText { get; init; } = string.Empty;
         public string LineTotalText { get; init; } = string.Empty;
-        public string QuantityText => $"{Quantity:0.##}";
+        public string QuantityText => $"{Quantity:0.###}";
         public string TaxRateText => TaxPercentage > 0 ? $"{TaxPercentage:0.##} %" : string.Empty;
         public bool HasTax => TaxPercentage > 0;
 
