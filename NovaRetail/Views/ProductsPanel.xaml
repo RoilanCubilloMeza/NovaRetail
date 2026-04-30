@@ -132,7 +132,7 @@
                         <Grid ColumnDefinitions="1.25*, 1.05*, 2.7*, 1.1*, Auto"
                               ColumnSpacing="10">
                             <Label Grid.Column="0"
-                                   Text="CÃ³digo"
+                                   Text="Código"
                                    Style="{DynamicResource TableHeaderLabel}"/>
                             <Label Grid.Column="1"
                                    Text="Precio"
@@ -145,7 +145,7 @@
                                    Style="{DynamicResource TableHeaderLabel}"
                                    HorizontalTextAlignment="Center"/>
                             <Label Grid.Column="4"
-                                   Text="AcciÃ³n"
+                                   Text="Acción"
                                    Style="{DynamicResource TableHeaderLabel}"
                                    HorizontalTextAlignment="Center"/>
                         </Grid>

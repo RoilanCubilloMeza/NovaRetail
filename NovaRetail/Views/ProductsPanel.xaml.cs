@@ -14,7 +14,7 @@ public partial class ProductsPanel : ContentView
     private const double TwoColumnBreakpoint = 320;
     private const double ThreeColumnBreakpoint = 620;
     private const double FourColumnBreakpoint = 980;
-    private static readonly TimeSpan ResizeDebounceDelay = TimeSpan.FromMilliseconds(140);
+    private static readonly TimeSpan ResizeDebounceDelay = TimeSpan.FromMilliseconds(90);
 
     private int _preLoadProductCount;
     private int _lastKnownFirstVisible = -1;
@@ -66,7 +66,10 @@ public partial class ProductsPanel : ContentView
     }
 
     private void OnProductsPanelSizeChanged(object? sender, EventArgs e)
-        => QueueLayoutRefresh();
+    {
+        ApplyProductsLayout(skipRowRebuild: true);
+        QueueLayoutRefresh();
+    }
 
     private void OnProductsPanelLoaded(object? sender, EventArgs e)
         => QueueLayoutRefresh(immediate: true);
@@ -128,44 +131,73 @@ public partial class ProductsPanel : ContentView
         });
     }
 
-    private void ApplyProductsLayout(bool force = false)
+    private void ApplyProductsLayout(bool force = false, bool skipRowRebuild = false)
     {
         if (ProductsListCollectionView is null || ProductsCardsCollectionView is null)
             return;
 
         var useCards = _subscribedVm?.IsProductCardView == true;
         var availableWidth = GetCardsAvailableWidth();
-        var span = CalculateCardSpan(availableWidth);
+        var requestedSpan = CalculateCardSpan(availableWidth);
+        var activeSpan = skipRowRebuild && _lastAppliedCardSpan > 0
+            ? _lastAppliedCardSpan
+            : requestedSpan;
 
-        var newCardWidth = Math.Max(MinCardWidth, (availableWidth - (CardSpacing * Math.Max(0, span - 1))) / span);
+        var newCardWidth = Math.Max(MinCardWidth, (availableWidth - (CardSpacing * Math.Max(0, activeSpan - 1))) / activeSpan);
         var modeChanged = _lastAppliedCardMode != useCards;
-        var spanChanged = _lastAppliedCardSpan != span;
+        var spanChanged = _lastAppliedCardSpan != requestedSpan;
         var widthChanged = Math.Abs(CardItemWidth - newCardWidth) >= 0.5;
 
         if (!force && !modeChanged && !spanChanged && !widthChanged)
             return;
 
         _lastAppliedCardMode = useCards;
-        _lastAppliedCardSpan = span;
         CardItemWidth = Math.Floor(newCardWidth);
 
-        if (force || spanChanged || modeChanged)
-            RebuildCardRows(span);
-
-        ProductsListCollectionView.ItemSizingStrategy = ItemSizingStrategy.MeasureAllItems;
-        ProductsListCollectionView.ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Vertical)
+        if (force || modeChanged || (!skipRowRebuild && spanChanged))
         {
-            ItemSpacing = 4
-        };
-
-        ProductsCardsCollectionView.ItemSizingStrategy = ItemSizingStrategy.MeasureAllItems;
-        ProductsCardsCollectionView.ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Vertical)
+            _lastAppliedCardSpan = requestedSpan;
+            RebuildCardRows(requestedSpan);
+            ProductsCardsCollectionView.InvalidateMeasure();
+        }
+        else if (_lastAppliedCardSpan == 0)
         {
-            ItemSpacing = CardSpacing
-        };
+            _lastAppliedCardSpan = requestedSpan;
+        }
 
-        ProductsListCollectionView.InvalidateMeasure();
-        ProductsCardsCollectionView.InvalidateMeasure();
+        EnsureCollectionLayouts();
+
+        if (force || modeChanged)
+            ProductsListCollectionView.InvalidateMeasure();
+    }
+
+    private void EnsureCollectionLayouts()
+    {
+        if (ProductsListCollectionView is not null)
+        {
+            ProductsListCollectionView.ItemSizingStrategy = ItemSizingStrategy.MeasureFirstItem;
+
+            if (ProductsListCollectionView.ItemsLayout is not LinearItemsLayout)
+            {
+                ProductsListCollectionView.ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Vertical)
+                {
+                    ItemSpacing = 4
+                };
+            }
+        }
+
+        if (ProductsCardsCollectionView is not null)
+        {
+            ProductsCardsCollectionView.ItemSizingStrategy = ItemSizingStrategy.MeasureFirstItem;
+
+            if (ProductsCardsCollectionView.ItemsLayout is not LinearItemsLayout)
+            {
+                ProductsCardsCollectionView.ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Vertical)
+                {
+                    ItemSpacing = CardSpacing
+                };
+            }
+        }
     }
 
     private void RebuildCardRows(int span)
