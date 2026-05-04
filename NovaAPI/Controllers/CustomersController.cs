@@ -30,6 +30,9 @@ namespace NovaAPI.Controllers
 
         private sealed class LedgerBalanceSnapshot
         {
+            public int LedgerType { get; set; }
+            public DateTime DueDate { get; set; }
+            public decimal Balance { get; set; }
             public decimal BaseAmount { get; set; }
             public decimal AppliedToEntry { get; set; }
             public decimal AppliedByEntry { get; set; }
@@ -39,6 +42,9 @@ namespace NovaAPI.Controllers
         {
             using (var cmd = new SqlCommand(@"
 SELECT
+    LedgerType = ISNULL(MAX(le.LedgerType), 0),
+    DueDate = ISNULL(MAX(le.DueDate), GETDATE()),
+    Balance = ISNULL(SUM(d.Amount), 0),
     BaseAmount = ISNULL(
         (
             SELECT SUM(d.Amount)
@@ -58,7 +64,10 @@ SELECT
             FROM dbo.AR_LedgerEntryDetail d
             WHERE d.LedgerEntryID = @LedgerEntryID
               AND d.AppliedEntryID > 0
-        ), 0);", cn, tx))
+        ), 0)
+FROM dbo.AR_LedgerEntry le
+LEFT JOIN dbo.AR_LedgerEntryDetail d ON d.LedgerEntryID = le.ID
+WHERE le.ID = @LedgerEntryID;", cn, tx))
             {
                 cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
 
@@ -69,6 +78,9 @@ SELECT
 
                     return new LedgerBalanceSnapshot
                     {
+                        LedgerType = reader["LedgerType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["LedgerType"]),
+                        DueDate = reader["DueDate"] == DBNull.Value ? DateTime.Now : Convert.ToDateTime(reader["DueDate"]),
+                        Balance = reader["Balance"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Balance"]),
                         BaseAmount = reader["BaseAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["BaseAmount"]),
                         AppliedToEntry = reader["AppliedToEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedToEntry"]),
                         AppliedByEntry = reader["AppliedByEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedByEntry"])
@@ -89,6 +101,47 @@ WHERE ID = @LedgerEntryID;", cn, tx))
                 cmd.Parameters.AddWithValue("@Open", isOpen ? 1 : 0);
                 cmd.Parameters.AddWithValue("@Now", now);
                 cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static int InsertLedgerDetail(
+            SqlConnection cn,
+            SqlTransaction tx,
+            int ledgerEntryID,
+            int accountID,
+            int ledgerType,
+            DateTime dueDate,
+            DateTime postingDate,
+            byte detailType,
+            string reference,
+            decimal amount,
+            int appliedEntryID,
+            decimal appliedAmount)
+        {
+            using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 60;
+
+                cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
+                cmd.Parameters.AddWithValue("@AccountID", accountID);
+                cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
+                cmd.Parameters.AddWithValue("@DueDate", dueDate);
+                cmd.Parameters.AddWithValue("@PostingDate", postingDate);
+                cmd.Parameters.AddWithValue("@DetailType", detailType);
+                cmd.Parameters.AddWithValue("@Reference", reference);
+                cmd.Parameters.AddWithValue("@Amount", amount);
+                cmd.Parameters.AddWithValue("@AmountLCY", amount);
+                cmd.Parameters.AddWithValue("@AmountACY", amount);
+                cmd.Parameters.AddWithValue("@AuditEntryID", 0);
+                cmd.Parameters.AddWithValue("@AppliedEntryID", appliedEntryID);
+                cmd.Parameters.AddWithValue("@AppliedAmount", appliedAmount);
+                cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
+                cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
+                cmd.Parameters.AddWithValue("@ISCLOSING", false);
+
+                var result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
             }
         }
 
@@ -172,14 +225,14 @@ SELECT @PaymentID;", cn, tx))
             if (sourceLedgerEntryID > 0)
             {
                 var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, sourceLedgerEntryID);
-                var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
+                var sourceRemaining = Math.Abs(sourceSnapshot.Balance);
                 SetLedgerEntryOpenState(cn, tx, sourceLedgerEntryID, sourceRemaining > LedgerClosingTolerance, now);
             }
 
             foreach (var targetLedgerEntryID in (targetLedgerEntryIDs ?? Enumerable.Empty<int>()).Distinct().Where(id => id > 0))
             {
                 var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, targetLedgerEntryID);
-                var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
+                var targetBalance = Math.Max(0m, targetSnapshot.Balance);
                 SetLedgerEntryOpenState(cn, tx, targetLedgerEntryID, targetBalance > LedgerClosingTolerance, now);
             }
         }
@@ -585,22 +638,12 @@ SELECT le.ID as LedgerEntryID,
        ISNULL(le.Description, '') as Description,
        le.StoreID,
        ISNULL(le.Reference, '') as Reference,
-       ISNULL(d.Amount, 0) as Amount,
-       ISNULL(d.Amount, 0) + ISNULL(applied.TotalApplied, 0) as Balance
+       ISNULL(amounts.Amount, 0) as Amount,
+       ISNULL(balances.Amount, 0) as Balance
 FROM dbo.AR_LedgerEntry le
 INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID AND a.Number = @Number
-LEFT JOIN dbo.AR_LedgerEntryDetail d
-    ON d.LedgerEntryID = le.ID AND d.AppliedEntryID = 0
-LEFT JOIN (
-    SELECT det.AppliedEntryID, SUM(det.AppliedAmount) as TotalApplied
-    FROM dbo.AR_LedgerEntryDetail det
-    INNER JOIN dbo.AR_LedgerEntry le2
-        ON le2.ID = det.AppliedEntryID
-    INNER JOIN dbo.AR_Account a2 ON a2.ID = le2.AccountID AND a2.Number = @Number
-    WHERE det.AppliedEntryID > 0
-      AND le2.[Open] = 1
-    GROUP BY det.AppliedEntryID
-) applied ON applied.AppliedEntryID = le.ID
+OUTER APPLY dbo.fnAR_LedgerAmount(le.ID, NULL) amounts
+OUTER APPLY dbo.fnAR_LedgerBalance(le.ID, NULL) balances
 WHERE le.[Open] = 1
   AND le.DocumentType IN (1, 2, 3, 4)
 ORDER BY le.PostingDate";
@@ -616,8 +659,9 @@ ORDER BY le.PostingDate";
                             {
                                 var documentType = Convert.ToInt32(reader["DocumentType"]);
                                 var ledgerType = Convert.ToInt32(reader["LedgerType"]);
-                                var balance = Math.Round(Convert.ToDecimal(reader["Balance"]), 2);
-                                if (balance <= 0) continue;
+                                var rawBalance = Convert.ToDecimal(reader["Balance"]);
+                                if (rawBalance <= LedgerClosingTolerance) continue;
+                                var balance = Math.Round(rawBalance, 2);
 
                                 string docTypeName;
                                 switch (documentType)
@@ -745,10 +789,10 @@ WHERE a.Number = @Number", cn))
                             paymentID = CreatePayment(cn, tx, request.CashierID, request.StoreID, customerID, now, request.Amount, comment);
                             reference = paymentID.ToString();
 
-                            // DocumentType=5 (Payment), LedgerType=3, amount negative → reduces balance
-                            byte documentType = 5;
-                            byte ledgerType = 3;
-                            decimal amountACY = -request.Amount; // negative = reduces debt
+                            // RMS represents customer payments as payment ledger entries.
+                            byte documentType = 1;
+                            byte ledgerType = 1;
+                            decimal amountACY = -request.Amount;
                             var dbTimer = System.Diagnostics.Stopwatch.StartNew();
 
                             // Insert AR_LedgerEntry
@@ -793,30 +837,19 @@ WHERE a.Number = @Number", cn))
 
                             if (ledgerEntryID > 0)
                             {
-                                using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
-                                {
-                                    cmd.CommandType = CommandType.StoredProcedure;
-                                    cmd.CommandTimeout = 60;
-
-                                    cmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
-                                    cmd.Parameters.AddWithValue("@AccountID", accountID);
-                                    cmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                                    cmd.Parameters.AddWithValue("@DueDate", now);
-                                    cmd.Parameters.AddWithValue("@PostingDate", now);
-                                    cmd.Parameters.AddWithValue("@DetailType", (byte)0);
-                                    cmd.Parameters.AddWithValue("@Reference", reference);
-                                    cmd.Parameters.AddWithValue("@Amount", amountACY);
-                                    cmd.Parameters.AddWithValue("@AmountLCY", amountACY);
-                                    cmd.Parameters.AddWithValue("@AmountACY", amountACY);
-                                    cmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                                    cmd.Parameters.AddWithValue("@AppliedEntryID", 0);
-                                    cmd.Parameters.AddWithValue("@AppliedAmount", 0m);
-                                    cmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
-                                    cmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                                    cmd.Parameters.AddWithValue("@ISCLOSING", false);
-
-                                    cmd.ExecuteNonQuery();
-                                }
+                                InsertLedgerDetail(
+                                    cn,
+                                    tx,
+                                    ledgerEntryID,
+                                    accountID,
+                                    ledgerType,
+                                    now,
+                                    now,
+                                    0,
+                                    reference,
+                                    amountACY,
+                                    0,
+                                    0m);
 
                                 if (request.Applications != null && request.Applications.Count > 0)
                                 {
@@ -828,36 +861,39 @@ WHERE a.Number = @Number", cn))
                                             continue;
 
                                         var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, app.LedgerEntryID);
-                                        var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
+                                        var targetBalance = Math.Round(Math.Max(0m, targetSnapshot.Balance), 2);
                                         var amountToApply = Math.Min(Math.Min(app.Amount, targetBalance), remainingPayment);
 
                                         if (amountToApply <= LedgerClosingTolerance)
                                             continue;
 
-                                        using (var appCmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
-                                        {
-                                            appCmd.CommandType = CommandType.StoredProcedure;
-                                            appCmd.CommandTimeout = 60;
+                                        var paymentApplicationDetailID = InsertLedgerDetail(
+                                            cn,
+                                            tx,
+                                            ledgerEntryID,
+                                            accountID,
+                                            ledgerType,
+                                            now,
+                                            now,
+                                            5,
+                                            reference,
+                                            amountToApply,
+                                            0,
+                                            0m);
 
-                                            appCmd.Parameters.AddWithValue("@LedgerEntryID", ledgerEntryID);
-                                            appCmd.Parameters.AddWithValue("@AccountID", accountID);
-                                            appCmd.Parameters.AddWithValue("@LedgerType", ledgerType);
-                                            appCmd.Parameters.AddWithValue("@DueDate", now);
-                                            appCmd.Parameters.AddWithValue("@PostingDate", now);
-                                            appCmd.Parameters.AddWithValue("@DetailType", (byte)0);
-                                            appCmd.Parameters.AddWithValue("@Reference", reference);
-                                            appCmd.Parameters.AddWithValue("@Amount", 0m);
-                                            appCmd.Parameters.AddWithValue("@AmountLCY", 0m);
-                                            appCmd.Parameters.AddWithValue("@AmountACY", 0m);
-                                            appCmd.Parameters.AddWithValue("@AuditEntryID", 0);
-                                            appCmd.Parameters.AddWithValue("@AppliedEntryID", app.LedgerEntryID);
-                                            appCmd.Parameters.AddWithValue("@AppliedAmount", -amountToApply);
-                                            appCmd.Parameters.AddWithValue("@UnapplyEntryID", 0);
-                                            appCmd.Parameters.AddWithValue("@UnapplyReasonID", 0);
-                                            appCmd.Parameters.AddWithValue("@ISCLOSING", false);
-
-                                            appCmd.ExecuteNonQuery();
-                                        }
+                                        InsertLedgerDetail(
+                                            cn,
+                                            tx,
+                                            app.LedgerEntryID,
+                                            accountID,
+                                            targetSnapshot.LedgerType > 0 ? targetSnapshot.LedgerType : 3,
+                                            targetSnapshot.DueDate == default(DateTime) ? now : targetSnapshot.DueDate,
+                                            now,
+                                            5,
+                                            reference,
+                                            -amountToApply,
+                                            paymentApplicationDetailID,
+                                            -amountToApply);
 
                                         remainingPayment -= amountToApply;
                                         appliedLedgerEntryIDs.Add(app.LedgerEntryID);
