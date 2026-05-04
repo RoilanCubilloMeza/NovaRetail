@@ -273,8 +273,8 @@ namespace NovaRetail.ViewModels
             _currentTaxPercentage = item.EffectiveTaxPercentage;
             _isTaxIncludedMode = isTaxIncluded;
             IsServiceMode = false;
-            ItemName = item.OverrideDescription ?? item.Name;
-            ItemCode = item.Code;
+            ItemName = ResolveDisplayName(item);
+            ItemCode = ResolveDisplayCode(item);
 
             var ep = item.EffectivePriceColones;
             PrecioText = $"{UiConfig.CurrencySymbol}{ep:N2}";
@@ -285,7 +285,7 @@ namespace NovaRetail.ViewModels
             _tempQty = FormatQuantity(item.Quantity);
             _tempPrice = FormatMoneyInput(ep);
             _tempExtPrice = FormatMoneyInput(ep * item.Quantity);
-            _tempDesc = item.OverrideDescription ?? item.Name;
+            _tempDesc = ResolveDisplayName(item);
             _discountPercentText = item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F0", CultureInfo.InvariantCulture) : "0";
             _selectedDiscountCode = null;
 
@@ -318,8 +318,8 @@ namespace NovaRetail.ViewModels
             _currentTaxPercentage = product.TaxPercentage;
             _isTaxIncludedMode = isTaxIncluded;
             IsServiceMode = true;
-            ItemName = product.Name;
-            ItemCode = product.Code;
+            ItemName = ResolveDisplayName(product);
+            ItemCode = ResolveDisplayCode(product);
             PrecioText = prefillPrice > 0 ? $"{UiConfig.CurrencySymbol}{prefillPrice:N2}" : "Precio variable";
             DisponibleText = "∞";
             ComprometidoText = "0";
@@ -328,7 +328,7 @@ namespace NovaRetail.ViewModels
             _tempQty = "1";
             _tempPrice = prefillPrice > 0 ? FormatMoneyInput(prefillPrice) : string.Empty;
             _tempExtPrice = _tempPrice;
-            _tempDesc = product.Name;
+            _tempDesc = ResolveDisplayName(product);
             _discountPercentText = "0";
             _selectedDiscountCode = null;
             _salesRepId = 0;
@@ -343,6 +343,37 @@ namespace NovaRetail.ViewModels
 
             OnPropertyChanged(string.Empty);
         }
+
+        private static string ResolveDisplayName(ProductModel product)
+        {
+            if (!string.IsNullOrWhiteSpace(product.Name))
+                return product.Name.Trim();
+
+            if (!string.IsNullOrWhiteSpace(product.Code))
+                return product.Code.Trim();
+
+            return "Producto sin nombre";
+        }
+
+        private static string ResolveDisplayCode(ProductModel product)
+            => !string.IsNullOrWhiteSpace(product.Code) ? product.Code.Trim() : "Sin código";
+
+        private static string ResolveDisplayName(CartItemModel item)
+        {
+            if (!string.IsNullOrWhiteSpace(item.OverrideDescription))
+                return item.OverrideDescription.Trim();
+
+            if (!string.IsNullOrWhiteSpace(item.Name))
+                return item.Name.Trim();
+
+            if (!string.IsNullOrWhiteSpace(item.Code))
+                return item.Code.Trim();
+
+            return "Artículo sin nombre";
+        }
+
+        private static string ResolveDisplayCode(CartItemModel item)
+            => !string.IsNullOrWhiteSpace(item.Code) ? item.Code.Trim() : "Sin código";
 
         /// <summary>Returns the validated price in colones entered in service mode, or null if invalid.</summary>
         public decimal? ServicePriceColones

@@ -425,18 +425,32 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         }
     }
 
-    private Task AddProductAsync(ProductModel? product)
+    private async Task AddProductAsync(ProductModel? product)
     {
-        if (product is null) return Task.CompletedTask;
+        if (product is null) return;
 
         if (IsNonInventoryItem(product.ItemType))
         {
+            if (!await WarnIfProductIsIncompleteAsync(product))
+                return;
+
             ServiceProductRequested?.Invoke(product);
-            return Task.CompletedTask;
+            return;
         }
 
-        ProductAddRequested?.Invoke(product, 1m);
-        return Task.CompletedTask;
+        await AddProductWithQuantityPromptAsync(product);
+    }
+
+    private async Task AddProductWithQuantityPromptAsync(ProductModel product)
+    {
+        if (!await WarnIfProductIsIncompleteAsync(product))
+            return;
+
+        var quantity = await PromptProductQuantityAsync(product, 1m);
+        if (quantity is null)
+            return;
+
+        ProductAddRequested?.Invoke(product, quantity.Value);
     }
 
     private async Task LoadCategoryProductsAsync(string category)
@@ -539,6 +553,12 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
             if (product is not null)
             {
+                if (!await WarnIfProductIsIncompleteAsync(product))
+                {
+                    FilterProducts();
+                    return;
+                }
+
                 if (IsNonInventoryItem(product.ItemType))
                     ServiceProductRequested?.Invoke(product);
                 else
@@ -554,6 +574,75 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             _isSearchingByCode = false;
             IsSearchingProducts = false;
         }
+    }
+
+    private async Task<decimal?> PromptProductQuantityAsync(ProductModel product, decimal initialQuantity)
+    {
+        var promptTitle = "Cantidad a agregar";
+        var promptMessage = string.IsNullOrWhiteSpace(product.Name)
+            ? "Ingrese cuántas unidades desea agregar."
+            : $"¿Cuántas unidades de {product.Name.Trim()} desea agregar?";
+
+        var initialValue = initialQuantity > 0m
+            ? initialQuantity.ToString("0.###", CultureInfo.CurrentCulture)
+            : "1";
+
+        var response = await _dialogService.PromptAsync(
+            promptTitle,
+            promptMessage,
+            accept: "Agregar",
+            cancel: "Cancelar",
+            placeholder: "Ej. 1",
+            maxLength: 10,
+            keyboard: Keyboard.Numeric,
+            initialValue: initialValue);
+
+        if (response is null)
+            return null;
+
+        if (!TryParseQuantity(response, out var quantity))
+        {
+            await _dialogService.AlertAsync(
+                "Cantidad inválida",
+                "Digite una cantidad mayor a cero.",
+                "OK");
+            return null;
+        }
+
+        return quantity;
+    }
+
+    private async Task<bool> WarnIfProductIsIncompleteAsync(ProductModel product)
+    {
+        var hasName = !string.IsNullOrWhiteSpace(product.Name);
+        var hasCode = !string.IsNullOrWhiteSpace(product.Code);
+
+        if (!hasName && !hasCode)
+        {
+            await _dialogService.AlertAsync(
+                "Producto incompleto",
+                "Este producto no tiene nombre ni código. Corrija el catálogo antes de agregarlo.",
+                "OK");
+            return false;
+        }
+
+        if (!hasName)
+        {
+            await _dialogService.AlertAsync(
+                "Producto sin nombre",
+                "Este producto no tiene nombre registrado. Se mostrará usando su código.",
+                "OK");
+        }
+
+        if (!hasCode)
+        {
+            await _dialogService.AlertAsync(
+                "Producto sin código",
+                "Este producto no tiene código registrado. Conviene corregirlo en el catálogo.",
+                "OK");
+        }
+
+        return true;
     }
 
     private async Task<bool> LoadProductsAsync(bool loadMore = false)

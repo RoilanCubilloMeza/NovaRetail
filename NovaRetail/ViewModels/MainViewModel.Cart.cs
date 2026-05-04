@@ -83,7 +83,7 @@ namespace NovaRetail.ViewModels
                 {
                     ItemID = product.ItemID,
                     Emoji = product.Emoji,
-                    Name = product.Name,
+                    Name = ResolveProductName(product),
                     Code = product.Code,
                     UnitPrice = priceDollars,
                     UnitPriceColones = priceColones.Value,
@@ -145,7 +145,7 @@ namespace NovaRetail.ViewModels
                 {
                     ItemID = product.ItemID,
                     Emoji = product.Emoji,
-                    Name = product.Name,
+                    Name = ResolveProductName(product),
                     Code = product.Code,
                     UnitPrice = product.PriceValue,
                     UnitPriceColones = product.PriceColonesValue,
@@ -369,6 +369,17 @@ namespace NovaRetail.ViewModels
 
         private string GetCartSortHeaderText(string label, bool isActive)
             => isActive ? $"{label} {(IsCartSortDescending ? "↓" : "↑")}" : label;
+
+        private static string ResolveProductName(ProductModel product)
+        {
+            if (!string.IsNullOrWhiteSpace(product.Name))
+                return product.Name.Trim();
+
+            if (!string.IsNullOrWhiteSpace(product.Code))
+                return product.Code.Trim();
+
+            return $"Producto {product.ItemID}";
+        }
 
         private IEnumerable<CartItemModel> ApplyCartSort(IEnumerable<CartItemModel> items)
         {

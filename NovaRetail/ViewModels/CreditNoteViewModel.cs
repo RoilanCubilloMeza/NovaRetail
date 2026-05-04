@@ -171,7 +171,15 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public string ReferenceNumber
     {
         get => _referenceNumber;
-        set { if (_referenceNumber != value) { _referenceNumber = value; OnPropertyChanged(); } }
+        set
+        {
+            if (_referenceNumber != value)
+            {
+                _referenceNumber = value;
+                OnPropertyChanged();
+                NotifyValidationState();
+            }
+        }
     }
 
     public string CommentText
@@ -221,8 +229,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsCashMode));
                 OnPropertyChanged(nameof(HasCreditInfo));
                 OnPropertyChanged(nameof(NoCreditInfo));
-                OnPropertyChanged(nameof(CanConfirm));
-                ((Command)ConfirmCommand).ChangeCanExecute();
+                NotifyValidationState();
             }
         }
     }
@@ -258,8 +265,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSelectedReason));
                 OnPropertyChanged(nameof(SelectedReasonText));
-                OnPropertyChanged(nameof(CanConfirm));
-                ((Command)ConfirmCommand).ChangeCanExecute();
+                NotifyValidationState();
             }
         }
     }
@@ -285,9 +291,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             {
                 _isSubmitting = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CanConfirm));
                 OnPropertyChanged(nameof(ConfirmButtonText));
-                ((Command)ConfirmCommand).ChangeCanExecute();
+                NotifyValidationState();
             }
         }
     }
@@ -299,7 +304,19 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     }
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(_statusMessage);
-    public bool CanConfirm => !IsSubmitting && HasSelectedReason && SelectedCount > 0 && _selectedTender is not null;
+    public bool HasValidationIssues => GetValidationIssues().Count > 0;
+    public string ValidationSummaryText
+    {
+        get
+        {
+            var issues = GetValidationIssues();
+            if (issues.Count == 0)
+                return string.Empty;
+
+            return "Revise lo siguiente:\n- " + string.Join("\n- ", issues);
+        }
+    }
+    public bool CanConfirm => !IsSubmitting && !HasValidationIssues;
     public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar Nota de Crédito";
 
     // ── Result ───────────────────────────────────────────────────────
@@ -359,7 +376,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         DeselectAllCommand = new Command(() => SetAllSelected(false));
         SelectReasonCommand = new Command<ReasonCodeModel>(r => SelectedReason = r);
         SelectTenderCommand = new Command<TenderModel>(SelectTender);
-        AddProductCommand = new Command<ProductModel>(AddProductToLines);
+        AddProductCommand = new Command<ProductModel>(async product => await AddProductToLinesAsync(product));
         RemoveLineCommand = new Command<CreditNoteLineItem>(RemoveLine);
         GoBackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         SelectCustomerCommand = new Command<CustomerLookupModel>(c => _ = SelectCustomerAsync(c));
@@ -591,17 +608,23 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
     }
 
-    private void AddProductToLines(ProductModel? product)
+    private async Task AddProductToLinesAsync(ProductModel? product)
     {
         if (product is null) return;
+
+        var quantity = await PromptProductQuantityAsync(product);
+        if (quantity <= 0)
+            return;
 
         // Check if already added
         var existing = Lines.FirstOrDefault(l => l.ItemID == product.ItemID);
         if (existing is not null)
         {
-            existing.ReturnQuantity += 1;
+            existing.ReturnQuantity += quantity;
             return;
         }
+
+        var maxQuantity = Math.Max(999m, quantity);
 
         var item = new CreditNoteLineItem
         {
@@ -609,18 +632,18 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             TaxID = product.TaxId,
             DisplayName = product.Name,
             Code = product.Code,
-            OriginalQuantity = 999,
-            AvailableQuantity = 999,
+            OriginalQuantity = maxQuantity,
+            AvailableQuantity = maxQuantity,
             TaxPercentage = product.TaxPercentage,
             UnitPriceColones = product.PriceColonesValue,
-            LineTotalColones = product.PriceColonesValue * 999,
+            LineTotalColones = product.PriceColonesValue * maxQuantity,
             HasDiscount = false,
             DiscountPercent = 0,
             HasExoneration = false,
             ExonerationPercent = 0,
             HasOverridePrice = false
         };
-        item.ReturnQuantity = 1;
+        item.ReturnQuantity = quantity;
         item.PropertyChanged += (_, _) => RefreshSelectedSummary();
         Lines.Add(item);
         RefreshSelectedSummary();
@@ -629,6 +652,32 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _productSearchText = string.Empty;
         OnPropertyChanged(nameof(ProductSearchText));
         ProductSearchResults.Clear();
+    }
+
+    private async Task<decimal> PromptProductQuantityAsync(ProductModel product)
+    {
+        while (true)
+        {
+            var response = await _dialogService.PromptAsync(
+                "Cantidad",
+                $"Ingrese la cantidad para {product.Name}:",
+                "Agregar", "Cancelar",
+                placeholder: "1",
+                maxLength: 10,
+                keyboard: Keyboard.Numeric,
+                initialValue: "1");
+
+            if (response is null)
+                return 0m;
+
+            if (TryParseQuantity(response, out var quantity))
+                return quantity;
+
+            await _dialogService.AlertAsync(
+                "Cantidad invÃ¡lida",
+                "Digite una cantidad mayor que cero. Puede usar enteros o decimales.",
+                "OK");
+        }
     }
 
     private void RemoveLine(CreditNoteLineItem? item)
@@ -940,6 +989,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OverrideClientDisplay));
         OnPropertyChanged(nameof(EffectiveClientId));
         OnPropertyChanged(nameof(EffectiveClientName));
+        NotifyValidationState();
 
         // Clear search
         _customerSearchText = string.Empty;
@@ -960,6 +1010,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OverrideClientDisplay));
         OnPropertyChanged(nameof(EffectiveClientId));
         OnPropertyChanged(nameof(EffectiveClientName));
+        NotifyValidationState();
 
         // Reload credit for the original invoice client
         await LoadCreditForClientAsync(originalClientId);
@@ -1076,6 +1127,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         tender.IsSelected = true;
         SelectedTender = tender;
+        NotifyValidationState();
     }
 
     private void NotifyCreditProperties()
@@ -1097,8 +1149,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedTotal));
         OnPropertyChanged(nameof(SelectedCountText));
         OnPropertyChanged(nameof(SelectedTotalText));
-        OnPropertyChanged(nameof(CanConfirm));
-        ((Command)ConfirmCommand).ChangeCanExecute();
+        NotifyValidationState();
     }
 
     private async Task ConfirmAsync()
@@ -1106,8 +1157,12 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (!_isStandaloneMode && _sourceEntry is null)
             return;
 
-        if (_selectedReason is null || SelectedCount == 0)
+        var validationIssues = GetValidationIssues();
+        if (validationIssues.Count > 0)
+        {
+            StatusMessage = string.Empty;
             return;
+        }
 
         var selectedLines = Lines.Where(l => l.IsSelected && l.ReturnQuantity > 0).ToList();
         if (selectedLines.Count == 0)
@@ -1338,6 +1393,50 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
 
         return unresolved;
+    }
+
+    private List<string> GetValidationIssues()
+    {
+        var issues = new List<string>();
+
+        if (_isStandaloneMode && !HasOverrideClient)
+            issues.Add("Falta seleccionar el cliente destino de la nota de crédito.");
+
+        if (string.IsNullOrWhiteSpace(ReferenceNumber))
+            issues.Add("Falta completar la referencia de la transacción.");
+
+        if (Lines.Count == 0)
+            issues.Add("Falta agregar al menos un producto.");
+        else if (SelectedCount == 0)
+            issues.Add("Falta seleccionar productos con cantidad a devolver mayor a cero.");
+
+        if (_selectedTender is null)
+            issues.Add("Falta seleccionar el modo de devolución.");
+
+        if (_selectedReason is null)
+            issues.Add("Falta seleccionar el motivo de la nota de crédito.");
+
+        return issues;
+    }
+
+    private void NotifyValidationState()
+    {
+        OnPropertyChanged(nameof(HasValidationIssues));
+        OnPropertyChanged(nameof(ValidationSummaryText));
+        OnPropertyChanged(nameof(CanConfirm));
+        ((Command)ConfirmCommand).ChangeCanExecute();
+    }
+
+    private static bool TryParseQuantity(string rawValue, out decimal quantity)
+    {
+        var text = (rawValue ?? string.Empty).Trim();
+        text = text.Replace(" ", string.Empty, StringComparison.Ordinal);
+
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out quantity) && quantity > 0)
+            return true;
+
+        var normalized = text.Replace(",", ".", StringComparison.Ordinal);
+        return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out quantity) && quantity > 0;
     }
 
     private async Task<ProductModel?> FindCatalogMatchAsync(CreditNoteLineItem line)

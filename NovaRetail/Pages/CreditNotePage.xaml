@@ -478,6 +478,22 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <Border BackgroundColor="#FEF2F2"
+                            Stroke="#FECACA" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="16,12"
+                            IsVisible="{Binding HasValidationIssues}">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="âš " FontSize="22" TextColor="#DC2626" VerticalOptions="Start"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="FALTAN DATOS PARA CONTINUAR" FontSize="10" FontAttributes="Bold"
+                                       TextColor="#DC2626" CharacterSpacing="0.5"/>
+                                <Label Text="{Binding ValidationSummaryText}"
+                                       FontSize="12" TextColor="#991B1B"
+                                       LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
                     <!-- Status message -->
                     <Label Text="{Binding StatusMessage}"
                            IsVisible="{Binding HasStatusMessage}"
