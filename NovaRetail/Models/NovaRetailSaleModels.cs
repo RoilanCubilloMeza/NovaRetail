@@ -173,6 +173,7 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
 
 public sealed class NovaRetailInvoiceHistoryLineDto
 {
+    public int LineNumber { get; set; }
     public int ItemID { get; set; }
     public int TaxID { get; set; }
     public string DisplayName { get; set; } = string.Empty;

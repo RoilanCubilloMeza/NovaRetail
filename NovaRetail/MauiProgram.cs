@@ -62,7 +62,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient("NovaAuth",
             c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaSales",
-            c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
+            c => c.Timeout = TimeSpan.FromSeconds(180)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaQuotes",
             c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaExternal",

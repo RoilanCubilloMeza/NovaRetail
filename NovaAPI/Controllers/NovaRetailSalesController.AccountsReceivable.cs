@@ -188,6 +188,86 @@ WHERE TE.TransactionNumber = @TransactionNumber
             }
         }
 
+        private static List<int> ExtractTransactionNumberCandidates(IEnumerable<string> transactionReferences)
+        {
+            return (transactionReferences ?? Enumerable.Empty<string>())
+                .Select(NormalizeTransactionReference)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value =>
+                {
+                    int transactionNumber;
+                    return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out transactionNumber)
+                        ? transactionNumber
+                        : 0;
+                })
+                .Where(value => value > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        private static int ResolveReferencedLedgerEntryIDByTransactionNumber(SqlConnection cn, SqlTransaction tx, int accountID, IEnumerable<int> transactionNumbers)
+        {
+            var numbers = (transactionNumbers ?? Enumerable.Empty<int>())
+                .Where(value => value > 0)
+                .Distinct()
+                .ToList();
+
+            if (accountID <= 0 || numbers.Count == 0)
+                return 0;
+
+            using (var cmd = new SqlCommand())
+            {
+                cmd.Connection = cn;
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 15;
+                cmd.Parameters.AddWithValue("@AccountID", accountID);
+
+                var names = new List<string>();
+                for (var index = 0; index < numbers.Count; index++)
+                {
+                    var name = "@Txn" + index.ToString(CultureInfo.InvariantCulture);
+                    names.Add(name);
+                    cmd.Parameters.AddWithValue(name, numbers[index]);
+                }
+
+                cmd.CommandText = @"
+SELECT TOP 1 le.ID
+FROM dbo.AR_LedgerEntry le
+WHERE le.AccountID = @AccountID
+  AND le.DocumentID IN (" + string.Join(", ", names) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.AR_LedgerEntryDetail d
+      WHERE d.LedgerEntryID = le.ID
+        AND d.AppliedEntryID = 0
+        AND d.Amount > 0
+  )
+ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
+         le.ID DESC;";
+
+                var result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
+            }
+        }
+
+        private static bool ShouldUseWideReferenceLookup(IEnumerable<string> normalizedReferences)
+        {
+            return (normalizedReferences ?? Enumerable.Empty<string>())
+                .Any(value =>
+                {
+                    var reference = NormalizeTransactionReference(value);
+                    if (string.IsNullOrWhiteSpace(reference))
+                        return false;
+
+                    if (reference.Length >= 20)
+                        return true;
+
+                    return reference.Any(c => !char.IsDigit(c));
+                });
+        }
+
         private static int ResolveReferencedLedgerEntryID(SqlConnection cn, SqlTransaction tx, int accountID, IEnumerable<string> transactionReferences)
         {
             var normalizedReferences = (transactionReferences ?? Enumerable.Empty<string>())
@@ -197,6 +277,13 @@ WHERE TE.TransactionNumber = @TransactionNumber
                 .ToList();
 
             if (accountID <= 0 || normalizedReferences.Count == 0)
+                return 0;
+
+            var directMatch = ResolveReferencedLedgerEntryIDByTransactionNumber(cn, tx, accountID, ExtractTransactionNumberCandidates(normalizedReferences));
+            if (directMatch > 0)
+                return directMatch;
+
+            if (!ShouldUseWideReferenceLookup(normalizedReferences))
                 return 0;
 
             var ledgerReferences = normalizedReferences
@@ -211,6 +298,7 @@ WHERE TE.TransactionNumber = @TransactionNumber
             {
                 cmd.Connection = cn;
                 cmd.Transaction = tx;
+                cmd.CommandTimeout = 20;
                 AddInParameters(cmd, "Ref", normalizedReferences, referenceNames);
                 AddInParameters(cmd, "LedgerRef", ledgerReferences, ledgerReferenceNames);
 
@@ -264,6 +352,9 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
             if (normalizedReferences.Count == 0)
                 return string.Empty;
 
+            if (!ShouldUseWideReferenceLookup(normalizedReferences))
+                return string.Empty;
+
             var ledgerReferences = normalizedReferences
                 .Select(BuildLedgerReference)
                 .Where(value => !string.IsNullOrWhiteSpace(value))
@@ -275,6 +366,7 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
             using (var cmd = new SqlCommand())
             {
                 cmd.Connection = cn;
+                cmd.CommandTimeout = 20;
                 AddInParameters(cmd, "Ref", normalizedReferences, referenceNames);
                 AddInParameters(cmd, "LedgerRef", ledgerReferences, ledgerReferenceNames);
 
@@ -424,6 +516,30 @@ WHERE ID = @LedgerEntryID;", cn))
             }
         }
 
+        private static bool IsCreditTender(IEnumerable<NovaRetailSaleTenderDto> tenders, SqlConnection cn)
+        {
+            var list = (tenders ?? Enumerable.Empty<NovaRetailSaleTenderDto>())
+                .Where(tender => tender != null)
+                .OrderBy(tender => tender.RowNo)
+                .Take(4)
+                .ToList();
+
+            if (list.Count == 0)
+                return false;
+
+            if (list.Any(tender => string.Equals((tender.MedioPagoCodigo ?? string.Empty).Trim(), "99", StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            if (list.Any(tender => IsCreditDescription(tender.Description)))
+                return true;
+
+            if (list.All(tender => !string.IsNullOrWhiteSpace(tender.MedioPagoCodigo)))
+                return false;
+
+            return ResolveIntegraFastMedioPagos(cn, list)
+                .Any(code => string.Equals(code, "99", StringComparison.OrdinalIgnoreCase));
+        }
+
         private static void TryCreateARTransaction(NovaRetailCreateSaleRequest request, NovaRetailCreateSaleResponse response)
         {
             response.AccountsReceivableEntryCreated = false;
@@ -453,8 +569,7 @@ WHERE ID = @LedgerEntryID;", cn))
             {
                 cn.Open();
 
-                isCreditNC = isNC && ResolveIntegraFastMedioPagos(cn, request.Tenders)
-                    .Any(code => string.Equals(code, "99", StringComparison.OrdinalIgnoreCase));
+                isCreditNC = isNC && IsCreditTender(request.Tenders, cn);
 
                 if (!isCreditSale && !isCreditNC)
                     return;
@@ -482,12 +597,25 @@ WHERE ID = @LedgerEntryID;", cn))
                     return;
 
                 var accountID = 0;
-                using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
+                var customerID = request.CustomerID;
+                using (var cmd = new SqlCommand(@"
+SELECT TOP 1
+    a.ID AS AccountID,
+    ISNULL(c.ID, 0) AS CustomerID
+FROM dbo.AR_Account a
+LEFT JOIN dbo.Customer c ON c.AccountNumber = a.Number
+WHERE a.Number = @Number;", cn))
                 {
                     cmd.Parameters.AddWithValue("@Number", customerAccountNumber);
-                    var result = cmd.ExecuteScalar();
-                    if (result != null && result != DBNull.Value)
-                        accountID = Convert.ToInt32(result);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            accountID = reader["AccountID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["AccountID"]);
+                            if (customerID <= 0)
+                                customerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]);
+                        }
+                    }
                 }
 
                 if (accountID <= 0 && isCreditNC)
@@ -497,30 +625,30 @@ WHERE ID = @LedgerEntryID;", cn))
                         !string.Equals(referencedAccountNumber, customerAccountNumber, StringComparison.OrdinalIgnoreCase))
                     {
                         customerAccountNumber = referencedAccountNumber;
-                        using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.AR_Account WHERE Number = @Number", cn))
+                        using (var cmd = new SqlCommand(@"
+SELECT TOP 1
+    a.ID AS AccountID,
+    ISNULL(c.ID, 0) AS CustomerID
+FROM dbo.AR_Account a
+LEFT JOIN dbo.Customer c ON c.AccountNumber = a.Number
+WHERE a.Number = @Number;", cn))
                         {
                             cmd.Parameters.AddWithValue("@Number", customerAccountNumber);
-                            var result = cmd.ExecuteScalar();
-                            if (result != null && result != DBNull.Value)
-                                accountID = Convert.ToInt32(result);
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    accountID = reader["AccountID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["AccountID"]);
+                                    if (customerID <= 0)
+                                        customerID = reader["CustomerID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CustomerID"]);
+                                }
+                            }
                         }
                     }
                 }
 
                 if (accountID <= 0)
                     return;
-
-                var customerID = request.CustomerID;
-                if (customerID <= 0)
-                {
-                    using (var cmd = new SqlCommand("SELECT TOP 1 ID FROM dbo.Customer WHERE AccountNumber = @Acct", cn))
-                    {
-                        cmd.Parameters.AddWithValue("@Acct", customerAccountNumber);
-                        var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value)
-                            customerID = Convert.ToInt32(result);
-                    }
-                }
 
                 using (var tx = cn.BeginTransaction())
                 {

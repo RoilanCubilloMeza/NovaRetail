@@ -377,7 +377,10 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         _appStore.Dispatch(new SetSelectedCategoryAction(CategoryKeys.Todos));
 
         FilterProducts();
-        await LoadProductsAsync();
+        if (_allProducts.Count == 0)
+            await LoadProductsAsync();
+        else
+            RefreshProductCountText();
     }
 
     public async Task RefreshVisibleCatalogAsync()

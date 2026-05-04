@@ -55,6 +55,11 @@ public sealed class ApiSaleService : ISaleService
                 if (!response.IsSuccessStatusCode)
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
             }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al crear venta en {BaseUrl}", baseUrl);
+                lastErrorMessage = "El servicio tardó demasiado registrando la nota de crédito. Revise el historial antes de intentarlo de nuevo.";
+            }
             catch (OperationCanceledException)
             {
                 throw;
@@ -84,8 +89,9 @@ public sealed class ApiSaleService : ISaleService
             try
             {
                 var http = _httpClientFactory.CreateClient(SalesClientName);
-                var top = 100;
-                var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(search ?? string.Empty)}&top={top}");
+                var normalizedSearch = (search ?? string.Empty).Trim();
+                var top = string.IsNullOrWhiteSpace(normalizedSearch) ? 40 : 25;
+                var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(normalizedSearch)}&top={top}");
                 using var response = await http.GetAsync(url, cancellationToken);
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 var trimmedContent = content?.TrimStart();

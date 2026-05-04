@@ -16,6 +16,6 @@ public partial class InvoiceHistoryPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _vm.LoadAsync();
+        await _vm.LoadIfNeededAsync();
     }
 }

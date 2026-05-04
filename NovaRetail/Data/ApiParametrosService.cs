@@ -17,6 +17,9 @@ public sealed class ApiParametrosService : IParametrosService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ApiParametrosService> _logger;
     private readonly string[] _baseUrls;
+    private TenderSettingsModel? _cachedTenderSettings;
+    private DateTime _tenderSettingsCacheExpiry;
+    private static readonly TimeSpan TenderSettingsCacheDuration = TimeSpan.FromMinutes(10);
 
     public ApiParametrosService(IHttpClientFactory httpClientFactory, ILogger<ApiParametrosService> logger, ApiSettings settings)
     {
@@ -72,6 +75,9 @@ public sealed class ApiParametrosService : IParametrosService
 
     public async Task<TenderSettingsModel?> GetTenderSettingsAsync()
     {
+        if (_cachedTenderSettings is not null && DateTime.UtcNow < _tenderSettingsCacheExpiry)
+            return _cachedTenderSettings;
+
         foreach (var baseUrl in _baseUrls)
         {
             try
@@ -84,7 +90,11 @@ public sealed class ApiParametrosService : IParametrosService
                 var json = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<TenderSettingsModel>(json, JsonOptions);
                 if (result is not null)
+                {
+                    _cachedTenderSettings = result;
+                    _tenderSettingsCacheExpiry = DateTime.UtcNow.Add(TenderSettingsCacheDuration);
                     return result;
+                }
             }
             catch (Exception ex)
             {
@@ -104,6 +114,12 @@ public sealed class ApiParametrosService : IParametrosService
                 var http = _httpClientFactory.CreateClient(ClientName);
                 var json = new StringContent(JsonSerializer.Serialize(settings), Encoding.UTF8, "application/json");
                 var response = await http.PutAsync($"{baseUrl}/api/Parametros/Tenders", json);
+                if (response.IsSuccessStatusCode)
+                {
+                    _cachedTenderSettings = settings;
+                    _tenderSettingsCacheExpiry = DateTime.UtcNow.Add(TenderSettingsCacheDuration);
+                }
+
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

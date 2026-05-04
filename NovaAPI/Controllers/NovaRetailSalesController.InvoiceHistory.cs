@@ -249,6 +249,7 @@ WHERE t.TransactionNumber = @TransactionNumber";
 
                     const string linesSql = @"
 SELECT
+    ROW_NUMBER() OVER (ORDER BY te.ID) AS LineNumber,
     ISNULL(te.ItemID, 0) AS ItemID,
     ISNULL(i.TaxID, 0) AS TaxID,
     ISNULL(NULLIF(i.Description, ''), 'Art\u00edculo') AS DisplayName,
@@ -278,6 +279,7 @@ ORDER BY te.ID";
                             {
                                 entry.Lines.Add(new NovaRetailInvoiceHistoryLineDto
                                 {
+                                    LineNumber = reader["LineNumber"] == DBNull.Value ? entry.Lines.Count + 1 : Convert.ToInt32(reader["LineNumber"]),
                                     ItemID = reader["ItemID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ItemID"]),
                                     TaxID = reader["TaxID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TaxID"]),
                                     DisplayName = reader["DisplayName"] == DBNull.Value ? string.Empty : Convert.ToString(reader["DisplayName"]),

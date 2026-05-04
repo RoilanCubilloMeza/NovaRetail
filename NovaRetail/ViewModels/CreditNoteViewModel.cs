@@ -18,6 +18,7 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
     private bool _isSelected = true;
     private decimal _returnQuantity;
 
+    public int LineNumber { get; init; }
     public int ItemID { get; set; }
     public int TaxID { get; set; }
     public string DisplayName { get; init; } = string.Empty;
@@ -104,6 +105,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private string _overrideClientId = string.Empty;
     private string _overrideClientName = string.Empty;
     private bool _sourcePricesIncludeTax;
+    private string _defaultClientId = "00001";
+    private string _defaultClientName = "CLIENTE CONTADO";
 
     public ObservableCollection<CreditNoteLineItem> Lines { get; } = new();
     public ObservableCollection<ReasonCodeModel> ReasonCodes { get; } = new();
@@ -211,7 +214,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         set => IsCreditMode = !value;
     }
 
-    public string RefundModeText => _selectedTender?.Description ?? (_isCreditMode ? "Crédito a Cliente" : "Devolución en Efectivo");
+    public string RefundModeText => _selectedTender?.Description ?? (_isCreditMode ? "Crédito a cliente" : "Devolución en efectivo");
 
     public TenderModel? SelectedTender
     {
@@ -292,6 +295,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 _isSubmitting = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ConfirmButtonText));
+                OnPropertyChanged(nameof(HasStatusAlert));
                 NotifyValidationState();
             }
         }
@@ -300,10 +304,20 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     public string StatusMessage
     {
         get => _statusMessage;
-        private set { if (_statusMessage != value) { _statusMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasStatusMessage)); } }
+        private set
+        {
+            if (_statusMessage != value)
+            {
+                _statusMessage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasStatusMessage));
+                OnPropertyChanged(nameof(HasStatusAlert));
+            }
+        }
     }
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(_statusMessage);
+    public bool HasStatusAlert => HasStatusMessage && !IsSubmitting;
     public bool HasValidationIssues => GetValidationIssues().Count > 0;
     public string ValidationSummaryText
     {
@@ -317,7 +331,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
     }
     public bool CanConfirm => !IsSubmitting && !HasValidationIssues;
-    public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar Nota de Crédito";
+    public string ConfirmButtonText => IsSubmitting ? "Procesando..." : "Confirmar nota de crédito";
 
     // ── Result ───────────────────────────────────────────────────────
     private bool _isResultVisible;
@@ -424,29 +438,30 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         try
         {
             // Load reason codes (type 5 = Notas de Crédito)
+            var reasonCodesTask = _productService.GetReasonCodesAsync(5);
+            var configTask = _storeConfigService.GetConfigAsync();
+
+            await Task.WhenAll(reasonCodesTask, configTask);
+
             ReasonCodes.Clear();
-            var codes = await _productService.GetReasonCodesAsync(5);
-            foreach (var c in codes)
+            foreach (var c in await reasonCodesTask)
                 ReasonCodes.Add(c);
 
             // Load store config for IDs
-            var config = await _storeConfigService.GetConfigAsync();
+            var config = await configTask;
             if (config is not null)
             {
                 _storeId = config.StoreID;
                 _registerId = config.RegisterID > 0 ? config.RegisterID : 1;
                 _storeName = config.StoreName ?? string.Empty;
+                _defaultClientId = string.IsNullOrWhiteSpace(config.DefaultClientId) ? _defaultClientId : config.DefaultClientId.Trim();
+                _defaultClientName = string.IsNullOrWhiteSpace(config.DefaultClientName) ? _defaultClientName : config.DefaultClientName.Trim();
             }
 
-            // Fetch customer credit information — prefer CreditAccountNumber (the account
-            // that was used for credit payment) over ClientId (billing cédula).
-            var creditLookupId = !string.IsNullOrWhiteSpace(entry.CreditAccountNumber)
-                ? entry.CreditAccountNumber
-                : entry.ClientId;
-            if (!string.IsNullOrWhiteSpace(creditLookupId))
-            {
-                _creditInfo = await _clienteService.ObtenerCreditoAsync(creditLookupId);
-            }
+            var creditLookupId = ResolveSourceCreditLookupId(entry);
+            _creditInfo = !string.IsNullOrWhiteSpace(creditLookupId)
+                ? await _clienteService.ObtenerCreditoAsync(creditLookupId)
+                : null;
             _creditLoaded = true;
 
             // Default to credit mode only if customer has credit
@@ -455,9 +470,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             NotifyCreditProperties();
 
             // Load available tenders — match the original invoice's payment method
-            await LoadTendersAsync(entry.TenderDescription);
-
-            var refundedLines = await GetRefundedLinesAsync(entry.TransactionNumber);
+            var tendersTask = LoadTendersAsync(entry.TenderDescription);
+            var refundedLinesTask = GetRefundedLinesAsync(entry.TransactionNumber);
+            await tendersTask;
+            var refundedLines = await refundedLinesTask;
 
             // Populate lines from the source entry
             Lines.Clear();
@@ -470,6 +486,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
                 var item = new CreditNoteLineItem
                 {
+                    LineNumber = line.LineNumber,
                     ItemID = line.ItemID,
                     TaxID = line.TaxID,
                     DisplayName = line.DisplayName,
@@ -547,17 +564,23 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         try
         {
+            var reasonCodesTask = _productService.GetReasonCodesAsync(5);
+            var configTask = _storeConfigService.GetConfigAsync();
+
+            await Task.WhenAll(reasonCodesTask, configTask);
+
             ReasonCodes.Clear();
-            var codes = await _productService.GetReasonCodesAsync(5);
-            foreach (var c in codes)
+            foreach (var c in await reasonCodesTask)
                 ReasonCodes.Add(c);
 
-            var config = await _storeConfigService.GetConfigAsync();
+            var config = await configTask;
             if (config is not null)
             {
                 _storeId = config.StoreID;
                 _registerId = config.RegisterID > 0 ? config.RegisterID : 1;
                 _storeName = config.StoreName ?? string.Empty;
+                _defaultClientId = string.IsNullOrWhiteSpace(config.DefaultClientId) ? _defaultClientId : config.DefaultClientId.Trim();
+                _defaultClientName = string.IsNullOrWhiteSpace(config.DefaultClientName) ? _defaultClientName : config.DefaultClientName.Trim();
             }
 
             IsCreditMode = false;
@@ -628,6 +651,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         var item = new CreditNoteLineItem
         {
+            LineNumber = Lines.Count + 1,
             ItemID = product.ItemID,
             TaxID = product.TaxId,
             DisplayName = product.Name,
@@ -674,7 +698,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 return quantity;
 
             await _dialogService.AlertAsync(
-                "Cantidad invÃ¡lida",
+                "Cantidad inválida",
                 "Digite una cantidad mayor que cero. Puede usar enteros o decimales.",
                 "OK");
         }
@@ -736,26 +760,6 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             }
 
             MergeCustomerBatch(combined, seen, batch);
-        }
-
-        var digits = NormalizeDigits(term);
-        var hasNumericMatch = !string.IsNullOrWhiteSpace(digits) &&
-            combined.Any(customer =>
-                NormalizeDigits(customer.TaxNumber).Contains(digits, StringComparison.Ordinal) ||
-                NormalizeDigits(customer.AccountNumber).Contains(digits, StringComparison.Ordinal));
-
-        if ((combined.Count == 0 || (!string.IsNullOrWhiteSpace(digits) && !hasNumericMatch)) && ShouldUseBroadCustomerFallback(term))
-        {
-            try
-            {
-                var allCustomers = await _clienteService.BuscarClientesAsync(null);
-                combined.Clear();
-                seen.Clear();
-                MergeCustomerBatch(combined, seen, allCustomers);
-            }
-            catch
-            {
-            }
         }
 
         var ordered = combined
@@ -828,9 +832,6 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (!queries.Any(existing => string.Equals(existing, normalized, StringComparison.OrdinalIgnoreCase)))
             queries.Add(normalized);
     }
-
-    private static bool ShouldUseBroadCustomerFallback(string term)
-        => SplitSearchTokens(term).Count > 1 || NormalizeDigits(term).Length >= 6;
 
     private static bool MatchesCustomerQuery(CustomerLookupModel customer, string term)
     {
@@ -983,7 +984,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     {
         if (customer is null) return;
 
-        _overrideClientId = customer.AccountNumber;
+        _overrideClientId = ResolveCustomerClientId(customer);
         _overrideClientName = customer.FullName;
         OnPropertyChanged(nameof(HasOverrideClient));
         OnPropertyChanged(nameof(OverrideClientDisplay));
@@ -997,12 +998,14 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         CustomerSearchResults.Clear();
 
         // Fetch credit for the selected customer
-        await LoadCreditForClientAsync(customer.AccountNumber);
+        await LoadCreditForSelectedCustomerAsync(customer);
     }
 
     private async Task ClearCustomerOverrideAsync()
     {
-        var originalClientId = _isStandaloneMode ? string.Empty : (_sourceEntry?.ClientId ?? string.Empty);
+        var sourceCreditLookupId = _sourceEntry is not null
+            ? ResolveSourceCreditLookupId(_sourceEntry)
+            : string.Empty;
 
         _overrideClientId = string.Empty;
         _overrideClientName = string.Empty;
@@ -1013,12 +1016,12 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         NotifyValidationState();
 
         // Reload credit for the original invoice client
-        await LoadCreditForClientAsync(originalClientId);
+        await LoadCreditForClientAsync(sourceCreditLookupId);
     }
 
     private async Task LoadCreditForClientAsync(string? clientId)
     {
-        if (!string.IsNullOrWhiteSpace(clientId))
+        if (!string.IsNullOrWhiteSpace(clientId) && !IsDefaultCashClient(clientId, string.Empty))
         {
             try { _creditInfo = await _clienteService.ObtenerCreditoAsync(clientId); }
             catch { _creditInfo = null; }
@@ -1030,6 +1033,181 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _creditLoaded = true;
         IsCreditMode = _creditInfo is not null && _creditInfo.HasCredit;
         NotifyCreditProperties();
+    }
+
+    private async Task LoadCreditForSelectedCustomerAsync(CustomerLookupModel customer)
+    {
+        var creditInfo = await ResolveCreditForSelectedCustomerAsync(customer);
+        _creditInfo = creditInfo;
+        _creditLoaded = true;
+
+        if (creditInfo is not null && creditInfo.HasCredit)
+        {
+            _overrideClientId = string.IsNullOrWhiteSpace(creditInfo.AccountNumber)
+                ? _overrideClientId
+                : creditInfo.AccountNumber.Trim();
+            _overrideClientName = string.IsNullOrWhiteSpace(creditInfo.FullName)
+                ? _overrideClientName
+                : creditInfo.FullName;
+
+            OnPropertyChanged(nameof(OverrideClientDisplay));
+            OnPropertyChanged(nameof(EffectiveClientId));
+            OnPropertyChanged(nameof(EffectiveClientName));
+        }
+
+        IsCreditMode = _creditInfo is not null && _creditInfo.HasCredit;
+        NotifyCreditProperties();
+    }
+
+    private async Task<CustomerCreditInfo?> ResolveCreditForSelectedCustomerAsync(CustomerLookupModel customer)
+    {
+        var candidates = BuildSelectedCustomerCreditCandidates(customer);
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                var credit = await _clienteService.ObtenerCreditoAsync(candidate);
+                if (credit is not null && credit.HasCredit)
+                    return credit;
+            }
+            catch
+            {
+            }
+        }
+
+        if (IsDefaultCashClient(customer.AccountNumber, string.Empty) &&
+            !IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+        {
+            try
+            {
+                var creditCustomers = await _clienteService.BuscarClientesCreditoAsync(customer.FullName);
+                var match = FindBestCreditCustomerMatch(customer, creditCustomers);
+                if (match is not null)
+                    return match;
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<string> BuildSelectedCustomerCreditCandidates(CustomerLookupModel customer)
+    {
+        var candidates = new List<string>();
+        AddCreditCandidate(candidates, customer.TaxNumber);
+
+        if (!IsDefaultCashClient(customer.AccountNumber, string.Empty) ||
+            IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+            AddCreditCandidate(candidates, customer.AccountNumber);
+
+        AddCreditCandidate(candidates, ResolveCustomerClientId(customer));
+        return candidates;
+    }
+
+    private static void AddCreditCandidate(List<string> candidates, string? value)
+    {
+        var candidate = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(candidate))
+            return;
+
+        if (!candidates.Any(existing => string.Equals(existing, candidate, StringComparison.OrdinalIgnoreCase)))
+            candidates.Add(candidate);
+    }
+
+    private static CustomerCreditInfo? FindBestCreditCustomerMatch(CustomerLookupModel customer, IReadOnlyList<CustomerCreditInfo> credits)
+    {
+        if (credits.Count == 0)
+            return null;
+
+        var customerName = NormalizeSearchTerm(customer.FullName);
+        var customerTokens = SplitSearchTokens(customerName);
+
+        return credits
+            .Where(c => c.HasCredit)
+            .OrderByDescending(c =>
+            {
+                var creditName = NormalizeSearchTerm(c.FullName);
+                if (!string.IsNullOrWhiteSpace(customerName) && creditName == customerName)
+                    return 1000;
+
+                if (!string.IsNullOrWhiteSpace(customerName) && creditName.Contains(customerName, StringComparison.Ordinal))
+                    return 900;
+
+                if (customerTokens.Count > 0 && customerTokens.All(token => creditName.Contains(token, StringComparison.Ordinal)))
+                    return 800;
+
+                return 0;
+            })
+            .ThenBy(c => c.FullName, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+    }
+
+    private string ResolveCustomerClientId(CustomerLookupModel customer)
+    {
+        if (!string.IsNullOrWhiteSpace(customer.TaxNumber))
+            return customer.TaxNumber.Trim();
+
+        if (!IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+            return (customer.AccountNumber ?? string.Empty).Trim();
+
+        return (customer.AccountNumber ?? string.Empty).Trim();
+    }
+
+    private string ResolveSourceCreditLookupId(InvoiceHistoryEntry entry)
+    {
+        if (IsDefaultCashClient(entry.ClientId, entry.ClientName))
+            return string.Empty;
+
+        if (SourceUsesCreditTender(entry) && !string.IsNullOrWhiteSpace(entry.CreditAccountNumber))
+            return entry.CreditAccountNumber.Trim();
+
+        return (entry.ClientId ?? string.Empty).Trim();
+    }
+
+    private static bool SourceUsesCreditTender(InvoiceHistoryEntry entry)
+        => IsCreditTenderDescription(entry.TenderDescription)
+           || IsCreditTenderDescription(entry.SecondTenderDescription);
+
+    private static bool IsCreditTenderDescription(string? description)
+    {
+        var text = (description ?? string.Empty).Trim();
+        return text.Contains("credito", StringComparison.OrdinalIgnoreCase)
+               || text.Contains("crédito", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsDefaultCashClient(string? clientId, string? clientName)
+    {
+        var id = (clientId ?? string.Empty).Trim();
+        var defaultId = (_defaultClientId ?? string.Empty).Trim();
+        var name = NormalizeSearchTerm(clientName);
+        var defaultName = NormalizeSearchTerm(_defaultClientName);
+
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            if (!string.IsNullOrWhiteSpace(defaultId) && string.Equals(id, defaultId, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var idDigits = NormalizeDigits(id).TrimStart('0');
+            var defaultDigits = NormalizeDigits(defaultId).TrimStart('0');
+            if (!string.IsNullOrWhiteSpace(idDigits) &&
+                !string.IsNullOrWhiteSpace(defaultDigits) &&
+                string.Equals(idDigits, defaultDigits, StringComparison.Ordinal))
+                return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            if (!string.IsNullOrWhiteSpace(defaultName) && name.Contains(defaultName, StringComparison.Ordinal))
+                return true;
+
+            if (name.Contains("cliente contado", StringComparison.Ordinal) ||
+                name.Equals("contado", StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     private void ToggleLine(CreditNoteLineItem? item)
@@ -1050,12 +1228,14 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _selectedTender = null;
         try
         {
-            var tenders = await _storeConfigService.GetTendersAsync();
+            var tendersTask = _storeConfigService.GetTendersAsync();
+            var settingsTask = _parametrosService.GetTenderSettingsAsync();
+            var tenders = await tendersTask;
 
             // Filtrar tenders según NCTenderCods
             try
             {
-                var settings = await _parametrosService.GetTenderSettingsAsync();
+                var settings = await settingsTask;
                 if (settings is not null && !string.IsNullOrWhiteSpace(settings.NCTenderCods))
                 {
                     var allowed = new HashSet<int>();
@@ -1116,7 +1296,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (tender.IsCredit && (_creditInfo is null || !_creditInfo.HasCredit))
         {
             _ = _dialogService.AlertAsync(
-                "Sin Crédito",
+                "Sin crédito",
                 "Este cliente no tiene crédito asignado. Solo se permiten otros modos de devolución.",
                 "OK");
             return;
@@ -1171,8 +1351,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             return;
         }
 
+        var selectedTender = _selectedTender;
+        var selectedReason = _selectedReason;
+        if (selectedTender is null || selectedReason is null)
+            return;
+
         var returnTotal = selectedLines.Sum(l => l.ReturnTotal);
-        var modeLabel = _selectedTender?.Description ?? "Sin medio de pago";
+        var modeLabel = selectedTender.Description;
 
         // Build credit balance preview when the selected tender is credit-type
         var creditPreview = string.Empty;
@@ -1231,19 +1416,21 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 ? $"NC manual ref. Clave50: {_standaloneClave50}"
                 : $"NC ref. #{ReferenceNumber}");
             if (!_isCreditMode)
-                commentParts.Add($"Devolución: {_selectedTender?.Description ?? "Efectivo"}");
+                commentParts.Add($"Devolución: {selectedTender.Description}");
 
             // Tender from selected tender model
-            var tenderDescription = _selectedTender?.Description ?? "Efectivo";
-            var medioPagoCodigo = _selectedTender?.ResolveFiscalMedioPagoCodigo();
+            var tenderDescription = selectedTender.Description;
+            var medioPagoCodigo = selectedTender.ResolveFiscalMedioPagoCodigo();
             if (string.IsNullOrWhiteSpace(medioPagoCodigo))
                 medioPagoCodigo = _isCreditMode ? "99" : "01";
-            var tenderId = _selectedTender?.ID ?? 1;
+            var tenderId = selectedTender.ID;
 
             var clientId = EffectiveClientId;
             var clientName = EffectiveClientName;
-            var creditAccountNumber = _isCreditMode && _sourceEntry is not null
-                ? _sourceEntry.CreditAccountNumber ?? string.Empty
+            var creditAccountNumber = _isCreditMode
+                ? HasOverrideClient
+                    ? _overrideClientId
+                    : _creditInfo?.AccountNumber ?? (_sourceEntry is not null ? ResolveSourceCreditLookupId(_sourceEntry) : string.Empty)
                 : string.Empty;
 
             var request = new NovaRetailCreateSaleRequest
@@ -1272,10 +1459,10 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 NC_TIPO_DOC = ncTipoDoc,
                 NC_REFERENCIA = _isStandaloneMode ? _standaloneClave50 : (!string.IsNullOrWhiteSpace(_sourceEntry!.Clave50) ? _sourceEntry.Clave50 : _sourceEntry.Consecutivo),
                 NC_REFERENCIA_FECHA = _isStandaloneMode ? (DateTime?)null : _sourceEntry!.Date,
-                NC_CODIGO = _selectedReason.Code,
-                NC_RAZON = _selectedReason.Description,
+                NC_CODIGO = selectedReason.Code,
+                NC_RAZON = selectedReason.Description,
                 TR_REP = _isStandaloneMode ? string.Empty : _sourceEntry!.TransactionNumber.ToString(CultureInfo.InvariantCulture),
-                Items = BuildCreditNoteItems(selectedLines, _selectedReason.ID, _sourcePricesIncludeTax),
+                Items = BuildCreditNoteItems(selectedLines, selectedReason.ID, _sourcePricesIncludeTax),
                 Tenders = new List<NovaRetailSaleTenderRequest>
                 {
                     new()
@@ -1300,7 +1487,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             }
 
             _resultTransactionNumber = result.TransactionNumber;
-            ResultMessage = $"Nota de crédito #{result.TransactionNumber} creada exitosamente.";
+            ResultMessage = $"Nota de crédito #{result.TransactionNumber} creada correctamente.";
             StatusMessage = string.Empty;
             IsResultVisible = true;
             OnPropertyChanged(nameof(ResultTransactionText));
@@ -1326,8 +1513,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     SubtotalColones = returnTotal,
                     TotalColones = returnTotal,
                     TenderDescription = _selectedTender?.Description ?? (_isCreditMode ? "Nota de Crédito" : "Efectivo"),
-                    Lines = selectedLines.Select(l => new InvoiceHistoryLine
+                    Lines = selectedLines.Select((l, index) => new InvoiceHistoryLine
                     {
+                        LineNumber = l.LineNumber > 0 ? l.LineNumber : index + 1,
                         ItemID = l.ItemID,
                         TaxID = l.TaxID,
                         DisplayName = l.DisplayName,
@@ -1376,6 +1564,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         foreach (var line in selectedLines)
         {
+            if (line.ItemID > 0 && (line.TaxID > 0 || line.TaxPercentage <= 0))
+                continue;
+
             var match = await FindCatalogMatchAsync(line);
             if (match is null)
             {

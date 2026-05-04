@@ -345,6 +345,9 @@ namespace NovaAPI.Models
 
     public class NovaRetailInvoiceHistoryLineDto
     {
+        [JsonProperty("lineNumber")]
+        public int LineNumber { get; set; }
+
         [JsonProperty("itemID")]
         public int ItemID { get; set; }
 

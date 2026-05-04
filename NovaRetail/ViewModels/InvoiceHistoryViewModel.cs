@@ -27,6 +27,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     private string _lastRefreshText = string.Empty;
     private CancellationTokenSource? _searchCts;
     private string _lastRemoteSearch = string.Empty;
+    private bool _hasLoaded;
+    private DateTime _lastFullLoadUtc;
+    private static readonly TimeSpan FullLoadCacheDuration = TimeSpan.FromMinutes(2);
 
     public ObservableCollection<InvoiceHistoryEntry> Entries { get; } = new();
     public ReceiptViewModel ReprintVm { get; } = new();
@@ -136,7 +139,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         _dialogService = dialogService;
         _saleService = saleService;
 
-        LoadCommand = new Command(async () => await LoadAsync());
+        LoadCommand = new Command(async () => await LoadAsync(forceRefresh: true));
         DeleteCommand = new Command<InvoiceHistoryEntry>(async e => await DeleteAsync(e));
         ClearAllCommand = new Command(async () => await ClearAllAsync());
         SelectEntryCommand = new Command<InvoiceHistoryEntry>(async e => await SelectEntryAsync(e));
@@ -149,7 +152,18 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         CreditNoteAppliedChanged.Notified += OnCreditNoteApplied;
     }
 
-    public async Task LoadAsync()
+    public Task LoadIfNeededAsync()
+    {
+        if (_hasLoaded && DateTime.UtcNow - _lastFullLoadUtc < FullLoadCacheDuration)
+        {
+            ApplyFilter();
+            return Task.CompletedTask;
+        }
+
+        return LoadAsync(forceRefresh: true);
+    }
+
+    public async Task LoadAsync(bool forceRefresh = true)
     {
         if (IsLoading)
             return;
@@ -167,8 +181,10 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 return entry;
             }));
 
-            await LoadRemoteEntriesAsync(NormalizeSearch(_searchText), CancellationToken.None, forceRefresh: true);
+            await LoadRemoteEntriesAsync(NormalizeSearch(_searchText), CancellationToken.None, forceRefresh: forceRefresh);
             ApplyFilter();
+            _hasLoaded = true;
+            _lastFullLoadUtc = DateTime.UtcNow;
         }
         finally
         {
@@ -408,6 +424,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(search))
             return true;
 
+        if (search.All(char.IsDigit))
+            return search.Length >= 5;
+
         return search.Length >= 3;
     }
 
@@ -443,8 +462,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             TenderTotalColones = entry.TenderTotalColones,
             SecondTenderDescription = entry.SecondTenderDescription,
             SecondTenderAmountColones = entry.SecondTenderAmountColones,
-            Lines = includeLines ? entry.Lines.Select(line => new InvoiceHistoryLine
+            Lines = includeLines ? entry.Lines.Select((line, index) => new InvoiceHistoryLine
             {
+                LineNumber = line.LineNumber > 0 ? line.LineNumber : index + 1,
                 ItemID = line.ItemID,
                 TaxID = line.TaxID,
                 DisplayName = line.DisplayName,
@@ -458,7 +478,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 HasExoneration = line.HasExoneration,
                 ExonerationPercent = line.ExonerationPercent,
                 HasOverridePrice = line.HasOverridePrice
-            }).ToList() : new List<InvoiceHistoryLine>()
+            }).OrderBy(line => line.LineNumber).ToList() : new List<InvoiceHistoryLine>()
         };
     }
 
@@ -488,8 +508,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             TenderTotalColones = entry.TenderTotalColones,
             SecondTenderDescription = entry.SecondTenderDescription ?? string.Empty,
             SecondTenderAmountColones = entry.SecondTenderAmountColones,
-            Lines = entry.Lines.Select(line => new InvoiceHistoryLine
+            Lines = entry.Lines.Select((line, index) => new InvoiceHistoryLine
             {
+                LineNumber = line.LineNumber > 0 ? line.LineNumber : index + 1,
                 ItemID = line.ItemID,
                 TaxID = line.TaxID,
                 DisplayName = line.DisplayName ?? string.Empty,
@@ -503,7 +524,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 HasExoneration = line.HasExoneration,
                 ExonerationPercent = line.ExonerationPercent,
                 HasOverridePrice = line.HasOverridePrice
-            }).ToList()
+            }).OrderBy(line => line.LineNumber).ToList()
         };
     }
 
@@ -555,7 +576,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         var confirmed = await _dialogService.ConfirmAsync(
             "Eliminar registro",
-            $"Â¿Desea eliminar la factura #{entry.TransactionNumber}?",
+            $"¿Desea eliminar la factura #{entry.TransactionNumber}?",
             "Eliminar", "Cancelar");
 
         if (!confirmed) return;
@@ -579,7 +600,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         var confirmed = await _dialogService.ConfirmAsync(
             "Limpiar historial",
-            "Â¿Desea eliminar todo el historial local de facturas?",
+            "¿Desea eliminar todo el historial local de facturas?",
             "Limpiar", "Cancelar");
 
         if (!confirmed) return;
@@ -594,7 +615,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         _remoteSearchCache.Clear();
         _lastRemoteSearch = string.Empty;
         Entries.Clear();
-        await LoadAsync();
+        await LoadAsync(forceRefresh: true);
     }
 
     private async void OnCreditNoteApplied(CreditNoteAppliedMessage message)

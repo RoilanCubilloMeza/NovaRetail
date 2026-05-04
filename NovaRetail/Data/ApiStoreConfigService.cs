@@ -11,6 +11,11 @@ public sealed class ApiStoreConfigService : IStoreConfigService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ApiStoreConfigService> _logger;
     private readonly string[] _baseUrls;
+    private StoreConfigModel? _cachedConfig;
+    private DateTime _configCacheExpiry;
+    private List<TenderModel>? _cachedTenders;
+    private DateTime _tendersCacheExpiry;
+    private static readonly TimeSpan StaticDataCacheDuration = TimeSpan.FromMinutes(10);
 
     public ApiStoreConfigService(IHttpClientFactory httpClientFactory, ILogger<ApiStoreConfigService> logger, ApiSettings settings)
     {
@@ -21,6 +26,9 @@ public sealed class ApiStoreConfigService : IStoreConfigService
 
     public async Task<StoreConfigModel> GetConfigAsync()
     {
+        if (_cachedConfig is not null && DateTime.UtcNow < _configCacheExpiry)
+            return _cachedConfig;
+
         foreach (var baseUrl in _baseUrls)
         {
             try
@@ -28,7 +36,11 @@ public sealed class ApiStoreConfigService : IStoreConfigService
                 var http = _httpClientFactory.CreateClient(ClientName);
                 var result = await http.GetFromJsonAsync<StoreConfigModel>($"{baseUrl}/api/StoreConfig");
                 if (result is not null)
+                {
+                    _cachedConfig = result;
+                    _configCacheExpiry = DateTime.UtcNow.Add(StaticDataCacheDuration);
                     return result;
+                }
             }
             catch (Exception ex)
             {
@@ -41,6 +53,9 @@ public sealed class ApiStoreConfigService : IStoreConfigService
 
     public async Task<List<TenderModel>> GetTendersAsync()
     {
+        if (_cachedTenders is not null && DateTime.UtcNow < _tendersCacheExpiry)
+            return _cachedTenders.Select(CloneTender).ToList();
+
         foreach (var baseUrl in _baseUrls)
         {
             try
@@ -48,7 +63,11 @@ public sealed class ApiStoreConfigService : IStoreConfigService
                 var http = _httpClientFactory.CreateClient(ClientName);
                 var result = await http.GetFromJsonAsync<List<TenderModel>>($"{baseUrl}/api/StoreConfig/Tenders");
                 if (result is not null && result.Count > 0)
-                    return result;
+                {
+                    _cachedTenders = result.Select(CloneTender).ToList();
+                    _tendersCacheExpiry = DateTime.UtcNow.Add(StaticDataCacheDuration);
+                    return result.Select(CloneTender).ToList();
+                }
             }
             catch (Exception ex)
             {
@@ -58,6 +77,17 @@ public sealed class ApiStoreConfigService : IStoreConfigService
 
         return [];
     }
+
+    private static TenderModel CloneTender(TenderModel tender)
+        => new()
+        {
+            ID = tender.ID,
+            Description = tender.Description,
+            Code = tender.Code,
+            CurrencyID = tender.CurrencyID,
+            DisplayOrder = tender.DisplayOrder,
+            MedioPagoCodigo = tender.MedioPagoCodigo
+        };
 
     public async Task<List<CategoryModel>> GetCategoriesAsync(string? userName = null)
     {

@@ -16,6 +16,8 @@ public sealed class ApiProductService : IProductService
 
     private int _cachedProductCount;
     private DateTime _countCacheExpiry;
+    private readonly Dictionary<int, (List<ReasonCodeModel> Codes, DateTime Expiry)> _reasonCodesCache = new();
+    private static readonly TimeSpan ReasonCodesCacheDuration = TimeSpan.FromMinutes(10);
 
     public ApiProductService(IHttpClientFactory httpClientFactory, ILogger<ApiProductService> logger, ApiSettings settings)
     {
@@ -166,6 +168,9 @@ public sealed class ApiProductService : IProductService
 
     public async Task<List<ReasonCodeModel>> GetReasonCodesAsync(int type)
     {
+        if (_reasonCodesCache.TryGetValue(type, out var cached) && DateTime.UtcNow < cached.Expiry)
+            return cached.Codes.Select(CloneReasonCode).ToList();
+
         foreach (var baseUrl in _baseUrls)
         {
             try
@@ -176,7 +181,10 @@ public sealed class ApiProductService : IProductService
                 var codes = JsonConvert.DeserializeObject<List<ReasonCodeModel>>(json);
 
                 if (codes is not null && codes.Count > 0)
-                    return codes;
+                {
+                    _reasonCodesCache[type] = (codes.Select(CloneReasonCode).ToList(), DateTime.UtcNow.Add(ReasonCodesCacheDuration));
+                    return codes.Select(CloneReasonCode).ToList();
+                }
             }
             catch (Exception ex)
             {
@@ -186,6 +194,15 @@ public sealed class ApiProductService : IProductService
 
         return [];
     }
+
+    private static ReasonCodeModel CloneReasonCode(ReasonCodeModel code)
+        => new()
+        {
+            ID = code.ID,
+            Type = code.Type,
+            Code = code.Code,
+            Description = code.Description
+        };
 
     public async Task<List<ReasonCodeModel>> GetExonerationDocumentTypesAsync()
     {

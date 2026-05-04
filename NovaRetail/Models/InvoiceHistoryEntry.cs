@@ -154,6 +154,7 @@ public sealed class InvoiceHistoryEntry
 
 public sealed class InvoiceHistoryLine
 {
+    public int LineNumber { get; set; }
     public int ItemID { get; set; }
     public int TaxID { get; set; }
     public string DisplayName { get; set; } = string.Empty;

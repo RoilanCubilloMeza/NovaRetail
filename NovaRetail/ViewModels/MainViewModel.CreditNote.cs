@@ -22,25 +22,28 @@ namespace NovaRetail.ViewModels
             clave50 = clave50.Trim();
 
             InvoiceHistoryEntry? foundEntry = null;
-            try
+            if (ShouldSearchInvoiceReferenceRemotely(clave50))
             {
-                var result = await _saleService.SearchInvoiceHistoryAsync(clave50, CancellationToken.None);
-                if (result.Ok && result.Entries.Count > 0)
+                try
                 {
-                    var match = result.Entries.FirstOrDefault(e =>
-                        string.Equals(e.Clave50?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(e.Consecutivo?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(e.TransactionNumber.ToString(CultureInfo.InvariantCulture), clave50, StringComparison.OrdinalIgnoreCase));
-
-                    if (match is not null)
+                    var result = await _saleService.SearchInvoiceHistoryAsync(clave50, CancellationToken.None);
+                    if (result.Ok && result.Entries.Count > 0)
                     {
-                        foundEntry = MapRemoteEntry(match);
-                        foundEntry = await EnsureStandaloneCreditNoteDetailAsync(foundEntry);
+                        var match = result.Entries.FirstOrDefault(e =>
+                            string.Equals(e.Clave50?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(e.Consecutivo?.Trim(), clave50, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(e.TransactionNumber.ToString(CultureInfo.InvariantCulture), clave50, StringComparison.OrdinalIgnoreCase));
+
+                        if (match is not null)
+                        {
+                            foundEntry = MapRemoteEntry(match);
+                            foundEntry = await EnsureStandaloneCreditNoteDetailAsync(foundEntry);
+                        }
                     }
                 }
-            }
-            catch
-            {
+                catch
+                {
+                }
             }
 
             var page = Application.Current?.Handler?.MauiContext?.Services.GetService<CreditNotePage>();
@@ -53,6 +56,18 @@ namespace NovaRetail.ViewModels
                 await page.LoadStandaloneAsync(clave50);
 
             await Shell.Current.Navigation.PushAsync(page);
+        }
+
+        private static bool ShouldSearchInvoiceReferenceRemotely(string reference)
+        {
+            var value = (reference ?? string.Empty).Trim();
+            if (value.Length == 0)
+                return false;
+
+            if (value.All(char.IsDigit))
+                return value.Length >= 5;
+
+            return value.Length >= 6;
         }
 
         private async Task<InvoiceHistoryEntry> EnsureStandaloneCreditNoteDetailAsync(InvoiceHistoryEntry entry)
@@ -97,8 +112,9 @@ namespace NovaRetail.ViewModels
                 TenderTotalColones = entry.TenderTotalColones,
                 SecondTenderDescription = entry.SecondTenderDescription ?? string.Empty,
                 SecondTenderAmountColones = entry.SecondTenderAmountColones,
-                Lines = entry.Lines.Select(line => new InvoiceHistoryLine
+                Lines = entry.Lines.Select((line, index) => new InvoiceHistoryLine
                 {
+                    LineNumber = line.LineNumber > 0 ? line.LineNumber : index + 1,
                     ItemID = line.ItemID,
                     TaxID = line.TaxID,
                     DisplayName = line.DisplayName ?? string.Empty,
@@ -112,7 +128,7 @@ namespace NovaRetail.ViewModels
                     HasExoneration = line.HasExoneration,
                     ExonerationPercent = line.ExonerationPercent,
                     HasOverridePrice = line.HasOverridePrice
-                }).ToList()
+                }).OrderBy(line => line.LineNumber).ToList()
             };
         }
     }

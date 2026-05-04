@@ -420,7 +420,7 @@ namespace NovaRetail.ViewModels
                     TenderTotalColones        = tenderTotalColones,
                     SecondTenderDescription   = secondDescription,
                     SecondTenderAmountColones = secondAmount,
-                    Lines = cartSnapshot.Select(item =>
+                    Lines = cartSnapshot.Select((item, index) =>
                     {
                         var grossUnit = item.EffectivePriceColones;
                         var discountFactor = 1m - item.DiscountPercent / 100m;
@@ -428,6 +428,7 @@ namespace NovaRetail.ViewModels
                         var netLine = Math.Round(grossUnit * item.Quantity * discountFactor, 2);
                         return new InvoiceHistoryLine
                         {
+                            LineNumber         = index + 1,
                             DisplayName        = item.DisplayName,
                             Code               = item.Code ?? string.Empty,
                             Quantity           = item.Quantity,
