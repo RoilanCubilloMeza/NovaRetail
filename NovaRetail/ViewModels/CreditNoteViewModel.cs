@@ -1056,25 +1056,52 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
 
         IsCreditMode = _creditInfo is not null && _creditInfo.HasCredit;
+        if (_creditInfo is not null && _creditInfo.HasCredit)
+            SelectCreditTenderIfAvailable();
+
         NotifyCreditProperties();
+    }
+
+    private void SelectCreditTenderIfAvailable()
+    {
+        if (_selectedTender?.IsCredit == true)
+            return;
+
+        var creditTender = AvailableTenders.FirstOrDefault(t => t.IsCredit);
+        if (creditTender is not null)
+            SelectTender(creditTender);
     }
 
     private async Task<CustomerCreditInfo?> ResolveCreditForSelectedCustomerAsync(CustomerLookupModel customer)
     {
+        var creditByName = await ResolveCreditBySelectedCustomerNameAsync(customer);
+        if (creditByName is not null)
+            return creditByName;
+
         var candidates = BuildSelectedCustomerCreditCandidates(customer);
+        var directMatches = new List<CustomerCreditInfo>();
         foreach (var candidate in candidates)
         {
             try
             {
                 var credit = await _clienteService.ObtenerCreditoAsync(candidate);
                 if (credit is not null && credit.HasCredit)
-                    return credit;
+                    directMatches.Add(credit);
             }
             catch
             {
             }
         }
 
+        var directMatch = FindBestCreditCustomerMatch(customer, directMatches);
+        if (directMatch is not null)
+            return directMatch;
+
+        return null;
+    }
+
+    private async Task<CustomerCreditInfo?> ResolveCreditBySelectedCustomerNameAsync(CustomerLookupModel customer)
+    {
         if (IsDefaultCashClient(customer.AccountNumber, string.Empty) &&
             !IsDefaultCashClient(customer.AccountNumber, customer.FullName))
         {
@@ -1129,17 +1156,32 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             .OrderByDescending(c =>
             {
                 var creditName = NormalizeSearchTerm(c.FullName);
+                var score = 0;
                 if (!string.IsNullOrWhiteSpace(customerName) && creditName == customerName)
-                    return 1000;
+                    score += 1000;
 
-                if (!string.IsNullOrWhiteSpace(customerName) && creditName.Contains(customerName, StringComparison.Ordinal))
-                    return 900;
+                if (!string.IsNullOrWhiteSpace(customerName) &&
+                    (creditName.Contains(customerName, StringComparison.Ordinal) ||
+                     customerName.Contains(creditName, StringComparison.Ordinal)))
+                    score += 900;
 
                 if (customerTokens.Count > 0 && customerTokens.All(token => creditName.Contains(token, StringComparison.Ordinal)))
-                    return 800;
+                    score += 800;
 
-                return 0;
+                var creditTokens = SplitSearchTokens(creditName);
+                var sharedTokens = customerTokens.Count == 0
+                    ? 0
+                    : customerTokens.Count(token => creditTokens.Contains(token));
+                score += sharedTokens * 25;
+
+                var customerHasAlias = customerName.Contains("(", StringComparison.Ordinal);
+                var creditHasAlias = creditName.Contains("(", StringComparison.Ordinal);
+                if (!customerHasAlias && creditHasAlias)
+                    score -= 250;
+
+                return score;
             })
+            .ThenByDescending(c => c.CreditLimit)
             .ThenBy(c => c.FullName, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault();
     }
