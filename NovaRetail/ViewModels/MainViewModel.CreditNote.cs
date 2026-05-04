@@ -65,9 +65,9 @@ namespace NovaRetail.ViewModels
                 return false;
 
             if (value.All(char.IsDigit))
-                return value.Length >= 5;
+                return value.Length is >= 5 and <= 6;
 
-            return value.Length >= 6;
+            return value.Length is 20 or 50;
         }
 
         private async Task<InvoiceHistoryEntry> EnsureStandaloneCreditNoteDetailAsync(InvoiceHistoryEntry entry)

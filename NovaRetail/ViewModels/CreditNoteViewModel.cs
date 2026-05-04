@@ -105,7 +105,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private string _overrideClientId = string.Empty;
     private string _overrideClientName = string.Empty;
     private bool _sourcePricesIncludeTax;
-    private string _defaultClientId = "00001";
+    private string _defaultClientId = "0";
     private string _defaultClientName = "CLIENTE CONTADO";
 
     public ObservableCollection<CreditNoteLineItem> Lines { get; } = new();
@@ -454,7 +454,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 _storeId = config.StoreID;
                 _registerId = config.RegisterID > 0 ? config.RegisterID : 1;
                 _storeName = config.StoreName ?? string.Empty;
-                _defaultClientId = string.IsNullOrWhiteSpace(config.DefaultClientId) ? _defaultClientId : config.DefaultClientId.Trim();
+                _defaultClientId = ResolveCreditNoteCashClientId(config.DefaultClientId);
                 _defaultClientName = string.IsNullOrWhiteSpace(config.DefaultClientName) ? _defaultClientName : config.DefaultClientName.Trim();
             }
 
@@ -579,7 +579,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 _storeId = config.StoreID;
                 _registerId = config.RegisterID > 0 ? config.RegisterID : 1;
                 _storeName = config.StoreName ?? string.Empty;
-                _defaultClientId = string.IsNullOrWhiteSpace(config.DefaultClientId) ? _defaultClientId : config.DefaultClientId.Trim();
+                _defaultClientId = ResolveCreditNoteCashClientId(config.DefaultClientId);
                 _defaultClientName = string.IsNullOrWhiteSpace(config.DefaultClientName) ? _defaultClientName : config.DefaultClientName.Trim();
             }
 
@@ -742,6 +742,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private async Task<IReadOnlyList<CustomerLookupModel>> SearchCustomersExpandedAsync(string term, CancellationToken cancellationToken)
     {
+        if (IsDefaultCashSearchTerm(term))
+            return new[] { CreateDefaultCashCustomerLookup() };
+
         var queries = BuildCustomerSearchQueries(term);
         var combined = new List<CustomerLookupModel>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -764,6 +767,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         var ordered = combined
             .Where(customer => MatchesCustomerQuery(customer, term))
+            .Where(customer => !ShouldExcludeCustomerSearchResult(customer, term))
             .OrderByDescending(customer => ScoreCustomerMatch(customer, term))
             .ThenBy(customer => customer.FullName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(customer => customer.SearchCodeText, StringComparer.OrdinalIgnoreCase)
@@ -771,6 +775,39 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             .ToList();
 
         return ordered;
+    }
+
+    private CustomerLookupModel CreateDefaultCashCustomerLookup()
+        => new()
+        {
+            AccountNumber = string.IsNullOrWhiteSpace(_defaultClientId) ? "0" : _defaultClientId.Trim(),
+            FirstName = string.IsNullOrWhiteSpace(_defaultClientName) ? "CLIENTE CONTADO" : _defaultClientName.Trim()
+        };
+
+    private bool ShouldExcludeCustomerSearchResult(CustomerLookupModel customer, string term)
+    {
+        if (!IsDefaultCashSearchTerm(term))
+            return false;
+
+        return IsDefaultCashAccountNumber(customer.AccountNumber)
+            && !IsDefaultCashName(customer.FullName);
+    }
+
+    private bool IsDefaultCashSearchTerm(string? term)
+    {
+        var normalized = NormalizeSearchTerm(term);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (IsDefaultCashName(normalized))
+            return true;
+
+        var digits = NormalizeDigits(normalized);
+        var defaultDigits = NormalizeDigits(_defaultClientId);
+        if (string.IsNullOrWhiteSpace(digits) || string.IsNullOrWhiteSpace(defaultDigits))
+            return false;
+
+        return IsSameCashCodeDigits(digits, defaultDigits);
     }
 
     private static void MergeCustomerBatch(List<CustomerLookupModel> combined, HashSet<string> seen, IReadOnlyList<CustomerLookupModel> batch)
@@ -1074,6 +1111,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private async Task<CustomerCreditInfo?> ResolveCreditForSelectedCustomerAsync(CustomerLookupModel customer)
     {
+        if (IsDefaultCashName(customer.FullName) && IsDefaultCashAccountNumber(customer.AccountNumber))
+            return null;
+
         var creditByName = await ResolveCreditBySelectedCustomerNameAsync(customer);
         if (creditByName is not null)
             return creditByName;
@@ -1102,8 +1142,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private async Task<CustomerCreditInfo?> ResolveCreditBySelectedCustomerNameAsync(CustomerLookupModel customer)
     {
-        if (IsDefaultCashClient(customer.AccountNumber, string.Empty) &&
-            !IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+        if (IsDefaultCashAccountNumber(customer.AccountNumber) &&
+            !IsDefaultCashName(customer.FullName))
         {
             try
             {
@@ -1123,12 +1163,11 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private IReadOnlyList<string> BuildSelectedCustomerCreditCandidates(CustomerLookupModel customer)
     {
         var candidates = new List<string>();
-        AddCreditCandidate(candidates, customer.TaxNumber);
 
-        if (!IsDefaultCashClient(customer.AccountNumber, string.Empty) ||
-            IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+        if (!IsDefaultCashAccountNumber(customer.AccountNumber))
             AddCreditCandidate(candidates, customer.AccountNumber);
 
+        AddCreditCandidate(candidates, customer.TaxNumber);
         AddCreditCandidate(candidates, ResolveCustomerClientId(customer));
         return candidates;
     }
@@ -1191,7 +1230,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (!string.IsNullOrWhiteSpace(customer.TaxNumber))
             return customer.TaxNumber.Trim();
 
-        if (!IsDefaultCashClient(customer.AccountNumber, customer.FullName))
+        if (!IsDefaultCashAccountNumber(customer.AccountNumber))
             return (customer.AccountNumber ?? string.Empty).Trim();
 
         return (customer.AccountNumber ?? string.Empty).Trim();
@@ -1199,13 +1238,17 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private string ResolveSourceCreditLookupId(InvoiceHistoryEntry entry)
     {
-        if (IsDefaultCashClient(entry.ClientId, entry.ClientName))
+        if (IsDefaultCashName(entry.ClientName))
             return string.Empty;
 
-        if (SourceUsesCreditTender(entry) && !string.IsNullOrWhiteSpace(entry.CreditAccountNumber))
+        if (SourceUsesCreditTender(entry) &&
+            !string.IsNullOrWhiteSpace(entry.CreditAccountNumber) &&
+            !IsDefaultCashAccountNumber(entry.CreditAccountNumber))
             return entry.CreditAccountNumber.Trim();
 
-        return (entry.ClientId ?? string.Empty).Trim();
+        return IsDefaultCashAccountNumber(entry.ClientId)
+            ? string.Empty
+            : (entry.ClientId ?? string.Empty).Trim();
     }
 
     private static bool SourceUsesCreditTender(InvoiceHistoryEntry entry)
@@ -1221,23 +1264,54 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
     private bool IsDefaultCashClient(string? clientId, string? clientName)
     {
+        return IsDefaultCashAccountNumber(clientId) || IsDefaultCashName(clientName);
+    }
+
+    private static string ResolveCreditNoteCashClientId(string? configuredClientId)
+    {
+        var configured = (configuredClientId ?? string.Empty).Trim();
+        return string.Equals(configured, "00001", StringComparison.OrdinalIgnoreCase)
+            ? "0"
+            : string.IsNullOrWhiteSpace(configured) ? "0" : configured;
+    }
+
+    private bool IsDefaultCashAccountNumber(string? clientId)
+    {
         var id = (clientId ?? string.Empty).Trim();
         var defaultId = (_defaultClientId ?? string.Empty).Trim();
-        var name = NormalizeSearchTerm(clientName);
-        var defaultName = NormalizeSearchTerm(_defaultClientName);
 
         if (!string.IsNullOrWhiteSpace(id))
         {
             if (!string.IsNullOrWhiteSpace(defaultId) && string.Equals(id, defaultId, StringComparison.OrdinalIgnoreCase))
                 return true;
 
-            var idDigits = NormalizeDigits(id).TrimStart('0');
-            var defaultDigits = NormalizeDigits(defaultId).TrimStart('0');
-            if (!string.IsNullOrWhiteSpace(idDigits) &&
-                !string.IsNullOrWhiteSpace(defaultDigits) &&
-                string.Equals(idDigits, defaultDigits, StringComparison.Ordinal))
+            if (IsSameCashCodeDigits(NormalizeDigits(id), NormalizeDigits(defaultId)))
                 return true;
         }
+
+        return false;
+    }
+
+    private static bool IsSameCashCodeDigits(string digits, string defaultDigits)
+    {
+        if (string.IsNullOrWhiteSpace(digits) || string.IsNullOrWhiteSpace(defaultDigits))
+            return false;
+
+        var defaultIsOnlyZeros = defaultDigits.All(c => c == '0');
+        if (defaultIsOnlyZeros)
+            return digits.All(c => c == '0');
+
+        var normalizedDigits = digits.TrimStart('0');
+        var normalizedDefault = defaultDigits.TrimStart('0');
+        return !string.IsNullOrWhiteSpace(normalizedDigits) &&
+               !string.IsNullOrWhiteSpace(normalizedDefault) &&
+               string.Equals(normalizedDigits, normalizedDefault, StringComparison.Ordinal);
+    }
+
+    private bool IsDefaultCashName(string? clientName)
+    {
+        var name = NormalizeSearchTerm(clientName);
+        var defaultName = NormalizeSearchTerm(_defaultClientName);
 
         if (!string.IsNullOrWhiteSpace(name))
         {

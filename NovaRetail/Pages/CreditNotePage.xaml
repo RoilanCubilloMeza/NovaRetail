@@ -447,28 +447,6 @@
                         </HorizontalStackLayout>
                     </Border>
 
-                    <!-- Guardando -->
-                    <Border BackgroundColor="#FFF7ED"
-                            Stroke="#FDBA74"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14"
-                            Padding="16,12"
-                            IsVisible="{Binding IsSubmitting}">
-                        <HorizontalStackLayout Spacing="10"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center">
-                            <ActivityIndicator IsRunning="{Binding IsSubmitting}"
-                                               Color="#DC2626"
-                                               WidthRequest="22"
-                                               HeightRequest="22"/>
-                            <Label Text="{Binding StatusMessage}"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="#DC2626"
-                                   VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
-                    </Border>
-
                     <!-- Status message -->
                     <Label Text="{Binding StatusMessage}"
                            IsVisible="{Binding HasStatusAlert}"
@@ -502,6 +480,33 @@
         </Grid>
 
         <!-- ═══ RESULT ═══ -->
+        <!-- Guardando -->
+        <Grid IsVisible="{Binding IsSubmitting}"
+              BackgroundColor="#CCFFFFFF">
+            <Border BackgroundColor="White"
+                    Stroke="#FCA5A5"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="28,22"
+                    WidthRequest="320"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                <VerticalStackLayout Spacing="12"
+                                     HorizontalOptions="Center">
+                    <ActivityIndicator IsRunning="{Binding IsSubmitting}"
+                                       Color="#991B1B"
+                                       WidthRequest="36"
+                                       HeightRequest="36"
+                                       HorizontalOptions="Center"/>
+                    <Label Text="{Binding StatusMessage}"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#991B1B"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
         <Grid IsVisible="{Binding IsResultVisible}"
               BackgroundColor="#F0FDF4"
               RowDefinitions="*">
