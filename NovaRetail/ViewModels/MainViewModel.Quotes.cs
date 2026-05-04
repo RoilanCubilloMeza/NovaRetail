@@ -712,6 +712,8 @@ namespace NovaRetail.ViewModels
                 || IsCheckoutVisible
                 || IsReceiptVisible
                 || IsManualExonerationVisible
+                || IsOrderActionMenuVisible
+                || IsAdminActionMenuVisible
                 || IsOrderSearchVisible
                 || IsQuoteReceiptVisible
                 || IsSalesRepPickerVisible
@@ -720,6 +722,99 @@ namespace NovaRetail.ViewModels
                 || IsCreditPaymentDetailVisible
                 || IsWorkOrderActionVisible
                 || IsWorkOrderPartialPickupVisible;
+
+        private void OpenOrderActionMenu(OrderActionMenuKind kind)
+        {
+            if (HasBlockingOverlayVisible())
+                return;
+
+            _orderActionMenuKind = kind;
+
+            switch (kind)
+            {
+                case OrderActionMenuKind.Hold:
+                    OrderActionMenuVm.Load(
+                        title: "Factura en Espera",
+                        subtitle: "Seleccione si desea crear una nueva o recuperar una existente.",
+                        primaryText: "Crear factura en espera",
+                        secondaryText: "Recuperar factura en espera",
+                        primaryIcon: "⏸",
+                        secondaryIcon: "🔄",
+                        accentColor: "#F59E0B",
+                        softColor: "#FFFBEB",
+                        strokeColor: "#FDE68A",
+                        labelColor: "#92400E");
+                    break;
+
+                case OrderActionMenuKind.WorkOrder:
+                    OrderActionMenuVm.Load(
+                        title: "Orden de Trabajo",
+                        subtitle: "Seleccione si desea crear una nueva o recuperar una existente.",
+                        primaryText: "Crear orden de trabajo",
+                        secondaryText: "Recuperar orden de trabajo",
+                        primaryIcon: "📦",
+                        secondaryIcon: "📥",
+                        accentColor: "#6366F1",
+                        softColor: "#EEF2FF",
+                        strokeColor: "#C7D2FE",
+                        labelColor: "#3730A3");
+                    break;
+
+                default:
+                    OrderActionMenuVm.Load(
+                        title: "Cotización",
+                        subtitle: "Seleccione si desea crear una nueva o recuperar una existente.",
+                        primaryText: "Crear cotización",
+                        secondaryText: "Recuperar cotización",
+                        primaryIcon: "📋",
+                        secondaryIcon: "📥",
+                        accentColor: "#3B82F6",
+                        softColor: "#EFF6FF",
+                        strokeColor: "#BFDBFE",
+                        labelColor: "#1D4ED8");
+                    break;
+            }
+
+            IsOrderActionMenuVisible = true;
+        }
+
+        private async Task OnOrderActionMenuPrimaryAsync()
+        {
+            var kind = _orderActionMenuKind;
+            IsOrderActionMenuVisible = false;
+
+            switch (kind)
+            {
+                case OrderActionMenuKind.Hold:
+                    await SaveHoldAsync();
+                    break;
+                case OrderActionMenuKind.WorkOrder:
+                    await SaveWorkOrderAsync();
+                    break;
+                default:
+                    await SaveQuoteAsync();
+                    break;
+            }
+        }
+
+        private async Task OnOrderActionMenuSecondaryAsync()
+        {
+            var kind = _orderActionMenuKind;
+            IsOrderActionMenuVisible = false;
+
+            switch (kind)
+            {
+                case OrderActionMenuKind.Hold:
+                    await OpenOrderSearchAsync(HoldRecallType, "Recuperar Factura en Espera");
+                    break;
+                case OrderActionMenuKind.WorkOrder:
+                    await OpenOrderSearchAsync(WorkOrderType, "Recuperar Orden de Trabajo");
+                    break;
+                default:
+                    await OpenOrderSearchAsync(QuoteRecallType, "Recuperar Cotización");
+                    break;
+            }
+        }
 
         private async Task OpenOrderSearchAsync(int orderType, string title)
         {

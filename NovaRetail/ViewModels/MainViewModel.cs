@@ -76,6 +76,8 @@ namespace NovaRetail.ViewModels
         private bool _requireSalesRep;
         private SalesRepModel? _activeSalesRep;
         private NovaRetailOrderDetail? _editingWorkOrderDetail;
+        private bool _isOrderActionMenuVisible;
+        private bool _isAdminActionMenuVisible;
         private bool _isWorkOrderActionVisible;
         private bool _isWorkOrderPartialPickupVisible;
         private List<CartItemModel>? _workOrderPartialCartBackup;
@@ -85,9 +87,11 @@ namespace NovaRetail.ViewModels
 
         private enum SalesRepPickerContext { Session, BulkCart, SingleItem, Checkout, BeforeCheckout }
         private enum WorkOrderCheckoutMode { None, Complete, Partial }
+        private enum OrderActionMenuKind { Quote, Hold, WorkOrder }
         private SalesRepPickerContext _salesRepPickerContext = SalesRepPickerContext.Session;
         private CartItemModel? _pendingRepItem;
         private WorkOrderCheckoutMode _workOrderCheckoutMode = WorkOrderCheckoutMode.None;
+        private OrderActionMenuKind _orderActionMenuKind = OrderActionMenuKind.Quote;
 
         public string AppVersionText { get; } = $"Version {AppInfo.Current.VersionString}";
 
@@ -225,6 +229,8 @@ namespace NovaRetail.ViewModels
         public ReceiptViewModel ReceiptVm { get; } = new();
         public ManualExonerationViewModel ManualExonerationVm { get; } = new();
         public OrderSearchViewModel OrderSearchVm { get; } = new();
+        public OrderActionMenuViewModel OrderActionMenuVm { get; } = new();
+        public OrderActionMenuViewModel AdminActionMenuVm { get; } = new();
         public WorkOrderActionViewModel WorkOrderActionVm { get; } = new();
         public WorkOrderPartialPickupViewModel WorkOrderPartialPickupVm { get; } = new();
 
@@ -241,6 +247,32 @@ namespace NovaRetail.ViewModels
                 if (_isWorkOrderActionVisible != value)
                 {
                     _isWorkOrderActionVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsOrderActionMenuVisible
+        {
+            get => _isOrderActionMenuVisible;
+            private set
+            {
+                if (_isOrderActionMenuVisible != value)
+                {
+                    _isOrderActionMenuVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsAdminActionMenuVisible
+        {
+            get => _isAdminActionMenuVisible;
+            private set
+            {
+                if (_isAdminActionMenuVisible != value)
+                {
+                    _isAdminActionMenuVisible = value;
                     OnPropertyChanged();
                 }
             }
@@ -470,6 +502,10 @@ namespace NovaRetail.ViewModels
         public ICommand ClearItemExonerationCommand { get; }
         public ICommand ApplyManualExonerationCommand { get; }
         public ICommand AddManualItemCommand { get; }
+        public ICommand OpenQuoteMenuCommand { get; }
+        public ICommand OpenHoldMenuCommand { get; }
+        public ICommand OpenWorkOrderMenuCommand { get; }
+        public ICommand OpenAdminMenuCommand { get; }
         public ICommand SaveQuoteCommand { get; }
         public ICommand SaveWorkOrderCommand { get; }
         public ICommand SaveHoldCommand { get; }
@@ -486,6 +522,7 @@ namespace NovaRetail.ViewModels
 
         public bool CanAccessParametros => _userSession.CurrentUser?.IsAdmin == true;
         public bool CanViewManagerDashboard => _userSession.CurrentUser?.IsAdmin == true;
+        public bool CanAccessAdminActions => CanAccessParametros || CanViewManagerDashboard;
 
         private decimal _subtotal;
         public decimal Subtotal
@@ -658,6 +695,12 @@ namespace NovaRetail.ViewModels
             ClearItemExonerationCommand = new Command<CartItemModel>(ClearItemExoneration);
             ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
             AddManualItemCommand = new Command(async () => await AddManualItemAsync());
+            OpenQuoteMenuCommand = new Command(() => OpenOrderActionMenu(OrderActionMenuKind.Quote));
+            OpenHoldMenuCommand = new Command(() => OpenOrderActionMenu(OrderActionMenuKind.Hold));
+            OpenWorkOrderMenuCommand = new Command(() => OpenOrderActionMenu(OrderActionMenuKind.WorkOrder));
+            OpenAdminMenuCommand = new Command(
+                OpenAdminActionMenu,
+                () => CanAccessAdminActions);
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentAsync());
             ShowManagerDashboardCommand = new Command(
@@ -714,6 +757,12 @@ namespace NovaRetail.ViewModels
             ManualExonerationVm.RequestApply += OnManualExonerationApply;
             ManualExonerationVm.RequestCancel += () => IsManualExonerationVisible = false;
             ReceiptVm.RequestClose += () => IsReceiptVisible = false;
+            OrderActionMenuVm.RequestClose += () => IsOrderActionMenuVisible = false;
+            OrderActionMenuVm.RequestPrimary += async () => await OnOrderActionMenuPrimaryAsync();
+            OrderActionMenuVm.RequestSecondary += async () => await OnOrderActionMenuSecondaryAsync();
+            AdminActionMenuVm.RequestClose += () => IsAdminActionMenuVisible = false;
+            AdminActionMenuVm.RequestPrimary += async () => await OpenManagerDashboardFromAdminMenuAsync();
+            AdminActionMenuVm.RequestSecondary += async () => await OpenMantenimientosFromAdminMenuAsync();
             OrderSearchVm.RequestClose += () => IsOrderSearchVisible = false;
             OrderSearchVm.RequestSearch += async search => await SearchOrdersAsync(search);
             OrderSearchVm.RequestSelect += order => OnOrderSelectedAsync(order);
@@ -909,8 +958,10 @@ namespace NovaRetail.ViewModels
         {
             OnPropertyChanged(nameof(CanAccessParametros));
             OnPropertyChanged(nameof(CanViewManagerDashboard));
+            OnPropertyChanged(nameof(CanAccessAdminActions));
             ((Command)ShowManagerDashboardCommand).ChangeCanExecute();
             ((Command)NavigateToMantenimientosCommand).ChangeCanExecute();
+            ((Command)OpenAdminMenuCommand).ChangeCanExecute();
 
             if (_userSession.CurrentUser is not null)
                 _ = ReloadSessionContextAsync();
@@ -1153,6 +1204,8 @@ namespace NovaRetail.ViewModels
             IsReceiptVisible = false;
             IsManualExonerationVisible = false;
             IsOrderSearchVisible = false;
+            IsOrderActionMenuVisible = false;
+            IsAdminActionMenuVisible = false;
             IsQuoteReceiptVisible = false;
             IsSalesRepPickerVisible = false;
             IsCustomerSearchVisible = false;

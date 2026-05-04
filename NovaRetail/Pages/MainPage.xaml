@@ -59,6 +59,18 @@
                 <views:OrderSearchPopup BindingContext="{Binding OrderSearchVm}"/>
             </Grid>
 
+            <!-- Order quick action overlay (Crear / Recuperar) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsOrderActionMenuVisible}">
+                <views:OrderActionMenuPopup BindingContext="{Binding OrderActionMenuVm}"/>
+            </Grid>
+
+            <!-- Admin quick action overlay (Dashboard / Mantenimientos) -->
+            <Grid Grid.Column="0" Grid.ColumnSpan="3"
+                  IsVisible="{Binding IsAdminActionMenuVisible}">
+                <views:OrderActionMenuPopup BindingContext="{Binding AdminActionMenuVm}"/>
+            </Grid>
+
             <!-- Work-order action overlay -->
             <Grid Grid.Column="0" Grid.ColumnSpan="3"
                   IsVisible="{Binding IsWorkOrderActionVisible}">
