@@ -106,15 +106,18 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                     _appStore.Dispatch(new SetSelectedCategoryAction(CategoryKeys.Todos));
                 }
 
-                FilterProducts();
-
                 var cts = ResetSearchCts();
                 var text = value;
+                if (ShouldSearchFromApi(text))
+                    IsSearchingProducts = true;
+                else
+                    FilterProducts();
+
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await Task.Delay(400, cts.Token);
+                        await Task.Delay(250, cts.Token);
                         if (_isSearchingByCode) return;
                         await SearchFromApiAsync(text, cts.Token);
                     }
@@ -477,7 +480,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         _isSearchingByCode = true;
         IsSearchingProducts = true;
 
-        ResetSearchCts();
+        var searchCts = ResetSearchCts();
 
         try
         {
@@ -491,13 +494,19 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                 return;
             }
 
+            if (!IsExactCodeSearch(code))
+            {
+                await SearchFromApiAsync(code, searchCts.Token);
+                return;
+            }
+
             var product = FindProductByCode(_allProducts, code);
 
             if (product is null)
             {
                 try
                 {
-                    var results = await _productService.SearchAsync(code, 20, _exchangeRate);
+                    var results = await _productService.SearchAsync(code, 20, _exchangeRate, searchCts.Token);
                     product = FindProductByCode(results, code);
 
                     if (product is null && IsBarcodeFormat(code))
@@ -676,11 +685,8 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             {
                 query = query.Where(p =>
                 {
-                    var name = NormalizeText(p.Name);
-                    var code = NormalizeText(p.Code ?? string.Empty);
-                    return words.All(word =>
-                        name.Contains(word, StringComparison.OrdinalIgnoreCase) ||
-                        code.Contains(word, StringComparison.OrdinalIgnoreCase));
+                    var searchText = BuildProductSearchText(p);
+                    return words.All(word => searchText.Contains(word, StringComparison.OrdinalIgnoreCase));
                 });
             }
         }
@@ -738,11 +744,17 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = true);
         try
         {
-            var products = await _productService.SearchAsync(normalized, SearchResultLimit, _exchangeRate);
+            var products = await _productService.SearchAsync(normalized, SearchResultLimit, _exchangeRate, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (products.Count == 0)
+            {
+                _allProducts.Clear();
+                _loadedItemsPage = 0;
+                _canLoadMoreFromApi = false;
+                await MainThread.InvokeOnMainThreadAsync(() => FilterProducts(skipSearchFilter: true));
                 return;
+            }
 
             StampNonInventoryFlag(products);
             _allProducts.Clear();
@@ -761,6 +773,15 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = false);
         }
     }
+
+    private static string BuildProductSearchText(ProductModel product)
+        => NormalizeText(string.Join(' ',
+            product.Name,
+            product.Code,
+            product.ExtendedDescription,
+            product.SubDescription1,
+            product.SubDescription2,
+            product.SubDescription3));
 
     private async Task LoadMoreProductsAsync()
     {
@@ -919,6 +940,15 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
     private static bool IsBarcodeFormat(string code)
         => code.Length >= 8 && code.Length <= 14 && code.All(char.IsDigit);
+
+    private static bool ShouldSearchFromApi(string? text)
+        => NormalizeText(text ?? string.Empty).Length >= 3;
+
+    private static bool IsExactCodeSearch(string code)
+        => !string.IsNullOrWhiteSpace(code) &&
+            (IsBarcodeFormat(code.Trim()) ||
+             code.Any(char.IsDigit) &&
+             !code.Any(char.IsWhiteSpace));
 
     private static ProductModel? FindProductByCode(IEnumerable<ProductModel> products, string code)
         => products.FirstOrDefault(p => string.Equals((p.Code ?? string.Empty).Trim(), code, StringComparison.OrdinalIgnoreCase));

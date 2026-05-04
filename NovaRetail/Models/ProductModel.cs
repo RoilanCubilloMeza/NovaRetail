@@ -12,6 +12,10 @@ public class ProductModel : INotifyPropertyChanged
     public string  Emoji           { get; set; } = string.Empty;
     public string  Name            { get; set; } = string.Empty;
     public string  Code            { get; set; } = string.Empty;
+    public string  ExtendedDescription { get; set; } = string.Empty;
+    public string  SubDescription1 { get; set; } = string.Empty;
+    public string  SubDescription2 { get; set; } = string.Empty;
+    public string  SubDescription3 { get; set; } = string.Empty;
     public string  Price           { get; set; } = string.Empty;
     public string  OldPrice        { get; set; } = string.Empty;
     public decimal PriceValue      { get; set; }

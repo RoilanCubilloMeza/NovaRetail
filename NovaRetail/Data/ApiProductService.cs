@@ -24,7 +24,7 @@ public sealed class ApiProductService : IProductService
         _baseUrls = settings.BaseUrls;
     }
 
-    public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate, int storeId = 1)
+    public async Task<List<ProductModel>> GetProductsAsync(int page, int pageSize, decimal exchangeRate, int storeId = 1, CancellationToken cancellationToken = default)
     {
         var safePage = page < 1 ? 1 : page;
         var safePageSize = Math.Clamp(pageSize, 1, 500);
@@ -37,7 +37,7 @@ public sealed class ApiProductService : IProductService
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
                 var url = $"{baseUrl}/api/Items?storeid={safeStoreId}&tipo=1&page={safePage}&pageSize={safePageSize}";
-                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url, cancellationToken);
 
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
@@ -46,6 +46,9 @@ public sealed class ApiProductService : IProductService
             }
             catch (Exception ex)
             {
+                if (ex is OperationCanceledException)
+                    throw;
+
                 _logger.LogWarning(ex, "Error al obtener productos desde {BaseUrl}", baseUrl);
             }
         }
@@ -82,31 +85,56 @@ public sealed class ApiProductService : IProductService
         return null;
     }
 
-    public async Task<List<ProductModel>> SearchAsync(string criteria, int top, decimal exchangeRate)
+    public async Task<List<ProductModel>> SearchAsync(string criteria, int top, decimal exchangeRate, CancellationToken cancellationToken = default)
     {
         var safeTop = Math.Clamp(top, 1, 1000);
-        var deptMap = await GetDepartmentMapAsync();
 
         foreach (var baseUrl in _baseUrls)
         {
             try
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
-                var url = $"{baseUrl}/api/Items/SearchDirect?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
-                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+                var directUrl = $"{baseUrl}/api/Items/SearchDirect?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
+                var apiItems = await TryGetApiItemsAsync(http, directUrl, cancellationToken);
+
+                if (apiItems.Count == 0)
+                {
+                    var legacyUrl = $"{baseUrl}/api/Items?criteria={Uri.EscapeDataString(criteria)}";
+                    apiItems = await TryGetApiItemsAsync(http, legacyUrl, cancellationToken);
+                }
 
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
-                return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
+                return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
             }
             catch (Exception ex)
             {
+                if (ex is OperationCanceledException)
+                    throw;
+
                 _logger.LogWarning(ex, "Error al buscar productos desde {BaseUrl}", baseUrl);
             }
         }
 
         return [];
+    }
+
+    private async Task<List<ApiItem>> TryGetApiItemsAsync(HttpClient http, string url, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<List<ApiItem>>(url, cancellationToken) ?? [];
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "No se pudieron obtener productos desde {Url}", url);
+            return [];
+        }
     }
 
     public async Task<List<ProductModel>> SearchByDepartmentAsync(int departmentId, int top, decimal exchangeRate)
@@ -225,6 +253,10 @@ public sealed class ApiProductService : IProductService
                 ? item.ExtendedDescription ?? string.Empty
                 : item.Description,
             Code = item.ItemLookupCode ?? item.ID.ToString(),
+            ExtendedDescription = item.ExtendedDescription ?? string.Empty,
+            SubDescription1 = item.SubDescription1 ?? string.Empty,
+            SubDescription2 = item.SubDescription2 ?? string.Empty,
+            SubDescription3 = item.SubDescription3 ?? string.Empty,
             PriceValue = priceDollars,
             Price = $"${priceDollars:F2}",
             Category = ResolveCategoryFromDepartment(item.DepartmentID, departmentMap),
@@ -306,6 +338,7 @@ public sealed class ApiProductService : IProductService
         public decimal PriceA { get; set; }
         public decimal Cost { get; set; }
         public string? Description { get; set; }
+        public string? SubDescription1 { get; set; }
         public string? SubDescription2 { get; set; }
         public string? SubDescription3 { get; set; }
         public int TaxID { get; set; }
