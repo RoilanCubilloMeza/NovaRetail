@@ -36,14 +36,6 @@
                                FontSize="11" TextColor="#93C5FD"/>
                     </VerticalStackLayout>
                     <HorizontalStackLayout Grid.Column="2" Spacing="6">
-                        <Button Text="↩ NC por Clave"
-                                Command="{Binding StandaloneCreditNoteCommand}"
-                                BackgroundColor="#991B1B"
-                                TextColor="White"
-                                FontSize="11" FontAttributes="Bold"
-                                CornerRadius="10"
-                                HeightRequest="36"
-                                Padding="12,0"/>
                         <Button Text="&#x1F5D1; Limpiar"
                                 Command="{Binding ClearAllCommand}"
                                 IsEnabled="{Binding HasLocalEntries}"

@@ -7,6 +7,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 
 namespace NovaRetail.ViewModels;
@@ -645,16 +647,16 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
         try
         {
-            var term = (_customerSearchText ?? string.Empty).Trim();
+            var term = NormalizeSearchTerm(_customerSearchText);
             if (term.Length < 2)
             {
                 CustomerSearchResults.Clear();
                 return;
             }
 
-            await Task.Delay(350, cts.Token);
+            await Task.Delay(300, cts.Token);
 
-            var results = await _clienteService.BuscarClientesAsync(term);
+            var results = await SearchCustomersExpandedAsync(term, cts.Token);
             if (cts.IsCancellationRequested) return;
 
             CustomerSearchResults.Clear();
@@ -663,6 +665,269 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
         catch (OperationCanceledException) { }
         catch { CustomerSearchResults.Clear(); }
+    }
+
+    private async Task<IReadOnlyList<CustomerLookupModel>> SearchCustomersExpandedAsync(string term, CancellationToken cancellationToken)
+    {
+        var queries = BuildCustomerSearchQueries(term);
+        var combined = new List<CustomerLookupModel>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var query in queries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            IReadOnlyList<CustomerLookupModel> batch = Array.Empty<CustomerLookupModel>();
+            try
+            {
+                batch = await _clienteService.BuscarClientesAsync(query);
+            }
+            catch
+            {
+            }
+
+            MergeCustomerBatch(combined, seen, batch);
+        }
+
+        var digits = NormalizeDigits(term);
+        var hasNumericMatch = !string.IsNullOrWhiteSpace(digits) &&
+            combined.Any(customer =>
+                NormalizeDigits(customer.TaxNumber).Contains(digits, StringComparison.Ordinal) ||
+                NormalizeDigits(customer.AccountNumber).Contains(digits, StringComparison.Ordinal));
+
+        if ((combined.Count == 0 || (!string.IsNullOrWhiteSpace(digits) && !hasNumericMatch)) && ShouldUseBroadCustomerFallback(term))
+        {
+            try
+            {
+                var allCustomers = await _clienteService.BuscarClientesAsync(null);
+                combined.Clear();
+                seen.Clear();
+                MergeCustomerBatch(combined, seen, allCustomers);
+            }
+            catch
+            {
+            }
+        }
+
+        var ordered = combined
+            .Where(customer => MatchesCustomerQuery(customer, term))
+            .OrderByDescending(customer => ScoreCustomerMatch(customer, term))
+            .ThenBy(customer => customer.FullName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(customer => customer.SearchCodeText, StringComparer.OrdinalIgnoreCase)
+            .Take(25)
+            .ToList();
+
+        return ordered;
+    }
+
+    private static void MergeCustomerBatch(List<CustomerLookupModel> combined, HashSet<string> seen, IReadOnlyList<CustomerLookupModel> batch)
+    {
+        foreach (var customer in batch)
+        {
+            var key = BuildCustomerKey(customer);
+            if (!seen.Add(key))
+                continue;
+
+            combined.Add(customer);
+        }
+    }
+
+    private static string BuildCustomerKey(CustomerLookupModel customer)
+    {
+        if (customer.CustomerId > 0)
+            return $"ID:{customer.CustomerId}";
+
+        var account = NormalizeSearchTerm(customer.AccountNumber);
+        var tax = NormalizeSearchTerm(customer.TaxNumber);
+        var name = NormalizeSearchTerm(customer.FullName);
+        return string.IsNullOrWhiteSpace(account)
+            ? string.IsNullOrWhiteSpace(tax)
+                ? $"NAME:{name}"
+                : $"TAX:{tax}"
+            : $"ACC:{account}";
+    }
+
+    private static IReadOnlyList<string> BuildCustomerSearchQueries(string term)
+    {
+        var queries = new List<string>();
+        AddQuery(queries, term);
+
+        var tokens = SplitSearchTokens(term);
+        foreach (var token in tokens)
+        {
+            if (token.Length >= 2 || token.All(char.IsDigit))
+                AddQuery(queries, token);
+        }
+
+        var compact = NormalizeSearchTerm(term).Replace(" ", string.Empty, StringComparison.Ordinal);
+        if (compact.Length >= 3)
+            AddQuery(queries, compact);
+
+        var digits = NormalizeDigits(term);
+        if (digits.Length >= 6)
+            AddQuery(queries, digits);
+
+        return queries;
+    }
+
+    private static void AddQuery(List<string> queries, string? query)
+    {
+        var normalized = NormalizeSearchTerm(query);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return;
+
+        if (!queries.Any(existing => string.Equals(existing, normalized, StringComparison.OrdinalIgnoreCase)))
+            queries.Add(normalized);
+    }
+
+    private static bool ShouldUseBroadCustomerFallback(string term)
+        => SplitSearchTokens(term).Count > 1 || NormalizeDigits(term).Length >= 6;
+
+    private static bool MatchesCustomerQuery(CustomerLookupModel customer, string term)
+    {
+        var normalizedTerm = NormalizeSearchTerm(term);
+        if (string.IsNullOrWhiteSpace(normalizedTerm))
+            return true;
+
+        var corpus = BuildCustomerCorpus(customer);
+        var digits = NormalizeDigits(normalizedTerm);
+
+        if (!string.IsNullOrWhiteSpace(digits))
+        {
+            var taxDigits = NormalizeDigits(customer.TaxNumber);
+            var accountDigits = NormalizeDigits(customer.AccountNumber);
+            if (taxDigits.Contains(digits, StringComparison.Ordinal) || accountDigits.Contains(digits, StringComparison.Ordinal))
+                return true;
+        }
+
+        if (corpus.Contains(normalizedTerm, StringComparison.Ordinal))
+            return true;
+
+        var tokens = SplitSearchTokens(normalizedTerm);
+        return tokens.Count > 0 && tokens.All(token => corpus.Contains(token, StringComparison.Ordinal));
+    }
+
+    private static int ScoreCustomerMatch(CustomerLookupModel customer, string term)
+    {
+        var normalizedTerm = NormalizeSearchTerm(term);
+        var digits = NormalizeDigits(normalizedTerm);
+        var corpus = BuildCustomerCorpus(customer);
+        var fullName = NormalizeSearchTerm(customer.FullName);
+        var taxNumber = NormalizeSearchTerm(customer.TaxNumber);
+        var accountNumber = NormalizeSearchTerm(customer.AccountNumber);
+        var phone = NormalizeSearchTerm(customer.Phone);
+
+        var score = 0;
+
+        if (!string.IsNullOrWhiteSpace(digits))
+        {
+            var taxDigits = NormalizeDigits(customer.TaxNumber);
+            var accountDigits = NormalizeDigits(customer.AccountNumber);
+
+            if (taxDigits == digits || accountDigits == digits)
+                score += 1000;
+            else if (taxDigits.StartsWith(digits, StringComparison.Ordinal) || accountDigits.StartsWith(digits, StringComparison.Ordinal))
+                score += 900;
+            else if (taxDigits.Contains(digits, StringComparison.Ordinal) || accountDigits.Contains(digits, StringComparison.Ordinal))
+                score += 800;
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedTerm))
+        {
+            if (fullName == normalizedTerm)
+                score += 700;
+            else if (fullName.StartsWith(normalizedTerm, StringComparison.Ordinal))
+                score += 600;
+            else if (fullName.Contains(normalizedTerm, StringComparison.Ordinal))
+                score += 500;
+
+            if (taxNumber == normalizedTerm || accountNumber == normalizedTerm)
+                score += 650;
+            else if (taxNumber.StartsWith(normalizedTerm, StringComparison.Ordinal) || accountNumber.StartsWith(normalizedTerm, StringComparison.Ordinal))
+                score += 550;
+            else if (taxNumber.Contains(normalizedTerm, StringComparison.Ordinal) || accountNumber.Contains(normalizedTerm, StringComparison.Ordinal))
+                score += 450;
+
+            if (phone.Contains(normalizedTerm, StringComparison.Ordinal))
+                score += 120;
+
+            if (corpus.Contains(normalizedTerm, StringComparison.Ordinal))
+                score += 80;
+        }
+
+        var tokens = SplitSearchTokens(normalizedTerm);
+        if (tokens.Count > 1 && tokens.All(token => corpus.Contains(token, StringComparison.Ordinal)))
+            score += 200;
+
+        foreach (var token in tokens)
+        {
+            if (token.Length >= 2 && corpus.Contains(token, StringComparison.Ordinal))
+                score += 35;
+        }
+
+        return score;
+    }
+
+    private static string BuildCustomerCorpus(CustomerLookupModel customer)
+    {
+        return string.Join(' ', new[]
+        {
+            NormalizeSearchTerm(customer.FullName),
+            NormalizeSearchTerm(customer.TaxNumber),
+            NormalizeSearchTerm(customer.AccountNumber),
+            NormalizeSearchTerm(customer.Phone),
+            NormalizeSearchTerm(customer.Email),
+            NormalizeSearchTerm(customer.Address),
+            NormalizeSearchTerm(customer.City),
+            NormalizeSearchTerm(customer.State)
+        }.Where(text => !string.IsNullOrWhiteSpace(text)));
+    }
+
+    private static IReadOnlyList<string> SplitSearchTokens(string term)
+        => NormalizeSearchTerm(term)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static string NormalizeSearchTerm(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Trim().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                continue;
+
+            if (char.IsLetterOrDigit(c))
+            {
+                builder.Append(char.ToLowerInvariant(c));
+            }
+            else if (char.IsWhiteSpace(c))
+            {
+                builder.Append(' ');
+            }
+        }
+
+        return Regex.Replace(builder.ToString(), @"\s+", " ").Trim();
+    }
+
+    private static string NormalizeDigits(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var builder = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (char.IsDigit(c))
+                builder.Append(c);
+        }
+
+        return builder.ToString();
     }
 
     private async Task SelectCustomerAsync(CustomerLookupModel? customer)

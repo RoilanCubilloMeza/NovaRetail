@@ -92,6 +92,11 @@
                                             SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
                                             IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
 
+                    <controls:ActionLinkRow Icon="&#x21A9;" Text="NC por Clave"
+                                            Command="{Binding StandaloneCreditNoteCommand}"
+                                            SurfaceColor="#FEF2F2" StrokeColor="#FECACA"
+                                            IconColor="#DC2626" LabelColor="#991B1B" ArrowColor="#DC2626"/>
+
                     <controls:ActionLinkRow Icon="&#x1F4B3;" Text="Abonos"
                                             Command="{Binding ShowCreditPaymentCommand}"
                                             SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"

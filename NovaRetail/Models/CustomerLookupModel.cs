@@ -24,4 +24,19 @@ public class CustomerLookupModel
         new[] { FirstName, LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     public string DisplayName => !string.IsNullOrWhiteSpace(FullName) ? FullName : "(Sin nombre)";
+    public string SearchCodeText => !string.IsNullOrWhiteSpace(AccountNumber)
+        ? AccountNumber.Trim()
+        : ResolvedClientId;
+    public string SearchSummaryText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(TaxNumber))
+                parts.Add($"Cédula {TaxNumber.Trim()}");
+            if (!string.IsNullOrWhiteSpace(Phone))
+                parts.Add(Phone.Trim());
+            return string.Join(" • ", parts);
+        }
+    }
 }

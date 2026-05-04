@@ -514,6 +514,7 @@ namespace NovaRetail.ViewModels
         public ICommand RecallHoldCommand { get; }
         public ICommand AssignSalesRepCommand { get; }
         public ICommand ShowInvoiceHistoryCommand { get; private set; } = new Command(() => { });
+        public ICommand StandaloneCreditNoteCommand { get; }
         public ICommand ShowCreditPaymentCommand { get; private set; } = new Command(() => { });
         public ICommand ShowManagerDashboardCommand { get; private set; } = new Command(() => { });
         public ICommand NavigateToCategoryConfigCommand { get; }
@@ -702,6 +703,7 @@ namespace NovaRetail.ViewModels
                 OpenAdminActionMenu,
                 () => CanAccessAdminActions);
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
+            StandaloneCreditNoteCommand = new Command(async () => await OpenStandaloneCreditNoteAsync());
             ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentAsync());
             ShowManagerDashboardCommand = new Command(
                 async () =>
