@@ -76,33 +76,56 @@
             <ScrollView Grid.Row="1">
                 <VerticalStackLayout Padding="16,14,16,16" Spacing="12">
 
-                    <!-- Datos de la factura original -->
-                    <Border BackgroundColor="White"
-                            Stroke="#E2E8F0" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="16,12">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="FACTURA ORIGINAL" FontSize="10" FontAttributes="Bold"
-                                   TextColor="#94A3B8" CharacterSpacing="0.5"/>
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
+                    <!-- InformaciÃ³n de crédito del cliente -->
+                    <Border BackgroundColor="#F0FDF4"
+                            Stroke="#86EFAC" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="16,12"
+                            IsVisible="{Binding HasCreditInfo}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="CRÉDITO DEL CLIENTE" FontSize="10" FontAttributes="Bold"
+                                   TextColor="#15803D" CharacterSpacing="0.5"/>
+                            <Label Text="{Binding CreditClientName}"
+                                   FontSize="14" FontAttributes="Bold" TextColor="#166534"/>
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
                                 <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding SourceClientName}"
-                                       FontSize="15" FontAttributes="Bold" TextColor="#0F172A"/>
+                                       Text="Límite de Crédito:" FontSize="12" TextColor="#166534"/>
                                 <Label Grid.Row="0" Grid.Column="1"
-                                       Text="{Binding SourceDocumentType}"
-                                       FontSize="11" TextColor="#64748B" VerticalOptions="Center"/>
+                                       Text="{Binding CreditLimitText}" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#166534"
+                                       HorizontalTextAlignment="End"/>
                                 <Label Grid.Row="1" Grid.Column="0"
-                                       Text="{Binding SourceClientId}"
-                                       FontSize="11" TextColor="#64748B"/>
+                                       Text="Balance Actual:" FontSize="12" TextColor="#166534"/>
                                 <Label Grid.Row="1" Grid.Column="1"
-                                       Text="{Binding SourceDateText}"
-                                       FontSize="11" TextColor="#94A3B8"/>
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                       Text="{Binding SourceClave50}"
-                                       FontSize="9" TextColor="#94A3B8"
-                                       IsVisible="{Binding HasFiscalData}"
-                                       LineBreakMode="CharacterWrap"/>
+                                       Text="{Binding CreditBalanceText}" FontSize="12"
+                                       FontAttributes="Bold" TextColor="#166534"
+                                       HorizontalTextAlignment="End"/>
+                                <Label Grid.Row="2" Grid.Column="0"
+                                       Text="Crédito Disponible:" FontSize="12" TextColor="#15803D"/>
+                                <Label Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding CreditAvailableText}" FontSize="13"
+                                       FontAttributes="Bold" TextColor="#15803D"
+                                       HorizontalTextAlignment="End"/>
                             </Grid>
+                            <Label Text="{Binding CreditDaysText, StringFormat='Plazo: {0}'}"
+                                   FontSize="11" TextColor="#22C55E"/>
                         </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Aviso sin crÃ©dito -->
+                    <Border BackgroundColor="#FEF2F2"
+                            Stroke="#FECACA" StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14" Padding="16,12"
+                            IsVisible="{Binding NoCreditInfo}">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="âš " FontSize="22" TextColor="#DC2626" VerticalOptions="Center"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="CLIENTE SIN CRÃ‰DITO" FontSize="10" FontAttributes="Bold"
+                                       TextColor="#DC2626" CharacterSpacing="0.5"/>
+                                <Label Text="{Binding NoCreditMessage}"
+                                       FontSize="12" TextColor="#991B1B"
+                                       LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
                     </Border>
 
                     <!-- ═══ CLIENTE DESTINO (a quién va la NC) ═══ -->
@@ -234,120 +257,7 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Información de crédito del cliente -->
-                    <Border BackgroundColor="#F0FDF4"
-                            Stroke="#86EFAC" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="16,12"
-                            IsVisible="{Binding HasCreditInfo}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="CRÉDITO DEL CLIENTE" FontSize="10" FontAttributes="Bold"
-                                   TextColor="#15803D" CharacterSpacing="0.5"/>
-                            <Label Text="{Binding CreditClientName}"
-                                   FontSize="14" FontAttributes="Bold" TextColor="#166534"/>
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
-                                <Label Grid.Row="0" Grid.Column="0"
-                                       Text="Límite de Crédito:" FontSize="12" TextColor="#166534"/>
-                                <Label Grid.Row="0" Grid.Column="1"
-                                       Text="{Binding CreditLimitText}" FontSize="12"
-                                       FontAttributes="Bold" TextColor="#166534"
-                                       HorizontalTextAlignment="End"/>
-                                <Label Grid.Row="1" Grid.Column="0"
-                                       Text="Balance Actual:" FontSize="12" TextColor="#166534"/>
-                                <Label Grid.Row="1" Grid.Column="1"
-                                       Text="{Binding CreditBalanceText}" FontSize="12"
-                                       FontAttributes="Bold" TextColor="#166534"
-                                       HorizontalTextAlignment="End"/>
-                                <Label Grid.Row="2" Grid.Column="0"
-                                       Text="Crédito Disponible:" FontSize="12" TextColor="#15803D"/>
-                                <Label Grid.Row="2" Grid.Column="1"
-                                       Text="{Binding CreditAvailableText}" FontSize="13"
-                                       FontAttributes="Bold" TextColor="#15803D"
-                                       HorizontalTextAlignment="End"/>
-                            </Grid>
-                            <Label Text="{Binding CreditDaysText, StringFormat='Plazo: {0}'}"
-                                   FontSize="11" TextColor="#22C55E"/>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Aviso sin crédito -->
-                    <Border BackgroundColor="#FEF2F2"
-                            Stroke="#FECACA" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="16,12"
-                            IsVisible="{Binding NoCreditInfo}">
-                        <HorizontalStackLayout Spacing="10">
-                            <Label Text="⚠" FontSize="22" TextColor="#DC2626" VerticalOptions="Center"/>
-                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                <Label Text="CLIENTE SIN CRÉDITO" FontSize="10" FontAttributes="Bold"
-                                       TextColor="#DC2626" CharacterSpacing="0.5"/>
-                                <Label Text="{Binding NoCreditMessage}"
-                                       FontSize="12" TextColor="#991B1B"
-                                       LineBreakMode="WordWrap"/>
-                            </VerticalStackLayout>
-                        </HorizontalStackLayout>
-                    </Border>
-
-                    <!-- Modo de devolución -->
-                    <Border BackgroundColor="White"
-                            Stroke="#E2E8F0" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="16,12">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="MODO DE DEVOLUCIÓN" FontSize="10" FontAttributes="Bold"
-                                   TextColor="#94A3B8" CharacterSpacing="0.5"/>
-                            <Label Text="{Binding SelectedTenderText}"
-                                   FontSize="13" TextColor="#334155" FontAttributes="Bold"/>
-
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding AvailableTenders}" Spacing="4">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="m:TenderModel">
-                                        <Border BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}}"
-                                                Stroke="{Binding IsSelected, Converter={StaticResource BoolToBorderConverter}}"
-                                                StrokeThickness="2"
-                                                StrokeShape="RoundRectangle 10"
-                                                Padding="12,10">
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CreditNoteViewModel}}, Path=SelectTenderCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Border.GestureRecognizers>
-                                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                                <Label Text="{Binding DisplayText}" FontSize="12" FontAttributes="Bold"
-                                                       TextColor="#334155" VerticalOptions="Center"/>
-                                            </HorizontalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Ref# y Comentario -->
-                    <Border BackgroundColor="White"
-                            Stroke="#E2E8F0" StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14" Padding="16,12">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="REFERENCIA Y COMENTARIO" FontSize="10" FontAttributes="Bold"
-                                   TextColor="#94A3B8" CharacterSpacing="0.5"/>
-                            <Grid ColumnDefinitions="70,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="8">
-                                <Label Grid.Row="0" Grid.Column="0" Text="Ref #:"
-                                       FontSize="13" FontAttributes="Bold" TextColor="#334155"
-                                       VerticalOptions="Center"/>
-                                <Entry Grid.Row="0" Grid.Column="1"
-                                       Text="{Binding ReferenceNumber}"
-                                       FontSize="13" TextColor="#0F172A"
-                                       BackgroundColor="#F8FAFC"
-                                       MaxLength="50"
-                                       Placeholder="Número de referencia"/>
-                                <Label Grid.Row="1" Grid.Column="0" Text="Comentario:"
-                                       FontSize="13" FontAttributes="Bold" TextColor="#334155"
-                                       VerticalOptions="Center"/>
-                                <Entry Grid.Row="1" Grid.Column="1"
-                                       Text="{Binding CommentText}"
-                                       FontSize="13" TextColor="#0F172A"
-                                       BackgroundColor="#F8FAFC"
-                                       Placeholder="Comentario de la transacción"/>
-                            </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+                  
 
                     <!-- Motivo NC -->
                     <Border BackgroundColor="White"
