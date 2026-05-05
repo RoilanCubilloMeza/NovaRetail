@@ -58,13 +58,172 @@ namespace NovaAPI.Controllers
                 request.TERMINAL_POS = terminalPosNum.ToString();
         }
 
+        private static void NormalizeFiscalCustomerIdentity(SqlConnection cn, NovaRetailCreateSaleRequest request)
+        {
+            if (request == null || request.CustomerID <= 0)
+                return;
+
+            using (var cmd = new SqlCommand(@"
+SELECT TOP 1
+       ISNULL(AccountNumber, '') AS AccountNumber,
+       ISNULL(TaxNumber, '') AS TaxNumber,
+       LTRIM(RTRIM(ISNULL(FirstName, '') + ' ' + ISNULL(LastName, ''))) AS FullName
+  FROM dbo.Customer
+ WHERE ID = @CustomerID;", cn))
+            {
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@CustomerID", request.CustomerID);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (!reader.Read())
+                        return;
+
+                    var accountNumber = Convert.ToString(reader["AccountNumber"]) ?? string.Empty;
+                    var taxNumber = Convert.ToString(reader["TaxNumber"]) ?? string.Empty;
+                    var fullName = Convert.ToString(reader["FullName"]) ?? string.Empty;
+                    var normalizedTaxNumber = new string(taxNumber.Where(char.IsDigit).ToArray());
+
+                    if (string.IsNullOrWhiteSpace(request.CodCliente) && !string.IsNullOrWhiteSpace(accountNumber))
+                        request.CodCliente = accountNumber.Trim();
+
+                    if (string.IsNullOrWhiteSpace(request.NombreCliente) && !string.IsNullOrWhiteSpace(fullName))
+                        request.NombreCliente = fullName.Trim();
+
+                    if (string.IsNullOrWhiteSpace(request.CreditAccountNumber) && !string.IsNullOrWhiteSpace(accountNumber))
+                        request.CreditAccountNumber = accountNumber.Trim();
+
+                    var currentTaxDigits = new string((request.CedulaTributaria ?? string.Empty).Where(char.IsDigit).ToArray());
+                    if (!string.IsNullOrWhiteSpace(normalizedTaxNumber) &&
+                        (string.IsNullOrWhiteSpace(request.CedulaTributaria) ||
+                         currentTaxDigits.Length < 9))
+                    {
+                        request.CedulaTributaria = normalizedTaxNumber;
+                    }
+                }
+            }
+        }
+
+        private sealed class FiscalArtifactsStatus
+        {
+            public bool HeaderExists { get; set; }
+            public string Clave50 { get; set; } = string.Empty;
+            public string Clave20 { get; set; } = string.Empty;
+            public string ManualReference { get; set; } = string.Empty;
+            public int DetailCount { get; set; }
+        }
+
+        private static void EnsureFiscalArtifacts(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            NormalizeFiscalCustomerIdentity(cn, request);
+            ApplyIntegraFast02Config(cn, request);
+            EnsureClaves(request, transactionNumber, cn);
+            EnsureTiqueteEspera(cn, request, transactionNumber);
+            EnsureIntegraFast05(cn, request, transactionNumber);
+            NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
+
+            var status = GetFiscalArtifactsStatus(cn, request, transactionNumber);
+            if (IsFiscalArtifactsComplete(request, status))
+                return;
+
+            EnsureTiqueteEspera(cn, request, transactionNumber);
+            EnsureIntegraFast05(cn, request, transactionNumber);
+            NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
+
+            status = GetFiscalArtifactsStatus(cn, request, transactionNumber);
+            if (IsFiscalArtifactsComplete(request, status))
+                return;
+
+            throw new InvalidOperationException(BuildFiscalArtifactsErrorMessage(request, transactionNumber, status));
+        }
+
+        private static FiscalArtifactsStatus GetFiscalArtifactsStatus(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            var status = new FiscalArtifactsStatus();
+
+            using (var cmd = new SqlCommand(@"
+SELECT TOP 1
+       ISNULL(CLAVE50, '') AS CLAVE50,
+       ISNULL(CLAVE20, '') AS CLAVE20,
+       ISNULL(NC_REFERENCIA, '') AS NC_REFERENCIA
+  FROM dbo.AVS_INTEGRAFAST_01
+ WHERE TRANSACTIONNUMBER = @TransactionNumber;", cn))
+            {
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        status.HeaderExists = true;
+                        status.Clave50 = Convert.ToString(reader["CLAVE50"]) ?? string.Empty;
+                        status.Clave20 = Convert.ToString(reader["CLAVE20"]) ?? string.Empty;
+                        status.ManualReference = Convert.ToString(reader["NC_REFERENCIA"]) ?? string.Empty;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(status.Clave50))
+                status.Clave50 = request.CLAVE50 ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(status.Clave50))
+            {
+                using (var cmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+                {
+                    cmd.CommandTimeout = 30;
+                    cmd.Parameters.AddWithValue("@CLAVE50", status.Clave50);
+                    status.DetailCount = Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+
+            return status;
+        }
+
+        private static bool IsFiscalArtifactsComplete(NovaRetailCreateSaleRequest request, FiscalArtifactsStatus status)
+        {
+            if (!status.HeaderExists)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(status.Clave50) || string.IsNullOrWhiteSpace(status.Clave20))
+                return false;
+
+            var expectedDetailCount = request?.Items?.Count ?? 0;
+            if (expectedDetailCount > 0 && status.DetailCount < expectedDetailCount)
+                return false;
+
+            return !IsManualCreditNote(request) || !string.IsNullOrWhiteSpace(status.ManualReference);
+        }
+
+        private static string BuildFiscalArtifactsErrorMessage(NovaRetailCreateSaleRequest request, int transactionNumber, FiscalArtifactsStatus status)
+        {
+            var missing = new List<string>();
+            if (!status.HeaderExists)
+                missing.Add("AVS_INTEGRAFAST_01");
+            if (string.IsNullOrWhiteSpace(status.Clave50))
+                missing.Add("CLAVE50");
+            if (string.IsNullOrWhiteSpace(status.Clave20))
+                missing.Add("CLAVE20");
+
+            var expectedDetailCount = request?.Items?.Count ?? 0;
+            if (expectedDetailCount > 0 && status.DetailCount < expectedDetailCount)
+                missing.Add($"AVS_INTEGRAFAST_05 ({status.DetailCount}/{expectedDetailCount})");
+
+            if (IsManualCreditNote(request) && string.IsNullOrWhiteSpace(status.ManualReference))
+                missing.Add("NC_REFERENCIA");
+
+            return $"No se pudieron completar los artefactos fiscales de la transaccion {transactionNumber}: {string.Join(", ", missing)}.";
+        }
+
         private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
             using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
             {
                 existsCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
                 if (Convert.ToInt32(existsCmd.ExecuteScalar()) > 0)
+                {
+                    NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
                     return;
+                }
             }
 
             var medioPagos = ResolveIntegraFastMedioPagos(cn, request.Tenders);
@@ -127,6 +286,52 @@ namespace NovaAPI.Controllers
                     tipoCambio,
                     cedulaTributaria);
             }
+
+            using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
+            {
+                existsCmd.CommandTimeout = 30;
+                existsCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
+                if (Convert.ToInt32(existsCmd.ExecuteScalar()) == 0)
+                {
+                    InsertIntegraFast01Direct(
+                        cn,
+                        request,
+                        transactionNumber,
+                        medioPagos,
+                        codSucursal,
+                        terminalPos,
+                        comprobanteInterno,
+                        tipoCambio,
+                        cedulaTributaria);
+                }
+            }
+
+            NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
+        }
+
+        private static bool IsManualCreditNote(NovaRetailCreateSaleRequest request)
+        {
+            return request != null &&
+                   string.Equals(request.COMPROBANTE_TIPO, "03", StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(request.NC_TIPO_DOC, "04", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void NormalizeManualCreditNoteIntegraFast01(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
+        {
+            if (!IsManualCreditNote(request))
+                return;
+
+            using (var cmd = new SqlCommand(@"
+UPDATE dbo.AVS_INTEGRAFAST_01
+   SET NC_REFERENCIA = @NC_REFERENCIA,
+       NC_REFERENCIA_FECHA = NULL
+ WHERE TRANSACTIONNUMBER = @TransactionNumber;", cn))
+            {
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
+                cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                cmd.ExecuteNonQuery();
+            }
         }
 
         private static void InsertIntegraFast01Direct(
@@ -159,31 +364,31 @@ namespace NovaAPI.Controllers
                      @TR_REP, GETDATE(), '00')", cn))
             {
                 cmd.CommandTimeout = 60;
-                cmd.Parameters.AddWithValue("@CLAVE50", request.CLAVE50 ?? string.Empty);
-                cmd.Parameters.AddWithValue("@CLAVE20", request.CLAVE20 ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
-                cmd.Parameters.AddWithValue("@COD_SUCURSAL", codSucursal);
-                cmd.Parameters.AddWithValue("@TERMINAL_POS", terminalPos);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", comprobanteInterno);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", request.COMPROBANTE_SITUACION ?? string.Empty);
-                cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", request.COMPROBANTE_TIPO ?? string.Empty);
-                cmd.Parameters.AddWithValue("@CURRENCYCODE", request.CurrencyCode ?? "CRC");
-                cmd.Parameters.AddWithValue("@CONDICIONVENTA", request.CondicionVenta ?? "01");
-                cmd.Parameters.AddWithValue("@COD_CLIENTE", request.CodCliente ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", request.NombreCliente ?? string.Empty);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO1", medioPagos[0]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO2", medioPagos[1]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO3", medioPagos[2]);
-                cmd.Parameters.AddWithValue("@MEDIO_PAGO4", medioPagos[3]);
-                cmd.Parameters.AddWithValue("@TIPOCAMBIO", tipoCambio);
-                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", cedulaTributaria);
+                cmd.Parameters.AddWithValue("@CLAVE50", Truncate(request.CLAVE50, 50));
+                cmd.Parameters.AddWithValue("@CLAVE20", Truncate(request.CLAVE20, 20));
+                cmd.Parameters.AddWithValue("@TN", Truncate(transactionNumber.ToString(), 12));
+                cmd.Parameters.AddWithValue("@COD_SUCURSAL", Truncate(codSucursal, 3));
+                cmd.Parameters.AddWithValue("@TERMINAL_POS", Truncate(terminalPos, 5));
+                cmd.Parameters.AddWithValue("@COMPROBANTE_INTERNO", Truncate(comprobanteInterno, 10));
+                cmd.Parameters.AddWithValue("@COMPROBANTE_SITUACION", Truncate(request.COMPROBANTE_SITUACION, 1));
+                cmd.Parameters.AddWithValue("@COMPROBANTE_TIPO", Truncate(request.COMPROBANTE_TIPO, 2));
+                cmd.Parameters.AddWithValue("@CURRENCYCODE", Truncate(request.CurrencyCode ?? "CRC", 3));
+                cmd.Parameters.AddWithValue("@CONDICIONVENTA", Truncate(request.CondicionVenta ?? "01", 2));
+                cmd.Parameters.AddWithValue("@COD_CLIENTE", Truncate(request.CodCliente, 15));
+                cmd.Parameters.AddWithValue("@NOMBRE_CLIENTE", Truncate(request.NombreCliente, 60));
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO1", Truncate(medioPagos[0], 2));
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO2", Truncate(medioPagos[1], 2));
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO3", Truncate(medioPagos[2], 2));
+                cmd.Parameters.AddWithValue("@MEDIO_PAGO4", Truncate(medioPagos[3], 2));
+                cmd.Parameters.AddWithValue("@TIPOCAMBIO", Truncate(tipoCambio, 10));
+                cmd.Parameters.AddWithValue("@CEDULA_TRIBUTARIA", Truncate(cedulaTributaria, 12));
                 cmd.Parameters.AddWithValue("@EXONERA", request.Exonera);
-                cmd.Parameters.AddWithValue("@NC_TIPO_DOC", request.NC_TIPO_DOC ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NC_REFERENCIA", request.NC_REFERENCIA ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NC_TIPO_DOC", Truncate(request.NC_TIPO_DOC, 2));
+                cmd.Parameters.AddWithValue("@NC_REFERENCIA", Truncate(request.NC_REFERENCIA, 50));
                 cmd.Parameters.AddWithValue("@NC_REFERENCIA_FECHA", (object)request.NC_REFERENCIA_FECHA ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@NC_CODIGO", request.NC_CODIGO ?? string.Empty);
-                cmd.Parameters.AddWithValue("@NC_RAZON", request.NC_RAZON ?? string.Empty);
-                cmd.Parameters.AddWithValue("@TR_REP", request.TR_REP ?? string.Empty);
+                cmd.Parameters.AddWithValue("@NC_CODIGO", Truncate(request.NC_CODIGO, 2));
+                cmd.Parameters.AddWithValue("@NC_RAZON", Truncate(request.NC_RAZON, 180));
+                cmd.Parameters.AddWithValue("@TR_REP", Truncate(request.TR_REP, 12));
                 cmd.ExecuteNonQuery();
             }
         }
@@ -344,17 +549,31 @@ namespace NovaAPI.Controllers
             if (string.IsNullOrWhiteSpace(clave50))
                 return;
 
+            var expectedLineCount = request.Items.Count;
+            var existingLineCount = 0;
             using (var chk = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
             {
+                chk.CommandTimeout = 30;
                 chk.Parameters.AddWithValue("@CLAVE50", clave50);
                 try
                 {
-                    if (Convert.ToInt32(chk.ExecuteScalar()) > 0)
+                    existingLineCount = Convert.ToInt32(chk.ExecuteScalar());
+                    if (existingLineCount >= expectedLineCount)
                         return;
                 }
                 catch
                 {
                     CreateIntegraFast05Table(cn);
+                }
+            }
+
+            if (existingLineCount > 0)
+            {
+                using (var deleteCmd = new SqlCommand("DELETE FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+                {
+                    deleteCmd.CommandTimeout = 30;
+                    deleteCmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                    deleteCmd.ExecuteNonQuery();
                 }
             }
 
@@ -484,6 +703,15 @@ namespace NovaAPI.Controllers
                     throw new InvalidOperationException($"No se pudo insertar AVS_INTEGRAFAST_05 para ItemID {item.ItemID}.", ex);
                 }
             }
+
+            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            {
+                verifyCmd.CommandTimeout = 30;
+                verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
+                if (insertedCount < expectedLineCount)
+                    throw new InvalidOperationException($"AVS_INTEGRAFAST_05 incompleto para CLAVE50 {clave50}: {insertedCount}/{expectedLineCount} lineas.");
+            }
         }
 
         private static void BulkInsertIntegraFast05Rows(
@@ -595,6 +823,15 @@ namespace NovaAPI.Controllers
                     bulk.ColumnMappings.Add(column.ColumnName, column.ColumnName);
 
                 bulk.WriteToServer(rows);
+            }
+
+            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            {
+                verifyCmd.CommandTimeout = 30;
+                verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
+                if (insertedCount < rows.Rows.Count)
+                    throw new InvalidOperationException($"AVS_INTEGRAFAST_05 incompleto para CLAVE50 {clave50}: {insertedCount}/{rows.Rows.Count} lineas.");
             }
         }
 

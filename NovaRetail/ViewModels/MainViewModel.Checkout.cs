@@ -324,20 +324,19 @@ namespace NovaRetail.ViewModels
                     totalColonesText: TotalColonesText,
                     tenderDescription: tender.Description ?? string.Empty,
                     tenderTotalColones: CheckoutVm.HasSecondTender
-                        ? Math.Round(
+                        ? PricingRules.RoundMoney(
                             CheckoutVm.ChangeColones > 0m
                                 ? CheckoutVm.TenderedColones
-                                : CheckoutVm.FirstTenderAmount,
-                            2)
+                                : CheckoutVm.FirstTenderAmount)
                         : CheckoutVm.ChangeColones > 0
-                            ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
+                            ? PricingRules.RoundMoney(_totalColones + CheckoutVm.ChangeColones)
                             : 0m,
-                    changeColones: Math.Round(CheckoutVm.ChangeColones, 2),
+                    changeColones: PricingRules.RoundMoney(CheckoutVm.ChangeColones),
                     secondTenderDescription: CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null
                         ? CheckoutVm.SecondTender.Description ?? string.Empty
                         : string.Empty,
                     secondTenderAmountColones: CheckoutVm.HasSecondTender
-                        ? Math.Round(CheckoutVm.SecondAmount, 2)
+                        ? PricingRules.RoundMoney(CheckoutVm.SecondAmount)
                         : 0m,
                     // Ticket-specific data
                     companyName: _storeName,
@@ -396,12 +395,12 @@ namespace NovaRetail.ViewModels
                     ? CheckoutVm.SecondTender.Description ?? string.Empty
                     : string.Empty;
                 var secondAmount = CheckoutVm.HasSecondTender
-                    ? Math.Round(CheckoutVm.SecondAmount, 2)
+                    ? PricingRules.RoundMoney(CheckoutVm.SecondAmount)
                     : 0m;
                 var tenderTotalColones = CheckoutVm.HasSecondTender
-                    ? Math.Round(CheckoutVm.ChangeColones > 0m ? CheckoutVm.TenderedColones : CheckoutVm.FirstTenderAmount, 2)
+                    ? PricingRules.RoundMoney(CheckoutVm.ChangeColones > 0m ? CheckoutVm.TenderedColones : CheckoutVm.FirstTenderAmount)
                     : CheckoutVm.ChangeColones > 0
-                        ? Math.Round(_totalColones + CheckoutVm.ChangeColones, 2)
+                        ? PricingRules.RoundMoney(_totalColones + CheckoutVm.ChangeColones)
                         : 0m;
 
                 var entry = new InvoiceHistoryEntry
@@ -421,7 +420,7 @@ namespace NovaRetail.ViewModels
                     ExonerationColones        = _exonerationColones,
                     TaxColones                = _taxColones,
                     TotalColones              = _totalColones,
-                    ChangeColones             = Math.Round(CheckoutVm.ChangeColones, 2),
+                    ChangeColones             = PricingRules.RoundMoney(CheckoutVm.ChangeColones),
                     TenderDescription         = tender.Description ?? string.Empty,
                     TenderTotalColones        = tenderTotalColones,
                     SecondTenderDescription   = secondDescription,
@@ -430,8 +429,8 @@ namespace NovaRetail.ViewModels
                     {
                         var grossUnit = item.EffectivePriceColones;
                         var discountFactor = 1m - item.DiscountPercent / 100m;
-                        var netUnit = Math.Round(grossUnit * discountFactor, 2);
-                        var netLine = Math.Round(grossUnit * item.Quantity * discountFactor, 2);
+                        var netUnit = PricingRules.RoundMoney(grossUnit * discountFactor);
+                        var netLine = PricingRules.RoundMoney(grossUnit * item.Quantity * discountFactor);
                         return new InvoiceHistoryLine
                         {
                             LineNumber         = index + 1,
@@ -464,14 +463,14 @@ namespace NovaRetail.ViewModels
             var currencyCode = tender.CurrencyID == 2 ? "USD" : "CRC";
             var medioPagoCodigo = CheckoutCartMapper.ResolveMedioPagoCodigo(tender);
 
-            var firstAmount = Math.Round(
+            var firstAmount = PricingRules.RoundMoney(
                 CheckoutVm.HasSecondTender && CheckoutVm.FirstTenderAmount > 0
                     ? CheckoutVm.FirstTenderAmount
-                    : _totalColones, 2);
+                    : _totalColones);
 
-            var change = Math.Round(CheckoutVm.ChangeColones, 2);
+            var change = PricingRules.RoundMoney(CheckoutVm.ChangeColones);
             var amountForeign = tender.CurrencyID == 2
-                ? Math.Round(firstAmount / (_exchangeRate > 0 ? _exchangeRate : 1m), 2)
+                ? PricingRules.RoundMoney(firstAmount / (_exchangeRate > 0 ? _exchangeRate : 1m))
                 : firstAmount;
 
             var tenders = new List<NovaRetailSaleTenderRequest>
@@ -491,10 +490,10 @@ namespace NovaRetail.ViewModels
 
             if (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null && CheckoutVm.SecondAmount > 0m)
             {
-                var secondAmount = Math.Round(CheckoutVm.SecondAmount, 2);
+                var secondAmount = PricingRules.RoundMoney(CheckoutVm.SecondAmount);
                 var secondMedioPago = CheckoutCartMapper.ResolveMedioPagoCodigo(CheckoutVm.SecondTender);
                 var secondForeign = CheckoutVm.SecondTender.CurrencyID == 2
-                    ? Math.Round(secondAmount / (_exchangeRate > 0 ? _exchangeRate : 1m), 2)
+                    ? PricingRules.RoundMoney(secondAmount / (_exchangeRate > 0 ? _exchangeRate : 1m))
                     : secondAmount;
 
                 tenders.Add(new NovaRetailSaleTenderRequest
@@ -697,7 +696,7 @@ namespace NovaRetail.ViewModels
 
                 // UnitPrice = precio neto por unidad SIN impuesto (base después de descuento/override)
                 var netLineColones = lineTotals.TotalColones - lineTotals.TaxColones;
-                var unitPrice = Math.Round(netLineColones / quantity, 4);
+                var unitPrice = PricingRules.RoundUnitPrice(netLineColones / quantity);
 
                 // FullPrice = precio de catálogo SIN impuesto (antes de override o descuento)
                 // Si hay override de precio, el precio original es UnitPriceColones (catálogo)
@@ -706,19 +705,19 @@ namespace NovaRetail.ViewModels
                 if (IsTaxIncluded && item.TaxPercentage > 0)
                 {
                     var divisor = 1m + (item.TaxPercentage / 100m);
-                    rawFullPrice = Math.Round(rawFullPrice / divisor, 4);
+                    rawFullPrice = PricingRules.RoundUnitPrice(rawFullPrice / divisor);
                 }
-                var fullPrice = Math.Round(rawFullPrice, 4);
+                var fullPrice = PricingRules.RoundUnitPrice(rawFullPrice);
                 var displayPrice = IsTaxIncluded
-                    ? Math.Round(lineTotals.TotalColones / quantity, 4)
-                    : Math.Round(unitPrice, 4);
+                    ? PricingRules.RoundUnitPrice(lineTotals.TotalColones / quantity)
+                    : PricingRules.RoundUnitPrice(unitPrice);
                 var displayFullPrice = IsTaxIncluded
-                    ? Math.Round(catalogPriceColones, 4)
+                    ? PricingRules.RoundUnitPrice(catalogPriceColones)
                     : fullPrice;
 
-                var lineDiscountAmount = Math.Round(lineTotals.DiscountColones, 2);
+                var lineDiscountAmount = PricingRules.RoundMoney(lineTotals.DiscountColones);
                 var lineDiscountPercent = fullPrice > 0
-                    ? Math.Round((lineDiscountAmount / (fullPrice * quantity)) * 100m, 4)
+                    ? PricingRules.RoundUnitPrice((lineDiscountAmount / (fullPrice * quantity)) * 100m)
                     : 0m;
 
                 // DiscountReasonCodeID: usar el ID seleccionado por el usuario, o resolver desde cache
@@ -742,7 +741,7 @@ namespace NovaRetail.ViewModels
                     SalesRepID = item.SalesRepID,
                     Taxable = item.TaxPercentage > 0,
                     TaxID = item.TaxPercentage > 0 ? item.TaxID : null,
-                    SalesTax = Math.Round(lineTotals.TaxColones, 2),
+                    SalesTax = PricingRules.RoundMoney(lineTotals.TaxColones),
                     LineComment = (item.HasDiscount || (item.HasOverridePrice && !item.IsUpwardPriceOverride)) ? item.DiscountReasonCode : string.Empty,
                     DiscountReasonCodeID = discountReasonCodeID,
                     ReturnReasonCodeID = 0,
@@ -765,7 +764,7 @@ namespace NovaRetail.ViewModels
                     ExInstitucion = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.NombreInstitucion : string.Empty,
                     ExFecha = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.FechaEmision : null,
                     ExPorcentaje = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.PorcentajeExoneracion : 0m,
-                    ExMonto = item.HasExoneration ? Math.Round(lineTotals.ExonerationColones, 2) : 0m
+                    ExMonto = item.HasExoneration ? PricingRules.RoundMoney(lineTotals.ExonerationColones) : 0m
                 });
             }
 

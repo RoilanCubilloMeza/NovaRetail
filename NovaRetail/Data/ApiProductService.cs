@@ -71,7 +71,7 @@ public sealed class ApiProductService : IProductService
         return [];
     }
 
-    public async Task<ProductModel?> GetByIdAsync(int itemId, decimal exchangeRate)
+    public async Task<ProductModel?> GetByIdAsync(int itemId, decimal exchangeRate, CancellationToken cancellationToken = default)
     {
         if (itemId <= 0)
             return null;
@@ -84,15 +84,23 @@ public sealed class ApiProductService : IProductService
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
                 var url = $"{baseUrl}/api/Items/{itemId}";
-                var apiItem = await http.GetFromJsonAsync<ApiItem>(url);
+                using var timeoutCts = CreateProductTimeout(cancellationToken);
+                var apiItem = await http.GetFromJsonAsync<ApiItem>(url, timeoutCts.Token);
 
                 if (apiItem is null || apiItem.ID <= 0)
                     continue;
 
                 return MapToProduct(apiItem, exchangeRate, deptMap);
             }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al obtener producto {ItemId} desde {BaseUrl}", itemId, baseUrl);
+            }
             catch (Exception ex)
             {
+                if (ex is OperationCanceledException)
+                    throw;
+
                 _logger.LogWarning(ex, "Error al obtener producto {ItemId} desde {BaseUrl}", itemId, baseUrl);
             }
         }

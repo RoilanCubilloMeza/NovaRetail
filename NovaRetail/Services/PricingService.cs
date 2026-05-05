@@ -46,11 +46,11 @@ public sealed class PricingService : IPricingService
             exonerationAmountColones += lineTotals.ExonerationColones;
         }
 
-        var subtotalCol = Math.Round(subtotalBaseColones, 2);
-        var taxCol = Math.Round(taxAmountColones, 2);
-        var totalCol = Math.Round(totalAmountColones, 2);
-        var discountCol = Math.Round(discountAmountColones, 2);
-        var exonerationCol = Math.Round(exonerationAmountColones, 2);
+        var subtotalCol = PricingRules.RoundMoney(subtotalBaseColones);
+        var taxCol = PricingRules.RoundMoney(taxAmountColones);
+        var totalCol = PricingRules.RoundMoney(totalAmountColones);
+        var discountCol = PricingRules.RoundMoney(discountAmountColones);
+        var exonerationCol = PricingRules.RoundMoney(exonerationAmountColones);
 
         return new OrderTotals
         {
@@ -90,11 +90,11 @@ public sealed class PricingService : IPricingService
 
             return new LineTotals
             {
-                SubtotalBaseColones = subtotalBaseColones,
-                TaxColones = taxColones,
-                TotalColones = totalColones,
-                DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
-                ExonerationColones = Math.Max(0m, discountedBaseColones * (originalTaxRate - effectiveTaxRate))
+                SubtotalBaseColones = PricingRules.RoundMoney(subtotalBaseColones),
+                TaxColones = PricingRules.RoundMoney(taxColones),
+                TotalColones = PricingRules.RoundMoney(totalColones),
+                DiscountColones = PricingRules.RoundMoney(originalGrossColones - displayedGrossAfterAllDiscounts),
+                ExonerationColones = PricingRules.RoundMoney(Math.Max(0m, discountedBaseColones * (originalTaxRate - effectiveTaxRate)))
             };
         }
 
@@ -104,11 +104,11 @@ public sealed class PricingService : IPricingService
 
         return new LineTotals
         {
-            SubtotalBaseColones = subtotalBase,
-            TaxColones = taxAmount,
-            TotalColones = discountedBase + taxAmount,
-            DiscountColones = originalGrossColones - displayedGrossAfterAllDiscounts,
-            ExonerationColones = Math.Max(0m, discountedBase * (originalTaxRate - effectiveTaxRate))
+            SubtotalBaseColones = PricingRules.RoundMoney(subtotalBase),
+            TaxColones = PricingRules.RoundMoney(taxAmount),
+            TotalColones = PricingRules.RoundMoney(discountedBase + taxAmount),
+            DiscountColones = PricingRules.RoundMoney(originalGrossColones - displayedGrossAfterAllDiscounts),
+            ExonerationColones = PricingRules.RoundMoney(Math.Max(0m, discountedBase * (originalTaxRate - effectiveTaxRate)))
         };
     }
 
@@ -124,8 +124,8 @@ public sealed class PricingService : IPricingService
 
         if (safeTaxPercentage <= 0m)
         {
-            var unitPrice = Math.Round(safeUnitPrice, 4, MidpointRounding.AwayFromZero);
-            var total = Math.Round(unitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+            var unitPrice = PricingRules.RoundUnitPrice(safeUnitPrice);
+            var total = PricingRules.RoundMoney(unitPrice * safeQuantity);
             return new TaxPriceBreakdown
             {
                 UnitPriceWithoutTax = unitPrice,
@@ -137,21 +137,21 @@ public sealed class PricingService : IPricingService
         if (pricesIncludeTax)
         {
             var divisor = 1m + safeTaxPercentage / 100m;
-            var unitPrice = Math.Round(safeUnitPrice / divisor, 4, MidpointRounding.AwayFromZero);
-            var grossLine = Math.Round(safeUnitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
-            var netLine = Math.Round(unitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+            var unitPrice = PricingRules.RoundUnitPrice(safeUnitPrice / divisor);
+            var grossLine = PricingRules.RoundMoney(safeUnitPrice * safeQuantity);
+            var netLine = PricingRules.RoundMoney(unitPrice * safeQuantity);
 
             return new TaxPriceBreakdown
             {
                 UnitPriceWithoutTax = unitPrice,
-                SalesTax = Math.Round(grossLine - netLine, 2, MidpointRounding.AwayFromZero),
+                SalesTax = PricingRules.RoundMoney(grossLine - netLine),
                 TotalColones = grossLine
             };
         }
 
-        var netUnitPrice = Math.Round(safeUnitPrice, 4, MidpointRounding.AwayFromZero);
-        var taxableLine = Math.Round(netUnitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
-        var salesTax = Math.Round(taxableLine * safeTaxPercentage / 100m, 2, MidpointRounding.AwayFromZero);
+        var netUnitPrice = PricingRules.RoundUnitPrice(safeUnitPrice);
+        var taxableLine = PricingRules.RoundMoney(netUnitPrice * safeQuantity);
+        var salesTax = PricingRules.RoundMoney(taxableLine * safeTaxPercentage / 100m);
 
         return new TaxPriceBreakdown
         {
@@ -162,7 +162,27 @@ public sealed class PricingService : IPricingService
     }
 
     public decimal ConvertFromColones(decimal amount, decimal exchangeRate)
-        => exchangeRate > 0 ? Math.Round(amount / exchangeRate, 4) : amount;
+        => exchangeRate > 0 ? Math.Round(amount / exchangeRate, 4, MidpointRounding.AwayFromZero) : amount;
+}
+
+public static class PricingRules
+{
+    public const int MoneyDecimals = 2;
+    public const int UnitPriceDecimals = 4;
+
+    public static decimal RoundMoney(decimal amount)
+        => Math.Round(amount, MoneyDecimals, MidpointRounding.AwayFromZero);
+
+    public static decimal RoundUnitPrice(decimal amount)
+        => Math.Round(amount, UnitPriceDecimals, MidpointRounding.AwayFromZero);
+
+    public static string FormatCurrency(decimal amount)
+        => $"{UiConfig.CurrencySymbol}{RoundMoney(amount):N2}";
+
+    public static string FormatSignedCurrency(decimal amount)
+        => amount < 0m
+            ? $"-{UiConfig.CurrencySymbol}{Math.Abs(RoundMoney(amount)):N2}"
+            : $"{UiConfig.CurrencySymbol}{RoundMoney(amount):N2}";
 }
 
 public sealed class OrderTotals

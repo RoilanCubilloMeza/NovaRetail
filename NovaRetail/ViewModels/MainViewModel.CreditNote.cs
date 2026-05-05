@@ -21,6 +21,15 @@ namespace NovaRetail.ViewModels
 
             clave50 = clave50.Trim();
 
+            if (!CreditNoteViewModel.IsSupportedStandaloneReference(clave50))
+            {
+                await _dialogService.AlertAsync(
+                    "NC por clave",
+                    "La referencia debe ser una clave 50, un consecutivo o un numero de transaccion valido.",
+                    "OK");
+                return;
+            }
+
             InvoiceHistoryEntry? foundEntry = null;
             if (ShouldSearchInvoiceReferenceRemotely(clave50))
             {

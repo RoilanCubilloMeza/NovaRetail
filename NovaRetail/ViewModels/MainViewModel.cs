@@ -615,11 +615,11 @@ namespace NovaRetail.ViewModels
             : (HasItemDiscounts ? "Artículos" : "0 %");
         public string DiscountAmountText => $"-{UiConfig.CurrencySymbol}{DiscountAmount:F2}";
         public string DiscountColonesText => DiscountAmount > 0
-            ? $"-{UiConfig.CurrencySymbol}{Math.Round(_discountColones, 2):N2}"
+            ? $"-{PricingRules.FormatCurrency(_discountColones)}"
             : $"{UiConfig.CurrencySymbol}0.00";
         public string ExonerationAmountText => $"-{ExonerationAmount:F2}";
         public string ExonerationColonesText => ExonerationAmount > 0
-            ? $"-{UiConfig.CurrencySymbol}{Math.Round(_exonerationColones, 2):N2}"
+            ? $"-{PricingRules.FormatCurrency(_exonerationColones)}"
             : $"{UiConfig.CurrencySymbol}0.00";
         public bool HasExonerationAmount => ExonerationAmount > 0;
         public string TaxText => $"{UiConfig.CurrencySymbol}{Tax:F2}";
@@ -680,9 +680,9 @@ namespace NovaRetail.ViewModels
         // ── Totales en colones ──
 
         public string SubtotalText => $"{UiConfig.CurrencySymbol}{Subtotal:F2}";
-        public string SubtotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_subtotalColones, 2):N2}";
-        public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
-        public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
+        public string SubtotalColonesText => PricingRules.FormatCurrency(_subtotalColones);
+        public string TaxColonesText => PricingRules.FormatCurrency(_taxColones);
+        public string TotalColonesText => PricingRules.FormatCurrency(_totalColones);
 
         public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ILoginService loginService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, IExchangeRateService exchangeRateService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
         {

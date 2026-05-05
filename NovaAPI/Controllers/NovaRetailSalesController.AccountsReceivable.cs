@@ -25,6 +25,9 @@ namespace NovaAPI.Controllers
             public decimal Total { get; set; }
         }
 
+        private const int LedgerReferenceMaxLength = 20;
+        private const int LedgerExternalReferenceMaxLength = 50;
+
         private static string NormalizeTransactionReference(string reference)
         {
             var value = (reference ?? string.Empty).Trim();
@@ -37,9 +40,26 @@ namespace NovaAPI.Controllers
         private static string BuildLedgerReference(string transactionReference)
         {
             var normalized = NormalizeTransactionReference(transactionReference);
-            return string.IsNullOrWhiteSpace(normalized)
+            var reference = string.IsNullOrWhiteSpace(normalized)
                 ? string.Empty
                 : "TR:" + normalized;
+            return TruncateLedgerReference(reference);
+        }
+
+        private static string TruncateLedgerReference(string reference)
+        {
+            var value = (reference ?? string.Empty).Trim();
+            return value.Length <= LedgerReferenceMaxLength
+                ? value
+                : value.Substring(0, LedgerReferenceMaxLength);
+        }
+
+        private static string TruncateLedgerExternalReference(string reference)
+        {
+            var value = NormalizeTransactionReference(reference);
+            return value.Length <= LedgerExternalReferenceMaxLength
+                ? value
+                : value.Substring(0, LedgerExternalReferenceMaxLength);
         }
 
         private static List<string> BuildCreditNoteReferenceCandidates(NovaRetailCreateSaleRequest request)
@@ -616,6 +636,7 @@ WHERE ID = @LedgerEntryID;", cn))
             using (var cn = new SqlConnection(connectionString))
             {
                 cn.Open();
+                NormalizeFiscalCustomerIdentity(cn, request);
 
                 isCreditNC = isNC && IsCreditTender(request.Tenders, cn);
 
@@ -745,7 +766,7 @@ WHERE a.Number = @Number;", cn))
                         cmd.Parameters.AddWithValue("@PayMethodID", 0);
                         cmd.Parameters.AddWithValue("@TransactionID", 0);
                         var appliedReference = isCreditNC
-                            ? NormalizeTransactionReference(referenceCandidates.FirstOrDefault())
+                            ? TruncateLedgerExternalReference(referenceCandidates.FirstOrDefault())
                             : response.TransactionNumber.ToString(CultureInfo.InvariantCulture);
                         cmd.Parameters.AddWithValue("@ExtReference", appliedReference);
                         cmd.Parameters.AddWithValue("@Comment", isCreditNC ? ("NC aplicada a " + BuildLedgerReference(appliedReference)) : string.Empty);

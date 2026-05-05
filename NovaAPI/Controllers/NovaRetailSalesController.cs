@@ -233,6 +233,46 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                 : value.Substring(0, ReferenceNumberMaxLength).TrimEnd();
         }
 
+        private static string NormalizeCreditNoteReasonCode(string code)
+        {
+            var value = (code ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            var separatorIndex = value.IndexOf('_');
+            if (separatorIndex > 0)
+                value = value.Substring(0, separatorIndex);
+
+            return value.Length <= 2 ? value : value.Substring(0, 2);
+        }
+
+        private static void NormalizeCreditNoteRequest(NovaRetailCreateSaleRequest request)
+        {
+            if (request == null)
+                return;
+
+            request.ReferenceNumber = SanitizeReferenceNumber(request.ReferenceNumber);
+            request.NC_REFERENCIA = SanitizeReferenceNumber(request.NC_REFERENCIA);
+            request.NC_CODIGO = NormalizeCreditNoteReasonCode(request.NC_CODIGO);
+
+            if (!string.IsNullOrWhiteSpace(request.COMPROBANTE_TIPO))
+                request.InsertarTiqueteEspera = true;
+
+            var isManualCreditNote =
+                string.Equals(request.COMPROBANTE_TIPO, "03", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(request.NC_TIPO_DOC, "04", StringComparison.OrdinalIgnoreCase);
+
+            if (isManualCreditNote && string.IsNullOrWhiteSpace(request.NC_REFERENCIA))
+                request.NC_REFERENCIA = request.ReferenceNumber;
+        }
+
+        private static bool RequiresFiscalDocument(NovaRetailCreateSaleRequest request)
+        {
+            return request != null &&
+                   (!string.IsNullOrWhiteSpace(request.COMPROBANTE_TIPO) ||
+                    request.InsertarTiqueteEspera);
+        }
+
         [HttpPost]
         [Route("create-sale")]
         public HttpResponseMessage CreateSale([FromBody] NovaRetailCreateSaleRequest request)
@@ -245,6 +285,8 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                     Message = "Solicitud invÃƒÆ’Ã‚Â¡lida."
                 });
             }
+
+            NormalizeCreditNoteRequest(request);
 
             if (!ModelState.IsValid)
             {
@@ -462,21 +504,20 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                             response.Warnings.Add($"TaxEntry: {exTax.Message}");
                         }
 
-                        if (request.InsertarTiqueteEspera)
+                        if (RequiresFiscalDocument(request))
                         {
                             try
                             {
-                                ApplyIntegraFast02Config(cn, request);
-                                EnsureClaves(request, response.TransactionNumber, cn);
+                                EnsureFiscalArtifacts(cn, request, response.TransactionNumber);
                                 response.Clave50 = request.CLAVE50 ?? string.Empty;
                                 response.Clave20 = request.CLAVE20 ?? string.Empty;
-                                EnsureTiqueteEspera(cn, request, response.TransactionNumber);
                                 response.TiqueteEsperaOk = true;
                             }
                             catch (Exception exTiquete)
                             {
                                 response.TiqueteEsperaOk = false;
                                 response.Warnings.Add($"TiqueteEspera: {exTiquete.Message}");
+                                LogError(new InvalidOperationException($"Fallo fiscal para transaccion {response.TransactionNumber}.", exTiquete));
                             }
 
                             try
@@ -567,6 +608,7 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                         catch (Exception exAR)
                         {
                             response.Warnings.Add($"AR_Transaction: {exAR.Message}");
+                            LogError(new InvalidOperationException($"Fallo AR para transaccion {response.TransactionNumber}.", exAR));
                         }
                     }
                 }

@@ -78,12 +78,12 @@ public sealed class InvoiceHistoryEntry
 
     public string TotalColonesText => FormatSignedCurrency(TotalColones);
     public string SubtotalColonesText => FormatSignedCurrency(SubtotalColones);
-    public string DiscountColonesNegativeText => $"-{UiConfig.CurrencySymbol}{DiscountColones:N2}";
-    public string ExonerationColonesNegativeText => $"-{UiConfig.CurrencySymbol}{ExonerationColones:N2}";
+    public string DiscountColonesNegativeText => $"-{UiConfig.CurrencySymbol}{RoundMoney(DiscountColones):N2}";
+    public string ExonerationColonesNegativeText => $"-{UiConfig.CurrencySymbol}{RoundMoney(ExonerationColones):N2}";
     public string TaxColonesText => FormatSignedCurrency(TaxColones);
-    public string ChangeColonesText => $"{UiConfig.CurrencySymbol}{ChangeColones:N2}";
+    public string ChangeColonesText => $"{UiConfig.CurrencySymbol}{RoundMoney(ChangeColones):N2}";
     public string TenderTotalColonesText => FormatSignedCurrency(TenderTotalColones > 0 ? TenderTotalColones : TotalColones);
-    public string SecondTenderAmountText => $"{UiConfig.CurrencySymbol}{SecondTenderAmountColones:N2}";
+    public string SecondTenderAmountText => $"{UiConfig.CurrencySymbol}{RoundMoney(SecondTenderAmountColones):N2}";
     public string DateText => Date.ToString("dd/MM/yyyy HH:mm");
     public string TransactionText => $"#{TransactionNumber}";
     public string ClientMetaText => string.IsNullOrWhiteSpace(ClientId) ? DateText : $"{ClientId} - {DateText}";
@@ -147,9 +147,12 @@ public sealed class InvoiceHistoryEntry
 
     private string FormatSignedCurrency(decimal amount)
     {
-        var displayAmount = IsCreditNote ? -Math.Abs(amount) : amount;
+        var displayAmount = RoundMoney(IsCreditNote ? -Math.Abs(amount) : amount);
         return $"{UiConfig.CurrencySymbol}{displayAmount:N2}";
     }
+
+    private static decimal RoundMoney(decimal amount)
+        => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
 }
 
 public sealed class InvoiceHistoryLine
@@ -179,5 +182,5 @@ public sealed class InvoiceHistoryLine
     public string ExonerationText => $"Exoneracion {ExonerationPercent:0.##}%";
 
     private decimal DisplayAmount(decimal amount)
-        => IsCreditNote ? -Math.Abs(amount) : amount;
+        => Math.Round(IsCreditNote ? -Math.Abs(amount) : amount, 2, MidpointRounding.AwayFromZero);
 }

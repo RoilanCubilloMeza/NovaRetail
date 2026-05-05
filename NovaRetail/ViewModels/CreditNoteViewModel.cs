@@ -62,9 +62,9 @@ public sealed class CreditNoteLineItem : INotifyPropertyChanged
 
     public string ReturnQuantityText => $"{_returnQuantity:0.###}";
     public string OriginalQuantityText => $"{AvailableQuantity:0.###} / {OriginalQuantity:0.###}";
-    public string UnitPriceText => $"{UiConfig.CurrencySymbol}{UnitPriceColones:N2}";
-    public string LineTotalText => $"{UiConfig.CurrencySymbol}{LineTotalColones:N2}";
-    public string ReturnTotalText => $"{UiConfig.CurrencySymbol}{ReturnTotal:N2}";
+    public string UnitPriceText => $"{UiConfig.CurrencySymbol}{Math.Round(UnitPriceColones, 2, MidpointRounding.AwayFromZero):N2}";
+    public string LineTotalText => $"{UiConfig.CurrencySymbol}{Math.Round(LineTotalColones, 2, MidpointRounding.AwayFromZero):N2}";
+    public string ReturnTotalText => $"{UiConfig.CurrencySymbol}{Math.Round(ReturnTotal, 2, MidpointRounding.AwayFromZero):N2}";
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name = null)
@@ -104,7 +104,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private string _customerSearchText = string.Empty;
     private CancellationTokenSource? _customerSearchCts;
     private string _overrideClientId = string.Empty;
+    private string _overrideTaxNumber = string.Empty;
     private string _overrideClientName = string.Empty;
+    private int _overrideCustomerID;
     private bool _sourcePricesIncludeTax;
     private string _defaultClientId = "0";
     private string _defaultClientName = "CLIENTE CONTADO";
@@ -414,6 +416,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _creditLoaded = false;
         _overrideClientId = string.Empty;
         _overrideClientName = string.Empty;
+        _overrideCustomerID = 0;
         _customerSearchText = string.Empty;
         _sourcePricesIncludeTax = SourceLineTotalsIncludeTax(entry);
         ReferenceNumber = entry.TransactionNumber.ToString(CultureInfo.InvariantCulture);
@@ -538,6 +541,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _creditLoaded = true;
         _overrideClientId = string.Empty;
         _overrideClientName = string.Empty;
+        _overrideCustomerID = 0;
         _customerSearchText = string.Empty;
         ReferenceNumber = clave50;
         CommentText = string.Empty;
@@ -1030,7 +1034,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (customer is null) return;
 
         _overrideClientId = ResolveCustomerClientId(customer);
+        _overrideTaxNumber = (customer.TaxNumber ?? string.Empty).Trim();
         _overrideClientName = customer.FullName;
+        _overrideCustomerID = customer.CustomerId;
         OnPropertyChanged(nameof(HasOverrideClient));
         OnPropertyChanged(nameof(OverrideClientDisplay));
         OnPropertyChanged(nameof(EffectiveClientId));
@@ -1053,7 +1059,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             : string.Empty;
 
         _overrideClientId = string.Empty;
+        _overrideTaxNumber = string.Empty;
         _overrideClientName = string.Empty;
+        _overrideCustomerID = 0;
         OnPropertyChanged(nameof(HasOverrideClient));
         OnPropertyChanged(nameof(OverrideClientDisplay));
         OnPropertyChanged(nameof(EffectiveClientId));
@@ -1094,6 +1102,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
             _overrideClientName = string.IsNullOrWhiteSpace(creditInfo.FullName)
                 ? _overrideClientName
                 : creditInfo.FullName;
+            _overrideCustomerID = creditInfo.ID > 0 ? creditInfo.ID : _overrideCustomerID;
 
             OnPropertyChanged(nameof(OverrideClientDisplay));
             OnPropertyChanged(nameof(EffectiveClientId));
@@ -1334,6 +1343,31 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         return false;
     }
 
+    internal static bool IsSupportedStandaloneReference(string? reference)
+    {
+        var value = (reference ?? string.Empty).Trim();
+        return value.All(char.IsDigit) && value.Length is 5 or 6 or 20 or 50;
+    }
+
+    private int ResolveRequestCustomerID()
+    {
+        if (_isCreditMode && _creditInfo is not null && _creditInfo.ID > 0)
+            return _creditInfo.ID;
+
+        return _overrideCustomerID > 0 ? _overrideCustomerID : 0;
+    }
+
+    private string ResolveRequestTaxNumber()
+    {
+        if (!string.IsNullOrWhiteSpace(_overrideTaxNumber))
+            return _overrideTaxNumber.Trim();
+
+        if (!_isStandaloneMode && _sourceEntry is not null)
+            return (_sourceEntry.ClientId ?? string.Empty).Trim();
+
+        return string.Empty;
+    }
+
     private void ToggleLine(CreditNoteLineItem? item)
     {
         if (item is null) return;
@@ -1461,6 +1495,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (!_isStandaloneMode && _sourceEntry is null)
             return;
 
+        if (_isStandaloneMode && !IsSupportedStandaloneReference(ReferenceNumber))
+        {
+            StatusMessage = "La referencia manual debe ser una clave 50, un consecutivo o un numero de transaccion valido.";
+            await _dialogService.AlertAsync("Nota de Credito", StatusMessage, "OK");
+            return;
+        }
+
         var validationIssues = GetValidationIssues();
         if (validationIssues.Count > 0)
         {
@@ -1551,6 +1592,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
 
             var clientId = EffectiveClientId;
             var clientName = EffectiveClientName;
+            var taxNumber = ResolveRequestTaxNumber();
             var creditAccountNumber = _isCreditMode
                 ? HasOverrideClient
                     ? _overrideClientId
@@ -1562,7 +1604,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 StoreID = currentUser.StoreId > 0 ? currentUser.StoreId : _storeId > 0 ? _storeId : 1,
                 RegisterID = _registerId > 0 ? _registerId : 1,
                 CashierID = ParseCashierId(currentUser),
-                CustomerID = 0,
+                CustomerID = ResolveRequestCustomerID(),
                 Comment = string.Join(" | ", commentParts),
                 ReferenceNumber = ReferenceNumber,
                 Status = 2,
@@ -1573,7 +1615,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 CondicionVenta = "01",
                 CodCliente = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
                 NombreCliente = !string.IsNullOrWhiteSpace(clientName) ? clientName : string.Empty,
-                CedulaTributaria = !string.IsNullOrWhiteSpace(clientId) ? clientId : string.Empty,
+                CedulaTributaria = taxNumber,
                 CreditAccountNumber = creditAccountNumber,
                 InsertarTiqueteEspera = true,
                 COMPROBANTE_TIPO = "03",
@@ -1859,6 +1901,9 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 quantity,
                 line.TaxPercentage,
                 pricesIncludeTax);
+            var displayPrice = pricesIncludeTax
+                ? PricingRules.RoundUnitPrice(line.UnitPriceColones)
+                : pricing.UnitPriceWithoutTax;
 
             items.Add(new NovaRetailSaleItemRequest
             {
@@ -1867,6 +1912,8 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 Quantity = quantity,
                 UnitPrice = pricing.UnitPriceWithoutTax,
                 FullPrice = pricing.UnitPriceWithoutTax,
+                DisplayPrice = displayPrice,
+                DisplayFullPrice = displayPrice,
                 Taxable = line.TaxPercentage > 0,
                 TaxID = line.TaxID,
                 SalesTax = pricing.SalesTax,

@@ -101,6 +101,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         {
             if (ProductSearchText != value)
             {
+                _catalogVersion++;
                 SetLoadStatusMessage(string.Empty);
                 _appStore.Dispatch(new SetProductSearchTextAction(value));
                 ClearProductsPrefetch();
@@ -175,6 +176,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         {
             if (SelectedCategory != value)
             {
+                _catalogVersion++;
                 SetLoadStatusMessage(string.Empty);
                 _appStore.Dispatch(new SetSelectedCategoryAction(value));
 
@@ -410,9 +412,8 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         ApplyCompletedCartStock(completedCartItems);
         FilterProducts();
 
-        var refreshed = await LoadProductsAsync(forceRestart: true);
-        if (!refreshed)
-            RefreshProductCountText();
+        await RefreshCompletedCartProductsAsync(completedCartItems);
+        StartPostCheckoutCatalogReconciliation();
     }
 
     public async Task RefreshVisibleCatalogAsync()
@@ -496,6 +497,111 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
             product.Stock -= sold.Quantity;
             product.CartQuantity = 0m;
+        }
+    }
+
+    private async Task RefreshCompletedCartProductsAsync(IReadOnlyCollection<CartItemModel>? completedCartItems)
+    {
+        if (completedCartItems is null || completedCartItems.Count == 0)
+            return;
+
+        var catalogVersion = _catalogVersion;
+        var affectedItemIds = completedCartItems
+            .Where(item => item.ItemID > 0 && item.Quantity > 0m && !IsNonInventoryItem(item.ItemType))
+            .Select(item => item.ItemID)
+            .Distinct()
+            .Take(60)
+            .ToList();
+
+        if (affectedItemIds.Count == 0)
+            return;
+
+        SetLoadStatusMessage("Actualizando stock vendido...");
+        IsSearchingProducts = true;
+        try
+        {
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            var refreshTasks = affectedItemIds.Select(itemId =>
+                _productService.GetByIdAsync(itemId, _exchangeRate, timeoutCts.Token));
+
+            var refreshedProducts = await Task.WhenAll(refreshTasks);
+            if (!IsCurrentCatalogVersion(catalogVersion))
+                return;
+
+            foreach (var refreshed in refreshedProducts.Where(product => product is not null).Cast<ProductModel>())
+                MergeRefreshedProduct(refreshed);
+
+            SetLoadStatusMessage(string.Empty);
+            FilterProducts();
+            RefreshProductCountText();
+        }
+        catch (OperationCanceledException)
+        {
+            SetLoadStatusMessage("Stock actualizado localmente. Se reconciliara en segundo plano.");
+        }
+        catch
+        {
+            SetLoadStatusMessage("Stock actualizado localmente. Se reconciliara en segundo plano.");
+        }
+        finally
+        {
+            IsSearchingProducts = false;
+        }
+    }
+
+    private void MergeRefreshedProduct(ProductModel refreshed)
+    {
+        StampNonInventoryFlag(new[] { refreshed });
+
+        var existing = _allProducts.FirstOrDefault(product => product.ItemID == refreshed.ItemID)
+            ?? _allProducts.FirstOrDefault(product =>
+                string.Equals((product.Code ?? string.Empty).Trim(), (refreshed.Code ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase));
+
+        if (existing is null)
+            return;
+
+        var cartQuantity = existing.CartQuantity;
+        existing.DepartmentID = refreshed.DepartmentID;
+        existing.Emoji = refreshed.Emoji;
+        existing.Name = refreshed.Name;
+        existing.Code = refreshed.Code;
+        existing.ExtendedDescription = refreshed.ExtendedDescription;
+        existing.SubDescription1 = refreshed.SubDescription1;
+        existing.SubDescription2 = refreshed.SubDescription2;
+        existing.SubDescription3 = refreshed.SubDescription3;
+        existing.Price = refreshed.Price;
+        existing.OldPrice = refreshed.OldPrice;
+        existing.PriceValue = refreshed.PriceValue;
+        existing.PriceColonesValue = refreshed.PriceColonesValue;
+        existing.Cost = refreshed.Cost;
+        existing.TaxPercentage = refreshed.TaxPercentage;
+        existing.TaxId = refreshed.TaxId;
+        existing.Cabys = refreshed.Cabys;
+        existing.Category = refreshed.Category;
+        existing.Stock = refreshed.Stock;
+        existing.ItemType = refreshed.ItemType;
+        existing.IsNonInventory = refreshed.IsNonInventory;
+        existing.CartQuantity = cartQuantity;
+    }
+
+    private void StartPostCheckoutCatalogReconciliation()
+    {
+        var catalogVersion = _catalogVersion;
+        _ = ReconcilePostCheckoutCatalogAsync(catalogVersion);
+    }
+
+    private async Task ReconcilePostCheckoutCatalogAsync(int catalogVersion)
+    {
+        try
+        {
+            await Task.Delay(300);
+            if (!IsCurrentCatalogVersion(catalogVersion))
+                return;
+
+            await LoadProductsAsync(forceRestart: true);
+        }
+        catch
+        {
         }
     }
 
