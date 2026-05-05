@@ -1131,9 +1131,12 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (IsDefaultCashName(customer.FullName) && IsDefaultCashAccountNumber(customer.AccountNumber))
             return null;
 
-        var creditByName = await ResolveCreditBySelectedCustomerNameAsync(customer);
-        if (creditByName is not null)
-            return creditByName;
+        if (IsDefaultCashAccountNumber(customer.AccountNumber))
+        {
+            var creditByName = await ResolveCreditBySelectedCustomerNameAsync(customer);
+            if (creditByName is not null)
+                return creditByName;
+        }
 
         var candidates = BuildSelectedCustomerCreditCandidates(customer);
         var directMatches = new List<CustomerCreditInfo>();
@@ -1153,6 +1156,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         var directMatch = FindBestCreditCustomerMatch(customer, directMatches);
         if (directMatch is not null)
             return directMatch;
+
+        if (!IsDefaultCashAccountNumber(customer.AccountNumber))
+        {
+            var creditByName = await ResolveCreditBySelectedCustomerNameAsync(customer);
+            if (creditByName is not null)
+                return creditByName;
+        }
 
         return null;
     }
@@ -1258,8 +1268,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (IsDefaultCashName(entry.ClientName))
             return string.Empty;
 
-        if (SourceUsesCreditTender(entry) &&
-            !string.IsNullOrWhiteSpace(entry.CreditAccountNumber) &&
+        if (!string.IsNullOrWhiteSpace(entry.CreditAccountNumber) &&
             !IsDefaultCashAccountNumber(entry.CreditAccountNumber))
             return entry.CreditAccountNumber.Trim();
 

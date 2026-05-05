@@ -100,6 +100,7 @@ namespace NovaAPI.Controllers
             if (request == null || request.Items == null)
                 return;
 
+            var entries = new List<NovaRetailAuditLogger.AuditEntry>();
             foreach (var item in request.Items)
             {
                 if (item == null)
@@ -109,31 +110,35 @@ namespace NovaAPI.Controllers
                 var price = item.DisplayPrice ?? item.UnitPrice;
                 if (fullPrice > price || item.DiscountReasonCodeID > 0)
                 {
-                    NovaRetailAuditLogger.Log(
-                        cn,
-                        "DiscountApplied",
-                        "Sale",
-                        transactionNumber,
-                        request.CashierID,
-                        request.StoreID,
-                        request.RegisterID,
-                        Math.Max(0m, fullPrice - price),
-                        $"Item {item.ItemID}: descuento/precio menor de {fullPrice:N2} a {price:N2}. Motivo {item.DiscountReasonCodeID}");
+                    entries.Add(new NovaRetailAuditLogger.AuditEntry
+                    {
+                        ActionType = "DiscountApplied",
+                        EntityType = "Sale",
+                        EntityID = transactionNumber,
+                        CashierID = request.CashierID,
+                        StoreID = request.StoreID,
+                        RegisterID = request.RegisterID,
+                        Amount = Math.Max(0m, fullPrice - price),
+                        Detail = $"Item {item.ItemID}: descuento/precio menor de {fullPrice:N2} a {price:N2}. Motivo {item.DiscountReasonCodeID}"
+                    });
                 }
                 else if (item.PriceSource != 1 || price > fullPrice)
                 {
-                    NovaRetailAuditLogger.Log(
-                        cn,
-                        "PriceChanged",
-                        "Sale",
-                        transactionNumber,
-                        request.CashierID,
-                        request.StoreID,
-                        request.RegisterID,
-                        price,
-                        $"Item {item.ItemID}: precio cambiado de {fullPrice:N2} a {price:N2}. PriceSource {item.PriceSource}");
+                    entries.Add(new NovaRetailAuditLogger.AuditEntry
+                    {
+                        ActionType = "PriceChanged",
+                        EntityType = "Sale",
+                        EntityID = transactionNumber,
+                        CashierID = request.CashierID,
+                        StoreID = request.StoreID,
+                        RegisterID = request.RegisterID,
+                        Amount = price,
+                        Detail = $"Item {item.ItemID}: precio cambiado de {fullPrice:N2} a {price:N2}. PriceSource {item.PriceSource}"
+                    });
                 }
             }
+
+            NovaRetailAuditLogger.LogMany(cn, entries);
         }
 
         private static string GetConnectionString()
@@ -205,7 +210,39 @@ IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
 
 IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_Search_History' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
-    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_Search_History ON dbo.AVS_INTEGRAFAST_01 (TRANSACTIONNUMBER) INCLUDE (CEDULA_TRIBUTARIA, NOMBRE_CLIENTE, CLAVE20, COMPROBANTE_INTERNO, CLAVE50, COMPROBANTE_TIPO);", cn))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_Search_History ON dbo.AVS_INTEGRAFAST_01 (TRANSACTIONNUMBER) INCLUDE (CEDULA_TRIBUTARIA, NOMBRE_CLIENTE, CLAVE20, COMPROBANTE_INTERNO, CLAVE50, COMPROBANTE_TIPO);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_CLAVE50_LedgerLookup' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_CLAVE50_LedgerLookup ON dbo.AVS_INTEGRAFAST_01 (CLAVE50) INCLUDE (TRANSACTIONNUMBER, CLAVE20, COMPROBANTE_INTERNO);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_CLAVE20_LedgerLookup' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_CLAVE20_LedgerLookup ON dbo.AVS_INTEGRAFAST_01 (CLAVE20) INCLUDE (TRANSACTIONNUMBER, CLAVE50, COMPROBANTE_INTERNO);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_INTERNO_LedgerLookup' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_INTERNO_LedgerLookup ON dbo.AVS_INTEGRAFAST_01 (COMPROBANTE_INTERNO) INCLUDE (TRANSACTIONNUMBER, CLAVE50, CLAVE20);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_Account_DocumentID_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_Account_DocumentID_Lookup ON dbo.AR_LedgerEntry (AccountID, DocumentID) INCLUDE (ID, DocumentType, [Open], Reference, ExtReference);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_Account_Reference_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_Account_Reference_Lookup ON dbo.AR_LedgerEntry (AccountID, Reference) INCLUDE (ID, DocumentID, DocumentType, [Open], ExtReference);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_Account_ExtReference_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_Account_ExtReference_Lookup ON dbo.AR_LedgerEntry (AccountID, ExtReference) INCLUDE (ID, DocumentID, DocumentType, [Open], Reference);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_LedgerEntry_Applied_Amount' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_LedgerEntry_Applied_Amount ON dbo.AR_LedgerEntryDetail (LedgerEntryID, AppliedEntryID) INCLUDE (Amount, AppliedAmount);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_AppliedEntry_Amount' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_AppliedEntry_Amount ON dbo.AR_LedgerEntryDetail (AppliedEntryID) INCLUDE (LedgerEntryID, Amount, AppliedAmount);", cn))
                     {
                         cmd.CommandTimeout = 300;
                         cmd.ExecuteNonQuery();
@@ -335,7 +372,9 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                     cn.Open();
                     EnsureSalePerformanceIndexes(cn);
 
-                    var nonInventoryItemTypes = LoadNonInventoryItemTypes(cn);
+                    var nonInventoryItemTypes = request.AllowNegativeInventory
+                        ? new HashSet<int>()
+                        : LoadNonInventoryItemTypes(cn);
                     var requiresNonInventoryBypass = !request.AllowNegativeInventory
                         && nonInventoryItemTypes.Count > 0
                         && RequestContainsNonInventoryItems(request.Items, nonInventoryItemTypes);
@@ -518,15 +557,6 @@ IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
                                 response.TiqueteEsperaOk = false;
                                 response.Warnings.Add($"TiqueteEspera: {exTiquete.Message}");
                                 LogError(new InvalidOperationException($"Fallo fiscal para transaccion {response.TransactionNumber}.", exTiquete));
-                            }
-
-                            try
-                            {
-                                EnsureIntegraFast05(cn, request, response.TransactionNumber);
-                            }
-                            catch (Exception exIf05)
-                            {
-                                response.Warnings.Add($"IntegraFast05: {exIf05.Message}");
                             }
 
                             if (request.Exonera == 1)

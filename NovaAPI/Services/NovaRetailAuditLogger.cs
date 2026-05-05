@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace NovaAPI.Services
 {
@@ -63,6 +65,88 @@ VALUES
             catch (Exception ex)
             {
                 // Auditoria no debe bloquear ventas, abonos ni cierres operativos.
+                LogAuditError(ex);
+            }
+        }
+
+        public sealed class AuditEntry
+        {
+            public string ActionType { get; set; }
+            public string EntityType { get; set; }
+            public int EntityID { get; set; }
+            public int CashierID { get; set; }
+            public int StoreID { get; set; }
+            public int RegisterID { get; set; }
+            public decimal Amount { get; set; }
+            public string Detail { get; set; }
+        }
+
+        public static void LogMany(SqlConnection cn, IEnumerable<AuditEntry> entries, SqlTransaction tx = null)
+        {
+            if (cn == null || entries == null)
+                return;
+
+            var list = entries
+                .Where(entry => entry != null &&
+                                !string.IsNullOrWhiteSpace(entry.ActionType) &&
+                                !string.IsNullOrWhiteSpace(entry.EntityType))
+                .ToList();
+
+            if (list.Count == 0)
+                return;
+
+            try
+            {
+                if (!TableExists(cn, tx))
+                    return;
+
+                var cashierNames = new Dictionary<int, string>();
+                var rows = new DataTable();
+                rows.Columns.Add("ActionDate", typeof(DateTime));
+                rows.Columns.Add("ActionType", typeof(string));
+                rows.Columns.Add("EntityType", typeof(string));
+                rows.Columns.Add("EntityID", typeof(int));
+                rows.Columns.Add("CashierID", typeof(int));
+                rows.Columns.Add("CashierName", typeof(string));
+                rows.Columns.Add("StoreID", typeof(int));
+                rows.Columns.Add("RegisterID", typeof(int));
+                rows.Columns.Add("Amount", typeof(decimal));
+                rows.Columns.Add("Detail", typeof(string));
+
+                var now = DateTime.Now;
+                foreach (var entry in list)
+                {
+                    if (!cashierNames.TryGetValue(entry.CashierID, out var cashierName))
+                    {
+                        cashierName = ResolveCashierName(cn, tx, entry.CashierID);
+                        cashierNames[entry.CashierID] = cashierName;
+                    }
+
+                    rows.Rows.Add(
+                        now,
+                        Truncate(entry.ActionType, 40),
+                        Truncate(entry.EntityType, 40),
+                        entry.EntityID,
+                        entry.CashierID,
+                        Truncate(cashierName, 120),
+                        entry.StoreID,
+                        entry.RegisterID,
+                        entry.Amount,
+                        Truncate(entry.Detail ?? string.Empty, 1000));
+                }
+
+                using (var bulk = new SqlBulkCopy(cn, SqlBulkCopyOptions.CheckConstraints, tx))
+                {
+                    bulk.DestinationTableName = "dbo.NovaRetail_ActionLog";
+                    bulk.BulkCopyTimeout = 30;
+                    foreach (DataColumn column in rows.Columns)
+                        bulk.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+
+                    bulk.WriteToServer(rows);
+                }
+            }
+            catch (Exception ex)
+            {
                 LogAuditError(ex);
             }
         }

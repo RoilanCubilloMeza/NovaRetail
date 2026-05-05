@@ -20,6 +20,12 @@ namespace NovaRetail.Data
         private readonly string[] _baseUrls;
         private List<ActividadDto> _cachedActividades = new();
         private string _cachedActividadesCedula = string.Empty;
+        private static readonly TimeSpan CreditCacheDuration = TimeSpan.FromMinutes(2);
+        private readonly object _creditCacheLock = new();
+        private readonly Dictionary<string, (DateTimeOffset CreatedAt, CustomerCreditInfo? Value)> _creditInfoCache =
+            new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, (DateTimeOffset CreatedAt, IReadOnlyList<CustomerCreditInfo> Value)> _creditSearchCache =
+            new(StringComparer.OrdinalIgnoreCase);
 
         public ApiClienteService(Utilities utilities, IHttpClientFactory httpClientFactory, ILogger<ApiClienteService> logger, ApiSettings settings)
         {
@@ -117,14 +123,19 @@ namespace NovaRetail.Data
             if (string.IsNullOrWhiteSpace(accountNumber))
                 return null;
 
+            var cacheKey = accountNumber.Trim();
+            if (TryGetCreditInfoCache(cacheKey, out var cachedCredit))
+                return cachedCredit;
+
             foreach (var baseUrl in _baseUrls)
             {
                 try
                 {
-                    var url = $"{baseUrl}/api/Customers/CreditInfo?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
+                    var url = $"{baseUrl}/api/Customers/CreditInfo?accountNumber={Uri.EscapeDataString(cacheKey)}";
                     var http = _httpClientFactory.CreateClient(ClientName);
                     var json = await http.GetStringAsync(url);
                     var result = JsonConvert.DeserializeObject<CustomerCreditInfo>(json);
+                    SetCreditInfoCache(cacheKey, result);
                     return result;
                 }
                 catch (Exception ex)
@@ -133,6 +144,7 @@ namespace NovaRetail.Data
                 }
             }
 
+            SetCreditInfoCache(cacheKey, null);
             return null;
         }
 
@@ -140,6 +152,10 @@ namespace NovaRetail.Data
 
         public async Task<IReadOnlyList<CustomerCreditInfo>> BuscarClientesCreditoAsync(string? criteria)
         {
+            var cacheKey = (criteria ?? string.Empty).Trim();
+            if (TryGetCreditSearchCache(cacheKey, out var cachedResults))
+                return cachedResults;
+
             foreach (var baseUrl in _baseUrls)
             {
                 try
@@ -147,14 +163,16 @@ namespace NovaRetail.Data
                     var http = _httpClientFactory.CreateClient(ClientName);
                     string url;
 
-                    if (string.IsNullOrWhiteSpace(criteria))
+                    if (string.IsNullOrWhiteSpace(cacheKey))
                         url = $"{baseUrl}/api/Customers/CreditCustomers";
                     else
-                        url = $"{baseUrl}/api/Customers/CreditCustomers?criteria={Uri.EscapeDataString(criteria.Trim())}";
+                        url = $"{baseUrl}/api/Customers/CreditCustomers?criteria={Uri.EscapeDataString(cacheKey)}";
 
                     var json = await http.GetStringAsync(url);
                     var results = JsonConvert.DeserializeObject<List<CustomerCreditInfo>>(json);
-                    return results ?? (IReadOnlyList<CustomerCreditInfo>)Array.Empty<CustomerCreditInfo>();
+                    var value = results ?? (IReadOnlyList<CustomerCreditInfo>)Array.Empty<CustomerCreditInfo>();
+                    SetCreditSearchCache(cacheKey, value);
+                    return value;
                 }
                 catch (Exception ex)
                 {
@@ -162,10 +180,56 @@ namespace NovaRetail.Data
                 }
             }
 
-            return Array.Empty<CustomerCreditInfo>();
+            var empty = Array.Empty<CustomerCreditInfo>();
+            SetCreditSearchCache(cacheKey, empty);
+            return empty;
         }
 
         // ──────── Obtener cuentas por cobrar abiertas ────────
+
+        private bool TryGetCreditInfoCache(string key, out CustomerCreditInfo? value)
+        {
+            lock (_creditCacheLock)
+            {
+                if (_creditInfoCache.TryGetValue(key, out var entry) &&
+                    DateTimeOffset.UtcNow - entry.CreatedAt <= CreditCacheDuration)
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        private void SetCreditInfoCache(string key, CustomerCreditInfo? value)
+        {
+            lock (_creditCacheLock)
+                _creditInfoCache[key] = (DateTimeOffset.UtcNow, value);
+        }
+
+        private bool TryGetCreditSearchCache(string key, out IReadOnlyList<CustomerCreditInfo> value)
+        {
+            lock (_creditCacheLock)
+            {
+                if (_creditSearchCache.TryGetValue(key, out var entry) &&
+                    DateTimeOffset.UtcNow - entry.CreatedAt <= CreditCacheDuration)
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = Array.Empty<CustomerCreditInfo>();
+            return false;
+        }
+
+        private void SetCreditSearchCache(string key, IReadOnlyList<CustomerCreditInfo> value)
+        {
+            lock (_creditCacheLock)
+                _creditSearchCache[key] = (DateTimeOffset.UtcNow, value);
+        }
 
         public async Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber)
         {

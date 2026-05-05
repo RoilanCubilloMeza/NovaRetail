@@ -17,10 +17,56 @@ namespace NovaAPI.Controllers
     public class CustomersController : ApiController
     {
         private const decimal LedgerClosingTolerance = 0.01m;
+        private static readonly object CreditPerformanceIndexesLock = new object();
+        private static bool _creditPerformanceIndexesChecked;
 
         //string cs = AppConfig.ConnectionString("RMHPOS");
         //readonly LINQDataContext db = new LINQDataContext();
         readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));//test
+
+        private static void EnsureCreditPerformanceIndexes(SqlConnection cn)
+        {
+            if (_creditPerformanceIndexesChecked)
+                return;
+
+            lock (CreditPerformanceIndexesLock)
+            {
+                if (_creditPerformanceIndexesChecked)
+                    return;
+
+                try
+                {
+                    using (var cmd = new SqlCommand(@"
+IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customer_TaxNumber_CreditLookup' AND object_id = OBJECT_ID(N'dbo.Customer', N'U'))
+    CREATE NONCLUSTERED INDEX IX_Customer_TaxNumber_CreditLookup ON dbo.Customer (TaxNumber) INCLUDE (ID, AccountNumber, FirstName, LastName, PriceLevel, CustomText5);
+
+IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customer_AccountNumber_CreditLookup' AND object_id = OBJECT_ID(N'dbo.Customer', N'U'))
+    CREATE NONCLUSTERED INDEX IX_Customer_AccountNumber_CreditLookup ON dbo.Customer (AccountNumber) INCLUDE (ID, TaxNumber, FirstName, LastName, PriceLevel, CustomText5, PhoneNumber);
+
+IF OBJECT_ID(N'dbo.AR_Account', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_Account_Number_CreditLookup' AND object_id = OBJECT_ID(N'dbo.AR_Account', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_Account_Number_CreditLookup ON dbo.AR_Account (Number) INCLUDE (ID, CreditLimit);
+
+IF OBJECT_ID(N'dbo.AR_Account', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_Account_CreditLimit_Number' AND object_id = OBJECT_ID(N'dbo.AR_Account', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_Account_CreditLimit_Number ON dbo.AR_Account (CreditLimit, Number) INCLUDE (ID);
+
+IF OBJECT_ID(N'dbo.AR_AccountBalance', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_AccountBalance_ID_Amount' AND object_id = OBJECT_ID(N'dbo.AR_AccountBalance', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_AccountBalance_ID_Amount ON dbo.AR_AccountBalance (ID) INCLUDE (Amount);", cn))
+                    {
+                        cmd.CommandTimeout = 300;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                finally
+                {
+                    _creditPerformanceIndexesChecked = true;
+                }
+            }
+        }
 
         private static string Safe(string value, int maxLength)
         {
@@ -399,6 +445,7 @@ FROM Customer";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    EnsureCreditPerformanceIndexes(cn);
 
                     string sql;
                     SqlCommand cmd;
@@ -412,10 +459,10 @@ SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
        ISNULL(bl.Amount, 0) AS ClosingBalance,
        ISNULL(a.CreditLimit, 0) AS CreditLimit,
        ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
-FROM dbo.Customer c
-INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
+FROM dbo.AR_Account a
+INNER JOIN dbo.Customer c ON c.AccountNumber = a.Number
 LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
-WHERE ISNULL(a.CreditLimit, 0) > 0
+WHERE a.CreditLimit > 0
 ORDER BY c.LastName, c.FirstName";
                         cmd = new SqlCommand(sql, cn);
                     }
@@ -423,19 +470,20 @@ ORDER BY c.LastName, c.FirstName";
                     {
                         var like = "%" + term + "%";
                         sql = @"
-SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
+SELECT TOP (100) c.ID, c.AccountNumber, c.FirstName, c.LastName,
        CAST(c.PriceLevel AS INT) AS PriceLevel,
        CASE WHEN ISNULL(c.CustomText5, '0') = '0' THEN 0 ELSE 0 END AS CreditDays,
        ISNULL(bl.Amount, 0) AS ClosingBalance,
        ISNULL(a.CreditLimit, 0) AS CreditLimit,
        ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
-FROM dbo.Customer c
-INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
+FROM dbo.AR_Account a
+INNER JOIN dbo.Customer c ON c.AccountNumber = a.Number
 LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
-WHERE ISNULL(a.CreditLimit, 0) > 0
+WHERE a.CreditLimit > 0
   AND (c.AccountNumber LIKE @term
     OR c.FirstName LIKE @term
     OR c.LastName LIKE @term
+    OR LTRIM(RTRIM(ISNULL(c.FirstName, '') + ' ' + ISNULL(c.LastName, ''))) LIKE @term
     OR c.PhoneNumber LIKE @term)
 ORDER BY c.LastName, c.FirstName";
                         cmd = new SqlCommand(sql, cn);
@@ -491,18 +539,32 @@ ORDER BY c.LastName, c.FirstName";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    EnsureCreditPerformanceIndexes(cn);
 
                     var sql = @"
+;WITH CandidateCustomer AS
+(
+    SELECT TOP (1)
+           c.ID,
+           c.AccountNumber,
+           c.FirstName,
+           c.LastName,
+           c.PriceLevel,
+           c.CustomText5,
+           MatchRank = CASE WHEN c.AccountNumber = @Acct THEN 0 ELSE 1 END
+    FROM dbo.Customer c
+    WHERE c.AccountNumber = @Acct OR c.TaxNumber = @Acct
+    ORDER BY CASE WHEN c.AccountNumber = @Acct THEN 0 ELSE 1 END, c.ID DESC
+)
 SELECT c.ID, c.AccountNumber, c.FirstName, c.LastName,
        CAST(c.PriceLevel AS INT) AS PriceLevel,
        CASE WHEN ISNULL(c.CustomText5, '0') = '0' THEN 0 ELSE 0 END AS CreditDays,
        ISNULL(bl.Amount, 0) AS ClosingBalance,
        ISNULL(a.CreditLimit, 0) AS CreditLimit,
        ISNULL(a.CreditLimit, 0) - ISNULL(bl.Amount, 0) AS Available
-FROM dbo.Customer c
+FROM CandidateCustomer c
 INNER JOIN dbo.AR_Account a ON a.Number = c.AccountNumber
-LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID
-WHERE c.AccountNumber = @Acct OR c.TaxNumber = @Acct";
+LEFT JOIN dbo.AR_AccountBalance bl ON bl.ID = a.ID";
 
                     using (var cmd = new SqlCommand(sql, cn))
                     {
