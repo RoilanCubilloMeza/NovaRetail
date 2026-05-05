@@ -581,6 +581,11 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                 _storeName = config.StoreName ?? string.Empty;
                 _defaultClientId = ResolveCreditNoteCashClientId(config.DefaultClientId);
                 _defaultClientName = string.IsNullOrWhiteSpace(config.DefaultClientName) ? _defaultClientName : config.DefaultClientName.Trim();
+                _sourcePricesIncludeTax = config.IsTaxIncluded;
+            }
+            else
+            {
+                _sourcePricesIncludeTax = false;
             }
 
             IsCreditMode = false;

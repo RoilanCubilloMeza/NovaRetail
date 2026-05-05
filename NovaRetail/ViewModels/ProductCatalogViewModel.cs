@@ -368,18 +368,20 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             p.CartQuantity = 0;
     }
 
-    public async Task ResetCatalogAfterCheckoutAsync()
+    public async Task ResetCatalogAfterCheckoutAsync(IReadOnlyCollection<CartItemModel>? completedCartItems = null)
     {
         ResetSearchCts();
+        ClearProductsPrefetch();
 
         _appStore.Dispatch(new SetProductSearchTextAction(string.Empty));
         _appStore.Dispatch(new SetSelectedTabAction(TabKeys.Categorias));
         _appStore.Dispatch(new SetSelectedCategoryAction(CategoryKeys.Todos));
 
+        ApplyCompletedCartStock(completedCartItems);
         FilterProducts();
-        if (_allProducts.Count == 0)
-            await LoadProductsAsync();
-        else
+
+        var refreshed = await LoadProductsAsync();
+        if (!refreshed)
             RefreshProductCountText();
     }
 
@@ -412,6 +414,37 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         => _nonInventoryItemTypes.Count > 0 && _nonInventoryItemTypes.Contains(itemType);
 
     // ── Private logic (moved from MainViewModel.Products.cs) ──
+
+    private void ApplyCompletedCartStock(IReadOnlyCollection<CartItemModel>? completedCartItems)
+    {
+        if (completedCartItems is null || completedCartItems.Count == 0)
+            return;
+
+        var soldQuantities = completedCartItems
+            .Where(item => item.ItemID > 0 && item.Quantity > 0m)
+            .GroupBy(item => new
+            {
+                item.ItemID,
+                Code = (item.Code ?? string.Empty).Trim()
+            })
+            .Select(group => new
+            {
+                group.Key.ItemID,
+                group.Key.Code,
+                Quantity = group.Sum(item => item.Quantity)
+            });
+
+        foreach (var sold in soldQuantities)
+        {
+            var product = FindProduct(sold.ItemID, sold.Code)
+                ?? _allProducts.FirstOrDefault(p => p.ItemID == sold.ItemID);
+            if (product is null || IsNonInventoryItem(product.ItemType))
+                continue;
+
+            product.Stock -= sold.Quantity;
+            product.CartQuantity = 0m;
+        }
+    }
 
     private async Task SafeLoadCategoryAsync(string category)
     {

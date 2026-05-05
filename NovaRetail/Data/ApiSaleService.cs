@@ -8,6 +8,7 @@ namespace NovaRetail.Data;
 public sealed class ApiSaleService : ISaleService
 {
     private const string SalesClientName = "NovaSales";
+    private static readonly TimeSpan InvoiceHistorySearchTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ApiSaleService> _logger;
@@ -92,8 +93,11 @@ public sealed class ApiSaleService : ISaleService
                 var normalizedSearch = (search ?? string.Empty).Trim();
                 var top = string.IsNullOrWhiteSpace(normalizedSearch) ? 40 : 25;
                 var url = AppendNoCacheToken($"{baseUrl}/api/NovaRetailSales/invoice-history?search={Uri.EscapeDataString(normalizedSearch)}&top={top}");
-                using var response = await http.GetAsync(url, cancellationToken);
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(InvoiceHistorySearchTimeout);
+
+                using var response = await http.GetAsync(url, timeoutCts.Token);
+                var content = await response.Content.ReadAsStringAsync(timeoutCts.Token);
                 var trimmedContent = content?.TrimStart();
 
                 if (!string.IsNullOrWhiteSpace(content) && (trimmedContent!.StartsWith("{") || trimmedContent.StartsWith("[")))
@@ -117,6 +121,11 @@ public sealed class ApiSaleService : ISaleService
 
                 if (!response.IsSuccessStatusCode && string.IsNullOrWhiteSpace(lastErrorMessage))
                     lastErrorMessage = response.ReasonPhrase ?? $"Error HTTP {(int)response.StatusCode}.";
+            }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al consultar historial de facturas en {BaseUrl}", baseUrl);
+                lastErrorMessage = "La busqueda de facturas tardo demasiado. Intente con un criterio mas especifico.";
             }
             catch (OperationCanceledException)
             {

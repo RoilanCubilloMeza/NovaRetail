@@ -355,7 +355,7 @@ namespace NovaRetail.ViewModels
 
                 _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
 
-                await ResetStateAfterCompletedCartAsync();
+                await ResetStateAfterCompletedCartAsync(cartSnapshot);
 
                 if (!string.IsNullOrWhiteSpace(workOrderPostSaleMessage))
                     await _dialogService.AlertAsync("Orden de trabajo", workOrderPostSaleMessage, "OK");
@@ -374,10 +374,10 @@ namespace NovaRetail.ViewModels
             }
         }
 
-        private async Task ResetStateAfterCompletedCartAsync()
+        private async Task ResetStateAfterCompletedCartAsync(IReadOnlyCollection<CartItemModel>? completedCartItems = null)
         {
             ClearCart();
-            await ResetCatalogAfterCheckoutAsync();
+            await ResetCatalogAfterCheckoutAsync(completedCartItems);
             _appStore.Dispatch(new SetCurrentClientAction(string.Empty, string.Empty, false));
             CheckoutVm.ExonerationAuthorization = string.Empty;
         }

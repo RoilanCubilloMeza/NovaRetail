@@ -24,6 +24,7 @@ namespace NovaAPI.Controllers
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    EnsureSalePerformanceIndexes(cn);
 
                     string sql;
                     if (effectiveSearch.Length == 0)
@@ -172,6 +173,7 @@ OPTION (RECOMPILE)";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    EnsureSalePerformanceIndexes(cn);
 
                     const string headerSql = @"
 SELECT TOP 1

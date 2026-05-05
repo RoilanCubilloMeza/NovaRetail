@@ -124,6 +124,12 @@ WHERE TransactionNumber = @TransactionNumber
             if (transactionNumber <= 0 || request?.Items == null || request.Items.Count == 0)
                 return;
 
+            var syncRows = new DataTable();
+            syncRows.Columns.Add("DetailID", typeof(int));
+            syncRows.Columns.Add("Price", typeof(decimal));
+            syncRows.Columns.Add("FullPrice", typeof(decimal));
+            syncRows.Columns.Add("Cost", typeof(decimal));
+
             foreach (var item in request.Items)
             {
                 if (item == null || item.RowNo <= 0)
@@ -135,26 +141,68 @@ WHERE TransactionNumber = @TransactionNumber
                 if (displayPrice < 0m || displayFullPrice < 0m)
                     continue;
 
+                syncRows.Rows.Add(item.RowNo - 1, displayPrice, displayFullPrice, item.Cost);
+            }
+
+            if (syncRows.Rows.Count == 0)
+                return;
+
+            using (var createCmd = new SqlCommand(@"
+CREATE TABLE #NovaRetailEntrySync
+(
+    DetailID INT NOT NULL PRIMARY KEY,
+    Price DECIMAL(19, 4) NOT NULL,
+    FullPrice DECIMAL(19, 4) NOT NULL,
+    Cost DECIMAL(19, 4) NOT NULL
+);", cn))
+            {
+                createCmd.ExecuteNonQuery();
+            }
+
+            try
+            {
+                using (var bulk = new SqlBulkCopy(cn, SqlBulkCopyOptions.TableLock, null))
+                {
+                    bulk.DestinationTableName = "#NovaRetailEntrySync";
+                    bulk.BulkCopyTimeout = 30;
+                    bulk.ColumnMappings.Add("DetailID", "DetailID");
+                    bulk.ColumnMappings.Add("Price", "Price");
+                    bulk.ColumnMappings.Add("FullPrice", "FullPrice");
+                    bulk.ColumnMappings.Add("Cost", "Cost");
+                    bulk.WriteToServer(syncRows);
+                }
+
                 using (var cmd = new SqlCommand(@"
 UPDATE TE
-   SET TE.Price = @Price,
-       TE.FullPrice = @FullPrice,
+   SET TE.Price = S.Price,
+       TE.FullPrice = S.FullPrice,
        TE.Cost = CASE
-           WHEN @Cost > 0 THEN @Cost
+           WHEN S.Cost > 0 THEN S.Cost
            WHEN ISNULL(TE.Cost, 0) = 0 THEN ISNULL(IT.Cost, 0)
            ELSE TE.Cost
        END
 FROM dbo.TransactionEntry TE
 LEFT JOIN dbo.Item IT ON IT.ID = TE.ItemID
+INNER JOIN #NovaRetailEntrySync S ON S.DetailID = ISNULL(TE.DetailID, -1)
 WHERE TE.TransactionNumber = @TransactionNumber
-  AND ISNULL(TE.DetailID, -1) = @DetailID;", cn))
+  AND
+  (
+      ABS(ISNULL(TE.Price, 0) - S.Price) > @Tolerance
+      OR ABS(ISNULL(TE.FullPrice, 0) - S.FullPrice) > @Tolerance
+      OR (S.Cost > 0 AND ABS(ISNULL(TE.Cost, 0) - S.Cost) > @Tolerance)
+      OR (S.Cost <= 0 AND ISNULL(TE.Cost, 0) = 0 AND ISNULL(IT.Cost, 0) <> 0)
+  );", cn))
                 {
                     cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
-                    cmd.Parameters.AddWithValue("@DetailID", item.RowNo - 1);
-                    cmd.Parameters.AddWithValue("@Price", displayPrice);
-                    cmd.Parameters.AddWithValue("@FullPrice", displayFullPrice);
-                    cmd.Parameters.AddWithValue("@Cost", item.Cost);
+                    cmd.Parameters.AddWithValue("@Tolerance", LedgerClosingTolerance);
                     cmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                using (var dropCmd = new SqlCommand("IF OBJECT_ID('tempdb..#NovaRetailEntrySync') IS NOT NULL DROP TABLE #NovaRetailEntrySync;", cn))
+                {
+                    dropCmd.ExecuteNonQuery();
                 }
             }
         }

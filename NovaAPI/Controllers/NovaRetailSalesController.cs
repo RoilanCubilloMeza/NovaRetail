@@ -23,6 +23,8 @@ namespace NovaAPI.Controllers
         private const int WorkOrderType = 2;
         private const int QuoteOrderType = 3;
         private const decimal LedgerClosingTolerance = 0.01m;
+        private static readonly object SalePerformanceIndexesLock = new object();
+        private static bool _salePerformanceIndexesChecked;
 
         private static readonly string ErrorLogPath =
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log");
@@ -156,6 +158,70 @@ namespace NovaAPI.Controllers
             }
         }
 
+        private static void EnsureSalePerformanceIndexes(SqlConnection cn)
+        {
+            if (_salePerformanceIndexesChecked)
+                return;
+
+            lock (SalePerformanceIndexesLock)
+            {
+                if (_salePerformanceIndexesChecked)
+                    return;
+
+                try
+                {
+                    using (var cmd = new SqlCommand(@"
+IF OBJECT_ID(N'dbo.TaxEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_TaxEntry_TransactionEntryID' AND object_id = OBJECT_ID(N'dbo.TaxEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_TaxEntry_TransactionEntryID ON dbo.TaxEntry (TransactionEntryID);
+
+IF OBJECT_ID(N'dbo.TaxEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_TaxEntry_TransactionNumber' AND object_id = OBJECT_ID(N'dbo.TaxEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_TaxEntry_TransactionNumber ON dbo.TaxEntry (TransactionNumber);
+
+IF OBJECT_ID(N'dbo.TransactionEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_TransactionEntry_TransactionNumber_DetailID' AND object_id = OBJECT_ID(N'dbo.TransactionEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_TransactionEntry_TransactionNumber_DetailID ON dbo.TransactionEntry (TransactionNumber, DetailID) INCLUDE (ID, ItemID);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_TRANSACTIONNUMBER' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_TRANSACTIONNUMBER ON dbo.AVS_INTEGRAFAST_01 (TRANSACTIONNUMBER);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_05', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_05_CLAVE50' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_05', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_05_CLAVE50 ON dbo.AVS_INTEGRAFAST_05 (CLAVE50);
+
+IF OBJECT_ID(N'dbo.[Transaction]', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Transaction_Time_History' AND object_id = OBJECT_ID(N'dbo.[Transaction]', N'U'))
+    CREATE NONCLUSTERED INDEX IX_Transaction_Time_History ON dbo.[Transaction] ([Time] DESC) INCLUDE (TransactionNumber, Total, SalesTax, CustomerID);
+
+IF OBJECT_ID(N'dbo.[Transaction]', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Transaction_CustomerID_History' AND object_id = OBJECT_ID(N'dbo.[Transaction]', N'U'))
+    CREATE NONCLUSTERED INDEX IX_Transaction_CustomerID_History ON dbo.[Transaction] (CustomerID) INCLUDE (TransactionNumber, [Time], Total, SalesTax);
+
+IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customer_AccountNumber_History' AND object_id = OBJECT_ID(N'dbo.Customer', N'U'))
+    CREATE NONCLUSTERED INDEX IX_Customer_AccountNumber_History ON dbo.Customer (AccountNumber) INCLUDE (ID, FirstName, LastName);
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AVS_INTEGRAFAST_01_Search_History' AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AVS_INTEGRAFAST_01_Search_History ON dbo.AVS_INTEGRAFAST_01 (TRANSACTIONNUMBER) INCLUDE (CEDULA_TRIBUTARIA, NOMBRE_CLIENTE, CLAVE20, COMPROBANTE_INTERNO, CLAVE50, COMPROBANTE_TIPO);", cn))
+                    {
+                        cmd.CommandTimeout = 300;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError(new InvalidOperationException("No se pudieron verificar los indices de rendimiento de ventas.", ex));
+                }
+                finally
+                {
+                    _salePerformanceIndexesChecked = true;
+                }
+            }
+        }
+
         private static string SanitizeReferenceNumber(string referenceNumber)
         {
             if (string.IsNullOrWhiteSpace(referenceNumber))
@@ -225,6 +291,7 @@ namespace NovaAPI.Controllers
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
+                    EnsureSalePerformanceIndexes(cn);
 
                     var nonInventoryItemTypes = LoadNonInventoryItemTypes(cn);
                     var requiresNonInventoryBypass = !request.AllowNegativeInventory
@@ -848,6 +915,9 @@ namespace NovaAPI.Controllers
                 return 0;
 
             // Cargar TransactionEntry: indexar por DetailID y por posiciÃƒÆ’Ã‚Â³n secuencial
+            if (UseSetBasedSalePostProcessing())
+                return EnsureTaxEntriesSetBased(cn, request, transactionNumber, storeId);
+
             var entriesByDetailId = new Dictionary<int, int>();
             var entriesOrdered    = new List<(int EntryId, int DetailId, int ItemId)>();
 
@@ -931,6 +1001,83 @@ namespace NovaAPI.Controllers
             }
 
             return inserted;
+        }
+
+        private static bool UseSetBasedSalePostProcessing()
+        {
+            return true;
+        }
+
+        private static int EnsureTaxEntriesSetBased(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
+        {
+            using (var cmd = new SqlCommand(@"
+;WITH Entries AS
+(
+    SELECT
+        TE.ID,
+        ISNULL(TE.DetailID, -1) AS DetailID,
+        ISNULL(TE.ItemID, 0) AS ItemID,
+        ROW_NUMBER() OVER (ORDER BY TE.ID) AS EntryRowNo
+    FROM dbo.TransactionEntry TE
+    WHERE TE.TransactionNumber = @TransactionNumber
+),
+TaxItems AS
+(
+    SELECT RowNo, ItemID, TaxID, UnitPrice, Quantity, SalesTax
+    FROM @Items
+    WHERE Taxable = 1
+      AND ISNULL(TaxID, 0) > 0
+)
+INSERT INTO dbo.TaxEntry
+    (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)
+SELECT
+    @StoreID,
+    I.TaxID,
+    @TransactionNumber,
+    ROUND(ISNULL(I.SalesTax, 0), 4),
+    CASE
+        WHEN ROUND(ISNULL(I.UnitPrice, 0) * ISNULL(I.Quantity, 0), 4) < 0 THEN 0
+        ELSE ROUND(ISNULL(I.UnitPrice, 0) * ISNULL(I.Quantity, 0), 4)
+    END,
+    Matched.TransactionEntryID,
+    NEWID()
+FROM TaxItems I
+OUTER APPLY
+(
+    SELECT TOP (1) E.ID AS TransactionEntryID
+    FROM Entries E
+    WHERE E.DetailID = I.RowNo - 1
+       OR E.EntryRowNo = I.RowNo
+       OR E.ItemID = I.ItemID
+    ORDER BY
+        CASE
+            WHEN E.DetailID = I.RowNo - 1 THEN 0
+            WHEN E.EntryRowNo = I.RowNo THEN 1
+            ELSE 2
+        END,
+        E.ID
+) Matched
+WHERE Matched.TransactionEntryID IS NOT NULL
+  AND NOT EXISTS
+  (
+      SELECT 1
+      FROM dbo.TaxEntry Existing
+      WHERE Existing.TransactionEntryID = Matched.TransactionEntryID
+  );
+
+SELECT @@ROWCOUNT;", cn))
+            {
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@StoreID", storeId);
+                cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber);
+
+                var itemsParameter = cmd.Parameters.AddWithValue("@Items", NovaRetailSalesSqlMapper.ToItemsTable(request.Items));
+                itemsParameter.SqlDbType = SqlDbType.Structured;
+                itemsParameter.TypeName = "dbo.NovaRetailSaleItemTVP";
+
+                var inserted = cmd.ExecuteScalar();
+                return inserted == null || inserted == DBNull.Value ? 0 : Convert.ToInt32(inserted);
+            }
         }
 
         private sealed class ActiveBatchInfo

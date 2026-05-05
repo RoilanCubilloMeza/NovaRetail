@@ -1884,5 +1884,127 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.TaxEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_TaxEntry_TransactionEntryID'
+         AND object_id = OBJECT_ID(N'dbo.TaxEntry', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_TaxEntry_TransactionEntryID
+        ON dbo.TaxEntry(TransactionEntryID);
+END
+GO
+
+IF OBJECT_ID(N'dbo.TaxEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_TaxEntry_TransactionNumber'
+         AND object_id = OBJECT_ID(N'dbo.TaxEntry', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_TaxEntry_TransactionNumber
+        ON dbo.TaxEntry(TransactionNumber);
+END
+GO
+
+IF OBJECT_ID(N'dbo.TransactionEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_TransactionEntry_TransactionNumber_DetailID'
+         AND object_id = OBJECT_ID(N'dbo.TransactionEntry', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_TransactionEntry_TransactionNumber_DetailID
+        ON dbo.TransactionEntry(TransactionNumber, DetailID)
+        INCLUDE (ID, ItemID);
+END
+GO
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_AVS_INTEGRAFAST_01_TRANSACTIONNUMBER'
+         AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_AVS_INTEGRAFAST_01_TRANSACTIONNUMBER
+        ON dbo.AVS_INTEGRAFAST_01(TRANSACTIONNUMBER);
+END
+GO
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_05', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_AVS_INTEGRAFAST_05_CLAVE50'
+         AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_05', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_AVS_INTEGRAFAST_05_CLAVE50
+        ON dbo.AVS_INTEGRAFAST_05(CLAVE50);
+END
+GO
+
+IF OBJECT_ID(N'dbo.[Transaction]', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_Transaction_Time_History'
+         AND object_id = OBJECT_ID(N'dbo.[Transaction]', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_Transaction_Time_History
+        ON dbo.[Transaction]([Time] DESC)
+        INCLUDE (TransactionNumber, Total, SalesTax, CustomerID);
+END
+GO
+
+IF OBJECT_ID(N'dbo.[Transaction]', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_Transaction_CustomerID_History'
+         AND object_id = OBJECT_ID(N'dbo.[Transaction]', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_Transaction_CustomerID_History
+        ON dbo.[Transaction](CustomerID)
+        INCLUDE (TransactionNumber, [Time], Total, SalesTax);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_Customer_AccountNumber_History'
+         AND object_id = OBJECT_ID(N'dbo.Customer', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_Customer_AccountNumber_History
+        ON dbo.Customer(AccountNumber)
+        INCLUDE (ID, FirstName, LastName);
+END
+GO
+
+IF OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_AVS_INTEGRAFAST_01_Search_History'
+         AND object_id = OBJECT_ID(N'dbo.AVS_INTEGRAFAST_01', N'U')
+   )
+BEGIN
+    CREATE INDEX IX_AVS_INTEGRAFAST_01_Search_History
+        ON dbo.AVS_INTEGRAFAST_01(TRANSACTIONNUMBER)
+        INCLUDE (CEDULA_TRIBUTARIA, NOMBRE_CLIENTE, CLAVE20, COMPROBANTE_INTERNO, CLAVE50, COMPROBANTE_TIPO);
+END
+GO
+
 PRINT ' Extensiones NovaRetail de dashboard y auditoria aplicadas.'
 GO

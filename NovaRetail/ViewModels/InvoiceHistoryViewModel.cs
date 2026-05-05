@@ -30,6 +30,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     private bool _hasLoaded;
     private DateTime _lastFullLoadUtc;
     private static readonly TimeSpan FullLoadCacheDuration = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan RemoteSearchTimeout = TimeSpan.FromSeconds(10);
 
     public ObservableCollection<InvoiceHistoryEntry> Entries { get; } = new();
     public ReceiptViewModel ReprintVm { get; } = new();
@@ -222,11 +223,20 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             IsLoading = true;
             await Task.Yield();
             await Task.Delay(string.IsNullOrWhiteSpace(normalizedSearch) ? 0 : 450, cts.Token);
-            await LoadRemoteEntriesAsync(normalizedSearch, cts.Token);
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+            timeoutCts.CancelAfter(RemoteSearchTimeout);
+
+            await LoadRemoteEntriesAsync(normalizedSearch, timeoutCts.Token);
             ApplyFilter();
         }
         catch (OperationCanceledException)
         {
+        }
+        catch
+        {
+            // Keep the history screen responsive if the remote search fails or times out.
+            ApplyFilter();
         }
         finally
         {

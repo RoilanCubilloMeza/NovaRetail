@@ -6,6 +6,7 @@ namespace NovaRetail.Models;
 public class ProductModel : INotifyPropertyChanged
 {
     private decimal _cartQuantity;
+    private decimal _stock;
 
     public int     ItemID          { get; set; }
     public int     DepartmentID    { get; set; }
@@ -26,7 +27,21 @@ public class ProductModel : INotifyPropertyChanged
     public string Cabys           { get; set; } = string.Empty;
     public string  PriceColonesText => $"{UiConfig.CurrencySymbol}{PriceColonesValue:N2}";
     public string  Category        { get; set; } = string.Empty;
-    public decimal     Stock           { get; set; }
+    public decimal Stock
+    {
+        get => _stock;
+        set
+        {
+            if (_stock != value)
+            {
+                _stock = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsOutOfStock));
+                OnPropertyChanged(nameof(IsLowStock));
+                OnPropertyChanged(nameof(StockDisplayText));
+            }
+        }
+    }
     public int     ItemType        { get; set; }
     public bool    IsNonInventory  { get; set; }
     public string DepartmentDisplayName => string.IsNullOrWhiteSpace(Category) ? "Sin categoría" : Category;
