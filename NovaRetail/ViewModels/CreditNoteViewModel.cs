@@ -81,6 +81,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
     private readonly UserSession _userSession;
     private readonly IStoreConfigService _storeConfigService;
     private readonly IParametrosService _parametrosService;
+    private readonly IPricingService _pricingService;
 
     private InvoiceHistoryEntry? _sourceEntry;
     private ReasonCodeModel? _selectedReason;
@@ -373,6 +374,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         IStoreConfigService storeConfigService,
         IClienteService clienteService,
         IParametrosService parametrosService,
+        IPricingService pricingService,
         UserSession userSession)
     {
         _productService = productService;
@@ -382,6 +384,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         _storeConfigService = storeConfigService;
         _clienteService = clienteService;
         _parametrosService = parametrosService;
+        _pricingService = pricingService;
         _userSession = userSession;
 
         ConfirmCommand = new Command(async () => await ConfirmAsync(), () => CanConfirm);
@@ -1844,40 +1847,29 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         return false;
     }
 
-    private static List<NovaRetailSaleItemRequest> BuildCreditNoteItems(List<CreditNoteLineItem> selectedLines, int returnReasonCodeId, bool pricesIncludeTax)
+    private List<NovaRetailSaleItemRequest> BuildCreditNoteItems(List<CreditNoteLineItem> selectedLines, int returnReasonCodeId, bool pricesIncludeTax)
     {
         var items = new List<NovaRetailSaleItemRequest>(selectedLines.Count);
         for (var i = 0; i < selectedLines.Count; i++)
         {
             var line = selectedLines[i];
             var quantity = Math.Abs(line.ReturnQuantity);
-            var grossUnitPrice = line.UnitPriceColones;
-            var unitPrice = grossUnitPrice;
-            var salesTax = 0m;
-
-            if (line.TaxPercentage > 0 && pricesIncludeTax)
-            {
-                var divisor = 1m + line.TaxPercentage / 100m;
-                unitPrice = Math.Round(grossUnitPrice / divisor, 4, MidpointRounding.AwayFromZero);
-                var grossLine = Math.Round(grossUnitPrice * quantity, 2, MidpointRounding.AwayFromZero);
-                var netLine = Math.Round(unitPrice * quantity, 2, MidpointRounding.AwayFromZero);
-                salesTax = Math.Round(grossLine - netLine, 2, MidpointRounding.AwayFromZero);
-            }
-            else if (line.TaxPercentage > 0)
-            {
-                salesTax = Math.Round(unitPrice * quantity * line.TaxPercentage / 100m, 2, MidpointRounding.AwayFromZero);
-            }
+            var pricing = _pricingService.CalculateTaxPriceBreakdown(
+                line.UnitPriceColones,
+                quantity,
+                line.TaxPercentage,
+                pricesIncludeTax);
 
             items.Add(new NovaRetailSaleItemRequest
             {
                 RowNo = i + 1,
                 ItemID = line.ItemID,
                 Quantity = quantity,
-                UnitPrice = unitPrice,
-                FullPrice = unitPrice,
+                UnitPrice = pricing.UnitPriceWithoutTax,
+                FullPrice = pricing.UnitPriceWithoutTax,
                 Taxable = line.TaxPercentage > 0,
                 TaxID = line.TaxID,
-                SalesTax = salesTax,
+                SalesTax = pricing.SalesTax,
                 LineComment = string.Empty,
                 ReturnReasonCodeID = returnReasonCodeId,
                 ItemType = 0,

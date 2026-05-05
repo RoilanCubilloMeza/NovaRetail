@@ -9,6 +9,7 @@ public sealed class ApiProductService : IProductService
 {
     private const string ItemsClientName = "NovaItems";
     private const string ReasonCodeClientName = "NovaReasonCodes";
+    private static readonly TimeSpan ProductRequestTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ApiProductService> _logger;
@@ -18,6 +19,13 @@ public sealed class ApiProductService : IProductService
     private DateTime _countCacheExpiry;
     private readonly Dictionary<int, (List<ReasonCodeModel> Codes, DateTime Expiry)> _reasonCodesCache = new();
     private static readonly TimeSpan ReasonCodesCacheDuration = TimeSpan.FromMinutes(10);
+
+    private static CancellationTokenSource CreateProductTimeout(CancellationToken cancellationToken)
+    {
+        var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(ProductRequestTimeout);
+        return timeoutCts;
+    }
 
     public ApiProductService(IHttpClientFactory httpClientFactory, ILogger<ApiProductService> logger, ApiSettings settings)
     {
@@ -39,12 +47,17 @@ public sealed class ApiProductService : IProductService
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
                 var url = $"{baseUrl}/api/Items?storeid={safeStoreId}&tipo=1&page={safePage}&pageSize={safePageSize}";
-                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url, cancellationToken);
+                using var timeoutCts = CreateProductTimeout(cancellationToken);
+                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url, timeoutCts.Token);
 
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
                 return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
+            }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al obtener productos desde {BaseUrl}", baseUrl);
             }
             catch (Exception ex)
             {
@@ -97,18 +110,23 @@ public sealed class ApiProductService : IProductService
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
                 var directUrl = $"{baseUrl}/api/Items/SearchDirect?criteria={Uri.EscapeDataString(criteria)}&top={safeTop}";
-                var apiItems = await TryGetApiItemsAsync(http, directUrl, cancellationToken);
+                using var timeoutCts = CreateProductTimeout(cancellationToken);
+                var apiItems = await TryGetApiItemsAsync(http, directUrl, timeoutCts.Token);
 
                 if (apiItems.Count == 0)
                 {
                     var legacyUrl = $"{baseUrl}/api/Items?criteria={Uri.EscapeDataString(criteria)}";
-                    apiItems = await TryGetApiItemsAsync(http, legacyUrl, cancellationToken);
+                    apiItems = await TryGetApiItemsAsync(http, legacyUrl, timeoutCts.Token);
                 }
 
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
                 return apiItems.Select(item => MapToProduct(item, exchangeRate)).ToList();
+            }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al buscar productos desde {BaseUrl}", baseUrl);
             }
             catch (Exception ex)
             {
@@ -139,7 +157,7 @@ public sealed class ApiProductService : IProductService
         }
     }
 
-    public async Task<List<ProductModel>> SearchByDepartmentAsync(int departmentId, int top, decimal exchangeRate)
+    public async Task<List<ProductModel>> SearchByDepartmentAsync(int departmentId, int top, decimal exchangeRate, CancellationToken cancellationToken = default)
     {
         var safeTop = Math.Clamp(top, 1, 1000);
         var deptMap = await GetDepartmentMapAsync();
@@ -150,12 +168,17 @@ public sealed class ApiProductService : IProductService
             {
                 var http = _httpClientFactory.CreateClient(ItemsClientName);
                 var url = $"{baseUrl}/api/Items/ByDepartment?departmentId={departmentId}&top={safeTop}";
-                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url);
+                using var timeoutCts = CreateProductTimeout(cancellationToken);
+                var apiItems = await http.GetFromJsonAsync<List<ApiItem>>(url, timeoutCts.Token);
 
                 if (apiItems is null || apiItems.Count == 0)
                     continue;
 
                 return apiItems.Select(item => MapToProduct(item, exchangeRate, deptMap)).ToList();
+            }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Timeout al buscar productos por departamento desde {BaseUrl}", baseUrl);
             }
             catch (Exception ex)
             {

@@ -13,6 +13,12 @@ public interface IPricingService
 
     LineTotals CalculateLineTotals(CartItemModel item, int discountPercent, bool isTaxIncluded);
 
+    TaxPriceBreakdown CalculateTaxPriceBreakdown(
+        decimal unitPriceColones,
+        decimal quantity,
+        decimal taxPercentage,
+        bool pricesIncludeTax);
+
     decimal ConvertFromColones(decimal amount, decimal exchangeRate);
 }
 
@@ -106,6 +112,55 @@ public sealed class PricingService : IPricingService
         };
     }
 
+    public TaxPriceBreakdown CalculateTaxPriceBreakdown(
+        decimal unitPriceColones,
+        decimal quantity,
+        decimal taxPercentage,
+        bool pricesIncludeTax)
+    {
+        var safeQuantity = quantity <= 0m ? 1m : quantity;
+        var safeTaxPercentage = Math.Max(0m, taxPercentage);
+        var safeUnitPrice = Math.Max(0m, unitPriceColones);
+
+        if (safeTaxPercentage <= 0m)
+        {
+            var unitPrice = Math.Round(safeUnitPrice, 4, MidpointRounding.AwayFromZero);
+            var total = Math.Round(unitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+            return new TaxPriceBreakdown
+            {
+                UnitPriceWithoutTax = unitPrice,
+                SalesTax = 0m,
+                TotalColones = total
+            };
+        }
+
+        if (pricesIncludeTax)
+        {
+            var divisor = 1m + safeTaxPercentage / 100m;
+            var unitPrice = Math.Round(safeUnitPrice / divisor, 4, MidpointRounding.AwayFromZero);
+            var grossLine = Math.Round(safeUnitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+            var netLine = Math.Round(unitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+
+            return new TaxPriceBreakdown
+            {
+                UnitPriceWithoutTax = unitPrice,
+                SalesTax = Math.Round(grossLine - netLine, 2, MidpointRounding.AwayFromZero),
+                TotalColones = grossLine
+            };
+        }
+
+        var netUnitPrice = Math.Round(safeUnitPrice, 4, MidpointRounding.AwayFromZero);
+        var taxableLine = Math.Round(netUnitPrice * safeQuantity, 2, MidpointRounding.AwayFromZero);
+        var salesTax = Math.Round(taxableLine * safeTaxPercentage / 100m, 2, MidpointRounding.AwayFromZero);
+
+        return new TaxPriceBreakdown
+        {
+            UnitPriceWithoutTax = netUnitPrice,
+            SalesTax = salesTax,
+            TotalColones = taxableLine + salesTax
+        };
+    }
+
     public decimal ConvertFromColones(decimal amount, decimal exchangeRate)
         => exchangeRate > 0 ? Math.Round(amount / exchangeRate, 4) : amount;
 }
@@ -131,4 +186,11 @@ public sealed class LineTotals
     public decimal TotalColones { get; set; }
     public decimal DiscountColones { get; set; }
     public decimal ExonerationColones { get; set; }
+}
+
+public sealed class TaxPriceBreakdown
+{
+    public decimal UnitPriceWithoutTax { get; init; }
+    public decimal SalesTax { get; init; }
+    public decimal TotalColones { get; init; }
 }

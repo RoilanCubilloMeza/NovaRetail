@@ -27,6 +27,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     private string _lastRefreshText = string.Empty;
     private CancellationTokenSource? _searchCts;
     private string _lastRemoteSearch = string.Empty;
+    private string _remoteStatusMessage = string.Empty;
     private bool _hasLoaded;
     private DateTime _lastFullLoadUtc;
     private static readonly TimeSpan FullLoadCacheDuration = TimeSpan.FromMinutes(2);
@@ -95,6 +96,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
     public string ResultSummaryText => IsLoading
         ? LoadingMessageText
+        : !string.IsNullOrWhiteSpace(_remoteStatusMessage)
+            ? _remoteStatusMessage
         : HasEntries
             ? $"{Entries.Count} factura(s) encontradas"
             : IsSearchActive
@@ -217,6 +220,8 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
             var normalizedSearch = NormalizeSearch(_searchText);
             OnPropertyChanged(nameof(LoadingMessageText));
+            _remoteStatusMessage = string.Empty;
+            OnPropertyChanged(nameof(ResultSummaryText));
             if (!ShouldQueryRemote(normalizedSearch))
                 return;
 
@@ -232,10 +237,13 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         }
         catch (OperationCanceledException)
         {
+            if (_searchCts == cts)
+                SetRemoteStatusMessage("La busqueda fue cancelada. Intente de nuevo.");
         }
         catch
         {
             // Keep the history screen responsive if the remote search fails or times out.
+            SetRemoteStatusMessage("No se pudo consultar el servidor. Se muestran resultados locales.");
             ApplyFilter();
         }
         finally
@@ -371,9 +379,13 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         {
             _remoteSearchCache[search] = new List<InvoiceHistoryEntry>();
             _lastRemoteSearch = search;
+            SetRemoteStatusMessage(string.IsNullOrWhiteSpace(result.Message)
+                ? "No se pudo consultar el servidor. Se muestran resultados locales."
+                : result.Message);
             return;
         }
 
+        SetRemoteStatusMessage(string.Empty);
         MarkRemoteRefresh();
 
         if (result.Entries.Count == 0)
@@ -428,6 +440,15 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     }
 
     private static string NormalizeSearch(string search) => (search ?? string.Empty).Trim();
+
+    private void SetRemoteStatusMessage(string message)
+    {
+        if (_remoteStatusMessage == message)
+            return;
+
+        _remoteStatusMessage = message;
+        OnPropertyChanged(nameof(ResultSummaryText));
+    }
 
     private static bool ShouldQueryRemote(string search)
     {

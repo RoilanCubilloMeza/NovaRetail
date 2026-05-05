@@ -25,6 +25,8 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private const string ProductViewCards = "Cards";
     private int _loadedItemsPage;
     private int _prefetchedItemsPage;
+    private int _prefetchedItemsVersion;
+    private int _catalogVersion;
     private bool _canLoadMoreFromApi;
     private bool _isLoadingItems;
     private bool _isSearchingByCode;
@@ -35,6 +37,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private HashSet<int> _nonInventoryItemTypes = new();
     private AppState _previousState = new();
     private bool _isLoadingProductViewMode;
+    private string _loadStatusMessage = string.Empty;
 
     private CancellationTokenSource ResetSearchCts()
     {
@@ -98,6 +101,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         {
             if (ProductSearchText != value)
             {
+                SetLoadStatusMessage(string.Empty);
                 _appStore.Dispatch(new SetProductSearchTextAction(value));
                 ClearProductsPrefetch();
                 if (!string.IsNullOrWhiteSpace(value) &&
@@ -108,6 +112,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
                 var cts = ResetSearchCts();
                 var text = value;
+                var catalogVersion = _catalogVersion;
                 if (ShouldSearchFromApi(text))
                     IsSearchingProducts = true;
                 else
@@ -119,6 +124,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                     {
                         await Task.Delay(250, cts.Token);
                         if (_isSearchingByCode) return;
+                        if (!IsCurrentCatalogVersion(catalogVersion)) return;
                         await SearchFromApiAsync(text, cts.Token);
                     }
                     catch (OperationCanceledException) { }
@@ -169,6 +175,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         {
             if (SelectedCategory != value)
             {
+                SetLoadStatusMessage(string.Empty);
                 _appStore.Dispatch(new SetSelectedCategoryAction(value));
 
                 ResetSearchCts();
@@ -273,6 +280,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             {
                 _isLoadingMoreProducts = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(LoadingMessageText));
             }
         }
     }
@@ -287,9 +295,32 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             {
                 _isSearchingProducts = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(LoadingMessageText));
+                OnPropertyChanged(nameof(HasLoadStatusMessage));
             }
         }
     }
+
+    public string LoadingMessageText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(_loadStatusMessage))
+                return _loadStatusMessage;
+
+            if (IsLoadingMoreProducts)
+                return "Cargando mas productos...";
+
+            if (!string.IsNullOrWhiteSpace(ProductSearchText))
+                return "Buscando productos...";
+
+            return string.Equals(SelectedCategory, CategoryKeys.Todos, StringComparison.OrdinalIgnoreCase)
+                ? "Actualizando catalogo..."
+                : "Cargando categoria...";
+        }
+    }
+
+    public bool HasLoadStatusMessage => !string.IsNullOrWhiteSpace(_loadStatusMessage);
 
     private int _totalApiProducts;
     public int TotalApiProducts
@@ -370,8 +401,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
     public async Task ResetCatalogAfterCheckoutAsync(IReadOnlyCollection<CartItemModel>? completedCartItems = null)
     {
-        ResetSearchCts();
-        ClearProductsPrefetch();
+        InvalidateProductCatalogCache();
 
         _appStore.Dispatch(new SetProductSearchTextAction(string.Empty));
         _appStore.Dispatch(new SetSelectedTabAction(TabKeys.Categorias));
@@ -380,7 +410,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         ApplyCompletedCartStock(completedCartItems);
         FilterProducts();
 
-        var refreshed = await LoadProductsAsync();
+        var refreshed = await LoadProductsAsync(forceRestart: true);
         if (!refreshed)
             RefreshProductCountText();
     }
@@ -414,6 +444,29 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         => _nonInventoryItemTypes.Count > 0 && _nonInventoryItemTypes.Contains(itemType);
 
     // ── Private logic (moved from MainViewModel.Products.cs) ──
+
+    private void InvalidateProductCatalogCache()
+    {
+        _catalogVersion++;
+        ResetSearchCts();
+        ClearProductsPrefetch();
+        _loadedItemsPage = 0;
+        _canLoadMoreFromApi = false;
+        RefreshProductCountText();
+    }
+
+    private bool IsCurrentCatalogVersion(int version)
+        => version == _catalogVersion;
+
+    private void SetLoadStatusMessage(string message)
+    {
+        if (_loadStatusMessage == message)
+            return;
+
+        _loadStatusMessage = message;
+        OnPropertyChanged(nameof(LoadingMessageText));
+        OnPropertyChanged(nameof(HasLoadStatusMessage));
+    }
 
     private void ApplyCompletedCartStock(IReadOnlyCollection<CartItemModel>? completedCartItems)
     {
@@ -494,19 +547,29 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(category) || category == CategoryKeys.Todos)
             return;
 
+        var catalogVersion = _catalogVersion;
+        var cancellationToken = _searchCts.Token;
         IsSearchingProducts = true;
+        SetLoadStatusMessage("Cargando categoria...");
         try
         {
             List<ProductModel> products;
 
             var deptId = CategoryKeys.GetDepartmentID(category);
             if (deptId > 0)
-                products = await _productService.SearchByDepartmentAsync(deptId, SearchResultLimit, _exchangeRate);
+                products = await _productService.SearchByDepartmentAsync(deptId, SearchResultLimit, _exchangeRate, cancellationToken);
             else
-                products = await _productService.SearchAsync(category, SearchResultLimit, _exchangeRate);
+                products = await _productService.SearchAsync(category, SearchResultLimit, _exchangeRate, cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentCatalogVersion(catalogVersion))
+                return;
 
             if (products.Count == 0)
+            {
+                SetLoadStatusMessage("No se encontraron productos en esta categoria.");
                 return;
+            }
 
             StampNonInventoryFlag(products);
             _allProducts.Clear();
@@ -515,8 +578,12 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             _canLoadMoreFromApi = false;
             FilterProducts();
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch
         {
+            SetLoadStatusMessage("No se pudo cargar la categoria. Intente de nuevo.");
         }
         finally
         {
@@ -531,6 +598,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         IsSearchingProducts = true;
 
         var searchCts = ResetSearchCts();
+        var catalogVersion = _catalogVersion;
 
         try
         {
@@ -557,6 +625,9 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                 try
                 {
                     var results = await _productService.SearchAsync(code, 20, _exchangeRate, searchCts.Token);
+                    if (!IsCurrentCatalogVersion(catalogVersion))
+                        return;
+
                     product = FindProductByCode(results, code);
 
                     if (product is null && IsBarcodeFormat(code))
@@ -681,21 +752,30 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private async Task<bool> LoadProductsAsync(bool loadMore = false)
+    private async Task<bool> LoadProductsAsync(bool loadMore = false, bool forceRestart = false)
     {
-        if (_isLoadingItems)
+        if (_isLoadingItems && !forceRestart)
             return false;
 
         if (loadMore && !_canLoadMoreFromApi)
             return false;
 
         _isLoadingItems = true;
+        var catalogVersion = _catalogVersion;
+        if (!loadMore)
+            SetLoadStatusMessage(string.Empty);
         if (!loadMore) IsSearchingProducts = true;
         var nextPage = loadMore ? _loadedItemsPage + 1 : 1;
 
         try
         {
-            var products = await GetProductsPageAsync(nextPage, usePrefetch: loadMore);
+            var products = await GetProductsPageAsync(nextPage, usePrefetch: loadMore, catalogVersion);
+            if (!IsCurrentCatalogVersion(catalogVersion))
+            {
+                _isLoadingItems = false;
+                if (!loadMore) IsSearchingProducts = false;
+                return false;
+            }
 
             if (products.Count == 0)
             {
@@ -706,6 +786,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
                     _allProducts.Clear();
                     _loadedItemsPage = 0;
                     _canLoadMoreFromApi = false;
+                    SetLoadStatusMessage("No se encontraron productos.");
                     FilterProducts();
                 }
                 return false;
@@ -732,15 +813,20 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         }
         catch
         {
+            if (!loadMore)
+                SetLoadStatusMessage("No se pudo actualizar el catalogo. Intente de nuevo.");
             _isLoadingItems = false;
             IsSearchingProducts = false;
             return false;
         }
     }
 
-    private async Task<List<ProductModel>> GetProductsPageAsync(int page, bool usePrefetch)
+    private async Task<List<ProductModel>> GetProductsPageAsync(int page, bool usePrefetch, int catalogVersion)
     {
-        if (usePrefetch && _prefetchedItemsPage == page && _prefetchedItemsTask is not null)
+        if (usePrefetch &&
+            _prefetchedItemsPage == page &&
+            _prefetchedItemsVersion == catalogVersion &&
+            _prefetchedItemsTask is not null)
         {
             var prefetched = await _prefetchedItemsTask;
             ClearProductsPrefetch();
@@ -770,6 +856,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             return;
 
         _prefetchedItemsPage = page;
+        _prefetchedItemsVersion = _catalogVersion;
         _prefetchedItemsTask = PrefetchProductsPageAsync(page);
     }
 
@@ -788,6 +875,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
     private void ClearProductsPrefetch()
     {
         _prefetchedItemsPage = 0;
+        _prefetchedItemsVersion = 0;
         _prefetchedItemsTask = null;
     }
 
@@ -866,21 +954,26 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(normalized) || normalized.Length < 3)
             return;
 
+        var catalogVersion = _catalogVersion;
         await MainThread.InvokeOnMainThreadAsync(() => IsSearchingProducts = true);
         try
         {
             var products = await _productService.SearchAsync(normalized, SearchResultLimit, _exchangeRate, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentCatalogVersion(catalogVersion))
+                return;
 
             if (products.Count == 0)
             {
                 _allProducts.Clear();
                 _loadedItemsPage = 0;
                 _canLoadMoreFromApi = false;
+                SetLoadStatusMessage("No se encontraron productos para esa busqueda.");
                 await MainThread.InvokeOnMainThreadAsync(() => FilterProducts(skipSearchFilter: true));
                 return;
             }
 
+            SetLoadStatusMessage(string.Empty);
             StampNonInventoryFlag(products);
             _allProducts.Clear();
             _allProducts.AddRange(products);
@@ -892,6 +985,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         catch (OperationCanceledException) { }
         catch
         {
+            SetLoadStatusMessage("No se pudo completar la busqueda de productos.");
         }
         finally
         {

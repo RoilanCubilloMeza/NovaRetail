@@ -412,7 +412,7 @@
                                                    Color="{DynamicResource AccentBlue}"
                                                    WidthRequest="36"
                                                    HeightRequest="36"/>
-                                <Label Text="Buscando productos..."
+                                <Label Text="{Binding LoadingMessageText}"
                                        FontSize="13"
                                        TextColor="{DynamicResource Gray600}"
                                        HorizontalTextAlignment="Center"/>
@@ -436,7 +436,7 @@
                                                    WidthRequest="20"
                                                    HeightRequest="20"
                                                    VerticalOptions="Center"/>
-                                <Label Text="{Binding ProductCountText}"
+                                <Label Text="{Binding LoadingMessageText}"
                                        FontSize="12"
                                        TextColor="{DynamicResource Gray600}"
                                        VerticalOptions="Center"/>
