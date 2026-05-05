@@ -111,6 +111,59 @@ namespace NovaAPI.Controllers
             ApplyCommittedInventoryDelta(cn, BuildOrderItemCommitments(items), 1, tx);
         }
 
+        private static bool ValidateWorkOrderInventory(SqlConnection cn, IEnumerable<NovaRetailQuoteItemDto> items, ISet<int> nonInventoryItemTypes, SqlTransaction tx = null)
+        {
+            var commitments = BuildOrderItemCommitments(items);
+            if (commitments.Count == 0)
+                return true;
+
+            using (var cmd = new SqlCommand())
+            {
+                cmd.Connection = cn;
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 30;
+
+                var parameterNames = new List<string>(commitments.Count);
+                for (var index = 0; index < commitments.Count; index++)
+                {
+                    var parameterName = "@ItemID" + index;
+                    parameterNames.Add(parameterName);
+                    cmd.Parameters.AddWithValue(parameterName, commitments[index].ItemID);
+                }
+
+                cmd.CommandText = $@"
+                    SELECT ID, ISNULL(Quantity, 0) AS Quantity, ISNULL(ItemType, 0) AS ItemType
+                    FROM dbo.Item
+                    WHERE ID IN ({string.Join(",", parameterNames)})";
+
+                var inventory = new Dictionary<int, Tuple<double, int>>();
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        inventory[Convert.ToInt32(reader["ID"])] = Tuple.Create(
+                            Convert.ToDouble(reader["Quantity"]),
+                            Convert.ToInt32(reader["ItemType"]));
+                    }
+                }
+
+                foreach (var commitment in commitments)
+                {
+                    Tuple<double, int> snapshot;
+                    if (!inventory.TryGetValue(commitment.ItemID, out snapshot))
+                        continue;
+
+                    if (nonInventoryItemTypes != null && nonInventoryItemTypes.Contains(snapshot.Item2))
+                        continue;
+
+                    if (snapshot.Item1 < commitment.Quantity)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         private static void ReleaseWorkOrderInventory(SqlConnection cn, int orderId, SqlTransaction tx = null)
         {
             ApplyCommittedInventoryDelta(cn, LoadOrderItemCommitments(cn, orderId, tx), -1, tx);

@@ -431,6 +431,15 @@ namespace NovaAPI.Controllers
                     {
                         try
                         {
+                            if (!request.AllowNegativeInventory &&
+                                !ValidateWorkOrderInventory(cn, request.Items, LoadNonInventoryItemTypes(cn, tx), tx))
+                            {
+                                tx.Rollback();
+                                response.Ok = false;
+                                response.Message = "Stock insuficiente para uno o mas articulos.";
+                                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                            }
+
                             var now = DateTime.Now;
                             var expiration = request.ExpirationOrDueDate ?? now.Date;
                             var syncGuid = Guid.NewGuid();
@@ -606,6 +615,15 @@ namespace NovaAPI.Controllers
                     {
                         try
                         {
+                            if (!request.AllowNegativeInventory &&
+                                !ValidateWorkOrderInventory(cn, request.Items, LoadNonInventoryItemTypes(cn, tx), tx))
+                            {
+                                tx.Rollback();
+                                response.Ok = false;
+                                response.Message = "Stock insuficiente para uno o mas articulos.";
+                                return Request.CreateResponse(HttpStatusCode.BadRequest, response);
+                            }
+
                             var now = DateTime.Now;
                             var expiration = request.ExpirationOrDueDate ?? now.Date;
 

@@ -22,6 +22,7 @@ public sealed class NovaRetailCreateQuoteRequest
     public DateTime? ExpirationOrDueDate { get; set; }
     public decimal Tax { get; set; }
     public decimal Total { get; set; }
+    public bool AllowNegativeInventory { get; set; }
     public List<NovaRetailQuoteItemRequest> Items { get; set; } = new();
 }
 

@@ -7,6 +7,12 @@ namespace NovaRetail.ViewModels
         private void AddProduct(ProductModel? product)
             => AddProduct(product, 1m);
 
+        private async Task AddProductWithLatestConfigAsync(ProductModel? product, decimal quantityToAdd)
+        {
+            await RefreshInventoryPermissionConfigAsync();
+            AddProduct(product, quantityToAdd);
+        }
+
         private Task AddProductAsync(ProductModel? product)
         {
             if (product is null) return Task.CompletedTask;
@@ -115,7 +121,7 @@ namespace NovaRetail.ViewModels
             var existing = CartItems.FirstOrDefault(c => c.ItemID == product.ItemID && string.Equals(c.Code, product.Code, StringComparison.OrdinalIgnoreCase));
 
             decimal quantityToApply;
-            if (isNonInventory)
+            if (isNonInventory || CanAddWithoutInventory)
             {
                 quantityToApply = safeQuantity;
             }
@@ -164,7 +170,7 @@ namespace NovaRetail.ViewModels
                 UpdateExonerationEligibility(newItem, null);
             }
 
-            if (!isNonInventory && quantityToApply < safeQuantity)
+            if (!isNonInventory && !CanAddWithoutInventory && quantityToApply < safeQuantity)
                 ProductCatalog.ShowStockLimitAlert(product.Name, ProductCatalogViewModel.GetMaxAvailableQuantity(product.Stock));
 
             RecalculateTotal();
@@ -243,11 +249,17 @@ namespace NovaRetail.ViewModels
             RefreshCartItemsView();
         }
 
+        private async Task IncrementWithLatestConfigAsync(CartItemModel? item)
+        {
+            await RefreshInventoryPermissionConfigAsync();
+            Increment(item);
+        }
+
         private void Increment(CartItemModel? item)
         {
             if (item is null) return;
 
-            if (!IsNonInventoryItem(item.ItemType))
+            if (!IsNonInventoryItem(item.ItemType) && !CanAddWithoutInventory)
             {
                 var maxAvailableQuantity = ProductCatalogViewModel.GetMaxAvailableQuantity(item.Stock);
                 if (item.Quantity >= maxAvailableQuantity)
@@ -297,6 +309,47 @@ namespace NovaRetail.ViewModels
             ProductCatalog.UpdateProductCartQuantity(product.ItemID, product.Code, Math.Max(0m, existing.Quantity));
             RecalculateTotal();
             RefreshCartItemsView();
+        }
+
+        private List<CartItemModel> GetInventoryShortageItems()
+            => CartItems
+                .Where(item => item.ItemID > 0
+                    && !IsNonInventoryItem(item.ItemType)
+                    && item.Quantity > ProductCatalogViewModel.GetMaxAvailableQuantity(item.Stock))
+                .ToList();
+
+        private async Task<bool> EnsureInventoryPermissionAsync(string title, bool allowWithoutInventory)
+        {
+            await RefreshInventoryPermissionConfigAsync();
+            allowWithoutInventory = title.Contains("Orden", StringComparison.OrdinalIgnoreCase)
+                ? _allowOrderWithoutInventory
+                : _allowInvoiceWithoutInventory;
+
+            if (allowWithoutInventory)
+                return true;
+
+            var shortageItems = GetInventoryShortageItems();
+            if (shortageItems.Count == 0)
+                return true;
+
+            var examples = shortageItems
+                .Take(3)
+                .Select(item =>
+                {
+                    var available = ProductCatalogViewModel.GetMaxAvailableQuantity(item.Stock);
+                    return $"- {item.DisplayName}: carrito {item.Quantity:0.###}, disponible {available:0.###}";
+                });
+
+            var suffix = shortageItems.Count > 3
+                ? $"{Environment.NewLine}- Y {shortageItems.Count - 3} articulo(s) mas."
+                : string.Empty;
+
+            await _dialogService.AlertAsync(
+                title,
+                $"No se permite continuar con productos sin existencias segun el parametro configurado.{Environment.NewLine}{Environment.NewLine}{string.Join(Environment.NewLine, examples)}{suffix}",
+                "OK");
+
+            return false;
         }
 
         private async Task ClearCartAsync()

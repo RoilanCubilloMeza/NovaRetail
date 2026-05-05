@@ -1011,20 +1011,49 @@ GO
 -- ─────────────────────────────────────────────────────────────────────
 IF OBJECT_ID(N'dbo.AVS_Parametros', N'U') IS NULL
 CREATE TABLE dbo.AVS_Parametros (
-    CODIGO          NVARCHAR(20)    NOT NULL PRIMARY KEY,
+    CODIGO          NVARCHAR(50)    NOT NULL PRIMARY KEY,
     DESCRIPCION     NVARCHAR(255)   NULL,
     VALOR           NVARCHAR(255)   NULL
 );
+GO
+
+IF OBJECT_ID(N'dbo.AVS_Parametros', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.AVS_Parametros', N'CODIGO') < 100
+BEGIN
+    DECLARE @AvsParametrosPkName SYSNAME;
+    DECLARE @AvsParametrosSql NVARCHAR(MAX);
+
+    SELECT @AvsParametrosPkName = kc.name
+    FROM sys.key_constraints kc
+    WHERE kc.parent_object_id = OBJECT_ID(N'dbo.AVS_Parametros')
+      AND kc.[type] = N'PK';
+
+    IF @AvsParametrosPkName IS NOT NULL
+    BEGIN
+        SET @AvsParametrosSql = N'ALTER TABLE dbo.AVS_Parametros DROP CONSTRAINT ' + QUOTENAME(@AvsParametrosPkName);
+        EXEC sp_executesql @AvsParametrosSql;
+    END
+
+    ALTER TABLE dbo.AVS_Parametros ALTER COLUMN CODIGO NVARCHAR(50) NOT NULL;
+
+    IF @AvsParametrosPkName IS NOT NULL
+    BEGIN
+        SET @AvsParametrosSql = N'ALTER TABLE dbo.AVS_Parametros ADD CONSTRAINT ' + QUOTENAME(@AvsParametrosPkName) + N' PRIMARY KEY (CODIGO)';
+        EXEC sp_executesql @AvsParametrosSql;
+    END
+END
 GO
 
 -- Inserción de datos de parámetros (idempotente: no duplica si ya existen)
 INSERT INTO dbo.AVS_Parametros (CODIGO, DESCRIPCION, VALOR)
 SELECT CODIGO, DESCRIPCION, VALOR FROM (VALUES
     (N'CAT-01', N'IDs de departamentos visibles en categorias de la app', N''),
-    (N'CL-01',  N'ID del Cliente de Contado por defecto',                  N'00001'),
+    (N'CL-01',  N'ID del Cliente de Contado por defecto',                  N'0000'),
     (N'CL-02',  N'Nombre del Cliente de Contado por defecto',              N'CLIENTE CONTADO'),
     (N'IT-01',  N'IDs de ItemType que NO son inventario (separados por coma)', N'7,5,9'),
     (N'PR-01',  N'PriceOverride PriceSource (1=PriceA, 2=PriceB, 3=PriceC)', N'1'),
+    (N'factura_permite_sin_inventario', N'Permitir facturar productos sin existencias (0=No, 1=Si)', N'0'),
+    (N'orden_permite_sin_inventario', N'Permitir crear ordenes con productos sin existencias (0=No, 1=Si)', N'0'),
     (N'TC-01',  N'Tipo de Cambio (moneda extranjera)',                     N'585.50'),
     (N'TX-01',  N'IVA Incluido o Excluido (0=Incluido, 1=Excluido)',       N'0'),
     (N'VE-01',  N'Pedir Vendedor en la venta (0=No, 1=Si)',                N'0'),

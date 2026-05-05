@@ -31,6 +31,7 @@ namespace NovaAPI.Models
         public DateTime? ExpirationOrDueDate { get; set; }
         public decimal Tax { get; set; }
         public decimal Total { get; set; }
+        public bool AllowNegativeInventory { get; set; }
 
         [Required]
         public List<NovaRetailQuoteItemDto> Items { get; set; } = new List<NovaRetailQuoteItemDto>();

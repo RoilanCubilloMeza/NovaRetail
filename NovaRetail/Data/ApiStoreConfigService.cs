@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using NovaRetail.Messages;
 using NovaRetail.Models;
 
 namespace NovaRetail.Data;
@@ -22,13 +23,17 @@ public sealed class ApiStoreConfigService : IStoreConfigService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _baseUrls = settings.BaseUrls;
+        ParametrosChanged.Notified += ClearConfigCache;
+    }
+
+    private void ClearConfigCache()
+    {
+        _cachedConfig = null;
+        _configCacheExpiry = DateTime.MinValue;
     }
 
     public async Task<StoreConfigModel> GetConfigAsync()
     {
-        if (_cachedConfig is not null && DateTime.UtcNow < _configCacheExpiry)
-            return _cachedConfig;
-
         foreach (var baseUrl in _baseUrls)
         {
             try
@@ -48,7 +53,7 @@ public sealed class ApiStoreConfigService : IStoreConfigService
             }
         }
 
-        return new StoreConfigModel();
+        return _cachedConfig ?? new StoreConfigModel();
     }
 
     public async Task<List<TenderModel>> GetTendersAsync()

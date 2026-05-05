@@ -40,6 +40,12 @@ public class StoreConfigModel
 
     /// <summary>IT-01: IDs de ItemType no inventariables separados por coma (ej: "7,5,9").</summary>
     public string NonInventoryItemTypes { get; set; } = string.Empty;
+
+    /// <summary>factura_permite_sin_inventario: Permite facturar productos sin existencias (0=No, 1=Si).</summary>
+    public bool AllowInvoiceWithoutInventory { get; set; }
+
+    /// <summary>orden_permite_sin_inventario: Permite crear ordenes con productos sin existencias (0=No, 1=Si).</summary>
+    public bool AllowOrderWithoutInventory { get; set; }
 }
 
 public class TenderModel : System.ComponentModel.INotifyPropertyChanged

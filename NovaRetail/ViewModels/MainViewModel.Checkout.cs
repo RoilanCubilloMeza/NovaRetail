@@ -26,6 +26,12 @@ namespace NovaRetail.ViewModels
 
         private async Task ContinueInvoiceToCheckoutAsync()
         {
+            if (!await EnsureInventoryPermissionAsync("Facturacion", _allowInvoiceWithoutInventory))
+            {
+                if (_editingWorkOrderId > 0)
+                    ResetPendingWorkOrderCheckoutMode(restorePartialCart: true);
+                return;
+            }
 
             if (_requireSalesRep && CartItems.Any(c => c.SalesRepID == 0))
             {
@@ -540,7 +546,7 @@ namespace NovaRetail.ViewModels
                 RecallType = recallType,
                 TransactionTime = null,
                 TotalChange = change,
-                AllowNegativeInventory = false,
+                AllowNegativeInventory = _allowInvoiceWithoutInventory,
                 CurrencyCode = currencyCode,
                 TipoCambio = (_exchangeRate > 0 ? _exchangeRate : 1m).ToString(CultureInfo.InvariantCulture),
                 CondicionVenta = (tender.IsCredit || (CheckoutVm.HasSecondTender && CheckoutVm.SecondTender?.IsCredit == true)) ? "02" : "01",
@@ -623,6 +629,7 @@ namespace NovaRetail.ViewModels
                 ExpirationOrDueDate = _editingWorkOrderSummary?.ExpirationOrDueDate ?? _editingWorkOrderDetail?.Time.Date ?? DateTime.Now.Date,
                 Tax = totals.Tax,
                 Total = totals.Total,
+                AllowNegativeInventory = _allowOrderWithoutInventory,
                 Items = remainingItems
             };
         }

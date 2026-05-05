@@ -136,6 +136,9 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
+            if (!await EnsureInventoryPermissionAsync("Orden de trabajo", _allowOrderWithoutInventory))
+                return;
+
             var comment = await _dialogService.PromptAsync(
                 "Orden de trabajo",
                 "Ingrese un comentario o descripción opcional para identificar esta orden:",
@@ -173,6 +176,7 @@ namespace NovaRetail.ViewModels
                     ExpirationOrDueDate = DateTime.Now.Date,
                     Tax = Math.Round(_taxColones, 4),
                     Total = Math.Round(_totalColones, 4),
+                    AllowNegativeInventory = _allowOrderWithoutInventory,
                     Items = BuildQuoteItems()
                 };
 

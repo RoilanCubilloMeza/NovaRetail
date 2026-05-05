@@ -131,7 +131,10 @@ namespace NovaAPI.Controllers
                 {
                     using (var cn = new System.Data.SqlClient.SqlConnection(posConnectionString))
                     using (var cmd = new System.Data.SqlClient.SqlCommand(
-                        "SELECT CODIGO, LTRIM(RTRIM(VALOR)) AS VALOR FROM dbo.AVS_Parametros WHERE CODIGO IN ('VE-01','VE-02','TC-01','CL-01','CL-02','TX-01')", cn))
+                        @"SELECT CODIGO, LTRIM(RTRIM(VALOR)) AS VALOR
+                          FROM dbo.AVS_Parametros
+                          WHERE CODIGO IN ('VE-01','VE-02','TC-01','CL-01','CL-02','TX-01',
+                                           'factura_permite_sin_inventario','orden_permite_sin_inventario')", cn))
                     {
                         cn.Open();
                         using (var reader = cmd.ExecuteReader())
@@ -158,6 +161,10 @@ namespace NovaAPI.Controllers
                                 // TX-01: 0 = IVA Incluido, 1 = IVA Excluido
                                 if (codigo == "TX-01")
                                     dto.TaxSystem = valorInt == 0 ? 1 : 0;
+                                if (codigo == "factura_permite_sin_inventario")
+                                    dto.AllowInvoiceWithoutInventory = valorInt == 1;
+                                if (codigo == "orden_permite_sin_inventario")
+                                    dto.AllowOrderWithoutInventory = valorInt == 1;
                             }
                         }
                     }
@@ -467,6 +474,10 @@ namespace NovaAPI.Controllers
         public string DefaultClientName { get; set; } = "CLIENTE CONTADO";
         /// <summary>IT-01: IDs de ItemType no inventariables separados por coma (ej: "7,5,9").</summary>
         public string NonInventoryItemTypes { get; set; } = string.Empty;
+        /// <summary>factura_permite_sin_inventario: Permite facturar productos sin existencias (0=No, 1=Si).</summary>
+        public bool AllowInvoiceWithoutInventory { get; set; }
+        /// <summary>orden_permite_sin_inventario: Permite crear ordenes con productos sin existencias (0=No, 1=Si).</summary>
+        public bool AllowOrderWithoutInventory { get; set; }
     }
 
     public class TenderDto

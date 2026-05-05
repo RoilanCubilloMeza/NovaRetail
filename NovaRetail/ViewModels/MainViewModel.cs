@@ -75,6 +75,8 @@ namespace NovaRetail.ViewModels
         private bool _isCancellingRecoveredQuote;
         private bool _askForSalesRep;
         private bool _requireSalesRep;
+        private bool _allowInvoiceWithoutInventory;
+        private bool _allowOrderWithoutInventory;
         private SalesRepModel? _activeSalesRep;
         private NovaRetailOrderDetail? _editingWorkOrderDetail;
         private bool _isOrderActionMenuVisible;
@@ -703,13 +705,13 @@ namespace NovaRetail.ViewModels
             _userSession.CurrentUserChanged += OnCurrentUserChanged;
 
             // Wire ProductCatalog events
-            ProductCatalog.ProductAddRequested += (product, qty) => AddProduct(product, qty);
+            ProductCatalog.ProductAddRequested += (product, qty) => _ = AddProductWithLatestConfigAsync(product, qty);
             ProductCatalog.ProductDecrementRequested += DecrementProduct;
             ProductCatalog.ServiceProductRequested += OpenServicePriceEntry;
             ProductCatalog.InvoiceCommand = new Command(async () => await InvoiceAsync());
             ProductCatalog.ApplyManualExonerationCommand = new Command(async () => await ApplyManualExonerationAsync());
 
-            IncrementCommand = new Command<CartItemModel>(Increment);
+            IncrementCommand = new Command<CartItemModel>(item => _ = IncrementWithLatestConfigAsync(item));
             DecrementCommand = new Command<CartItemModel>(Decrement);
             ClearCartCommand = new Command(async () => await ClearCartAsync());
             InvoiceCommand = new Command(async () => await InvoiceAsync());
@@ -1037,6 +1039,9 @@ namespace NovaRetail.ViewModels
                 ProductCatalog.SetStoreConfig(config.StoreID, ProductCatalogViewModel.ParseNonInventoryItemTypes(config.NonInventoryItemTypes));
                 _askForSalesRep = config.AskForSalesRep;
                 _requireSalesRep = config.RequireSalesRep;
+                _allowInvoiceWithoutInventory = config.AllowInvoiceWithoutInventory;
+                _allowOrderWithoutInventory = config.AllowOrderWithoutInventory;
+                await ApplyInventoryPermissionParametersAsync();
                 _defaultTaxPercentage = config.DefaultTaxPercentage > 0 ? config.DefaultTaxPercentage : 13m;
                 _defaultClientId = !string.IsNullOrWhiteSpace(config.DefaultClientId) ? config.DefaultClientId : "00001";
                 _defaultClientName = !string.IsNullOrWhiteSpace(config.DefaultClientName) ? config.DefaultClientName : "CLIENTE CONTADO";
