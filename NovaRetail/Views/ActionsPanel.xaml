@@ -25,10 +25,16 @@
                                    FontAttributes="Bold"
                                    TextColor="{DynamicResource Gray500}"
                                    VerticalOptions="Center"/>
-                            <Label Grid.Column="1" Text="&#x1F504;"
+                            <Label Grid.Column="1"
+                                   Text="{Binding ExchangeRateRefreshIcon}"
                                    FontSize="{DynamicResource UIFontXS}"
-                                   TextColor="#94A3B8"
-                                   VerticalOptions="Center"/>
+                                   TextColor="#0284C7"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding RefreshExchangeRateCommand}"/>
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
 
                         <!-- Fila 2: valor principal -->
@@ -49,7 +55,7 @@
                         <Grid Grid.Row="2"
                               ColumnDefinitions="*">
                             <Label Grid.Column="0"
-                                   Text="USD &#x2192; CRC"
+                                   Text="{Binding ExchangeRateSourceText}"
                                    FontSize="{DynamicResource UIFontXS}"
                                    TextColor="#9CA3AF"
                                    HorizontalTextAlignment="Center"

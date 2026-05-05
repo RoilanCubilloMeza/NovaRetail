@@ -23,6 +23,7 @@ namespace NovaRetail.ViewModels
         private readonly ISaleService _saleService;
         private readonly IQuoteService _quoteService;
         private readonly IStoreConfigService _storeConfigService;
+        private readonly IExchangeRateService _exchangeRateService;
         private readonly ISalesRepService _salesRepService;
         private readonly IInvoiceHistoryService _invoiceHistoryService;
         private readonly IParametrosService _parametrosService;
@@ -506,6 +507,7 @@ namespace NovaRetail.ViewModels
         public ICommand OpenHoldMenuCommand { get; }
         public ICommand OpenWorkOrderMenuCommand { get; }
         public ICommand OpenAdminMenuCommand { get; }
+        public ICommand RefreshExchangeRateCommand { get; }
         public ICommand SaveQuoteCommand { get; }
         public ICommand SaveWorkOrderCommand { get; }
         public ICommand SaveHoldCommand { get; }
@@ -625,6 +627,8 @@ namespace NovaRetail.ViewModels
         // ── Tipo de cambio ──
 
         private decimal _exchangeRate;
+        private bool _isExchangeRateRefreshing;
+        private string _exchangeRateSourceText = "USD -> CRC";
         public decimal ExchangeRate
         {
             get => _exchangeRate;
@@ -641,6 +645,35 @@ namespace NovaRetail.ViewModels
             }
         }
         public string ExchangeRateText => $"{UiConfig.CurrencySymbol}{ExchangeRate:F2}";
+        public string ExchangeRateSourceText
+        {
+            get => _exchangeRateSourceText;
+            private set
+            {
+                if (_exchangeRateSourceText != value)
+                {
+                    _exchangeRateSourceText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsExchangeRateRefreshing
+        {
+            get => _isExchangeRateRefreshing;
+            private set
+            {
+                if (_isExchangeRateRefreshing != value)
+                {
+                    _isExchangeRateRefreshing = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ExchangeRateRefreshIcon));
+                    ((Command)RefreshExchangeRateCommand).ChangeCanExecute();
+                }
+            }
+        }
+
+        public string ExchangeRateRefreshIcon => IsExchangeRateRefreshing ? "..." : "↻";
 
         // ── Totales en colones ──
 
@@ -649,7 +682,7 @@ namespace NovaRetail.ViewModels
         public string TaxColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_taxColones, 2):N2}";
         public string TotalColonesText => $"{UiConfig.CurrencySymbol}{Math.Round(_totalColones, 2):N2}";
 
-        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ILoginService loginService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
+        public MainViewModel(IProductService productService, IExonerationService exonerationService, IDialogService dialogService, ILoginService loginService, ISaleService saleService, IQuoteService quoteService, IStoreConfigService storeConfigService, IExchangeRateService exchangeRateService, ISalesRepService salesRepService, IInvoiceHistoryService invoiceHistoryService, IParametrosService parametrosService, IPricingService pricingService, ProductCatalogViewModel productCatalog, AppStore appStore, UserSession userSession)
         {
             _productService = productService;
             _exonerationService = exonerationService;
@@ -658,6 +691,7 @@ namespace NovaRetail.ViewModels
             _saleService = saleService;
             _quoteService = quoteService;
             _storeConfigService = storeConfigService;
+            _exchangeRateService = exchangeRateService;
             _salesRepService = salesRepService;
             _invoiceHistoryService = invoiceHistoryService;
             _parametrosService = parametrosService;
@@ -702,6 +736,9 @@ namespace NovaRetail.ViewModels
             OpenAdminMenuCommand = new Command(
                 OpenAdminActionMenu,
                 () => CanAccessAdminActions);
+            RefreshExchangeRateCommand = new Command(
+                async () => await RefreshExchangeRateAsync(forceRefresh: true, showError: true),
+                () => !IsExchangeRateRefreshing);
             ShowInvoiceHistoryCommand = new Command(async () => await Shell.Current.GoToAsync("InvoiceHistoryPage"));
             StandaloneCreditNoteCommand = new Command(async () => await OpenStandaloneCreditNoteAsync());
             ShowCreditPaymentCommand = new Command(async () => await OpenCreditPaymentAsync());
@@ -1008,7 +1045,10 @@ namespace NovaRetail.ViewModels
                 {
                     ExchangeRate = config.DefaultExchangeRate;
                     ProductCatalog.SetExchangeRate(config.DefaultExchangeRate);
+                    ExchangeRateSourceText = "USD -> CRC";
                 }
+
+                await RefreshExchangeRateAsync(forceRefresh: false, showError: false);
 
                 OnPropertyChanged(nameof(ShowSalesRepFeature));
 
@@ -1236,6 +1276,55 @@ namespace NovaRetail.ViewModels
             var now = DateTime.Now;
             DateText = now.ToString("dd/MM/yyyy");
             TimeText = now.ToString("HH:mm:ss");
+        }
+
+        private async Task RefreshExchangeRateAsync(bool forceRefresh, bool showError)
+        {
+            if (IsExchangeRateRefreshing)
+                return;
+
+            try
+            {
+                IsExchangeRateRefreshing = true;
+                var rate = await _exchangeRateService.GetDollarExchangeRateAsync(forceRefresh);
+                if (rate is null || rate.SaleRate <= 0)
+                {
+                    if (showError)
+                    {
+                        await _dialogService.AlertAsync(
+                            "Tipo de cambio",
+                            "No fue posible consultar Hacienda. Se mantiene el tipo de cambio configurado.",
+                            "OK");
+                    }
+
+                    return;
+                }
+
+                ExchangeRate = rate.SaleRate;
+                ExchangeRateSourceText = $"Venta Hacienda {rate.RateDate:dd/MM/yyyy}";
+
+                if (showError)
+                {
+                    await _dialogService.AlertAsync(
+                        "Tipo de cambio",
+                        $"Tipo de cambio del día actualizado: {UiConfig.CurrencySymbol}{rate.SaleRate:F2}",
+                        "OK");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (showError)
+                {
+                    await _dialogService.AlertAsync(
+                        "Tipo de cambio",
+                        "La consulta a Hacienda tardó demasiado. Se mantiene el tipo de cambio configurado.",
+                        "OK");
+                }
+            }
+            finally
+            {
+                IsExchangeRateRefreshing = false;
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

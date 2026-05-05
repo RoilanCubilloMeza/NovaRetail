@@ -36,6 +36,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISaleService, ApiSaleService>();
         builder.Services.AddSingleton<IQuoteService, ApiQuoteService>();
         builder.Services.AddSingleton<IStoreConfigService, ApiStoreConfigService>();
+        builder.Services.AddSingleton<IExchangeRateService, HaciendaExchangeRateService>();
         builder.Services.AddSingleton<ISalesRepService, ApiSalesRepService>();
         builder.Services.AddSingleton<IInvoiceHistoryService, InvoiceHistoryService>();
         builder.Services.AddSingleton<IUsuariosService, ApiUsuariosService>();
@@ -71,6 +72,8 @@ public static class MauiProgram
             c => c.Timeout = TimeSpan.FromSeconds(10)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
         builder.Services.AddHttpClient("NovaManager",
             c => c.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiKeyDelegatingHandler>();
+        builder.Services.AddHttpClient("HaciendaExchangeRate",
+            c => c.Timeout = TimeSpan.FromSeconds(8));
 
         // ViewModels
         builder.Services.AddSingleton<LoginViewModel>();
