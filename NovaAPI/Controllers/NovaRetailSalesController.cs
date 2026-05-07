@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.IO;
 using System.Web.Http;
 using System.Xml.Linq;
 using NovaAPI.Models;
@@ -29,12 +31,25 @@ namespace NovaAPI.Controllers
         private static readonly string ErrorLogPath =
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_error.log");
 
+        private static readonly string PerformanceLogPath =
+            System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nova_perf.log");
+
         private static void LogError(Exception ex)
         {
             try
             {
                 System.IO.File.AppendAllText(ErrorLogPath,
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+            }
+            catch { }
+        }
+
+        private static void LogPerformance(string message)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(PerformanceLogPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}\r\n");
             }
             catch { }
         }
@@ -236,6 +251,18 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_Account_ExtReference_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
     CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_Account_ExtReference_Lookup ON dbo.AR_LedgerEntry (AccountID, ExtReference) INCLUDE (ID, DocumentID, DocumentType, [Open], Reference);
 
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_DocumentID_Account_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_DocumentID_Account_Lookup ON dbo.AR_LedgerEntry (DocumentID) INCLUDE (ID, AccountID, DocumentType, [Open], Reference, ExtReference);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_Reference_Account_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_Reference_Account_Lookup ON dbo.AR_LedgerEntry (Reference) INCLUDE (ID, AccountID, DocumentID, DocumentType, [Open], ExtReference);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntry', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntry_ExtReference_Account_Lookup' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntry', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntry_ExtReference_Account_Lookup ON dbo.AR_LedgerEntry (ExtReference) INCLUDE (ID, AccountID, DocumentID, DocumentType, [Open], Reference);
+
 IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_LedgerEntry_Applied_Amount' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
     CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_LedgerEntry_Applied_Amount ON dbo.AR_LedgerEntryDetail (LedgerEntryID, AppliedEntryID) INCLUDE (Amount, AppliedAmount);
@@ -324,6 +351,8 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
             }
 
             NormalizeCreditNoteRequest(request);
+            var perfRequestStarted = Stopwatch.StartNew();
+            LogPerformance($"CreateSale start COMPROBANTE_TIPO={request.COMPROBANTE_TIPO ?? string.Empty} NC_TIPO_DOC={request.NC_TIPO_DOC ?? string.Empty} CondicionVenta={request.CondicionVenta ?? string.Empty} Items={(request.Items == null ? 0 : request.Items.Count)}");
 
             if (!ModelState.IsValid)
             {
@@ -369,21 +398,30 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
             {
                 using (var cn = new SqlConnection(connectionString))
                 {
+                    var perfConnection = Stopwatch.StartNew();
                     cn.Open();
-                    EnsureSalePerformanceIndexes(cn);
+                    LogPerformance($"CreateSale connection open {perfConnection.ElapsedMilliseconds} ms");
 
+                    perfConnection.Restart();
+                    EnsureSalePerformanceIndexes(cn);
+                    LogPerformance($"CreateSale sale indexes {perfConnection.ElapsedMilliseconds} ms");
+
+                    perfConnection.Restart();
                     var nonInventoryItemTypes = request.AllowNegativeInventory
                         ? new HashSet<int>()
                         : LoadNonInventoryItemTypes(cn);
+                    LogPerformance($"CreateSale load non-inventory types {perfConnection.ElapsedMilliseconds} ms");
                     var requiresNonInventoryBypass = !request.AllowNegativeInventory
                         && nonInventoryItemTypes.Count > 0
                         && RequestContainsNonInventoryItems(request.Items, nonInventoryItemTypes);
 
                     if (requiresNonInventoryBypass)
                     {
+                        perfConnection.Restart();
                         saleTransaction = cn.BeginTransaction(IsolationLevel.Serializable);
 
                         var stockValidation = ValidateInventoryItems(cn, saleTransaction, request.Items, nonInventoryItemTypes);
+                        LogPerformance($"CreateSale inventory validation {perfConnection.ElapsedMilliseconds} ms stockOk={stockValidation.StockOk} nonInventory={stockValidation.HasNonInventoryItems}");
                         if (!stockValidation.StockOk)
                         {
                             SafeRollback(saleTransaction);
@@ -397,7 +435,9 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                         requiresNonInventoryBypass = stockValidation.HasNonInventoryItems;
                     }
 
+                    perfConnection.Restart();
                     var activeBatch = ResolveActiveBatch(cn, request.StoreID, request.RegisterID, saleTransaction);
+                    LogPerformance($"CreateSale resolve active batch {perfConnection.ElapsedMilliseconds} ms batch={(activeBatch == null ? 0 : activeBatch.BatchNumber)}");
                     if (activeBatch == null)
                     {
                         SafeRollback(saleTransaction);
@@ -464,6 +504,7 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                         tendersParameter.SqlDbType = SqlDbType.Structured;
                         tendersParameter.TypeName = "dbo.NovaRetailSaleTenderTVP";
 
+                        perfConnection.Restart();
                         var transactionNumberParameter = new SqlParameter("@TransactionNumber", SqlDbType.Int)
                         {
                             Direction = ParameterDirection.Output
@@ -493,6 +534,8 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                         {
                             response.TransactionNumber = Convert.ToInt32(transactionNumberParameter.Value);
                         }
+
+                        LogPerformance($"CreateSale spNovaRetail_CreateSale {perfConnection.ElapsedMilliseconds} ms ok={response.Ok} tn={response.TransactionNumber}");
                     }
 
                     if (saleTransaction != null)
@@ -507,11 +550,15 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
 
                     if (response.Ok && response.TransactionNumber > 0)
                     {
+                        perfConnection.Restart();
                         response.BatchNumber = EnsureTransactionBatchNumber(cn, response.TransactionNumber, request.StoreID, request.RegisterID, response.BatchNumber ?? activeBatch.BatchNumber);
+                        LogPerformance($"CreateSale EnsureTransactionBatchNumber {perfConnection.ElapsedMilliseconds} ms");
 
                         try
                         {
+                            perfConnection.Restart();
                             SyncPersistedTransactionEntryValues(cn, response.TransactionNumber, request);
+                            LogPerformance($"CreateSale SyncPersistedTransactionEntryValues {perfConnection.ElapsedMilliseconds} ms");
                         }
                         catch (Exception exEntries)
                         {
@@ -520,7 +567,9 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
 
                         try
                         {
+                            perfConnection.Restart();
                             var correctedTotals = SyncPersistedTransactionTotals(cn, response.TransactionNumber, request);
+                            LogPerformance($"CreateSale SyncPersistedTransactionTotals {perfConnection.ElapsedMilliseconds} ms");
                             if (correctedTotals.Total > 0m)
                             {
                                 response.SubTotal = correctedTotals.SubTotal;
@@ -536,7 +585,9 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
 
                         try
                         {
+                            perfConnection.Restart();
                             response.TaxEntriesInserted = EnsureTaxEntries(cn, request, response.TransactionNumber, request.StoreID);
+                            LogPerformance($"CreateSale EnsureTaxEntries {perfConnection.ElapsedMilliseconds} ms inserted={response.TaxEntriesInserted}");
                         }
                         catch (Exception exTax)
                         {
@@ -547,7 +598,9 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                         {
                             try
                             {
+                                perfConnection.Restart();
                                 EnsureFiscalArtifacts(cn, request, response.TransactionNumber);
+                                LogPerformance($"CreateSale EnsureFiscalArtifacts {perfConnection.ElapsedMilliseconds} ms");
                                 response.Clave50 = request.CLAVE50 ?? string.Empty;
                                 response.Clave20 = request.CLAVE20 ?? string.Empty;
                                 response.TiqueteEsperaOk = true;
@@ -563,7 +616,9 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                             {
                                 try
                                 {
+                                    perfConnection.Restart();
                                     EnsureExonerationEntries(cn, request, response.TransactionNumber);
+                                    LogPerformance($"CreateSale EnsureExonerationEntries {perfConnection.ElapsedMilliseconds} ms");
                                 }
                                 catch (Exception exExon)
                                 {
@@ -629,11 +684,15 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                             response.Total ?? request.Items.Sum(i => i.UnitPrice * i.Quantity),
                             $"Venta #{response.TransactionNumber} registrada");
 
+                        perfConnection.Restart();
                         LogSaleItemAudit(cn, request, response.TransactionNumber);
+                        LogPerformance($"CreateSale LogSaleItemAudit {perfConnection.ElapsedMilliseconds} ms");
 
                         try
                         {
+                            perfConnection.Restart();
                             TryCreateARTransaction(request, response);
+                            LogPerformance($"CreateSale TryCreateARTransaction {perfConnection.ElapsedMilliseconds} ms created={response.AccountsReceivableEntryCreated} applied={response.AccountsReceivableApplied} amount={response.AccountsReceivableAppliedAmount:N2}");
                         }
                         catch (Exception exAR)
                         {
@@ -647,6 +706,8 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
                 {
                     response.Message = "No fue posible registrar la venta.";
                 }
+
+                LogPerformance($"CreateSale finished total={perfRequestStarted.ElapsedMilliseconds} ms ok={response.Ok} tn={response.TransactionNumber}");
 
                 return Request.CreateResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, response);
             }

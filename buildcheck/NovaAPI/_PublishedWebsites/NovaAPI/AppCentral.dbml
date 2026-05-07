@@ -1,0 +1,294 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="AppCentral" Class="AppCentralDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Function Name="dbo.spAVSCreaTransaction" Method="spAVSCreaTransaction">
+    <Parameter Name="ShipToID" Parameter="shipToID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TransactionNumber" Parameter="transactionNumber" Type="System.Int32" DbType="Int" />
+    <Parameter Name="BatchNumber" Parameter="batchNumber" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Time" Parameter="time" Type="System.String" DbType="NVarChar(25)" />
+    <Parameter Name="CustomerID" Parameter="customerID" Type="System.String" DbType="NVarChar(13)" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Total" Parameter="total" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="SalesTax" Parameter="salesTax" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="ReferenceNumber" Parameter="referenceNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="Status" Parameter="status" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ChannelType" Parameter="channelType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="RecallID" Parameter="recallID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="RecallType" Parameter="recallType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ExchangeID" Parameter="exchangeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CustomerFullName" Parameter="customerFullName" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CustomerAccountNumber" Parameter="customerAccountNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="SubTotal" Parameter="subTotal" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Descuentos" Parameter="descuentos" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="SalesRepID" Parameter="salesRepID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCreaTransactionEntry" Method="spAVSCreaTransactionEntry">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Commission" Parameter="commission" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Cost" Parameter="cost" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="FullPrice" Parameter="fullPrice" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TransactionNumber" Parameter="transactionNumber" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ItemID" Parameter="itemID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Price" Parameter="price" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="PriceSource" Parameter="priceSource" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Quantity" Parameter="quantity" Type="System.Double" DbType="Float" />
+    <Parameter Name="SalesRepID" Parameter="salesRepID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Taxable" Parameter="taxable" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="DetailID" Parameter="detailID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="DiscountReasonCodeID" Parameter="discountReasonCodeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ReturnReasonCodeID" Parameter="returnReasonCodeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TaxChangeReasonCodeID" Parameter="taxChangeReasonCodeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="SalesTax" Parameter="salesTax" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="QuantityDiscountID" Parameter="quantityDiscountID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ItemType" Parameter="itemType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ComputedQuantity" Parameter="computedQuantity" Type="System.Double" DbType="Float" />
+    <Parameter Name="TransactionTime" Parameter="transactionTime" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="IsAddMoney" Parameter="isAddMoney" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="VoucherID" Parameter="voucherID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="PrecioEditado" Parameter="precioEditado" Type="System.Decimal" DbType="Money" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCreaLocation" Method="spAVSCreaLocation">
+    <Parameter Name="RutaID" Parameter="rutaID" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CustomerID" Parameter="customerID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Nombre" Parameter="nombre" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="Descripcion" Parameter="descripcion" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="Latitud" Parameter="latitud" Type="System.Double" DbType="Float" />
+    <Parameter Name="Longitud" Parameter="longitud" Type="System.Double" DbType="Float" />
+    <Parameter Name="Tipo" Parameter="tipo" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSGetLocationsbyCriteria" Method="spAVSGetLocationsbyCriteria">
+    <Parameter Name="Criteria" Parameter="criteria" Type="System.Int32" DbType="Int" />
+    <ElementType Name="spAVSGetLocationsbyCriteriaResult">
+      <Column Name="RutaID" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="CustomerID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Nombre" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="Descripcion" Type="System.String" DbType="NChar(255)" CanBeNull="true" />
+      <Column Name="Latitud" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Longitud" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Tipo" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="CashierID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spAVSCreaRoute" Method="spAVSCreaRoute">
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ReferenceNumber" Parameter="referenceNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="Nombre" Parameter="nombre" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSGetRoutesbyCriteria" Method="spAVSGetRoutesbyCriteria">
+    <Parameter Name="Criteria" Parameter="criteria" Type="System.String" DbType="NVarChar(50)" />
+    <ElementType Name="spAVSGetRoutesbyCriteriaResult">
+      <Column Name="AutoID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="StoreID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ReferenceNumber" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="Nombre" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="CashierID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spAVSCreaOrden" Method="spAVSCreaOrden">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Time" Parameter="time" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="Tax" Parameter="tax" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Total" Parameter="total" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="LastUpdated" Parameter="lastUpdated" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="ExpirationOrDueDate" Parameter="expirationOrDueDate" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="ReferenceNumber" Parameter="referenceNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CustomerFullName" Parameter="customerFullName" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CustomerAccountNumber" Parameter="customerAccountNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="CorreoEnviado" Parameter="correoEnviado" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="SubTotal" Parameter="subTotal" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Descuentos" Parameter="descuentos" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="isProforma" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="Closed" Parameter="closed" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="CustomerID" Parameter="customerID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ShipToID" Parameter="shipToID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DepositOverride" Parameter="depositOverride" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="Deposit" Parameter="deposit" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="SalesRepID" Parameter="salesRepID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Type" Parameter="type" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="Taxable" Parameter="taxable" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="ImpBonificado" Parameter="impBonificado" Type="System.Decimal" DbType="Money" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCreaOrdenEntry" Method="spAVSCreaOrdenEntry">
+    <Parameter Name="Cost" Parameter="cost" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="OrderID" Parameter="orderID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ItemID" Parameter="itemID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ItemLookupCode" Parameter="itemLookupCode" Type="System.String" DbType="NVarChar(25)" />
+    <Parameter Name="FullPrice" Parameter="fullPrice" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="PriceSource" Parameter="priceSource" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Price" Parameter="price" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="QuantityOnOrder" Parameter="quantityOnOrder" Type="System.Double" DbType="Float" />
+    <Parameter Name="SalesRepID" Parameter="salesRepID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Taxable" Parameter="taxable" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DetailID" Parameter="detailID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Description" Parameter="description" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="QuantityRTD" Parameter="quantityRTD" Type="System.Double" DbType="Float" />
+    <Parameter Name="LastUpdated" Parameter="lastUpdated" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="TransactionTime" Parameter="transactionTime" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="IsBonificado" Parameter="isBonificado" Type="System.Boolean" DbType="Bit" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_AR_LedgerEntry" Method="spAVSCrea_AR_LedgerEntry">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LastUpdated" Parameter="lastUpdated" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LinkType" Parameter="linkType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CustomerAccountNumber" Parameter="customerAccountNumber" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="DocumentType" Parameter="documentType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="PostingDate" Parameter="postingDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="DueDate" Parameter="dueDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="LedgerType" Parameter="ledgerType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Description" Parameter="description" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="CurrencyID" Parameter="currencyID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CurrencyFactor" Parameter="currencyFactor" Type="System.Double" DbType="Float" />
+    <Parameter Name="Positive" Parameter="positive" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="Open" Parameter="open" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="ClosingDate" Parameter="closingDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="ReasonID" Parameter="reasonID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="HoldReasonID" Parameter="holdReasonID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="UndoReasonID" Parameter="undoReasonID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="VarChar(255)" />
+    <Parameter Name="PayMethodID" Parameter="payMethodID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TransactionID" Parameter="transactionID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="AppReference" Parameter="appReference" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_Payment" Method="spAVSCrea_Payment">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CustomerAccountNumber" Parameter="customerAccountNumber" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="Time" Parameter="time" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="Amount" Parameter="amount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="VarChar(255)" />
+    <Parameter Name="AppReference" Parameter="appReference" Type="System.String" DbType="VarChar(50)" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_TenderEntry" Method="spAVSCrea_TenderEntry">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="CreditCardExpiration" Parameter="creditCardExpiration" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="OrderHistoryID" Parameter="orderHistoryID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DropPayoutID" Parameter="dropPayoutID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TransactionNumber" Parameter="transactionNumber" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TenderCode" Parameter="tenderCode" Type="System.String" DbType="VarChar(5)" />
+    <Parameter Name="PaymentID" Parameter="paymentID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Description" Parameter="description" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="CreditCardNumber" Parameter="creditCardNumber" Type="System.String" DbType="VarChar(25)" />
+    <Parameter Name="CreditCardApprovalCode" Parameter="creditCardApprovalCode" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="Amount" Parameter="amount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="AccountHolder" Parameter="accountHolder" Type="System.String" DbType="VarChar(40)" />
+    <Parameter Name="RoundingError" Parameter="roundingError" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="AmountForeign" Parameter="amountForeign" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="BankNumber" Parameter="bankNumber" Type="System.String" DbType="VarChar(25)" />
+    <Parameter Name="SerialNumber" Parameter="serialNumber" Type="System.String" DbType="VarChar(25)" />
+    <Parameter Name="State" Parameter="state" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="License" Parameter="license" Type="System.String" DbType="VarChar(25)" />
+    <Parameter Name="TransitNumber" Parameter="transitNumber" Type="System.String" DbType="VarChar(25)" />
+    <Parameter Name="VisaNetAuthorizationID" Parameter="visaNetAuthorizationID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DebitSurcharge" Parameter="debitSurcharge" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="CashBackSurcharge" Parameter="cashBackSurcharge" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="IsCreateNew" Parameter="isCreateNew" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="AppReference" Parameter="appReference" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_AR_LedgerEntryDetail" Method="spAVSCrea_AR_LedgerEntryDetail">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LedgerEntryID" Parameter="ledgerEntryID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LedgerType" Parameter="ledgerType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DueDate" Parameter="dueDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="PostingDate" Parameter="postingDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="DetailType" Parameter="detailType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Amount" Parameter="amount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="AmountLCY" Parameter="amountLCY" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="AmountACY" Parameter="amountACY" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="AppliedEntryID" Parameter="appliedEntryID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="AppliedAmount" Parameter="appliedAmount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="UnapplyEntryID" Parameter="unapplyEntryID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="UnapplyReasonID" Parameter="unapplyReasonID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="AppReference" Parameter="appReference" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_AR_Transaction" Method="spAVSCrea_AR_Transaction">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="UserID" Parameter="userID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="PostingDate" Parameter="postingDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="CustomerAccountNumber" Parameter="customerAccountNumber" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="OrderID" Parameter="orderID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DocumentType" Parameter="documentType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Amount" Parameter="amount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Balance" Parameter="balance" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="CashierID" Parameter="cashierID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="TenderID" Parameter="tenderID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ReceivableID" Parameter="receivableID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Status" Parameter="status" Type="System.Int32" DbType="Int" />
+    <Parameter Name="PostedDate" Parameter="postedDate" Type="System.String" DbType="VarChar(19)" />
+    <Parameter Name="AppReference" Parameter="appReference" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVS_CreaPODOrder" Method="spAVS_CreaPODOrder">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="RmsID" Parameter="rmsID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LastUpdated" Parameter="lastUpdated" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="Number" Parameter="number" Type="System.String" DbType="NVarChar(200)" />
+    <Parameter Name="Status" Parameter="status" Type="System.Int32" DbType="Int" />
+    <Parameter Name="SupplierID" Parameter="supplierID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="DateCreated" Parameter="dateCreated" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="OrderDate" Parameter="orderDate" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="RequiredDate" Parameter="requiredDate" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="DatePlaced" Parameter="datePlaced" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="LocationType" Parameter="locationType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LocationID" Parameter="locationID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Reference" Parameter="reference" Type="System.String" DbType="NVarChar(30)" />
+    <Parameter Name="AddrTo" Parameter="addrTo" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="ShipTo" Parameter="shipTo" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="PurchaserID" Parameter="purchaserID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ShipViaID" Parameter="shipViaID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="PayTermID" Parameter="payTermID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ExchangeRate" Parameter="exchangeRate" Type="System.Double" DbType="Float" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="TotalAmmount" Parameter="totalAmmount" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="TotalTax" Parameter="totalTax" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="SupplierName" Parameter="supplierName" Type="System.String" DbType="NVarChar(255)" />
+    <Parameter Name="PhoneNumber" Parameter="phoneNumber" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="User" Parameter="user" Type="System.String" DbType="NVarChar(50)" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.spAVSCrea_PODOrderEntry" Method="spAVSCrea_PODOrderEntry">
+    <Parameter Name="ID" Parameter="iD" Type="System.Int32" DbType="Int" />
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LastUpdated" Parameter="lastUpdated" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="OrderID" Parameter="orderID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LineType" Parameter="lineType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="LineNumber" Parameter="lineNumber" Type="System.Int32" DbType="Int" />
+    <Parameter Name="EntryType" Parameter="entryType" Type="System.Int32" DbType="Int" />
+    <Parameter Name="EntryID" Parameter="entryID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ItemTaxID" Parameter="itemTaxID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="OrderNumber" Parameter="orderNumber" Type="System.String" DbType="NVarChar(25)" />
+    <Parameter Name="Description" Parameter="description" Type="System.String" DbType="NVarChar(50)" />
+    <Parameter Name="UOMID" Parameter="uOMID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Quantity" Parameter="quantity" Type="System.Double" DbType="Float" />
+    <Parameter Name="QtyReceived" Parameter="qtyReceived" Type="System.Double" DbType="Float" />
+    <Parameter Name="UnitCost" Parameter="unitCost" Type="System.Decimal" DbType="Money" />
+    <Parameter Name="Comment" Parameter="comment" Type="System.String" DbType="NVarChar(255)" />
+    <Return Type="System.Int32" />
+  </Function>
+</Database>

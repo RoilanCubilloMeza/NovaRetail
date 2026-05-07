@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="GALERIA_MX" Class="RMHCDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Function Name="dbo.spWS_AR_Detail" Method="spWS_AR_Detail">
+    <ElementType Name="spWS_AR_DetailResult">
+      <Column Name="Number" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="Name" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="Email" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="DueDate" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="PostingDate" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="Reference" Type="System.String" DbType="NVarChar(4000)" CanBeNull="true" />
+      <Column Name="TransactionID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Amount" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="DueDays" Type="System.Int32" DbType="Int" CanBeNull="true" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_InsertActualizaCustomers" Method="spWS_InsertActualizaCustomers">
+    <Parameter Name="AccountNumber" Parameter="accountNumber" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="FirstName" Parameter="firstName" Type="System.String" DbType="VarChar(30)" />
+    <Parameter Name="LastName" Parameter="lastName" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="PhoneNumber" Parameter="phoneNumber" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="FaxNumber" Parameter="faxNumber" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="EmailAddress" Parameter="emailAddress" Type="System.String" DbType="VarChar(255)" />
+    <Parameter Name="CustomText1" Parameter="customText1" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="CustomText2" Parameter="customText2" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="CustomText3" Parameter="customText3" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="CustomText4" Parameter="customText4" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="Address" Parameter="address" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="CustomText5" Parameter="customText5" Type="System.String" DbType="VarChar(20)" />
+    <Parameter Name="Source" Parameter="source" Type="System.String" DbType="VarChar(50)" />
+    <Parameter Name="tipo" Type="System.String" DbType="VarChar(1)" />
+    <Parameter Name="CodVendedor" Parameter="codVendedor" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="DiasCredito" Parameter="diasCredito" Type="System.Int32" DbType="Int" />
+    <ElementType Name="spWS_InsertActualizaCustomersResult">
+      <Column Name="RESPUESTA" Type="System.String" DbType="VarChar(30)" CanBeNull="true" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetProductsbyCriteria" Method="spWS_GetProductsbyCriteria">
+    <Parameter Name="Criteria" Parameter="criteria" Type="System.String" DbType="NVarChar(40)" />
+    <ElementType Name="spWS_GetProductsbyCriteriaResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ItemLookupCode" Type="System.String" DbType="NVarChar(25) NOT NULL" CanBeNull="false" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(80) NOT NULL" CanBeNull="false" />
+      <Column Name="Quantity" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QuantityCommitted" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="DepartmentID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="CategoryID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Price" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceA" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceB" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceC" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TaxID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Cost" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="ExtendedDescription" Type="System.String" DbType="NText NOT NULL" CanBeNull="false" UpdateCheck="Never" />
+      <Column Name="SubDescription1" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="SubDescription2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="SubDescription3" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="WebItem" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetProducts" Method="spWS_GetProducts">
+    <Parameter Name="STOREID" Parameter="sTOREID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="Tipo" Parameter="tipo" Type="System.Int32" DbType="Int" />
+    <ElementType Name="spWS_GetProductsResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ItemLookupCode" Type="System.String" DbType="NVarChar(25) NOT NULL" CanBeNull="false" />
+      <Column Name="ExtendedDescription" Type="System.String" DbType="NVarChar(80) NOT NULL" CanBeNull="false" />
+      <Column Name="Quantity" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="QuantityCommitted" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="DepartmentID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="CategoryID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="PRICE" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceA" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceB" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PriceC" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TaxID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Cost" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="Description" Type="System.String" DbType="NText NOT NULL" CanBeNull="false" UpdateCheck="Never" />
+      <Column Name="SubDescription1" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="SubDescription2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="SubDescription3" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="WebItem" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="Percentage" Type="System.Single" DbType="Real NOT NULL" CanBeNull="false" />
+      <Column Name="TaxDescription" Type="System.String" DbType="NVarChar(25) NOT NULL" CanBeNull="false" />
+      <Column Name="PROMO" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="PROMO_QTY" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="PROMO_REGALIA" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="PROMO_VALOR_REGALIA" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spAVS_GETPAYMENTS_RMH" Method="spAVS_GETPAYMENTS_RMH">
+    <Parameter Name="STORE_ID" Parameter="sTORE_ID" Type="System.Int32" DbType="Int" />
+    <Parameter Name="SALESREP_ID" Parameter="sALESREP_ID" Type="System.Int32" DbType="Int" />
+    <ElementType Name="spAVS_GETPAYMENTS_RMHResult">
+      <Column Name="CLAVE50" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="CLAVE20" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="TRANSACTIONNUMBER" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="STORE_ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="COD_CLIENTE" Type="System.String" DbType="NVarChar(20)" CanBeNull="true" />
+      <Column Name="CEDULA_CLIENTE" Type="System.String" DbType="VarChar(15)" CanBeNull="true" />
+      <Column Name="NOMBRE_CLIENTE" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="FECHA_TRANSAC" Type="System.String" DbType="NVarChar(4000)" CanBeNull="true" />
+      <Column Name="FECHA_VENCE" Type="System.String" DbType="NVarChar(4000)" CanBeNull="true" />
+      <Column Name="MONTO" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="MONTO_ABONADO" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetPOD_Detail" Method="spWS_GetPOD_Detail">
+    <ElementType Name="spWS_GetPOD_DetailResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Number" Type="System.String" DbType="NVarChar(200)" CanBeNull="true" />
+      <Column Name="ID1" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DBTimeStamp" Type="System.Data.Linq.Binary" DbType="rowversion" CanBeNull="true" />
+      <Column Name="StoreID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LinkID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="RmsID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LastUpdated" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="OrderID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LineType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LineNumber" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="EntryType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="EntryID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ItemTaxID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="OrderNumber" Type="System.String" DbType="NVarChar(25) NOT NULL" CanBeNull="false" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="UOMID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Quantity" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QtyReceived" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QtyToReceive" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QtyInvoiced" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QtyToInvoice" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="QtyPerUOM" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="UnitCost" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="LineDiscRate" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="TaxRate" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="LinkedEntryID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ParentEntryID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="InventoryOfflineID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Comment" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="BIDPrice" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="SyncGuid" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetPOD_Header" Method="spWS_GetPOD_Header">
+    <ElementType Name="spWS_GetPOD_HeaderResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DBTimeStamp" Type="System.Data.Linq.Binary" DbType="rowversion" CanBeNull="true" />
+      <Column Name="StoreID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LinkID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="RmsID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LastUpdated" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="DocType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DocSource" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DocOption" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Number" Type="System.String" DbType="NVarChar(200)" CanBeNull="true" />
+      <Column Name="Status" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DelStatus" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="InvStatus" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="AllocationID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierTaxID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="DateCreated" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="OrderDate" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="RequiredDate" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="DatePlaced" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="LocationType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LocationID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Reference" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="AddrTo" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="ShipTo" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="PurchaserID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Requisitioner" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="ShipViaID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="FOBPoint" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="Freight" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="PayTermID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="CurrencyID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ExchangeRate" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="InvDiscMode" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="InvDiscValue" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="Comment" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="ExternalDocNo" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierDocNo" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierDelNo" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierDelDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="SupplierInvNo" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierInvDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="SupplierInvAmt" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PostingComment" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="TotalAmount" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalTax" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="PoType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="SyncGuid" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" CanBeNull="false" />
+      <Column Name="SupplierName" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetSalesRep" Method="spWS_GetSalesRep">
+    <ElementType Name="spWS_GetSalesRepResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Number" Type="System.String" DbType="NVarChar(10) NOT NULL" CanBeNull="false" />
+      <Column Name="Nombre" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetCustomers" Method="spWS_GetCustomers">
+    <ElementType Name="spWS_GetCustomersResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="AccountNumber" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="FirstName" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="LastName" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber1" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="EmailAddress" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="STATE" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="ZIP" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="Address" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="CreditDays" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SOURCE" Type="System.String" DbType="VarChar(3) NOT NULL" CanBeNull="false" />
+      <Column Name="ClosingBalance" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="CreditLimit" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="Available" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="PriceLevel" Type="System.Int16" DbType="SmallInt NOT NULL" CanBeNull="false" />
+      <Column Name="Notes" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="TotalSales" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalSavings" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalVisits" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetCustomersByStoreID" Method="spWS_GetCustomersByStoreID">
+    <Parameter Name="StoreID" Parameter="storeID" Type="System.Int32" DbType="Int" />
+    <ElementType Name="spWS_GetCustomersByStoreIDResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="AccountNumber" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="FirstName" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="LastName" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber1" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="EmailAddress" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="STATE" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="ZIP" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="Address" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="CreditDays" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SOURCE" Type="System.String" DbType="VarChar(3) NOT NULL" CanBeNull="false" />
+      <Column Name="ClosingBalance" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="CreditLimit" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="Available" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="PriceLevel" Type="System.Int16" DbType="SmallInt NOT NULL" CanBeNull="false" />
+      <Column Name="Notes" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="TotalSales" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalSavings" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalVisits" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.spWS_GetCustomersbyCriteria" Method="spWS_GetCustomersbyCriteria">
+    <Parameter Name="Criteria" Parameter="criteria" Type="System.String" DbType="VarChar(40)" />
+    <ElementType Name="spWS_GetCustomersbyCriteriaResult">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="AccountNumber" Type="System.String" DbType="NVarChar(20) NOT NULL" CanBeNull="false" />
+      <Column Name="FirstName" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="LastName" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber1" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="PhoneNumber2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="EmailAddress" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Column Name="STATE" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="CITY2" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="ZIP" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="Address" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="CreditDays" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SOURCE" Type="System.String" DbType="VarChar(3) NOT NULL" CanBeNull="false" />
+      <Column Name="ClosingBalance" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="CreditLimit" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="Available" Type="System.Decimal" DbType="Money" CanBeNull="true" />
+      <Column Name="PriceLevel" Type="System.Int16" DbType="SmallInt NOT NULL" CanBeNull="false" />
+      <Column Name="Notes" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="TotalSales" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalSavings" Type="System.Decimal" DbType="Money NOT NULL" CanBeNull="false" />
+      <Column Name="TotalVisits" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+</Database>

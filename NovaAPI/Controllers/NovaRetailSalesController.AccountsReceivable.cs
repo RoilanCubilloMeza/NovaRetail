@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using NovaAPI.Models;
@@ -256,6 +257,16 @@ WHERE TE.TransactionNumber = @TransactionNumber
             }
         }
 
+        private static void AddIntInParameters(SqlCommand cmd, string prefix, IEnumerable<int> values, List<string> names)
+        {
+            foreach (var value in values.Where(v => v > 0).Distinct())
+            {
+                var name = "@" + prefix + names.Count.ToString(CultureInfo.InvariantCulture);
+                names.Add(name);
+                cmd.Parameters.AddWithValue(name, value);
+            }
+        }
+
         private static List<int> ExtractTransactionNumberCandidates(IEnumerable<string> transactionReferences)
         {
             return (transactionReferences ?? Enumerable.Empty<string>())
@@ -268,6 +279,63 @@ WHERE TE.TransactionNumber = @TransactionNumber
                         ? transactionNumber
                         : 0;
                 })
+                .Where(value => value > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        private static List<int> ResolveFiscalTransactionNumberCandidates(SqlConnection cn, SqlTransaction tx, IEnumerable<string> transactionReferences)
+        {
+            var references = (transactionReferences ?? Enumerable.Empty<string>())
+                .Select(NormalizeTransactionReference)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var transactionNumbers = ExtractTransactionNumberCandidates(references);
+            if (references.Count == 0)
+                return transactionNumbers;
+
+            var referenceNames = new List<string>();
+            using (var cmd = new SqlCommand())
+            {
+                cmd.Connection = cn;
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 15;
+                AddInParameters(cmd, "Ref", references, referenceNames);
+
+                var parts = new List<string>();
+                foreach (var name in referenceNames)
+                {
+                    parts.Add("SELECT TRY_CONVERT(INT, TRANSACTIONNUMBER) AS TransactionNumber FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = " + name);
+                    parts.Add("SELECT TRY_CONVERT(INT, TRANSACTIONNUMBER) AS TransactionNumber FROM dbo.AVS_INTEGRAFAST_01 WHERE CLAVE50 = " + name);
+                    parts.Add("SELECT TRY_CONVERT(INT, TRANSACTIONNUMBER) AS TransactionNumber FROM dbo.AVS_INTEGRAFAST_01 WHERE CLAVE20 = " + name);
+                    parts.Add("SELECT TRY_CONVERT(INT, TRANSACTIONNUMBER) AS TransactionNumber FROM dbo.AVS_INTEGRAFAST_01 WHERE COMPROBANTE_INTERNO = " + name);
+                }
+
+                if (parts.Count == 0)
+                    return transactionNumbers;
+
+                cmd.CommandText = @"
+SELECT DISTINCT TransactionNumber
+FROM
+(
+    " + string.Join("\r\n    UNION ALL\r\n    ", parts) + @"
+) s
+WHERE TransactionNumber IS NOT NULL;";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var value = reader["TransactionNumber"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TransactionNumber"]);
+                        if (value > 0)
+                            transactionNumbers.Add(value);
+                    }
+                }
+            }
+
+            return transactionNumbers
                 .Where(value => value > 0)
                 .Distinct()
                 .ToList();
@@ -361,6 +429,7 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
 
             var referenceNames = new List<string>();
             var ledgerReferenceNames = new List<string>();
+            var documentIdNames = new List<string>();
 
             using (var cmd = new SqlCommand())
             {
@@ -369,28 +438,17 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
                 cmd.CommandTimeout = 20;
                 AddInParameters(cmd, "Ref", normalizedReferences, referenceNames);
                 AddInParameters(cmd, "LedgerRef", ledgerReferences, ledgerReferenceNames);
+                cmd.Parameters.AddWithValue("@AccountID", accountID);
+                AddIntInParameters(cmd, "DocID", ResolveFiscalTransactionNumberCandidates(cn, tx, normalizedReferences), documentIdNames);
 
-                cmd.CommandText = @"
-;WITH SourceTransactions AS
-(
-    SELECT DISTINCT TRY_CONVERT(INT, f.TRANSACTIONNUMBER) AS TransactionNumber
-    FROM dbo.AVS_INTEGRAFAST_01 f
-    WHERE (" + string.Join(" OR ", referenceNames.Select(name =>
-        "f.TRANSACTIONNUMBER = " + name +
-        " OR f.CLAVE50 = " + name +
-        " OR f.CLAVE20 = " + name +
-        " OR f.COMPROBANTE_INTERNO = " + name)) + @")
-      AND TRY_CONVERT(INT, f.TRANSACTIONNUMBER) IS NOT NULL
-)
-SELECT TOP 1 le.ID
+                var candidateQueries = new List<string>();
+                if (ledgerReferenceNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open]
 FROM dbo.AR_LedgerEntry le
 WHERE le.AccountID = @AccountID
-  AND
-  (
-      le.Reference IN (" + string.Join(", ", ledgerReferenceNames) + @")
-      OR le.ExtReference IN (" + string.Join(", ", referenceNames) + @")
-      OR le.DocumentID IN (SELECT TransactionNumber FROM SourceTransactions)
-  )
+  AND le.Reference IN (" + string.Join(", ", ledgerReferenceNames) + @")
   AND le.DocumentType IN (1, 2, 3, 4)
   AND EXISTS
   (
@@ -399,10 +457,56 @@ WHERE le.AccountID = @AccountID
       WHERE d.LedgerEntryID = le.ID
         AND d.AppliedEntryID = 0
         AND d.Amount > 0
-  )
-ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
-         le.ID DESC;";
-                cmd.Parameters.AddWithValue("@AccountID", accountID);
+  )");
+                }
+
+                if (referenceNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open]
+FROM dbo.AR_LedgerEntry le
+WHERE le.AccountID = @AccountID
+  AND le.ExtReference IN (" + string.Join(", ", referenceNames) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.AR_LedgerEntryDetail d
+      WHERE d.LedgerEntryID = le.ID
+        AND d.AppliedEntryID = 0
+        AND d.Amount > 0
+  )");
+                }
+
+                if (documentIdNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open]
+FROM dbo.AR_LedgerEntry le
+WHERE le.AccountID = @AccountID
+  AND le.DocumentID IN (" + string.Join(", ", documentIdNames) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.AR_LedgerEntryDetail d
+      WHERE d.LedgerEntryID = le.ID
+        AND d.AppliedEntryID = 0
+        AND d.Amount > 0
+  )");
+                }
+
+                if (candidateQueries.Count == 0)
+                    return 0;
+
+                cmd.CommandText = @"
+SELECT TOP 1 ID
+FROM
+(
+    " + string.Join("\r\n    UNION ALL\r\n    ", candidateQueries) + @"
+) Candidates
+ORDER BY CASE WHEN [Open] = 1 THEN 0 ELSE 1 END,
+         ID DESC;";
 
                 var result = cmd.ExecuteScalar();
                 return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
@@ -430,6 +534,7 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
 
             var referenceNames = new List<string>();
             var ledgerReferenceNames = new List<string>();
+            var documentIdNames = new List<string>();
 
             using (var cmd = new SqlCommand())
             {
@@ -437,31 +542,50 @@ ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
                 cmd.CommandTimeout = 20;
                 AddInParameters(cmd, "Ref", normalizedReferences, referenceNames);
                 AddInParameters(cmd, "LedgerRef", ledgerReferences, ledgerReferenceNames);
+                AddIntInParameters(cmd, "DocID", ResolveFiscalTransactionNumberCandidates(cn, null, normalizedReferences), documentIdNames);
 
-                cmd.CommandText = @"
-;WITH SourceTransactions AS
-(
-    SELECT DISTINCT TRY_CONVERT(INT, f.TRANSACTIONNUMBER) AS TransactionNumber
-    FROM dbo.AVS_INTEGRAFAST_01 f
-    WHERE (" + string.Join(" OR ", referenceNames.Select(name =>
-        "f.TRANSACTIONNUMBER = " + name +
-        " OR f.CLAVE50 = " + name +
-        " OR f.CLAVE20 = " + name +
-        " OR f.COMPROBANTE_INTERNO = " + name)) + @")
-      AND TRY_CONVERT(INT, f.TRANSACTIONNUMBER) IS NOT NULL
-)
-SELECT TOP 1 a.Number
+                var candidateQueries = new List<string>();
+                if (ledgerReferenceNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open], a.Number
 FROM dbo.AR_LedgerEntry le
 INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID
-WHERE
-  (
-      le.Reference IN (" + string.Join(", ", ledgerReferenceNames) + @")
-      OR le.ExtReference IN (" + string.Join(", ", referenceNames) + @")
-      OR le.DocumentID IN (SELECT TransactionNumber FROM SourceTransactions)
-  )
-  AND le.DocumentType IN (1, 2, 3, 4)
-ORDER BY CASE WHEN le.[Open] = 1 THEN 0 ELSE 1 END,
-         le.ID DESC;";
+WHERE le.Reference IN (" + string.Join(", ", ledgerReferenceNames) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)");
+                }
+
+                if (referenceNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open], a.Number
+FROM dbo.AR_LedgerEntry le
+INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID
+WHERE le.ExtReference IN (" + string.Join(", ", referenceNames) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)");
+                }
+
+                if (documentIdNames.Count > 0)
+                {
+                    candidateQueries.Add(@"
+SELECT le.ID, le.[Open], a.Number
+FROM dbo.AR_LedgerEntry le
+INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID
+WHERE le.DocumentID IN (" + string.Join(", ", documentIdNames) + @")
+  AND le.DocumentType IN (1, 2, 3, 4)");
+                }
+
+                if (candidateQueries.Count == 0)
+                    return string.Empty;
+
+                cmd.CommandText = @"
+SELECT TOP 1 Number
+FROM
+(
+    " + string.Join("\r\n    UNION ALL\r\n    ", candidateQueries) + @"
+) Candidates
+ORDER BY CASE WHEN [Open] = 1 THEN 0 ELSE 1 END,
+         ID DESC;";
 
                 var result = cmd.ExecuteScalar();
                 return result == null || result == DBNull.Value ? string.Empty : Convert.ToString(result);
@@ -610,6 +734,7 @@ WHERE ID = @LedgerEntryID;", cn))
 
         private static void TryCreateARTransaction(NovaRetailCreateSaleRequest request, NovaRetailCreateSaleResponse response)
         {
+            var perfAr = Stopwatch.StartNew();
             response.AccountsReceivableEntryCreated = false;
             response.AccountsReceivableApplied = false;
             response.AccountsReceivableAppliedAmount = 0m;
@@ -635,14 +760,22 @@ WHERE ID = @LedgerEntryID;", cn))
 
             using (var cn = new SqlConnection(connectionString))
             {
+                var perfStep = Stopwatch.StartNew();
                 cn.Open();
-                NormalizeFiscalCustomerIdentity(cn, request);
+                LogPerformance($"AR TryCreateARTransaction connection open {perfStep.ElapsedMilliseconds} ms");
 
+                perfStep.Restart();
+                NormalizeFiscalCustomerIdentity(cn, request);
+                LogPerformance($"AR NormalizeFiscalCustomerIdentity {perfStep.ElapsedMilliseconds} ms");
+
+                perfStep.Restart();
                 isCreditNC = isNC && IsCreditTender(request.Tenders, cn);
+                LogPerformance($"AR DetectCreditNC {perfStep.ElapsedMilliseconds} ms isCreditNC={isCreditNC}");
 
                 if (!isCreditSale && !isCreditNC)
                     return;
 
+                perfStep.Restart();
                 var referenceCandidates = BuildCreditNoteReferenceCandidates(request);
                 var customerAccountNumber = request.CreditAccountNumber;
                 if (string.IsNullOrWhiteSpace(customerAccountNumber) && request.CustomerID > 0)
@@ -655,9 +788,14 @@ WHERE ID = @LedgerEntryID;", cn))
                             customerAccountNumber = Convert.ToString(result);
                     }
                 }
+                LogPerformance($"AR Resolve customer account seed {perfStep.ElapsedMilliseconds} ms account={customerAccountNumber ?? string.Empty}");
 
                 if (string.IsNullOrWhiteSpace(customerAccountNumber) && isCreditNC)
+                {
+                    perfStep.Restart();
                     customerAccountNumber = ResolveReferencedLedgerAccountNumber(cn, referenceCandidates);
+                    LogPerformance($"AR ResolveReferencedLedgerAccountNumber {perfStep.ElapsedMilliseconds} ms account={customerAccountNumber ?? string.Empty}");
+                }
 
                 if (string.IsNullOrWhiteSpace(customerAccountNumber))
                     customerAccountNumber = request.CodCliente;
@@ -667,6 +805,7 @@ WHERE ID = @LedgerEntryID;", cn))
 
                 var accountID = 0;
                 var customerID = request.CustomerID;
+                perfStep.Restart();
                 using (var cmd = new SqlCommand(@"
 SELECT TOP 1
     a.ID AS AccountID,
@@ -686,10 +825,13 @@ WHERE a.Number = @Number;", cn))
                         }
                     }
                 }
+                LogPerformance($"AR Account lookup {perfStep.ElapsedMilliseconds} ms accountID={accountID} customerID={customerID}");
 
                 if (accountID <= 0 && isCreditNC)
                 {
+                    perfStep.Restart();
                     var referencedAccountNumber = ResolveReferencedLedgerAccountNumber(cn, referenceCandidates);
+                    LogPerformance($"AR ResolveReferencedLedgerAccountNumber fallback {perfStep.ElapsedMilliseconds} ms account={referencedAccountNumber ?? string.Empty}");
                     if (!string.IsNullOrWhiteSpace(referencedAccountNumber) &&
                         !string.Equals(referencedAccountNumber, customerAccountNumber, StringComparison.OrdinalIgnoreCase))
                     {
@@ -725,7 +867,9 @@ WHERE a.Number = @Number;", cn))
                     var dueDate = now.AddDays(30);
                     var reference = BuildLedgerReference(response.TransactionNumber.ToString(CultureInfo.InvariantCulture));
 
+                    perfStep.Restart();
                     total = LoadPersistedTransactionTotal(cn, tx, response.TransactionNumber, total);
+                    LogPerformance($"AR LoadPersistedTransactionTotal {perfStep.ElapsedMilliseconds} ms total={total:N2}");
                     if (total <= 0m)
                     {
                         tx.Rollback();
@@ -737,6 +881,7 @@ WHERE a.Number = @Number;", cn))
                     var amountACY = isCreditSale ? total : -total;
 
                     var ledgerEntryID = 0;
+                    perfStep.Restart();
                     using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRY_INSERT", cn, tx))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
@@ -777,6 +922,7 @@ WHERE a.Number = @Number;", cn))
                                 ledgerEntryID = Convert.ToInt32(reader["ID"]);
                         }
                     }
+                    LogPerformance($"AR OFF_AR_LEDGERENTRY_INSERT {perfStep.ElapsedMilliseconds} ms ledgerEntryID={ledgerEntryID}");
 
                     if (ledgerEntryID <= 0)
                     {
@@ -786,6 +932,7 @@ WHERE a.Number = @Number;", cn))
 
                     response.AccountsReceivableEntryCreated = true;
 
+                    perfStep.Restart();
                     using (var cmd = new SqlCommand("dbo.OFF_AR_LEDGERENTRYDETAIL_INSERT", cn, tx))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
@@ -809,20 +956,26 @@ WHERE a.Number = @Number;", cn))
                         cmd.Parameters.AddWithValue("@ISCLOSING", false);
                         cmd.ExecuteNonQuery();
                     }
+                    LogPerformance($"AR OFF_AR_LEDGERENTRYDETAIL_INSERT {perfStep.ElapsedMilliseconds} ms");
 
                     if (isCreditNC)
                     {
+                        perfStep.Restart();
                         var referencedLedgerEntryID = ResolveReferencedLedgerEntryID(cn, tx, accountID, referenceCandidates);
+                        LogPerformance($"AR ResolveReferencedLedgerEntryID {perfStep.ElapsedMilliseconds} ms referencedLedgerEntryID={referencedLedgerEntryID}");
                         if (referencedLedgerEntryID > 0)
                         {
+                            perfStep.Restart();
                             var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, ledgerEntryID);
                             var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, referencedLedgerEntryID);
                             var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
                             var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
                             var amountToApply = Math.Min(sourceRemaining, targetBalance);
+                            LogPerformance($"AR LoadLedgerBalanceSnapshot pair {perfStep.ElapsedMilliseconds} ms amountToApply={amountToApply:N2}");
 
                             if (amountToApply > LedgerClosingTolerance)
                             {
+                                perfStep.Restart();
                                 InsertLedgerApplicationDetail(
                                     cn,
                                     tx,
@@ -835,6 +988,7 @@ WHERE a.Number = @Number;", cn))
                                     -amountToApply);
 
                                 RefreshLedgerApplicationStatuses(cn, tx, ledgerEntryID, referencedLedgerEntryID, now);
+                                LogPerformance($"AR InsertLedgerApplicationDetail+Refresh {perfStep.ElapsedMilliseconds} ms");
                                 response.AccountsReceivableApplied = true;
                                 response.AccountsReceivableAppliedAmount = Math.Round(amountToApply, 2, MidpointRounding.AwayFromZero);
                             }
@@ -844,6 +998,8 @@ WHERE a.Number = @Number;", cn))
                     tx.Commit();
                 }
             }
+
+            LogPerformance($"AR TryCreateARTransaction finished {perfAr.ElapsedMilliseconds} ms created={response.AccountsReceivableEntryCreated} applied={response.AccountsReceivableApplied}");
         }
     }
 }

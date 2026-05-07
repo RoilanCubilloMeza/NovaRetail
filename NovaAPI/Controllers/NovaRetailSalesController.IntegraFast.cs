@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using NovaAPI.Models;
 
@@ -115,22 +116,36 @@ SELECT TOP 1
 
         private static void EnsureFiscalArtifacts(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
+            var perf = Stopwatch.StartNew();
             NormalizeFiscalCustomerIdentity(cn, request);
             ApplyIntegraFast02Config(cn, request);
             EnsureClaves(request, transactionNumber, cn);
+            LogPerformance($"Fiscal EnsureClaves {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+            perf.Restart();
             EnsureTiqueteEspera(cn, request, transactionNumber);
+            LogPerformance($"Fiscal EnsureTiqueteEspera pass1 {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+            perf.Restart();
             EnsureIntegraFast05(cn, request, transactionNumber);
+            LogPerformance($"Fiscal EnsureIntegraFast05 pass1 {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+            perf.Restart();
             NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
 
             var status = GetFiscalArtifactsStatus(cn, request, transactionNumber);
+            LogPerformance($"Fiscal GetFiscalArtifactsStatus pass1 {perf.ElapsedMilliseconds} ms tn={transactionNumber} header={status.HeaderExists} clave50={(status.Clave50 ?? string.Empty)} clave20={(status.Clave20 ?? string.Empty)} detailCount={status.DetailCount}");
             if (IsFiscalArtifactsComplete(request, status))
                 return;
 
+            perf.Restart();
             EnsureTiqueteEspera(cn, request, transactionNumber);
+            LogPerformance($"Fiscal EnsureTiqueteEspera pass2 {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+            perf.Restart();
             EnsureIntegraFast05(cn, request, transactionNumber);
+            LogPerformance($"Fiscal EnsureIntegraFast05 pass2 {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+            perf.Restart();
             NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
 
             status = GetFiscalArtifactsStatus(cn, request, transactionNumber);
+            LogPerformance($"Fiscal GetFiscalArtifactsStatus pass2 {perf.ElapsedMilliseconds} ms tn={transactionNumber} header={status.HeaderExists} clave50={(status.Clave50 ?? string.Empty)} clave20={(status.Clave20 ?? string.Empty)} detailCount={status.DetailCount}");
             if (IsFiscalArtifactsComplete(request, status))
                 return;
 
@@ -216,12 +231,14 @@ SELECT TOP 1
 
         private static void EnsureTiqueteEspera(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
+            var perf = Stopwatch.StartNew();
             using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_01 WHERE TRANSACTIONNUMBER = @TransactionNumber", cn))
             {
                 existsCmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
                 if (Convert.ToInt32(existsCmd.ExecuteScalar()) > 0)
                 {
                     NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
+                    LogPerformance($"Fiscal EnsureTiqueteEspera existing header {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
                     return;
                 }
             }
@@ -307,6 +324,7 @@ SELECT TOP 1
             }
 
             NormalizeManualCreditNoteIntegraFast01(cn, request, transactionNumber);
+            LogPerformance($"Fiscal EnsureTiqueteEspera complete {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
         }
 
         private static bool IsManualCreditNote(NovaRetailCreateSaleRequest request)
@@ -535,6 +553,7 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
         private static void EnsureIntegraFast05(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber)
         {
+            var perf = Stopwatch.StartNew();
             if (request.Items == null || request.Items.Count == 0)
                 return;
 
@@ -547,7 +566,10 @@ UPDATE dbo.AVS_INTEGRAFAST_01
             }
 
             if (string.IsNullOrWhiteSpace(clave50))
+            {
+                LogPerformance($"Fiscal EnsureIntegraFast05 no clave50 {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
                 return;
+            }
 
             var expectedLineCount = request.Items.Count;
             var existingLineCount = 0;
@@ -559,7 +581,10 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 {
                     existingLineCount = Convert.ToInt32(chk.ExecuteScalar());
                     if (existingLineCount >= expectedLineCount)
+                    {
+                        LogPerformance($"Fiscal EnsureIntegraFast05 already complete {perf.ElapsedMilliseconds} ms tn={transactionNumber} lines={existingLineCount}/{expectedLineCount}");
                         return;
+                    }
                 }
                 catch
                 {
@@ -712,6 +737,8 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 if (insertedCount < expectedLineCount)
                     throw new InvalidOperationException($"AVS_INTEGRAFAST_05 incompleto para CLAVE50 {clave50}: {insertedCount}/{expectedLineCount} lineas.");
             }
+
+            LogPerformance($"Fiscal EnsureIntegraFast05 complete {perf.ElapsedMilliseconds} ms tn={transactionNumber} lines={expectedLineCount}");
         }
 
         private static void BulkInsertIntegraFast05Rows(
