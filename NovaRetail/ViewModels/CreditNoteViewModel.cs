@@ -1707,8 +1707,7 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
                     }).ToList()
                 };
 
-                await _invoiceHistoryService.AddAsync(historyEntry);
-                CreditNoteAppliedChanged.Send(new CreditNoteAppliedMessage
+                _ = SaveCreditNoteHistoryAsync(historyEntry, new CreditNoteAppliedMessage
                 {
                     SourceTransactionNumber = _isStandaloneMode || _sourceEntry is null ? 0 : _sourceEntry.TransactionNumber,
                     CreditNoteTransactionNumber = result.TransactionNumber,
@@ -1733,21 +1732,50 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task SaveCreditNoteHistoryAsync(InvoiceHistoryEntry historyEntry, CreditNoteAppliedMessage message)
+    {
+        try
+        {
+            await _invoiceHistoryService.AddAsync(historyEntry);
+            CreditNoteAppliedChanged.Send(message);
+        }
+        catch
+        {
+            // Non-critical: history save failure doesn't block the NC result.
+        }
+    }
+
     private async Task<List<string>> ResolveSelectedLinesAsync(List<CreditNoteLineItem> selectedLines)
     {
         var unresolved = new List<string>();
+        var linesToResolve = selectedLines
+            .Where(line => line.ItemID <= 0 || (line.TaxID <= 0 && line.TaxPercentage > 0))
+            .ToList();
 
-        foreach (var line in selectedLines)
+        if (linesToResolve.Count == 0)
+            return unresolved;
+
+        using var throttler = new SemaphoreSlim(6);
+        var resolved = await Task.WhenAll(linesToResolve.Select(async line =>
         {
-            if (line.ItemID > 0 && (line.TaxID > 0 || line.TaxPercentage <= 0))
-                continue;
+            await throttler.WaitAsync();
+            try
+            {
+                return (Line: line, Match: await FindCatalogMatchAsync(line));
+            }
+            finally
+            {
+                throttler.Release();
+            }
+        }));
 
-            var match = await FindCatalogMatchAsync(line);
+        foreach (var item in resolved)
+        {
+            var line = item.Line;
+            var match = item.Match;
             if (match is null)
             {
-                unresolved.Add(!string.IsNullOrWhiteSpace(line.Code)
-                    ? line.Code
-                    : line.DisplayName);
+                unresolved.Add(!string.IsNullOrWhiteSpace(line.Code) ? line.Code : line.DisplayName);
                 continue;
             }
 

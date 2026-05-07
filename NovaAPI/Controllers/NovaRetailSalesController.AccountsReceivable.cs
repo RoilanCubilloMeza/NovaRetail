@@ -15,7 +15,6 @@ namespace NovaAPI.Controllers
         {
             public decimal BaseAmount { get; set; }
             public decimal AppliedToEntry { get; set; }
-            public decimal AppliedByEntry { get; set; }
         }
 
         private sealed class SaleTotalsSnapshot
@@ -592,7 +591,7 @@ ORDER BY CASE WHEN [Open] = 1 THEN 0 ELSE 1 END,
             }
         }
 
-        private static LedgerBalanceSnapshot LoadLedgerBalanceSnapshot(SqlConnection cn, SqlTransaction tx, int ledgerEntryID)
+        private static LedgerBalanceSnapshot LoadLedgerApplicationTargetSnapshot(SqlConnection cn, SqlTransaction tx, int ledgerEntryID)
         {
             using (var cmd = new SqlCommand(@"
 SELECT
@@ -608,12 +607,6 @@ SELECT
             SELECT SUM(d.AppliedAmount)
             FROM dbo.AR_LedgerEntryDetail d
             WHERE d.AppliedEntryID = @LedgerEntryID
-        ), 0),
-    AppliedByEntry = ISNULL(
-        (
-            SELECT SUM(ABS(d.AppliedAmount))
-            FROM dbo.AR_LedgerEntryDetail d
-            WHERE d.LedgerEntryID = @LedgerEntryID
               AND d.AppliedEntryID > 0
         ), 0);", cn))
             {
@@ -630,8 +623,7 @@ SELECT
                     return new LedgerBalanceSnapshot
                     {
                         BaseAmount = reader["BaseAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["BaseAmount"]),
-                        AppliedToEntry = reader["AppliedToEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedToEntry"]),
-                        AppliedByEntry = reader["AppliedByEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedByEntry"])
+                        AppliedToEntry = reader["AppliedToEntry"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["AppliedToEntry"])
                     };
                 }
             }
@@ -652,23 +644,6 @@ WHERE ID = @LedgerEntryID;", cn))
                 cmd.Parameters.AddWithValue("@Open", isOpen ? 1 : 0);
                 cmd.Parameters.AddWithValue("@Now", now);
                 cmd.ExecuteNonQuery();
-            }
-        }
-
-        private static void RefreshLedgerApplicationStatuses(SqlConnection cn, SqlTransaction tx, int sourceLedgerEntryID, int targetLedgerEntryID, DateTime now)
-        {
-            if (sourceLedgerEntryID > 0)
-            {
-                var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, sourceLedgerEntryID);
-                var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
-                SetLedgerEntryOpenState(cn, tx, sourceLedgerEntryID, sourceRemaining > LedgerClosingTolerance, now);
-            }
-
-            if (targetLedgerEntryID > 0)
-            {
-                var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, targetLedgerEntryID);
-                var targetBalance = targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry;
-                SetLedgerEntryOpenState(cn, tx, targetLedgerEntryID, targetBalance > LedgerClosingTolerance, now);
             }
         }
 
@@ -966,12 +941,11 @@ WHERE a.Number = @Number;", cn))
                         if (referencedLedgerEntryID > 0)
                         {
                             perfStep.Restart();
-                            var sourceSnapshot = LoadLedgerBalanceSnapshot(cn, tx, ledgerEntryID);
-                            var targetSnapshot = LoadLedgerBalanceSnapshot(cn, tx, referencedLedgerEntryID);
-                            var sourceRemaining = Math.Max(0m, Math.Abs(sourceSnapshot.BaseAmount) - sourceSnapshot.AppliedByEntry);
+                            var targetSnapshot = LoadLedgerApplicationTargetSnapshot(cn, tx, referencedLedgerEntryID);
+                            var sourceRemaining = Math.Abs(amountACY);
                             var targetBalance = Math.Max(0m, targetSnapshot.BaseAmount + targetSnapshot.AppliedToEntry);
                             var amountToApply = Math.Min(sourceRemaining, targetBalance);
-                            LogPerformance($"AR LoadLedgerBalanceSnapshot pair {perfStep.ElapsedMilliseconds} ms amountToApply={amountToApply:N2}");
+                            LogPerformance($"AR LoadLedgerTargetBalance {perfStep.ElapsedMilliseconds} ms amountToApply={amountToApply:N2}");
 
                             if (amountToApply > LedgerClosingTolerance)
                             {
@@ -987,7 +961,10 @@ WHERE a.Number = @Number;", cn))
                                     referencedLedgerEntryID,
                                     -amountToApply);
 
-                                RefreshLedgerApplicationStatuses(cn, tx, ledgerEntryID, referencedLedgerEntryID, now);
+                                var sourceRemainingAfterApply = Math.Max(0m, sourceRemaining - amountToApply);
+                                var targetBalanceAfterApply = Math.Max(0m, targetBalance - amountToApply);
+                                SetLedgerEntryOpenState(cn, tx, ledgerEntryID, sourceRemainingAfterApply > LedgerClosingTolerance, now);
+                                SetLedgerEntryOpenState(cn, tx, referencedLedgerEntryID, targetBalanceAfterApply > LedgerClosingTolerance, now);
                                 LogPerformance($"AR InsertLedgerApplicationDetail+Refresh {perfStep.ElapsedMilliseconds} ms");
                                 response.AccountsReceivableApplied = true;
                                 response.AccountsReceivableAppliedAmount = Math.Round(amountToApply, 2, MidpointRounding.AwayFromZero);

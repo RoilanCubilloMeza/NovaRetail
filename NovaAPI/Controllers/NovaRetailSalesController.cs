@@ -269,7 +269,15 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
 
 IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_AppliedEntry_Amount' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
-    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_AppliedEntry_Amount ON dbo.AR_LedgerEntryDetail (AppliedEntryID) INCLUDE (LedgerEntryID, Amount, AppliedAmount);", cn))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_AppliedEntry_Amount ON dbo.AR_LedgerEntryDetail (AppliedEntryID) INCLUDE (LedgerEntryID, Amount, AppliedAmount);
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_BaseBalance_Filtered' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_BaseBalance_Filtered ON dbo.AR_LedgerEntryDetail (LedgerEntryID) INCLUDE (Amount) WHERE AppliedEntryID = 0;
+
+IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_LedgerEntryDetail_AppliedBalance_Filtered' AND object_id = OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U'))
+    CREATE NONCLUSTERED INDEX IX_AR_LedgerEntryDetail_AppliedBalance_Filtered ON dbo.AR_LedgerEntryDetail (AppliedEntryID) INCLUDE (AppliedAmount) WHERE AppliedEntryID > 0;", cn))
                     {
                         cmd.CommandTimeout = 300;
                         cmd.ExecuteNonQuery();
@@ -1144,22 +1152,90 @@ IF OBJECT_ID(N'dbo.AR_LedgerEntryDetail', N'U') IS NOT NULL
         private static int EnsureTaxEntriesSetBased(SqlConnection cn, NovaRetailCreateSaleRequest request, int transactionNumber, int storeId)
         {
             using (var cmd = new SqlCommand(@"
-;WITH Entries AS
+;WITH TaxItems AS
+(
+    SELECT
+        RowNo,
+        ItemID,
+        TaxID,
+        UnitPrice,
+        Quantity,
+        SalesTax
+    FROM @Items
+    WHERE Taxable = 1
+      AND ISNULL(TaxID, 0) > 0
+),
+DirectMatches AS
+(
+    SELECT
+        I.RowNo,
+        I.ItemID,
+        I.TaxID,
+        I.UnitPrice,
+        I.Quantity,
+        I.SalesTax,
+        TE.ID AS TransactionEntryID
+    FROM TaxItems I
+    INNER JOIN dbo.TransactionEntry TE
+        ON TE.TransactionNumber = @TransactionNumber
+       AND TE.DetailID = I.RowNo - 1
+),
+MissingItems AS
+(
+    SELECT I.*
+    FROM TaxItems I
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM DirectMatches M
+        WHERE M.RowNo = I.RowNo
+    )
+),
+EntriesByRow AS
 (
     SELECT
         TE.ID,
-        ISNULL(TE.DetailID, -1) AS DetailID,
         ISNULL(TE.ItemID, 0) AS ItemID,
         ROW_NUMBER() OVER (ORDER BY TE.ID) AS EntryRowNo
     FROM dbo.TransactionEntry TE
     WHERE TE.TransactionNumber = @TransactionNumber
 ),
-TaxItems AS
+FallbackMatches AS
 (
-    SELECT RowNo, ItemID, TaxID, UnitPrice, Quantity, SalesTax
-    FROM @Items
-    WHERE Taxable = 1
-      AND ISNULL(TaxID, 0) > 0
+    SELECT
+        I.RowNo,
+        I.ItemID,
+        I.TaxID,
+        I.UnitPrice,
+        I.Quantity,
+        I.SalesTax,
+        COALESCE(ByRow.ID, ByItem.ID) AS TransactionEntryID
+    FROM MissingItems I
+    OUTER APPLY
+    (
+        SELECT TOP (1) E.ID
+        FROM EntriesByRow E
+        WHERE E.EntryRowNo = I.RowNo
+        ORDER BY E.ID
+    ) ByRow
+    OUTER APPLY
+    (
+        SELECT TOP (1) E.ID
+        FROM EntriesByRow E
+        WHERE E.ItemID = I.ItemID
+        ORDER BY E.ID
+    ) ByItem
+),
+MatchedItems AS
+(
+    SELECT RowNo, ItemID, TaxID, UnitPrice, Quantity, SalesTax, TransactionEntryID
+    FROM DirectMatches
+
+    UNION ALL
+
+    SELECT RowNo, ItemID, TaxID, UnitPrice, Quantity, SalesTax, TransactionEntryID
+    FROM FallbackMatches
+    WHERE TransactionEntryID IS NOT NULL
 )
 INSERT INTO dbo.TaxEntry
     (StoreID, TaxID, TransactionNumber, Tax, TaxableAmount, TransactionEntryID, SyncGuid)
@@ -1172,30 +1248,14 @@ SELECT
         WHEN ROUND(ISNULL(I.UnitPrice, 0) * ISNULL(I.Quantity, 0), 4) < 0 THEN 0
         ELSE ROUND(ISNULL(I.UnitPrice, 0) * ISNULL(I.Quantity, 0), 4)
     END,
-    Matched.TransactionEntryID,
+    I.TransactionEntryID,
     NEWID()
-FROM TaxItems I
-OUTER APPLY
-(
-    SELECT TOP (1) E.ID AS TransactionEntryID
-    FROM Entries E
-    WHERE E.DetailID = I.RowNo - 1
-       OR E.EntryRowNo = I.RowNo
-       OR E.ItemID = I.ItemID
-    ORDER BY
-        CASE
-            WHEN E.DetailID = I.RowNo - 1 THEN 0
-            WHEN E.EntryRowNo = I.RowNo THEN 1
-            ELSE 2
-        END,
-        E.ID
-) Matched
-WHERE Matched.TransactionEntryID IS NOT NULL
-  AND NOT EXISTS
+FROM MatchedItems I
+WHERE NOT EXISTS
   (
       SELECT 1
       FROM dbo.TaxEntry Existing
-      WHERE Existing.TransactionEntryID = Matched.TransactionEntryID
+      WHERE Existing.TransactionEntryID = I.TransactionEntryID
   );
 
 SELECT @@ROWCOUNT;", cn))

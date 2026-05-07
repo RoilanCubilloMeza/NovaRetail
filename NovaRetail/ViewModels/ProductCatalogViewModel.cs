@@ -401,7 +401,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
             p.CartQuantity = 0;
     }
 
-    public async Task ResetCatalogAfterCheckoutAsync(IReadOnlyCollection<CartItemModel>? completedCartItems = null)
+    public Task ResetCatalogAfterCheckoutAsync(IReadOnlyCollection<CartItemModel>? completedCartItems = null)
     {
         InvalidateProductCatalogCache();
 
@@ -412,8 +412,8 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         ApplyCompletedCartStock(completedCartItems);
         FilterProducts();
 
-        await RefreshCompletedCartProductsAsync(completedCartItems);
         StartPostCheckoutCatalogReconciliation();
+        return Task.CompletedTask;
     }
 
     public async Task RefreshVisibleCatalogAsync()
@@ -497,55 +497,6 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
             product.Stock -= sold.Quantity;
             product.CartQuantity = 0m;
-        }
-    }
-
-    private async Task RefreshCompletedCartProductsAsync(IReadOnlyCollection<CartItemModel>? completedCartItems)
-    {
-        if (completedCartItems is null || completedCartItems.Count == 0)
-            return;
-
-        var catalogVersion = _catalogVersion;
-        var affectedItemIds = completedCartItems
-            .Where(item => item.ItemID > 0 && item.Quantity > 0m && !IsNonInventoryItem(item.ItemType))
-            .Select(item => item.ItemID)
-            .Distinct()
-            .Take(60)
-            .ToList();
-
-        if (affectedItemIds.Count == 0)
-            return;
-
-        SetLoadStatusMessage("Actualizando stock vendido...");
-        IsSearchingProducts = true;
-        try
-        {
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
-            var refreshTasks = affectedItemIds.Select(itemId =>
-                _productService.GetByIdAsync(itemId, _exchangeRate, timeoutCts.Token));
-
-            var refreshedProducts = await Task.WhenAll(refreshTasks);
-            if (!IsCurrentCatalogVersion(catalogVersion))
-                return;
-
-            foreach (var refreshed in refreshedProducts.Where(product => product is not null).Cast<ProductModel>())
-                MergeRefreshedProduct(refreshed);
-
-            SetLoadStatusMessage(string.Empty);
-            FilterProducts();
-            RefreshProductCountText();
-        }
-        catch (OperationCanceledException)
-        {
-            SetLoadStatusMessage("Stock actualizado localmente. Se reconciliara en segundo plano.");
-        }
-        catch
-        {
-            SetLoadStatusMessage("Stock actualizado localmente. Se reconciliara en segundo plano.");
-        }
-        finally
-        {
-            IsSearchingProducts = false;
         }
     }
 
