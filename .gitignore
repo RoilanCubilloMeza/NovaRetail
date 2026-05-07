@@ -1,6 +1,7 @@
 # Build output
 [Bb]in/
 [Oo]bj/
+buildcheck/
 
 # Local .NET/CLI state
 .dotnet/
