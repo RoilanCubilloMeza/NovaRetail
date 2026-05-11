@@ -231,8 +231,7 @@ END;", cn))
         {
             try
             {
-                System.IO.File.AppendAllText(ErrorLogPath,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+                NovaFileLogger.AppendLine(ErrorLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n");
             }
             catch
             {

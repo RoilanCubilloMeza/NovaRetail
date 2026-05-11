@@ -4,6 +4,7 @@ using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
+using NovaAPI.Services;
 
 namespace NovaAPI
 {
@@ -25,8 +26,13 @@ namespace NovaAPI
             var ex = Server.GetLastError();
             if (ex != null)
             {
-                try { File.AppendAllText(ErrorLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] APPLICATION_ERROR:\r\n{ex}\r\n\r\n"); } catch { }
+                try { NovaFileLogger.AppendLine(ErrorLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] APPLICATION_ERROR:\r\n{ex}\r\n"); } catch { }
             }
+        }
+
+        protected void Application_End()
+        {
+            NovaFileLogger.Shutdown();
         }
     }
 }

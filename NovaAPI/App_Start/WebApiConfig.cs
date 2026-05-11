@@ -9,6 +9,7 @@ using System.Web.Http.ExceptionHandling;
 using System.Web.Http.Results;
 using Newtonsoft.Json;
 using NovaAPI.Security;
+using NovaAPI.Services;
 
 namespace NovaAPI
 {
@@ -68,7 +69,7 @@ namespace NovaAPI
                     stackTrace = ex.ToString()
                 };
 
-                File.AppendAllText(LogPath, JsonConvert.SerializeObject(logEntry) + Environment.NewLine);
+                NovaFileLogger.AppendLine(LogPath, JsonConvert.SerializeObject(logEntry));
             }
             catch { }
         }

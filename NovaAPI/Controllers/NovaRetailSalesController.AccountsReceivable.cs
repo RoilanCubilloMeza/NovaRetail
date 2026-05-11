@@ -836,6 +836,14 @@ WHERE a.Number = @Number;", cn))
                 if (accountID <= 0)
                     return;
 
+                var referencedLedgerEntryID = 0;
+                if (isCreditNC)
+                {
+                    perfStep.Restart();
+                    referencedLedgerEntryID = ResolveReferencedLedgerEntryID(cn, null, accountID, referenceCandidates);
+                    LogPerformance($"AR ResolveReferencedLedgerEntryID before tx {perfStep.ElapsedMilliseconds} ms referencedLedgerEntryID={referencedLedgerEntryID}");
+                }
+
                 using (var tx = cn.BeginTransaction())
                 {
                     var now = DateTime.Now;
@@ -935,9 +943,6 @@ WHERE a.Number = @Number;", cn))
 
                     if (isCreditNC)
                     {
-                        perfStep.Restart();
-                        var referencedLedgerEntryID = ResolveReferencedLedgerEntryID(cn, tx, accountID, referenceCandidates);
-                        LogPerformance($"AR ResolveReferencedLedgerEntryID {perfStep.ElapsedMilliseconds} ms referencedLedgerEntryID={referencedLedgerEntryID}");
                         if (referencedLedgerEntryID > 0)
                         {
                             perfStep.Restart();

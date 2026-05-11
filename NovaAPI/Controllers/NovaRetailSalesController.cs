@@ -38,8 +38,7 @@ namespace NovaAPI.Controllers
         {
             try
             {
-                System.IO.File.AppendAllText(ErrorLogPath,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+                NovaFileLogger.AppendLine(ErrorLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n");
             }
             catch { }
         }
@@ -48,8 +47,7 @@ namespace NovaAPI.Controllers
         {
             try
             {
-                System.IO.File.AppendAllText(PerformanceLogPath,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}\r\n");
+                NovaFileLogger.AppendLine(PerformanceLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}");
             }
             catch { }
         }
