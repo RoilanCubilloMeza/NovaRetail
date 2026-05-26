@@ -15,6 +15,432 @@ namespace NovaAPI.wsSecurityMain {
     
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="AbonoEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
+    [System.SerializableAttribute()]
+    public partial class AbonoEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decMontoAbonoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decSaldoActualField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decSaldoAnteriorField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.DateTime dtFechaREciboField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.DateTime dtFechaVencimientoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int intIdClienteField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int intIdFacturaRefField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int intIdReciboField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strClave50Field;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strCodClienteField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strComentariosField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strFechaVencimientoField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decMontoAbono {
+            get {
+                return this.decMontoAbonoField;
+            }
+            set {
+                if ((this.decMontoAbonoField.Equals(value) != true)) {
+                    this.decMontoAbonoField = value;
+                    this.RaisePropertyChanged("decMontoAbono");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decSaldoActual {
+            get {
+                return this.decSaldoActualField;
+            }
+            set {
+                if ((this.decSaldoActualField.Equals(value) != true)) {
+                    this.decSaldoActualField = value;
+                    this.RaisePropertyChanged("decSaldoActual");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decSaldoAnterior {
+            get {
+                return this.decSaldoAnteriorField;
+            }
+            set {
+                if ((this.decSaldoAnteriorField.Equals(value) != true)) {
+                    this.decSaldoAnteriorField = value;
+                    this.RaisePropertyChanged("decSaldoAnterior");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.DateTime dtFechaREcibo {
+            get {
+                return this.dtFechaREciboField;
+            }
+            set {
+                if ((this.dtFechaREciboField.Equals(value) != true)) {
+                    this.dtFechaREciboField = value;
+                    this.RaisePropertyChanged("dtFechaREcibo");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.DateTime dtFechaVencimiento {
+            get {
+                return this.dtFechaVencimientoField;
+            }
+            set {
+                if ((this.dtFechaVencimientoField.Equals(value) != true)) {
+                    this.dtFechaVencimientoField = value;
+                    this.RaisePropertyChanged("dtFechaVencimiento");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int intIdCliente {
+            get {
+                return this.intIdClienteField;
+            }
+            set {
+                if ((this.intIdClienteField.Equals(value) != true)) {
+                    this.intIdClienteField = value;
+                    this.RaisePropertyChanged("intIdCliente");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int intIdFacturaRef {
+            get {
+                return this.intIdFacturaRefField;
+            }
+            set {
+                if ((this.intIdFacturaRefField.Equals(value) != true)) {
+                    this.intIdFacturaRefField = value;
+                    this.RaisePropertyChanged("intIdFacturaRef");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int intIdRecibo {
+            get {
+                return this.intIdReciboField;
+            }
+            set {
+                if ((this.intIdReciboField.Equals(value) != true)) {
+                    this.intIdReciboField = value;
+                    this.RaisePropertyChanged("intIdRecibo");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strClave50 {
+            get {
+                return this.strClave50Field;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strClave50Field, value) != true)) {
+                    this.strClave50Field = value;
+                    this.RaisePropertyChanged("strClave50");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strCodCliente {
+            get {
+                return this.strCodClienteField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strCodClienteField, value) != true)) {
+                    this.strCodClienteField = value;
+                    this.RaisePropertyChanged("strCodCliente");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strComentarios {
+            get {
+                return this.strComentariosField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strComentariosField, value) != true)) {
+                    this.strComentariosField = value;
+                    this.RaisePropertyChanged("strComentarios");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strFechaVencimiento {
+            get {
+                return this.strFechaVencimientoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strFechaVencimientoField, value) != true)) {
+                    this.strFechaVencimientoField = value;
+                    this.RaisePropertyChanged("strFechaVencimiento");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="VentasReporteEntitie", Namespace="http://schemas.datacontract.org/2004/07/ClientesEntities")]
+    [System.SerializableAttribute()]
+    public partial class VentasReporteEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decNotasCreditoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decNotasDebitoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalCompraField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalComprobanteField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalExportacionField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalFacturaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalIVAField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<decimal> decTotalTiqueteField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<int> intIdClienteOrigenField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strClienteCedulaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strClienteRazonField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decNotasCredito {
+            get {
+                return this.decNotasCreditoField;
+            }
+            set {
+                if ((this.decNotasCreditoField.Equals(value) != true)) {
+                    this.decNotasCreditoField = value;
+                    this.RaisePropertyChanged("decNotasCredito");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decNotasDebito {
+            get {
+                return this.decNotasDebitoField;
+            }
+            set {
+                if ((this.decNotasDebitoField.Equals(value) != true)) {
+                    this.decNotasDebitoField = value;
+                    this.RaisePropertyChanged("decNotasDebito");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalCompra {
+            get {
+                return this.decTotalCompraField;
+            }
+            set {
+                if ((this.decTotalCompraField.Equals(value) != true)) {
+                    this.decTotalCompraField = value;
+                    this.RaisePropertyChanged("decTotalCompra");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalComprobante {
+            get {
+                return this.decTotalComprobanteField;
+            }
+            set {
+                if ((this.decTotalComprobanteField.Equals(value) != true)) {
+                    this.decTotalComprobanteField = value;
+                    this.RaisePropertyChanged("decTotalComprobante");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalExportacion {
+            get {
+                return this.decTotalExportacionField;
+            }
+            set {
+                if ((this.decTotalExportacionField.Equals(value) != true)) {
+                    this.decTotalExportacionField = value;
+                    this.RaisePropertyChanged("decTotalExportacion");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalFactura {
+            get {
+                return this.decTotalFacturaField;
+            }
+            set {
+                if ((this.decTotalFacturaField.Equals(value) != true)) {
+                    this.decTotalFacturaField = value;
+                    this.RaisePropertyChanged("decTotalFactura");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalIVA {
+            get {
+                return this.decTotalIVAField;
+            }
+            set {
+                if ((this.decTotalIVAField.Equals(value) != true)) {
+                    this.decTotalIVAField = value;
+                    this.RaisePropertyChanged("decTotalIVA");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<decimal> decTotalTiquete {
+            get {
+                return this.decTotalTiqueteField;
+            }
+            set {
+                if ((this.decTotalTiqueteField.Equals(value) != true)) {
+                    this.decTotalTiqueteField = value;
+                    this.RaisePropertyChanged("decTotalTiquete");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<int> intIdClienteOrigen {
+            get {
+                return this.intIdClienteOrigenField;
+            }
+            set {
+                if ((this.intIdClienteOrigenField.Equals(value) != true)) {
+                    this.intIdClienteOrigenField = value;
+                    this.RaisePropertyChanged("intIdClienteOrigen");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strClienteCedula {
+            get {
+                return this.strClienteCedulaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strClienteCedulaField, value) != true)) {
+                    this.strClienteCedulaField = value;
+                    this.RaisePropertyChanged("strClienteCedula");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strClienteRazon {
+            get {
+                return this.strClienteRazonField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strClienteRazonField, value) != true)) {
+                    this.strClienteRazonField = value;
+                    this.RaisePropertyChanged("strClienteRazon");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
     [System.Runtime.Serialization.DataContractAttribute(Name="CarteraEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
     [System.SerializableAttribute()]
     public partial class CarteraEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
@@ -545,7 +971,16 @@ namespace NovaAPI.wsSecurityMain {
         private decimal decTipoCambioField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decTipoCambioCompraField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decTipoCambioVentaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.Nullable<double> dobValorField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.Nullable<System.DateTime> dtFechaRegistroField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private int intCodigoField;
@@ -586,6 +1021,32 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decTipoCambioCompra {
+            get {
+                return this.decTipoCambioCompraField;
+            }
+            set {
+                if ((this.decTipoCambioCompraField.Equals(value) != true)) {
+                    this.decTipoCambioCompraField = value;
+                    this.RaisePropertyChanged("decTipoCambioCompra");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decTipoCambioVenta {
+            get {
+                return this.decTipoCambioVentaField;
+            }
+            set {
+                if ((this.decTipoCambioVentaField.Equals(value) != true)) {
+                    this.decTipoCambioVentaField = value;
+                    this.RaisePropertyChanged("decTipoCambioVenta");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
         public System.Nullable<double> dobValor {
             get {
                 return this.dobValorField;
@@ -594,6 +1055,19 @@ namespace NovaAPI.wsSecurityMain {
                 if ((this.dobValorField.Equals(value) != true)) {
                     this.dobValorField = value;
                     this.RaisePropertyChanged("dobValor");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.Nullable<System.DateTime> dtFechaRegistro {
+            get {
+                return this.dtFechaRegistroField;
+            }
+            set {
+                if ((this.dtFechaRegistroField.Equals(value) != true)) {
+                    this.dtFechaRegistroField = value;
+                    this.RaisePropertyChanged("dtFechaRegistro");
                 }
             }
         }
@@ -768,6 +1242,83 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.strCodAct05Field, value) != true)) {
                     this.strCodAct05Field = value;
                     this.RaisePropertyChanged("strCodAct05");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="ActividadClienteEntitie", Namespace="http://schemas.datacontract.org/2004/07/ClientesEntities")]
+    [System.SerializableAttribute()]
+    public partial class ActividadClienteEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Codigo_ActividadField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int IdField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Nombre_ActividadField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string Codigo_Actividad {
+            get {
+                return this.Codigo_ActividadField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Codigo_ActividadField, value) != true)) {
+                    this.Codigo_ActividadField = value;
+                    this.RaisePropertyChanged("Codigo_Actividad");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int Id {
+            get {
+                return this.IdField;
+            }
+            set {
+                if ((this.IdField.Equals(value) != true)) {
+                    this.IdField = value;
+                    this.RaisePropertyChanged("Id");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string Nombre_Actividad {
+            get {
+                return this.Nombre_ActividadField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Nombre_ActividadField, value) != true)) {
+                    this.Nombre_ActividadField = value;
+                    this.RaisePropertyChanged("Nombre_Actividad");
                 }
             }
         }
@@ -2288,12 +2839,6 @@ namespace NovaAPI.wsSecurityMain {
         private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string AC_LOGO_PARTNERField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string AC_NOMBRE_PARTNERField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string CEDULA_CLIENTEField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
@@ -2372,52 +2917,16 @@ namespace NovaAPI.wsSecurityMain {
         private string TELEFONOField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_ALERTA_PROMOSField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_CAMBIAR_PRECIOSField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_CLAVEField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_CLIENTES_CREAField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_CLIENTES_EDITAField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_COD_VENDEDORField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string US_DESCUENTOS_MODOField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_DESC_GLOBALField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_EMAILField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.Nullable<short> US_ESTADOField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FOOTER_OPField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FOOTER_PROFORMAField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FOOTER_VENTASField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FORMATO_OPField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FORMATO_PROFORMAField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_FORMATO_RECIBOSField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_GET_CLIENTE_VENDEDORField;
@@ -2430,9 +2939,6 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_LOGINField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_LVL_PRICEField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_NOMBREField;
@@ -2450,19 +2956,10 @@ namespace NovaAPI.wsSecurityMain {
         private System.Nullable<short> US_ORDEN_VER_TOTALESField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_PERMITE_CENTRALField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string US_STOREIDField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.Nullable<short> US_SYNC_CLIENTESField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.Nullable<short> US_SYNC_COTIZAField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<short> US_SYNC_FRECField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.Nullable<short> US_SYNC_ORDENESField;
@@ -2486,9 +2983,6 @@ namespace NovaAPI.wsSecurityMain {
         private string US_URL_API_UNIVERSALField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string US_URL_CENTRALField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string US_URL_IMAGENESField;
         
         [global::System.ComponentModel.BrowsableAttribute(false)]
@@ -2498,32 +2992,6 @@ namespace NovaAPI.wsSecurityMain {
             }
             set {
                 this.extensionDataField = value;
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string AC_LOGO_PARTNER {
-            get {
-                return this.AC_LOGO_PARTNERField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.AC_LOGO_PARTNERField, value) != true)) {
-                    this.AC_LOGO_PARTNERField = value;
-                    this.RaisePropertyChanged("AC_LOGO_PARTNER");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string AC_NOMBRE_PARTNER {
-            get {
-                return this.AC_NOMBRE_PARTNERField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.AC_NOMBRE_PARTNERField, value) != true)) {
-                    this.AC_NOMBRE_PARTNERField = value;
-                    this.RaisePropertyChanged("AC_NOMBRE_PARTNER");
-                }
             }
         }
         
@@ -2866,32 +3334,6 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_ALERTA_PROMOS {
-            get {
-                return this.US_ALERTA_PROMOSField;
-            }
-            set {
-                if ((this.US_ALERTA_PROMOSField.Equals(value) != true)) {
-                    this.US_ALERTA_PROMOSField = value;
-                    this.RaisePropertyChanged("US_ALERTA_PROMOS");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_CAMBIAR_PRECIOS {
-            get {
-                return this.US_CAMBIAR_PRECIOSField;
-            }
-            set {
-                if ((this.US_CAMBIAR_PRECIOSField.Equals(value) != true)) {
-                    this.US_CAMBIAR_PRECIOSField = value;
-                    this.RaisePropertyChanged("US_CAMBIAR_PRECIOS");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
         public string US_CLAVE {
             get {
                 return this.US_CLAVEField;
@@ -2905,32 +3347,6 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_CLIENTES_CREA {
-            get {
-                return this.US_CLIENTES_CREAField;
-            }
-            set {
-                if ((this.US_CLIENTES_CREAField.Equals(value) != true)) {
-                    this.US_CLIENTES_CREAField = value;
-                    this.RaisePropertyChanged("US_CLIENTES_CREA");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_CLIENTES_EDITA {
-            get {
-                return this.US_CLIENTES_EDITAField;
-            }
-            set {
-                if ((this.US_CLIENTES_EDITAField.Equals(value) != true)) {
-                    this.US_CLIENTES_EDITAField = value;
-                    this.RaisePropertyChanged("US_CLIENTES_EDITA");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
         public string US_COD_VENDEDOR {
             get {
                 return this.US_COD_VENDEDORField;
@@ -2939,32 +3355,6 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.US_COD_VENDEDORField, value) != true)) {
                     this.US_COD_VENDEDORField = value;
                     this.RaisePropertyChanged("US_COD_VENDEDOR");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string US_DESCUENTOS_MODO {
-            get {
-                return this.US_DESCUENTOS_MODOField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.US_DESCUENTOS_MODOField, value) != true)) {
-                    this.US_DESCUENTOS_MODOField = value;
-                    this.RaisePropertyChanged("US_DESCUENTOS_MODO");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_DESC_GLOBAL {
-            get {
-                return this.US_DESC_GLOBALField;
-            }
-            set {
-                if ((this.US_DESC_GLOBALField.Equals(value) != true)) {
-                    this.US_DESC_GLOBALField = value;
-                    this.RaisePropertyChanged("US_DESC_GLOBAL");
                 }
             }
         }
@@ -2991,84 +3381,6 @@ namespace NovaAPI.wsSecurityMain {
                 if ((this.US_ESTADOField.Equals(value) != true)) {
                     this.US_ESTADOField = value;
                     this.RaisePropertyChanged("US_ESTADO");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FOOTER_OP {
-            get {
-                return this.US_FOOTER_OPField;
-            }
-            set {
-                if ((this.US_FOOTER_OPField.Equals(value) != true)) {
-                    this.US_FOOTER_OPField = value;
-                    this.RaisePropertyChanged("US_FOOTER_OP");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FOOTER_PROFORMA {
-            get {
-                return this.US_FOOTER_PROFORMAField;
-            }
-            set {
-                if ((this.US_FOOTER_PROFORMAField.Equals(value) != true)) {
-                    this.US_FOOTER_PROFORMAField = value;
-                    this.RaisePropertyChanged("US_FOOTER_PROFORMA");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FOOTER_VENTAS {
-            get {
-                return this.US_FOOTER_VENTASField;
-            }
-            set {
-                if ((this.US_FOOTER_VENTASField.Equals(value) != true)) {
-                    this.US_FOOTER_VENTASField = value;
-                    this.RaisePropertyChanged("US_FOOTER_VENTAS");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FORMATO_OP {
-            get {
-                return this.US_FORMATO_OPField;
-            }
-            set {
-                if ((this.US_FORMATO_OPField.Equals(value) != true)) {
-                    this.US_FORMATO_OPField = value;
-                    this.RaisePropertyChanged("US_FORMATO_OP");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FORMATO_PROFORMA {
-            get {
-                return this.US_FORMATO_PROFORMAField;
-            }
-            set {
-                if ((this.US_FORMATO_PROFORMAField.Equals(value) != true)) {
-                    this.US_FORMATO_PROFORMAField = value;
-                    this.RaisePropertyChanged("US_FORMATO_PROFORMA");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_FORMATO_RECIBOS {
-            get {
-                return this.US_FORMATO_RECIBOSField;
-            }
-            set {
-                if ((this.US_FORMATO_RECIBOSField.Equals(value) != true)) {
-                    this.US_FORMATO_RECIBOSField = value;
-                    this.RaisePropertyChanged("US_FORMATO_RECIBOS");
                 }
             }
         }
@@ -3121,19 +3433,6 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.US_LOGINField, value) != true)) {
                     this.US_LOGINField = value;
                     this.RaisePropertyChanged("US_LOGIN");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_LVL_PRICE {
-            get {
-                return this.US_LVL_PRICEField;
-            }
-            set {
-                if ((this.US_LVL_PRICEField.Equals(value) != true)) {
-                    this.US_LVL_PRICEField = value;
-                    this.RaisePropertyChanged("US_LVL_PRICE");
                 }
             }
         }
@@ -3204,32 +3503,6 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_PERMITE_CENTRAL {
-            get {
-                return this.US_PERMITE_CENTRALField;
-            }
-            set {
-                if ((this.US_PERMITE_CENTRALField.Equals(value) != true)) {
-                    this.US_PERMITE_CENTRALField = value;
-                    this.RaisePropertyChanged("US_PERMITE_CENTRAL");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string US_STOREID {
-            get {
-                return this.US_STOREIDField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.US_STOREIDField, value) != true)) {
-                    this.US_STOREIDField = value;
-                    this.RaisePropertyChanged("US_STOREID");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
         public System.Nullable<short> US_SYNC_CLIENTES {
             get {
                 return this.US_SYNC_CLIENTESField;
@@ -3251,19 +3524,6 @@ namespace NovaAPI.wsSecurityMain {
                 if ((this.US_SYNC_COTIZAField.Equals(value) != true)) {
                     this.US_SYNC_COTIZAField = value;
                     this.RaisePropertyChanged("US_SYNC_COTIZA");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<short> US_SYNC_FREC {
-            get {
-                return this.US_SYNC_FRECField;
-            }
-            set {
-                if ((this.US_SYNC_FRECField.Equals(value) != true)) {
-                    this.US_SYNC_FRECField = value;
-                    this.RaisePropertyChanged("US_SYNC_FREC");
                 }
             }
         }
@@ -3360,19 +3620,6 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
-        public string US_URL_CENTRAL {
-            get {
-                return this.US_URL_CENTRALField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.US_URL_CENTRALField, value) != true)) {
-                    this.US_URL_CENTRALField = value;
-                    this.RaisePropertyChanged("US_URL_CENTRAL");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
         public string US_URL_IMAGENES {
             get {
                 return this.US_URL_IMAGENESField;
@@ -3381,6 +3628,83 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.US_URL_IMAGENESField, value) != true)) {
                     this.US_URL_IMAGENESField = value;
                     this.RaisePropertyChanged("US_URL_IMAGENES");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="CatalogoCabysEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
+    [System.SerializableAttribute()]
+    public partial class CatalogoCabysEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strCodigoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strDescripcionField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strImpuestoField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strCodigo {
+            get {
+                return this.strCodigoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strCodigoField, value) != true)) {
+                    this.strCodigoField = value;
+                    this.RaisePropertyChanged("strCodigo");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strDescripcion {
+            get {
+                return this.strDescripcionField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strDescripcionField, value) != true)) {
+                    this.strDescripcionField = value;
+                    this.RaisePropertyChanged("strDescripcion");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strImpuesto {
+            get {
+                return this.strImpuestoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strImpuestoField, value) != true)) {
+                    this.strImpuestoField = value;
+                    this.RaisePropertyChanged("strImpuesto");
                 }
             }
         }
@@ -3406,6 +3730,12 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private int IdField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private NovaAPI.wsSecurityMain.ClienteActEntitie[] ListaCodActClienteField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string[] ListaCodActividadesField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private System.DateTime dtFechaIngresoField;
@@ -3489,6 +3819,32 @@ namespace NovaAPI.wsSecurityMain {
                 if ((this.IdField.Equals(value) != true)) {
                     this.IdField = value;
                     this.RaisePropertyChanged("Id");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public NovaAPI.wsSecurityMain.ClienteActEntitie[] ListaCodActCliente {
+            get {
+                return this.ListaCodActClienteField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ListaCodActClienteField, value) != true)) {
+                    this.ListaCodActClienteField = value;
+                    this.RaisePropertyChanged("ListaCodActCliente");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string[] ListaCodActividades {
+            get {
+                return this.ListaCodActividadesField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ListaCodActividadesField, value) != true)) {
+                    this.ListaCodActividadesField = value;
+                    this.RaisePropertyChanged("ListaCodActividades");
                 }
             }
         }
@@ -3762,6 +4118,51 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.strTipoClienteField, value) != true)) {
                     this.strTipoClienteField = value;
                     this.RaisePropertyChanged("strTipoCliente");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="ClienteActEntitie", Namespace="http://schemas.datacontract.org/2004/07/ClientesEntities")]
+    [System.SerializableAttribute()]
+    public partial class ClienteActEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strCodActC01Field;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strCodActC01 {
+            get {
+                return this.strCodActC01Field;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strCodActC01Field, value) != true)) {
+                    this.strCodActC01Field = value;
+                    this.RaisePropertyChanged("strCodActC01");
                 }
             }
         }
@@ -5959,227 +6360,6 @@ namespace NovaAPI.wsSecurityMain {
     
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
-    [System.Runtime.Serialization.DataContractAttribute(Name="AbonoEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
-    [System.SerializableAttribute()]
-    public partial class AbonoEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
-        
-        [System.NonSerializedAttribute()]
-        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private decimal decMontoAbonoField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private decimal decSaldoActualField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private decimal decSaldoAnteriorField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.DateTime dtFechaREciboField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.DateTime dtFechaVencimientoField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private int intIdClienteField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private int intIdFacturaRefField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private int intIdReciboField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strClave50Field;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strCodClienteField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strComentariosField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strFechaVencimientoField;
-        
-        [global::System.ComponentModel.BrowsableAttribute(false)]
-        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
-            get {
-                return this.extensionDataField;
-            }
-            set {
-                this.extensionDataField = value;
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public decimal decMontoAbono {
-            get {
-                return this.decMontoAbonoField;
-            }
-            set {
-                if ((this.decMontoAbonoField.Equals(value) != true)) {
-                    this.decMontoAbonoField = value;
-                    this.RaisePropertyChanged("decMontoAbono");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public decimal decSaldoActual {
-            get {
-                return this.decSaldoActualField;
-            }
-            set {
-                if ((this.decSaldoActualField.Equals(value) != true)) {
-                    this.decSaldoActualField = value;
-                    this.RaisePropertyChanged("decSaldoActual");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public decimal decSaldoAnterior {
-            get {
-                return this.decSaldoAnteriorField;
-            }
-            set {
-                if ((this.decSaldoAnteriorField.Equals(value) != true)) {
-                    this.decSaldoAnteriorField = value;
-                    this.RaisePropertyChanged("decSaldoAnterior");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.DateTime dtFechaREcibo {
-            get {
-                return this.dtFechaREciboField;
-            }
-            set {
-                if ((this.dtFechaREciboField.Equals(value) != true)) {
-                    this.dtFechaREciboField = value;
-                    this.RaisePropertyChanged("dtFechaREcibo");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.DateTime dtFechaVencimiento {
-            get {
-                return this.dtFechaVencimientoField;
-            }
-            set {
-                if ((this.dtFechaVencimientoField.Equals(value) != true)) {
-                    this.dtFechaVencimientoField = value;
-                    this.RaisePropertyChanged("dtFechaVencimiento");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public int intIdCliente {
-            get {
-                return this.intIdClienteField;
-            }
-            set {
-                if ((this.intIdClienteField.Equals(value) != true)) {
-                    this.intIdClienteField = value;
-                    this.RaisePropertyChanged("intIdCliente");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public int intIdFacturaRef {
-            get {
-                return this.intIdFacturaRefField;
-            }
-            set {
-                if ((this.intIdFacturaRefField.Equals(value) != true)) {
-                    this.intIdFacturaRefField = value;
-                    this.RaisePropertyChanged("intIdFacturaRef");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public int intIdRecibo {
-            get {
-                return this.intIdReciboField;
-            }
-            set {
-                if ((this.intIdReciboField.Equals(value) != true)) {
-                    this.intIdReciboField = value;
-                    this.RaisePropertyChanged("intIdRecibo");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strClave50 {
-            get {
-                return this.strClave50Field;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strClave50Field, value) != true)) {
-                    this.strClave50Field = value;
-                    this.RaisePropertyChanged("strClave50");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strCodCliente {
-            get {
-                return this.strCodClienteField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strCodClienteField, value) != true)) {
-                    this.strCodClienteField = value;
-                    this.RaisePropertyChanged("strCodCliente");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strComentarios {
-            get {
-                return this.strComentariosField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strComentariosField, value) != true)) {
-                    this.strComentariosField = value;
-                    this.RaisePropertyChanged("strComentarios");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strFechaVencimiento {
-            get {
-                return this.strFechaVencimientoField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strFechaVencimientoField, value) != true)) {
-                    this.strFechaVencimientoField = value;
-                    this.RaisePropertyChanged("strFechaVencimiento");
-                }
-            }
-        }
-        
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-        
-        protected void RaisePropertyChanged(string propertyName) {
-            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
-            if ((propertyChanged != null)) {
-                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-            }
-        }
-    }
-    
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
     [System.Runtime.Serialization.DataContractAttribute(Name="F_ClienteEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
     [System.SerializableAttribute()]
     public partial class F_ClienteEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
@@ -7416,6 +7596,307 @@ namespace NovaAPI.wsSecurityMain {
     
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="ReciboDetalleDto", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
+    [System.SerializableAttribute()]
+    public partial class ReciboDetalleDto : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string CedulaOrigenField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ClienteCedulaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ClienteDirFisicaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ClienteRazonSocialField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ClienteTelefono1Field;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string CodMonedaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ComentariosField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string DirFisicaOrigenField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string EmailOrigenField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string EmisorNombreComercialField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string EmisorSitioWebField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int FacturaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private System.DateTime FechaReciboField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private int IdReciboField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal MontoAbonoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string RazonSocialOrigenField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string TelefonoOrigenField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string CedulaOrigen {
+            get {
+                return this.CedulaOrigenField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.CedulaOrigenField, value) != true)) {
+                    this.CedulaOrigenField = value;
+                    this.RaisePropertyChanged("CedulaOrigen");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string ClienteCedula {
+            get {
+                return this.ClienteCedulaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ClienteCedulaField, value) != true)) {
+                    this.ClienteCedulaField = value;
+                    this.RaisePropertyChanged("ClienteCedula");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string ClienteDirFisica {
+            get {
+                return this.ClienteDirFisicaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ClienteDirFisicaField, value) != true)) {
+                    this.ClienteDirFisicaField = value;
+                    this.RaisePropertyChanged("ClienteDirFisica");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string ClienteRazonSocial {
+            get {
+                return this.ClienteRazonSocialField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ClienteRazonSocialField, value) != true)) {
+                    this.ClienteRazonSocialField = value;
+                    this.RaisePropertyChanged("ClienteRazonSocial");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string ClienteTelefono1 {
+            get {
+                return this.ClienteTelefono1Field;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ClienteTelefono1Field, value) != true)) {
+                    this.ClienteTelefono1Field = value;
+                    this.RaisePropertyChanged("ClienteTelefono1");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string CodMoneda {
+            get {
+                return this.CodMonedaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.CodMonedaField, value) != true)) {
+                    this.CodMonedaField = value;
+                    this.RaisePropertyChanged("CodMoneda");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string Comentarios {
+            get {
+                return this.ComentariosField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ComentariosField, value) != true)) {
+                    this.ComentariosField = value;
+                    this.RaisePropertyChanged("Comentarios");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string DirFisicaOrigen {
+            get {
+                return this.DirFisicaOrigenField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.DirFisicaOrigenField, value) != true)) {
+                    this.DirFisicaOrigenField = value;
+                    this.RaisePropertyChanged("DirFisicaOrigen");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string EmailOrigen {
+            get {
+                return this.EmailOrigenField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.EmailOrigenField, value) != true)) {
+                    this.EmailOrigenField = value;
+                    this.RaisePropertyChanged("EmailOrigen");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string EmisorNombreComercial {
+            get {
+                return this.EmisorNombreComercialField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.EmisorNombreComercialField, value) != true)) {
+                    this.EmisorNombreComercialField = value;
+                    this.RaisePropertyChanged("EmisorNombreComercial");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string EmisorSitioWeb {
+            get {
+                return this.EmisorSitioWebField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.EmisorSitioWebField, value) != true)) {
+                    this.EmisorSitioWebField = value;
+                    this.RaisePropertyChanged("EmisorSitioWeb");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int Factura {
+            get {
+                return this.FacturaField;
+            }
+            set {
+                if ((this.FacturaField.Equals(value) != true)) {
+                    this.FacturaField = value;
+                    this.RaisePropertyChanged("Factura");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public System.DateTime FechaRecibo {
+            get {
+                return this.FechaReciboField;
+            }
+            set {
+                if ((this.FechaReciboField.Equals(value) != true)) {
+                    this.FechaReciboField = value;
+                    this.RaisePropertyChanged("FechaRecibo");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public int IdRecibo {
+            get {
+                return this.IdReciboField;
+            }
+            set {
+                if ((this.IdReciboField.Equals(value) != true)) {
+                    this.IdReciboField = value;
+                    this.RaisePropertyChanged("IdRecibo");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal MontoAbono {
+            get {
+                return this.MontoAbonoField;
+            }
+            set {
+                if ((this.MontoAbonoField.Equals(value) != true)) {
+                    this.MontoAbonoField = value;
+                    this.RaisePropertyChanged("MontoAbono");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string RazonSocialOrigen {
+            get {
+                return this.RazonSocialOrigenField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.RazonSocialOrigenField, value) != true)) {
+                    this.RazonSocialOrigenField = value;
+                    this.RaisePropertyChanged("RazonSocialOrigen");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string TelefonoOrigen {
+            get {
+                return this.TelefonoOrigenField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.TelefonoOrigenField, value) != true)) {
+                    this.TelefonoOrigenField = value;
+                    this.RaisePropertyChanged("TelefonoOrigen");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
     [System.Runtime.Serialization.DataContractAttribute(Name="DetFacturaReporteEntitie", Namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities")]
     [System.SerializableAttribute()]
     public partial class DetFacturaReporteEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
@@ -7606,6 +8087,9 @@ namespace NovaAPI.wsSecurityMain {
         private decimal decSubtotalField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private decimal decTipoCambioField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private decimal decTotalComprobanteField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
@@ -7672,6 +8156,9 @@ namespace NovaAPI.wsSecurityMain {
         private string strNumResolucionField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strObservacionField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string strOrigenCedulaField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
@@ -7682,6 +8169,9 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string strOrigenTelefonoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string strRespuestaField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string strTipoDocumentoField;
@@ -7734,6 +8224,19 @@ namespace NovaAPI.wsSecurityMain {
                 if ((this.decSubtotalField.Equals(value) != true)) {
                     this.decSubtotalField = value;
                     this.RaisePropertyChanged("decSubtotal");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public decimal decTipoCambio {
+            get {
+                return this.decTipoCambioField;
+            }
+            set {
+                if ((this.decTipoCambioField.Equals(value) != true)) {
+                    this.decTipoCambioField = value;
+                    this.RaisePropertyChanged("decTipoCambio");
                 }
             }
         }
@@ -8025,6 +8528,19 @@ namespace NovaAPI.wsSecurityMain {
         }
         
         [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strObservacion {
+            get {
+                return this.strObservacionField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strObservacionField, value) != true)) {
+                    this.strObservacionField = value;
+                    this.RaisePropertyChanged("strObservacion");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
         public string strOrigenCedula {
             get {
                 return this.strOrigenCedulaField;
@@ -8072,6 +8588,19 @@ namespace NovaAPI.wsSecurityMain {
                 if ((object.ReferenceEquals(this.strOrigenTelefonoField, value) != true)) {
                     this.strOrigenTelefonoField = value;
                     this.RaisePropertyChanged("strOrigenTelefono");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute()]
+        public string strRespuesta {
+            get {
+                return this.strRespuestaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.strRespuestaField, value) != true)) {
+                    this.strRespuestaField = value;
+                    this.RaisePropertyChanged("strRespuesta");
                 }
             }
         }
@@ -8884,166 +9413,33 @@ namespace NovaAPI.wsSecurityMain {
         }
     }
     
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
-    [System.Runtime.Serialization.DataContractAttribute(Name="VentasReporteEntitie", Namespace="http://schemas.datacontract.org/2004/07/ClientesEntities")]
-    [System.SerializableAttribute()]
-    public partial class VentasReporteEntitie : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
-        
-        [System.NonSerializedAttribute()]
-        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<decimal> decNotasCreditoField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<decimal> decTotalComprobanteField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<decimal> decTotalDescuentosField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<decimal> decTotalImpuestosField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<decimal> decTotalNetoField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private System.Nullable<int> intIdClienteOrigenField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strClienteCedulaField;
-        
-        [System.Runtime.Serialization.OptionalFieldAttribute()]
-        private string strClienteRazonField;
-        
-        [global::System.ComponentModel.BrowsableAttribute(false)]
-        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
-            get {
-                return this.extensionDataField;
-            }
-            set {
-                this.extensionDataField = value;
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<decimal> decNotasCredito {
-            get {
-                return this.decNotasCreditoField;
-            }
-            set {
-                if ((this.decNotasCreditoField.Equals(value) != true)) {
-                    this.decNotasCreditoField = value;
-                    this.RaisePropertyChanged("decNotasCredito");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<decimal> decTotalComprobante {
-            get {
-                return this.decTotalComprobanteField;
-            }
-            set {
-                if ((this.decTotalComprobanteField.Equals(value) != true)) {
-                    this.decTotalComprobanteField = value;
-                    this.RaisePropertyChanged("decTotalComprobante");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<decimal> decTotalDescuentos {
-            get {
-                return this.decTotalDescuentosField;
-            }
-            set {
-                if ((this.decTotalDescuentosField.Equals(value) != true)) {
-                    this.decTotalDescuentosField = value;
-                    this.RaisePropertyChanged("decTotalDescuentos");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<decimal> decTotalImpuestos {
-            get {
-                return this.decTotalImpuestosField;
-            }
-            set {
-                if ((this.decTotalImpuestosField.Equals(value) != true)) {
-                    this.decTotalImpuestosField = value;
-                    this.RaisePropertyChanged("decTotalImpuestos");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<decimal> decTotalNeto {
-            get {
-                return this.decTotalNetoField;
-            }
-            set {
-                if ((this.decTotalNetoField.Equals(value) != true)) {
-                    this.decTotalNetoField = value;
-                    this.RaisePropertyChanged("decTotalNeto");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public System.Nullable<int> intIdClienteOrigen {
-            get {
-                return this.intIdClienteOrigenField;
-            }
-            set {
-                if ((this.intIdClienteOrigenField.Equals(value) != true)) {
-                    this.intIdClienteOrigenField = value;
-                    this.RaisePropertyChanged("intIdClienteOrigen");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strClienteCedula {
-            get {
-                return this.strClienteCedulaField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strClienteCedulaField, value) != true)) {
-                    this.strClienteCedulaField = value;
-                    this.RaisePropertyChanged("strClienteCedula");
-                }
-            }
-        }
-        
-        [System.Runtime.Serialization.DataMemberAttribute()]
-        public string strClienteRazon {
-            get {
-                return this.strClienteRazonField;
-            }
-            set {
-                if ((object.ReferenceEquals(this.strClienteRazonField, value) != true)) {
-                    this.strClienteRazonField = value;
-                    this.RaisePropertyChanged("strClienteRazon");
-                }
-            }
-        }
-        
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-        
-        protected void RaisePropertyChanged(string propertyName) {
-            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
-            if ((propertyChanged != null)) {
-                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-            }
-        }
-    }
-    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
     [System.ServiceModel.ServiceContractAttribute(ConfigurationName="wsSecurityMain.IFacturaMeCrContract")]
     public interface IFacturaMeCrContract {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse")]
+        int GetSiguienteReciboCXP(int intIdCliente);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse")]
+        System.Threading.Tasks.Task<int> GetSiguienteReciboCXPAsync(int intIdCliente);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse")]
+        bool InsertAbonoCxP(NovaAPI.wsSecurityMain.AbonoEntitie abono);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse")]
+        System.Threading.Tasks.Task<bool> InsertAbonoCxPAsync(NovaAPI.wsSecurityMain.AbonoEntitie abono);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse")]
+        NovaAPI.wsSecurityMain.VentasReporteEntitie[] GetReporteConsolidado(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.VentasReporteEntitie[]> GetReporteConsolidadoAsync(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse")]
+        NovaAPI.wsSecurityMain.CarteraEntitie[] GetAnalisisCartera(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CarteraEntitie[]> GetAnalisisCarteraAsync(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedor", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedorResponse")]
         NovaAPI.wsSecurityMain.CarteraEntitie[] GetReporteInfoProveedor(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda);
@@ -9077,6 +9473,12 @@ namespace NovaAPI.wsSecurityMain {
             "")]
         System.Threading.Tasks.Task<int> F_CLIENTE_CodAct_InsertaActualizaAsync(string CedulaCliente, string CodAct01, string CodAct02, string CodAct03, string CodAct04, string CodAct05);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualiza", ReplyAction="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualizaResponse")]
+        int CLIENTE_CodAct_InsertaActualiza(int ID_CLIENTE_ORIGEN, string CedulaCliente, string CodAct01);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualiza", ReplyAction="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualizaResponse")]
+        System.Threading.Tasks.Task<int> CLIENTE_CodAct_InsertaActualizaAsync(int ID_CLIENTE_ORIGEN, string CedulaCliente, string CodAct01);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogo", ReplyAction="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogoResponse")]
         int UpdateRutaLogo(string CedulaCliente, string SRCLogo);
         
@@ -9094,6 +9496,24 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividades", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesResponse")]
         System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[]> GetAllCodActividadesAsync(int cliente);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesClienteResponse")]
+        NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[] GetAllCodActividadesCliente(int cliente, string codigo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesClienteResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[]> GetAllCodActividadesClienteAsync(int cliente, string codigo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetActividadesCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetActividadesClienteResponse")]
+        NovaAPI.wsSecurityMain.ActividadClienteEntitie[] GetActividadesCliente(int cliente, string codigo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetActividadesCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetActividadesClienteResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadClienteEntitie[]> GetActividadesClienteAsync(int cliente, string codigo);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/DeleteActividadCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/DeleteActividadClienteResponse")]
+        bool DeleteActividadCliente(int id);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/DeleteActividadCliente", ReplyAction="http://tempuri.org/IFacturaMeCrContract/DeleteActividadClienteResponse")]
+        System.Threading.Tasks.Task<bool> DeleteActividadClienteAsync(int id);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetPaisCulture", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetPaisCultureResponse")]
         NovaAPI.wsSecurityMain.CommondEntitie[] GetPaisCulture();
@@ -9335,6 +9755,18 @@ namespace NovaAPI.wsSecurityMain {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/RegistraCliente_App", ReplyAction="http://tempuri.org/IFacturaMeCrContract/RegistraCliente_AppResponse")]
         System.Threading.Tasks.Task<string> RegistraCliente_AppAsync(int ID_CLIENTE, string LOGIN, string TOKEN, string DEV_MODELO, string DEV_NAME, string DEV_VERSION, string DEV_SERIAL);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabys", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabysResponse")]
+        NovaAPI.wsSecurityMain.CatalogoCabysEntitie[] GetCatalogosCabys(string filtro);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabys", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabysResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CatalogoCabysEntitie[]> GetCatalogosCabysAsync(string filtro);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabys", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabysResponse")]
+        bool InsertUpdateCabys(string codigo, string descripcion, string impuesto);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabys", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabysResponse")]
+        System.Threading.Tasks.Task<bool> InsertUpdateCabysAsync(string codigo, string descripcion, string impuesto);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetClientes", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetClientesResponse")]
         NovaAPI.wsSecurityMain.ClienteEntitie[] GetClientes(int intIdCliente);
         
@@ -9532,6 +9964,12 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrv", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrvResponse")]
         System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CommondEntitie[]> GetCodTarifaSrvAsync();
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuento", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuentoResponse")]
+        NovaAPI.wsSecurityMain.CommondEntitie[] GetNaturalezaDescuento();
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuento", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuentoResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CommondEntitie[]> GetNaturalezaDescuentoAsync();
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetProvincias", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetProvinciasResponse")]
         NovaAPI.wsSecurityMain.CommondEntitie[] GetProvincias();
@@ -9843,6 +10281,12 @@ namespace NovaAPI.wsSecurityMain {
                     decimal tOTAL_OTROS_CARGOS, 
                     decimal tOTAL_COMPROBANTE);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44Response")]
+        NovaAPI.wsSecurityMain.RespService InsertFacturaXML_44(int iD_CLIENTE_ORIGEN, string cLAVE50, string XML);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44Response")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.RespService> InsertFacturaXML_44Async(int iD_CLIENTE_ORIGEN, string cLAVE50, string XML);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/Import_IW_ENC_FACTURAInsert", ReplyAction="http://tempuri.org/IFacturaMeCrContract/Import_IW_ENC_FACTURAInsertResponse")]
         int Import_IW_ENC_FACTURAInsert(
                     int intIdClienteOrigen, 
@@ -10002,6 +10446,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -10013,8 +10459,11 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decExoneraMontoImpuesto, 
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
+                    string VIN, 
+                    string partidaArancelaria, 
                     string codImpuestoBase, 
-                    string Clave50);
+                    string Clave50, 
+                    string cod_act_cliente);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertDetFactura", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertDetFacturaResponse")]
         System.Threading.Tasks.Task<bool> InsertDetFacturaAsync(
@@ -10029,6 +10478,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -10040,8 +10491,11 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decExoneraMontoImpuesto, 
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
+                    string VIN, 
+                    string partidaArancelaria, 
                     string codImpuestoBase, 
-                    string Clave50);
+                    string Clave50, 
+                    string cod_act_cliente);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/Import_IW_DET_FACTURAInsert", ReplyAction="http://tempuri.org/IFacturaMeCrContract/Import_IW_DET_FACTURAInsertResponse")]
         bool Import_IW_DET_FACTURAInsert(
@@ -10056,6 +10510,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -10068,7 +10524,8 @@ namespace NovaAPI.wsSecurityMain {
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
                     string codImpuestoBase, 
-                    string Clave50);
+                    string Clave50, 
+                    string cod_act_cliente);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/Import_IW_DET_FACTURAInsert", ReplyAction="http://tempuri.org/IFacturaMeCrContract/Import_IW_DET_FACTURAInsertResponse")]
         System.Threading.Tasks.Task<bool> Import_IW_DET_FACTURAInsertAsync(
@@ -10083,6 +10540,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -10095,7 +10554,8 @@ namespace NovaAPI.wsSecurityMain {
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
                     string codImpuestoBase, 
-                    string Clave50);
+                    string Clave50, 
+                    string cod_act_cliente);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertAbono", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoResponse")]
         string InsertAbono(NovaAPI.wsSecurityMain.AbonoEntitie abono);
@@ -10314,10 +10774,10 @@ namespace NovaAPI.wsSecurityMain {
                     string COD_SUCURSAL);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/TC_UPDATE", ReplyAction="http://tempuri.org/IFacturaMeCrContract/TC_UPDATEResponse")]
-        string TC_UPDATE(int ID_CLIENTE_ORIGEN, decimal TC, System.DateTime FECHA);
+        string TC_UPDATE(int ID_CLIENTE_ORIGEN, decimal TcVenta, decimal TcCompra, System.DateTime FECHA);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/TC_UPDATE", ReplyAction="http://tempuri.org/IFacturaMeCrContract/TC_UPDATEResponse")]
-        System.Threading.Tasks.Task<string> TC_UPDATEAsync(int ID_CLIENTE_ORIGEN, decimal TC, System.DateTime FECHA);
+        System.Threading.Tasks.Task<string> TC_UPDATEAsync(int ID_CLIENTE_ORIGEN, decimal TcVenta, decimal TcCompra, System.DateTime FECHA);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSaldoFacturasAll", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSaldoFacturasAllResponse")]
         NovaAPI.wsSecurityMain.SaldosFacturaEntite[] GetSaldoFacturasAll(int intIdCliente, string strCodCliente, string strTipoMoneda);
@@ -10336,6 +10796,12 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSaldoByFactura", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSaldoByFacturaResponse")]
         System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.SaldosFacturaEntite> GetSaldoByFacturaAsync(int intIdCliente, string strCodCliente, int intIdFactura);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodos", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodosResponse")]
+        NovaAPI.wsSecurityMain.ReciboDetalleDto[] GetInfoAbonoTodos(int intIdCliente, string strCodCliente);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodos", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodosResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ReciboDetalleDto[]> GetInfoAbonoTodosAsync(int intIdCliente, string strCodCliente);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFactura", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFacturaResponse")]
         NovaAPI.wsSecurityMain.DetFacturaReporteEntitie[] GetDatosDetFactura(int intIdCliente, string strCodigo, int intIdFactura, string strTipoDocumento);
@@ -10373,6 +10839,12 @@ namespace NovaAPI.wsSecurityMain {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetFacturasAllReporte", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetFacturasAllReporteResponse")]
         System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.FacturaReporteEntitie[]> GetFacturasAllReporteAsync(System.Nullable<System.DateTime> dtFechaInicio, System.Nullable<System.DateTime> dtFechaFinal, string strTipoMoneda, System.Nullable<int> intFacturaInicial, System.Nullable<int> intFacturaFinal, string strCodCliente, string strEstado, int intIdCliente, string strTipoDocumento);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporte", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporteResponse")]
+        NovaAPI.wsSecurityMain.FacturaReporteEntitie[] GetEstadoFacturasReporte(System.Nullable<System.DateTime> dtFechaInicio, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strEstado, int intIdCliente, string strTipoDocumento);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporte", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporteResponse")]
+        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.FacturaReporteEntitie[]> GetEstadoFacturasReporteAsync(System.Nullable<System.DateTime> dtFechaInicio, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strEstado, int intIdCliente, string strTipoDocumento);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporte", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporteResponse")]
         NovaAPI.wsSecurityMain.FacturaReporteEntitie GetDatosFacturaReporte(int intIdCliente, string strCodigo, int intIdFactura, string strIdHacienda, string strTipoDocumento, string strTipoConsecutivo);
         
@@ -10396,30 +10868,6 @@ namespace NovaAPI.wsSecurityMain {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetProveedores", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetProveedoresResponse")]
         System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ReporteCuentasEntitie[]> GetProveedoresAsync(int intIdClienteOrigen);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse")]
-        int GetSiguienteReciboCXP(int intIdCliente);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse")]
-        System.Threading.Tasks.Task<int> GetSiguienteReciboCXPAsync(int intIdCliente);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse")]
-        bool InsertAbonoCxP(NovaAPI.wsSecurityMain.AbonoEntitie abono);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP", ReplyAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse")]
-        System.Threading.Tasks.Task<bool> InsertAbonoCxPAsync(NovaAPI.wsSecurityMain.AbonoEntitie abono);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse")]
-        NovaAPI.wsSecurityMain.VentasReporteEntitie[] GetReporteConsolidado(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse")]
-        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.VentasReporteEntitie[]> GetReporteConsolidadoAsync(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse")]
-        NovaAPI.wsSecurityMain.CarteraEntitie[] GetAnalisisCartera(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda);
-        
-        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera", ReplyAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse")]
-        System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CarteraEntitie[]> GetAnalisisCarteraAsync(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda);
     }
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
@@ -10447,6 +10895,38 @@ namespace NovaAPI.wsSecurityMain {
         
         public FacturaMeCrContractClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
                 base(binding, remoteAddress) {
+        }
+        
+        public int GetSiguienteReciboCXP(int intIdCliente) {
+            return base.Channel.GetSiguienteReciboCXP(intIdCliente);
+        }
+        
+        public System.Threading.Tasks.Task<int> GetSiguienteReciboCXPAsync(int intIdCliente) {
+            return base.Channel.GetSiguienteReciboCXPAsync(intIdCliente);
+        }
+        
+        public bool InsertAbonoCxP(NovaAPI.wsSecurityMain.AbonoEntitie abono) {
+            return base.Channel.InsertAbonoCxP(abono);
+        }
+        
+        public System.Threading.Tasks.Task<bool> InsertAbonoCxPAsync(NovaAPI.wsSecurityMain.AbonoEntitie abono) {
+            return base.Channel.InsertAbonoCxPAsync(abono);
+        }
+        
+        public NovaAPI.wsSecurityMain.VentasReporteEntitie[] GetReporteConsolidado(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo) {
+            return base.Channel.GetReporteConsolidado(intIdCliente, strTipoMoneda, dtFechaInicio, dtFechaFinal, strTipo);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.VentasReporteEntitie[]> GetReporteConsolidadoAsync(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo) {
+            return base.Channel.GetReporteConsolidadoAsync(intIdCliente, strTipoMoneda, dtFechaInicio, dtFechaFinal, strTipo);
+        }
+        
+        public NovaAPI.wsSecurityMain.CarteraEntitie[] GetAnalisisCartera(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda) {
+            return base.Channel.GetAnalisisCartera(intIdCliente, dtFechaInicial, dtFechaFinal, strCodCliente, strCodMoneda);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CarteraEntitie[]> GetAnalisisCarteraAsync(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda) {
+            return base.Channel.GetAnalisisCarteraAsync(intIdCliente, dtFechaInicial, dtFechaFinal, strCodCliente, strCodMoneda);
         }
         
         public NovaAPI.wsSecurityMain.CarteraEntitie[] GetReporteInfoProveedor(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda) {
@@ -10489,6 +10969,14 @@ namespace NovaAPI.wsSecurityMain {
             return base.Channel.F_CLIENTE_CodAct_InsertaActualizaAsync(CedulaCliente, CodAct01, CodAct02, CodAct03, CodAct04, CodAct05);
         }
         
+        public int CLIENTE_CodAct_InsertaActualiza(int ID_CLIENTE_ORIGEN, string CedulaCliente, string CodAct01) {
+            return base.Channel.CLIENTE_CodAct_InsertaActualiza(ID_CLIENTE_ORIGEN, CedulaCliente, CodAct01);
+        }
+        
+        public System.Threading.Tasks.Task<int> CLIENTE_CodAct_InsertaActualizaAsync(int ID_CLIENTE_ORIGEN, string CedulaCliente, string CodAct01) {
+            return base.Channel.CLIENTE_CodAct_InsertaActualizaAsync(ID_CLIENTE_ORIGEN, CedulaCliente, CodAct01);
+        }
+        
         public int UpdateRutaLogo(string CedulaCliente, string SRCLogo) {
             return base.Channel.UpdateRutaLogo(CedulaCliente, SRCLogo);
         }
@@ -10511,6 +10999,30 @@ namespace NovaAPI.wsSecurityMain {
         
         public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[]> GetAllCodActividadesAsync(int cliente) {
             return base.Channel.GetAllCodActividadesAsync(cliente);
+        }
+        
+        public NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[] GetAllCodActividadesCliente(int cliente, string codigo) {
+            return base.Channel.GetAllCodActividadesCliente(cliente, codigo);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadEconomicaEntitie[]> GetAllCodActividadesClienteAsync(int cliente, string codigo) {
+            return base.Channel.GetAllCodActividadesClienteAsync(cliente, codigo);
+        }
+        
+        public NovaAPI.wsSecurityMain.ActividadClienteEntitie[] GetActividadesCliente(int cliente, string codigo) {
+            return base.Channel.GetActividadesCliente(cliente, codigo);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ActividadClienteEntitie[]> GetActividadesClienteAsync(int cliente, string codigo) {
+            return base.Channel.GetActividadesClienteAsync(cliente, codigo);
+        }
+        
+        public bool DeleteActividadCliente(int id) {
+            return base.Channel.DeleteActividadCliente(id);
+        }
+        
+        public System.Threading.Tasks.Task<bool> DeleteActividadClienteAsync(int id) {
+            return base.Channel.DeleteActividadClienteAsync(id);
         }
         
         public NovaAPI.wsSecurityMain.CommondEntitie[] GetPaisCulture() {
@@ -10833,6 +11345,22 @@ namespace NovaAPI.wsSecurityMain {
             return base.Channel.RegistraCliente_AppAsync(ID_CLIENTE, LOGIN, TOKEN, DEV_MODELO, DEV_NAME, DEV_VERSION, DEV_SERIAL);
         }
         
+        public NovaAPI.wsSecurityMain.CatalogoCabysEntitie[] GetCatalogosCabys(string filtro) {
+            return base.Channel.GetCatalogosCabys(filtro);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CatalogoCabysEntitie[]> GetCatalogosCabysAsync(string filtro) {
+            return base.Channel.GetCatalogosCabysAsync(filtro);
+        }
+        
+        public bool InsertUpdateCabys(string codigo, string descripcion, string impuesto) {
+            return base.Channel.InsertUpdateCabys(codigo, descripcion, impuesto);
+        }
+        
+        public System.Threading.Tasks.Task<bool> InsertUpdateCabysAsync(string codigo, string descripcion, string impuesto) {
+            return base.Channel.InsertUpdateCabysAsync(codigo, descripcion, impuesto);
+        }
+        
         public NovaAPI.wsSecurityMain.ClienteEntitie[] GetClientes(int intIdCliente) {
             return base.Channel.GetClientes(intIdCliente);
         }
@@ -11071,6 +11599,14 @@ namespace NovaAPI.wsSecurityMain {
         
         public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CommondEntitie[]> GetCodTarifaSrvAsync() {
             return base.Channel.GetCodTarifaSrvAsync();
+        }
+        
+        public NovaAPI.wsSecurityMain.CommondEntitie[] GetNaturalezaDescuento() {
+            return base.Channel.GetNaturalezaDescuento();
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CommondEntitie[]> GetNaturalezaDescuentoAsync() {
+            return base.Channel.GetNaturalezaDescuentoAsync();
         }
         
         public NovaAPI.wsSecurityMain.CommondEntitie[] GetProvincias() {
@@ -11427,6 +11963,14 @@ namespace NovaAPI.wsSecurityMain {
             return base.Channel.InsertFacturaXMLAsync(iD_CLIENTE_ORIGEN, cLAVE50, cLAVE20, iDENTIFICACION_PROVEEDOR, nOMBRE_PROVEEDOR, tIPO_PROVEEDOR, cONDICION_VENTA, fECHA_FACTURA, tOTAL, iVA, cOD_MONEDA, tIPO_DOCUMENTO, xML_FACTURA_ORIGINAL, xML_FACTURA_RESPUESTA_01, xML_FACTURA_RESPUESTA_02, eSTADO_COMERCIAL, eSTADO_HACIENDA, pLAZO_CREDITO, tIPO_CAMBIO, tOTAL_SERV_GRAVADOS, tOTAL_SERV_EXENTOS, tOTAL_SERV_EXONERADOS, tOTAL_MERCANCIAS_GRAVADAS, tOTAL_MERCANCIAS_EXENTAS, tOTAL_MERCANCIAS_EXONERADA, tOTAL_GRAVADO, tOTAL_EXENTO, tOTAL_EXONERADO, tOTAL_VENTA, tOTAL_DESCUENTOS, tOTAL_VENTA_NETA, tOTAL_IMPUESTOS, tOTAL_IVA_DEVUELTO, tOTAL_OTROS_CARGOS, tOTAL_COMPROBANTE);
         }
         
+        public NovaAPI.wsSecurityMain.RespService InsertFacturaXML_44(int iD_CLIENTE_ORIGEN, string cLAVE50, string XML) {
+            return base.Channel.InsertFacturaXML_44(iD_CLIENTE_ORIGEN, cLAVE50, XML);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.RespService> InsertFacturaXML_44Async(int iD_CLIENTE_ORIGEN, string cLAVE50, string XML) {
+            return base.Channel.InsertFacturaXML_44Async(iD_CLIENTE_ORIGEN, cLAVE50, XML);
+        }
+        
         public int Import_IW_ENC_FACTURAInsert(
                     int intIdClienteOrigen, 
                     string strNumConsecutivo, 
@@ -11599,6 +12143,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -11610,9 +12156,12 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decExoneraMontoImpuesto, 
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
+                    string VIN, 
+                    string partidaArancelaria, 
                     string codImpuestoBase, 
-                    string Clave50) {
-            return base.Channel.InsertDetFactura(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50);
+                    string Clave50, 
+                    string cod_act_cliente) {
+            return base.Channel.InsertDetFactura(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, DTOCodigo, descrDtoNat, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, VIN, partidaArancelaria, codImpuestoBase, Clave50, cod_act_cliente);
         }
         
         public System.Threading.Tasks.Task<bool> InsertDetFacturaAsync(
@@ -11627,6 +12176,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -11638,9 +12189,12 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decExoneraMontoImpuesto, 
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
+                    string VIN, 
+                    string partidaArancelaria, 
                     string codImpuestoBase, 
-                    string Clave50) {
-            return base.Channel.InsertDetFacturaAsync(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50);
+                    string Clave50, 
+                    string cod_act_cliente) {
+            return base.Channel.InsertDetFacturaAsync(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, DTOCodigo, descrDtoNat, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, VIN, partidaArancelaria, codImpuestoBase, Clave50, cod_act_cliente);
         }
         
         public bool Import_IW_DET_FACTURAInsert(
@@ -11655,6 +12209,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -11667,8 +12223,9 @@ namespace NovaAPI.wsSecurityMain {
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
                     string codImpuestoBase, 
-                    string Clave50) {
-            return base.Channel.Import_IW_DET_FACTURAInsert(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50);
+                    string Clave50, 
+                    string cod_act_cliente) {
+            return base.Channel.Import_IW_DET_FACTURAInsert(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, DTOCodigo, descrDtoNat, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50, cod_act_cliente);
         }
         
         public System.Threading.Tasks.Task<bool> Import_IW_DET_FACTURAInsertAsync(
@@ -11683,6 +12240,8 @@ namespace NovaAPI.wsSecurityMain {
                     decimal decMontoTotal, 
                     decimal decMontoDescuento, 
                     string strNaturalezaDescuento, 
+                    string DTOCodigo, 
+                    string descrDtoNat, 
                     decimal decSubtotal, 
                     string strCodigoImpuesto, 
                     decimal decTarifaImpuesto, 
@@ -11695,8 +12254,9 @@ namespace NovaAPI.wsSecurityMain {
                     int intExoneraPorcCompra, 
                     decimal decExoneraTotalLinea, 
                     string codImpuestoBase, 
-                    string Clave50) {
-            return base.Channel.Import_IW_DET_FACTURAInsertAsync(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50);
+                    string Clave50, 
+                    string cod_act_cliente) {
+            return base.Channel.Import_IW_DET_FACTURAInsertAsync(intIdClienteOrigen, intIdFactura, intNoLinea, strTipoProducto, decCantidad, strUnidadMedida, strDetalle, decPrecioUnitario, decMontoTotal, decMontoDescuento, strNaturalezaDescuento, DTOCodigo, descrDtoNat, decSubtotal, strCodigoImpuesto, decTarifaImpuesto, decMontoImpuesto, strExoneraTipoDoc, stringExoneraNumDoc, strExoneraInst, dtExoneraFechaemision, decExoneraMontoImpuesto, intExoneraPorcCompra, decExoneraTotalLinea, codImpuestoBase, Clave50, cod_act_cliente);
         }
         
         public string InsertAbono(NovaAPI.wsSecurityMain.AbonoEntitie abono) {
@@ -11943,12 +12503,12 @@ namespace NovaAPI.wsSecurityMain {
             return base.Channel.InsertUpdateAllInfoCliente_FAsync(TIPO_CLIENTE, CEDULA_CLIENTE, RAZON_SOCIAL, NOMBRE_COMERCIAL, EMAIL_ORIGEN, EMAIL_DESTINO, EMAIL_RECHAZO, TELEFONO, DIR_FISICA, COD_PROVINCIA, COD_CANTON, COD_DISTRITO, COD_BARRIO, API_US, API_CLAVE, API_CERTIFICADO, API_PIN, API_VENCE, ESTADO, CONSECUTIVO_FE, CONSECUTIVO_NC, CONSECUTIVO_ND, CONSECUTIVO_TE, CONSECUTIVO_EXP, CONSECUTIVO_FC, CONSECUTIVO_PRF, COD_ACTIVIDAD01, COD_ACTIVIDAD02, COD_ACTIVIDAD03, COD_ACTIVIDAD04, COD_ACTIVIDAD05, PLANTILLA_HTML, SRCLOGO, SRCFOOTER, ID_GRUPO, COD_SUCURSAL);
         }
         
-        public string TC_UPDATE(int ID_CLIENTE_ORIGEN, decimal TC, System.DateTime FECHA) {
-            return base.Channel.TC_UPDATE(ID_CLIENTE_ORIGEN, TC, FECHA);
+        public string TC_UPDATE(int ID_CLIENTE_ORIGEN, decimal TcVenta, decimal TcCompra, System.DateTime FECHA) {
+            return base.Channel.TC_UPDATE(ID_CLIENTE_ORIGEN, TcVenta, TcCompra, FECHA);
         }
         
-        public System.Threading.Tasks.Task<string> TC_UPDATEAsync(int ID_CLIENTE_ORIGEN, decimal TC, System.DateTime FECHA) {
-            return base.Channel.TC_UPDATEAsync(ID_CLIENTE_ORIGEN, TC, FECHA);
+        public System.Threading.Tasks.Task<string> TC_UPDATEAsync(int ID_CLIENTE_ORIGEN, decimal TcVenta, decimal TcCompra, System.DateTime FECHA) {
+            return base.Channel.TC_UPDATEAsync(ID_CLIENTE_ORIGEN, TcVenta, TcCompra, FECHA);
         }
         
         public NovaAPI.wsSecurityMain.SaldosFacturaEntite[] GetSaldoFacturasAll(int intIdCliente, string strCodCliente, string strTipoMoneda) {
@@ -11973,6 +12533,14 @@ namespace NovaAPI.wsSecurityMain {
         
         public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.SaldosFacturaEntite> GetSaldoByFacturaAsync(int intIdCliente, string strCodCliente, int intIdFactura) {
             return base.Channel.GetSaldoByFacturaAsync(intIdCliente, strCodCliente, intIdFactura);
+        }
+        
+        public NovaAPI.wsSecurityMain.ReciboDetalleDto[] GetInfoAbonoTodos(int intIdCliente, string strCodCliente) {
+            return base.Channel.GetInfoAbonoTodos(intIdCliente, strCodCliente);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ReciboDetalleDto[]> GetInfoAbonoTodosAsync(int intIdCliente, string strCodCliente) {
+            return base.Channel.GetInfoAbonoTodosAsync(intIdCliente, strCodCliente);
         }
         
         public NovaAPI.wsSecurityMain.DetFacturaReporteEntitie[] GetDatosDetFactura(int intIdCliente, string strCodigo, int intIdFactura, string strTipoDocumento) {
@@ -12023,6 +12591,14 @@ namespace NovaAPI.wsSecurityMain {
             return base.Channel.GetFacturasAllReporteAsync(dtFechaInicio, dtFechaFinal, strTipoMoneda, intFacturaInicial, intFacturaFinal, strCodCliente, strEstado, intIdCliente, strTipoDocumento);
         }
         
+        public NovaAPI.wsSecurityMain.FacturaReporteEntitie[] GetEstadoFacturasReporte(System.Nullable<System.DateTime> dtFechaInicio, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strEstado, int intIdCliente, string strTipoDocumento) {
+            return base.Channel.GetEstadoFacturasReporte(dtFechaInicio, dtFechaFinal, strCodCliente, strEstado, intIdCliente, strTipoDocumento);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.FacturaReporteEntitie[]> GetEstadoFacturasReporteAsync(System.Nullable<System.DateTime> dtFechaInicio, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strEstado, int intIdCliente, string strTipoDocumento) {
+            return base.Channel.GetEstadoFacturasReporteAsync(dtFechaInicio, dtFechaFinal, strCodCliente, strEstado, intIdCliente, strTipoDocumento);
+        }
+        
         public NovaAPI.wsSecurityMain.FacturaReporteEntitie GetDatosFacturaReporte(int intIdCliente, string strCodigo, int intIdFactura, string strIdHacienda, string strTipoDocumento, string strTipoConsecutivo) {
             return base.Channel.GetDatosFacturaReporte(intIdCliente, strCodigo, intIdFactura, strIdHacienda, strTipoDocumento, strTipoConsecutivo);
         }
@@ -12053,38 +12629,6 @@ namespace NovaAPI.wsSecurityMain {
         
         public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.ReporteCuentasEntitie[]> GetProveedoresAsync(int intIdClienteOrigen) {
             return base.Channel.GetProveedoresAsync(intIdClienteOrigen);
-        }
-        
-        public int GetSiguienteReciboCXP(int intIdCliente) {
-            return base.Channel.GetSiguienteReciboCXP(intIdCliente);
-        }
-        
-        public System.Threading.Tasks.Task<int> GetSiguienteReciboCXPAsync(int intIdCliente) {
-            return base.Channel.GetSiguienteReciboCXPAsync(intIdCliente);
-        }
-        
-        public bool InsertAbonoCxP(NovaAPI.wsSecurityMain.AbonoEntitie abono) {
-            return base.Channel.InsertAbonoCxP(abono);
-        }
-        
-        public System.Threading.Tasks.Task<bool> InsertAbonoCxPAsync(NovaAPI.wsSecurityMain.AbonoEntitie abono) {
-            return base.Channel.InsertAbonoCxPAsync(abono);
-        }
-        
-        public NovaAPI.wsSecurityMain.VentasReporteEntitie[] GetReporteConsolidado(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo) {
-            return base.Channel.GetReporteConsolidado(intIdCliente, strTipoMoneda, dtFechaInicio, dtFechaFinal, strTipo);
-        }
-        
-        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.VentasReporteEntitie[]> GetReporteConsolidadoAsync(int intIdCliente, string strTipoMoneda, string dtFechaInicio, string dtFechaFinal, string strTipo) {
-            return base.Channel.GetReporteConsolidadoAsync(intIdCliente, strTipoMoneda, dtFechaInicio, dtFechaFinal, strTipo);
-        }
-        
-        public NovaAPI.wsSecurityMain.CarteraEntitie[] GetAnalisisCartera(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda) {
-            return base.Channel.GetAnalisisCartera(intIdCliente, dtFechaInicial, dtFechaFinal, strCodCliente, strCodMoneda);
-        }
-        
-        public System.Threading.Tasks.Task<NovaAPI.wsSecurityMain.CarteraEntitie[]> GetAnalisisCarteraAsync(int intIdCliente, System.Nullable<System.DateTime> dtFechaInicial, System.Nullable<System.DateTime> dtFechaFinal, string strCodCliente, string strCodMoneda) {
-            return base.Channel.GetAnalisisCarteraAsync(intIdCliente, dtFechaInicial, dtFechaFinal, strCodCliente, strCodMoneda);
         }
     }
 }

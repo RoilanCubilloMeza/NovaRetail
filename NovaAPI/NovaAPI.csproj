@@ -260,9 +260,7 @@
     <Compile Include="App_Start\SwaggerConfig.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.CreaXMLGeneraTiqueteElectronicoPruebasResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
+    <None Include="Connected Services\wsEmails\IntegraFastService11.disco" />
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EmisorOr.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
@@ -272,22 +270,10 @@
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailAdjuntosMemoryStreamResponse.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailAdjuntosPruebasResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailResponse.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailSinAdjuntosResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaXMLHaciendaPruebasResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GeneraHTMLResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GeneraMRResponse.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetClave_20Response.datasource">
@@ -296,13 +282,7 @@
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetClave_50Response.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetDirectoryIISResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetEmisorDataResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetHtml_02Response.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetMsjAdviceResponse.datasource">
@@ -317,9 +297,6 @@
     <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.RespuestaHacienda.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
-    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
     <Content Include="AppCentral.dbml">
       <Generator>MSLinqToSQLGenerator</Generator>
       <LastGenOutput>AppCentral.designer.cs</LastGenOutput>
@@ -330,12 +307,47 @@
     </None>
     <None Include="Connected Services\wsEmails\configuration91.svcinfo" />
     <None Include="Connected Services\wsEmails\configuration.svcinfo" />
-    <None Include="Connected Services\wsEmails\IntegraFastService.wsdl" />
+    <None Include="Connected Services\wsEmails\IntegraFastService11.wsdl" />
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.CreaXMLGeneraTiqueteElectronicoPruebasResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailAdjuntosPruebasResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.EnviaEmailSinAdjuntosResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GeneraHTMLPOS_V2Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GeneraHTMLResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GeneraMRResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetDirectoryIISResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.GetHtml_02Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsEmails\NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
     <None Include="Connected Services\wsEmails\Reference.svcmap">
       <Generator>WCF Proxy Generator</Generator>
       <LastGenOutput>Reference.cs</LastGenOutput>
     </None>
-    <None Include="Connected Services\wsEmails\IntegraFastService.disco" />
+    <None Include="Connected Services\wsSecurityMain\configuration91.svcinfo" />
+    <None Include="Connected Services\wsSecurityMain\configuration.svcinfo" />
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService11.disco" />
+    <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ActividadClienteEntitie1.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ActividadEconomicaEntitie.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
@@ -349,6 +361,9 @@
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.CarteraEntitie.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
+    <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.CatalogoCabysEntitie1.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ClienteEntitie.datasource">
@@ -414,6 +429,9 @@
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ProductoEntitie.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
+    <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ReciboDetalleDto1.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Content>
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.ReporteAbonoEntitie.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
@@ -435,9 +453,28 @@
     <Content Include="Connected Services\wsSecurityMain\NovaAPI.wsSecurityMain.VentasReporteEntitie.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Content>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService.disco" />
-    <None Include="Connected Services\wsSecurityMain\configuration91.svcinfo" />
-    <None Include="Connected Services\wsSecurityMain\configuration.svcinfo" />
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCrService11.wsdl" />
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService710.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService711.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService712.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService713.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService77.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService78.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService79.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Connected Services\wsSecurityMain\Reference.svcmap">
       <Generator>WCF Proxy Generator</Generator>
       <LastGenOutput>Reference.cs</LastGenOutput>
@@ -475,28 +512,6 @@
     <Content Include="Scripts\esm\popper.js.map" />
     <Content Include="Scripts\esm\popper-utils.min.js.map" />
     <Content Include="Scripts\esm\popper-utils.js.map" />
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCrService.wsdl" />
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService1.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService2.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService3.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService4.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService5.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Connected Services\wsSecurityMain\FacturaMeCRService6.xsd">
-      <SubType>Designer</SubType>
-    </None>
     <Content Include="RMHC.dbml">
       <Generator>MSLinqToSQLGenerator</Generator>
       <LastGenOutput>RMHC.designer.cs</LastGenOutput>
@@ -659,6 +674,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Deployment\Scripts\" />
     <Folder Include="fonts\" />
     <Folder Include="Views\SalesRep\" />
     <Folder Include="Views\Transtaction\" />

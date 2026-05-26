@@ -84,6 +84,18 @@ namespace NovaAPI.wsEmails {
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string FooterHTMLField;
         
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ColorHtml01Field;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string ColorHtml02Field;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Logo_AnchoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Logo_AltoField;
+        
         [global::System.ComponentModel.BrowsableAttribute(false)]
         public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
             get {
@@ -367,6 +379,58 @@ namespace NovaAPI.wsEmails {
             }
         }
         
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=21)]
+        public string ColorHtml01 {
+            get {
+                return this.ColorHtml01Field;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ColorHtml01Field, value) != true)) {
+                    this.ColorHtml01Field = value;
+                    this.RaisePropertyChanged("ColorHtml01");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=22)]
+        public string ColorHtml02 {
+            get {
+                return this.ColorHtml02Field;
+            }
+            set {
+                if ((object.ReferenceEquals(this.ColorHtml02Field, value) != true)) {
+                    this.ColorHtml02Field = value;
+                    this.RaisePropertyChanged("ColorHtml02");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=23)]
+        public string Logo_Ancho {
+            get {
+                return this.Logo_AnchoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Logo_AnchoField, value) != true)) {
+                    this.Logo_AnchoField = value;
+                    this.RaisePropertyChanged("Logo_Ancho");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=24)]
+        public string Logo_Alto {
+            get {
+                return this.Logo_AltoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Logo_AltoField, value) != true)) {
+                    this.Logo_AltoField = value;
+                    this.RaisePropertyChanged("Logo_Alto");
+                }
+            }
+        }
+        
         public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
         
         protected void RaisePropertyChanged(string propertyName) {
@@ -645,6 +709,9 @@ namespace NovaAPI.wsEmails {
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private NovaAPI.wsEmails.DetFactura[] DetalleField;
         
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private NovaAPI.wsEmails.EncCargo[] CargosField;
+        
         private int DiasCreditoField;
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
@@ -786,6 +853,17 @@ namespace NovaAPI.wsEmails {
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string OCFechaField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_TipoDocumentoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_DetalleField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_PorcentajeField;
+        
+        private decimal Cargo_MontoCargoField;
         
         [global::System.ComponentModel.BrowsableAttribute(false)]
         public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
@@ -966,7 +1044,20 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=13)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=13)]
+        public NovaAPI.wsEmails.EncCargo[] Cargos {
+            get {
+                return this.CargosField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.CargosField, value) != true)) {
+                    this.CargosField = value;
+                    this.RaisePropertyChanged("Cargos");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=14)]
         public int DiasCredito {
             get {
                 return this.DiasCreditoField;
@@ -979,7 +1070,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=14)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=15)]
         public string EmailCliente {
             get {
                 return this.EmailClienteField;
@@ -992,7 +1083,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=15)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=16)]
         public bool EnviarCliente {
             get {
                 return this.EnviarClienteField;
@@ -1005,7 +1096,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=16)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=17)]
         public System.DateTime FechaEmision {
             get {
                 return this.FechaEmisionField;
@@ -1018,7 +1109,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=17)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=18)]
         public bool IdentificacionExtranjero {
             get {
                 return this.IdentificacionExtranjeroField;
@@ -1031,7 +1122,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=18)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=19)]
         public string MedioPago1 {
             get {
                 return this.MedioPago1Field;
@@ -1044,7 +1135,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=19)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=20)]
         public string MedioPago2 {
             get {
                 return this.MedioPago2Field;
@@ -1057,7 +1148,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=20)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=21)]
         public string MedioPago3 {
             get {
                 return this.MedioPago3Field;
@@ -1070,7 +1161,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=21)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=22)]
         public string MedioPago4 {
             get {
                 return this.MedioPago4Field;
@@ -1083,7 +1174,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=22)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=23)]
         public string NIT {
             get {
                 return this.NITField;
@@ -1096,7 +1187,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=23)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=24)]
         public string NombreCliente {
             get {
                 return this.NombreClienteField;
@@ -1109,7 +1200,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=24)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=25)]
         public string NumeroConsecutivo {
             get {
                 return this.NumeroConsecutivoField;
@@ -1122,7 +1213,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=25)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=26)]
         public string PlazoCredito {
             get {
                 return this.PlazoCreditoField;
@@ -1135,7 +1226,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=26)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=27)]
         public string NC_RazonCodigo {
             get {
                 return this.NC_RazonCodigoField;
@@ -1148,7 +1239,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=27)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=28)]
         public System.Nullable<System.DateTime> NC_ReferenciaFecha {
             get {
                 return this.NC_ReferenciaFechaField;
@@ -1161,7 +1252,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=28)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=29)]
         public string NC_ReferenciaNumero {
             get {
                 return this.NC_ReferenciaNumeroField;
@@ -1174,7 +1265,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=29)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=30)]
         public string NC_RazonDetalle {
             get {
                 return this.NC_RazonDetalleField;
@@ -1187,7 +1278,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=30)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=31)]
         public string NC_TipoDocumento {
             get {
                 return this.NC_TipoDocumentoField;
@@ -1200,7 +1291,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=31)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=32)]
         public int Situacion {
             get {
                 return this.SituacionField;
@@ -1213,7 +1304,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=32)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=33)]
         public string Terminal {
             get {
                 return this.TerminalField;
@@ -1226,7 +1317,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=33)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=34)]
         public string TipoCambio {
             get {
                 return this.TipoCambioField;
@@ -1239,7 +1330,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=34)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=35)]
         public string TipoDocumento {
             get {
                 return this.TipoDocumentoField;
@@ -1252,7 +1343,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=35)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=36)]
         public string TipoIdentificacion {
             get {
                 return this.TipoIdentificacionField;
@@ -1265,7 +1356,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=36)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=37)]
         public decimal TOTAL_SERVICIOS_GRAVADOS {
             get {
                 return this.TOTAL_SERVICIOS_GRAVADOSField;
@@ -1278,7 +1369,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=37)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=38)]
         public decimal TOTAL_SERVICIOS_EXENTOS {
             get {
                 return this.TOTAL_SERVICIOS_EXENTOSField;
@@ -1291,7 +1382,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=38)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=39)]
         public decimal TOTAL_SERVICIOS_EXONERADOS {
             get {
                 return this.TOTAL_SERVICIOS_EXONERADOSField;
@@ -1304,7 +1395,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=39)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=40)]
         public decimal TOTAL_MERCADERIA_GRAVADA {
             get {
                 return this.TOTAL_MERCADERIA_GRAVADAField;
@@ -1317,7 +1408,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=40)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=41)]
         public decimal TOTAL_MERCADERIA_EXENTA {
             get {
                 return this.TOTAL_MERCADERIA_EXENTAField;
@@ -1330,7 +1421,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=41)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=42)]
         public decimal TOTAL_MERCADERIA_EXONERADOS {
             get {
                 return this.TOTAL_MERCADERIA_EXONERADOSField;
@@ -1343,7 +1434,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=42)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=43)]
         public decimal TOTAL_GRAVADO {
             get {
                 return this.TOTAL_GRAVADOField;
@@ -1356,7 +1447,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=43)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=44)]
         public decimal TOTAL_EXENTO {
             get {
                 return this.TOTAL_EXENTOField;
@@ -1369,7 +1460,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=44)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=45)]
         public decimal TOTAL_EXONERADO {
             get {
                 return this.TOTAL_EXONERADOField;
@@ -1382,7 +1473,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=45)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=46)]
         public decimal TOTAL_VENTA {
             get {
                 return this.TOTAL_VENTAField;
@@ -1395,7 +1486,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=46)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=47)]
         public decimal TOTAL_DESCUENTOS {
             get {
                 return this.TOTAL_DESCUENTOSField;
@@ -1408,7 +1499,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=47)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=48)]
         public decimal TOTAL_VENTA_NETA {
             get {
                 return this.TOTAL_VENTA_NETAField;
@@ -1421,7 +1512,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=48)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=49)]
         public decimal TOTAL_IMPUESTOS {
             get {
                 return this.TOTAL_IMPUESTOSField;
@@ -1434,7 +1525,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=49)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=50)]
         public decimal TOTAL_IVA_DEVUELTO {
             get {
                 return this.TOTAL_IVA_DEVUELTOField;
@@ -1447,7 +1538,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=50)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=51)]
         public decimal TOTAL_OTROS_CARGOS {
             get {
                 return this.TOTAL_OTROS_CARGOSField;
@@ -1460,7 +1551,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=51)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=52)]
         public decimal TOTAL_COMPROBANTE {
             get {
                 return this.TOTAL_COMPROBANTEField;
@@ -1473,7 +1564,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=52)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=53)]
         public string TokenUS {
             get {
                 return this.TokenUSField;
@@ -1486,7 +1577,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=53)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=54)]
         public string TokenExpiracion {
             get {
                 return this.TokenExpiracionField;
@@ -1499,7 +1590,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=54)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=55)]
         public string Provincia {
             get {
                 return this.ProvinciaField;
@@ -1512,7 +1603,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=55)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=56)]
         public string Canton {
             get {
                 return this.CantonField;
@@ -1525,7 +1616,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=56)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=57)]
         public string Distrito {
             get {
                 return this.DistritoField;
@@ -1538,7 +1629,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=57)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=58)]
         public string Barrio {
             get {
                 return this.BarrioField;
@@ -1551,7 +1642,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=58)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=59)]
         public string OtrasSenias {
             get {
                 return this.OtrasSeniasField;
@@ -1564,7 +1655,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=59)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=60)]
         public string CodPais {
             get {
                 return this.CodPaisField;
@@ -1577,7 +1668,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=60)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=61)]
         public string NumTelefono {
             get {
                 return this.NumTelefonoField;
@@ -1590,7 +1681,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=61)]
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=62)]
         public int ID_CLIENTE_ORIGEN {
             get {
                 return this.ID_CLIENTE_ORIGENField;
@@ -1603,7 +1694,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=62)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=63)]
         public string Comentario4 {
             get {
                 return this.Comentario4Field;
@@ -1616,7 +1707,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=63)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=64)]
         public string Comentario5 {
             get {
                 return this.Comentario5Field;
@@ -1629,7 +1720,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=64)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=65)]
         public string Comentario6 {
             get {
                 return this.Comentario6Field;
@@ -1642,7 +1733,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=65)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=66)]
         public string Comentario7 {
             get {
                 return this.Comentario7Field;
@@ -1655,7 +1746,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=66)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=67)]
         public string OCNum {
             get {
                 return this.OCNumField;
@@ -1668,7 +1759,7 @@ namespace NovaAPI.wsEmails {
             }
         }
         
-        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=67)]
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=68)]
         public string OCFecha {
             get {
                 return this.OCFechaField;
@@ -1677,6 +1768,58 @@ namespace NovaAPI.wsEmails {
                 if ((object.ReferenceEquals(this.OCFechaField, value) != true)) {
                     this.OCFechaField = value;
                     this.RaisePropertyChanged("OCFecha");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=69)]
+        public string Cargo_TipoDocumento {
+            get {
+                return this.Cargo_TipoDocumentoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_TipoDocumentoField, value) != true)) {
+                    this.Cargo_TipoDocumentoField = value;
+                    this.RaisePropertyChanged("Cargo_TipoDocumento");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=70)]
+        public string Cargo_Detalle {
+            get {
+                return this.Cargo_DetalleField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_DetalleField, value) != true)) {
+                    this.Cargo_DetalleField = value;
+                    this.RaisePropertyChanged("Cargo_Detalle");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=71)]
+        public string Cargo_Porcentaje {
+            get {
+                return this.Cargo_PorcentajeField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_PorcentajeField, value) != true)) {
+                    this.Cargo_PorcentajeField = value;
+                    this.RaisePropertyChanged("Cargo_Porcentaje");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=72)]
+        public decimal Cargo_MontoCargo {
+            get {
+                return this.Cargo_MontoCargoField;
+            }
+            set {
+                if ((this.Cargo_MontoCargoField.Equals(value) != true)) {
+                    this.Cargo_MontoCargoField = value;
+                    this.RaisePropertyChanged("Cargo_MontoCargo");
                 }
             }
         }
@@ -1769,6 +1912,12 @@ namespace NovaAPI.wsEmails {
         
         [System.Runtime.Serialization.OptionalFieldAttribute()]
         private string CabysField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string RegistroMedicamentoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string FormaFarmaceuticaField;
         
         [global::System.ComponentModel.BrowsableAttribute(false)]
         public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
@@ -2114,6 +2263,124 @@ namespace NovaAPI.wsEmails {
                 if ((object.ReferenceEquals(this.CabysField, value) != true)) {
                     this.CabysField = value;
                     this.RaisePropertyChanged("Cabys");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=26)]
+        public string RegistroMedicamento {
+            get {
+                return this.RegistroMedicamentoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.RegistroMedicamentoField, value) != true)) {
+                    this.RegistroMedicamentoField = value;
+                    this.RaisePropertyChanged("RegistroMedicamento");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=27)]
+        public string FormaFarmaceutica {
+            get {
+                return this.FormaFarmaceuticaField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.FormaFarmaceuticaField, value) != true)) {
+                    this.FormaFarmaceuticaField = value;
+                    this.RaisePropertyChanged("FormaFarmaceutica");
+                }
+            }
+        }
+        
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        
+        protected void RaisePropertyChanged(string propertyName) {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null)) {
+                propertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="EncCargo", Namespace="http://tempuri.org/")]
+    [System.SerializableAttribute()]
+    public partial class EncCargo : object, System.Runtime.Serialization.IExtensibleDataObject, System.ComponentModel.INotifyPropertyChanged {
+        
+        [System.NonSerializedAttribute()]
+        private System.Runtime.Serialization.ExtensionDataObject extensionDataField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_TipoDocumentoField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_DetalleField;
+        
+        [System.Runtime.Serialization.OptionalFieldAttribute()]
+        private string Cargo_PorcentajeField;
+        
+        private decimal Cargo_MontoCargoField;
+        
+        [global::System.ComponentModel.BrowsableAttribute(false)]
+        public System.Runtime.Serialization.ExtensionDataObject ExtensionData {
+            get {
+                return this.extensionDataField;
+            }
+            set {
+                this.extensionDataField = value;
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false)]
+        public string Cargo_TipoDocumento {
+            get {
+                return this.Cargo_TipoDocumentoField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_TipoDocumentoField, value) != true)) {
+                    this.Cargo_TipoDocumentoField = value;
+                    this.RaisePropertyChanged("Cargo_TipoDocumento");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=1)]
+        public string Cargo_Detalle {
+            get {
+                return this.Cargo_DetalleField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_DetalleField, value) != true)) {
+                    this.Cargo_DetalleField = value;
+                    this.RaisePropertyChanged("Cargo_Detalle");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=2)]
+        public string Cargo_Porcentaje {
+            get {
+                return this.Cargo_PorcentajeField;
+            }
+            set {
+                if ((object.ReferenceEquals(this.Cargo_PorcentajeField, value) != true)) {
+                    this.Cargo_PorcentajeField = value;
+                    this.RaisePropertyChanged("Cargo_Porcentaje");
+                }
+            }
+        }
+        
+        [System.Runtime.Serialization.DataMemberAttribute(IsRequired=true, Order=3)]
+        public decimal Cargo_MontoCargo {
+            get {
+                return this.Cargo_MontoCargoField;
+            }
+            set {
+                if ((this.Cargo_MontoCargoField.Equals(value) != true)) {
+                    this.Cargo_MontoCargoField = value;
+                    this.RaisePropertyChanged("Cargo_MontoCargo");
                 }
             }
         }
@@ -2773,6 +3040,13 @@ namespace NovaAPI.wsEmails {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/VerificaXMLHaciendaPruebas", ReplyAction="*")]
         System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse> VerificaXMLHaciendaPruebasAsync(NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequest request);
         
+        // CODEGEN: Generating message contract since element name _Emisor from namespace http://tempuri.org/ is not marked nillable
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/VerificaDocumentoHacienda", ReplyAction="*")]
+        NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse VerificaDocumentoHacienda(NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/VerificaDocumentoHacienda", ReplyAction="*")]
+        System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse> VerificaDocumentoHaciendaAsync(NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest request);
+        
         // CODEGEN: Generating message contract since element name smtpCode from namespace http://tempuri.org/ is not marked nillable
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/EnviaEmail", ReplyAction="*")]
         NovaAPI.wsEmails.EnviaEmailResponse EnviaEmail(NovaAPI.wsEmails.EnviaEmailRequest request);
@@ -2807,6 +3081,13 @@ namespace NovaAPI.wsEmails {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/GeneraHTML", ReplyAction="*")]
         System.Threading.Tasks.Task<NovaAPI.wsEmails.GeneraHTMLResponse> GeneraHTMLAsync(NovaAPI.wsEmails.GeneraHTMLRequest request);
+        
+        // CODEGEN: Generating message contract since element name HtmlPlantilla from namespace http://tempuri.org/ is not marked nillable
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/GeneraHTMLPOS_V2", ReplyAction="*")]
+        NovaAPI.wsEmails.GeneraHTMLPOS_V2Response GeneraHTMLPOS_V2(NovaAPI.wsEmails.GeneraHTMLPOS_V2Request request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/GeneraHTMLPOS_V2", ReplyAction="*")]
+        System.Threading.Tasks.Task<NovaAPI.wsEmails.GeneraHTMLPOS_V2Response> GeneraHTMLPOS_V2Async(NovaAPI.wsEmails.GeneraHTMLPOS_V2Request request);
         
         // CODEGEN: Generating message contract since element name HtmlPlantilla from namespace http://tempuri.org/ is not marked nillable
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/GetHtml_02", ReplyAction="*")]
@@ -3402,15 +3683,27 @@ namespace NovaAPI.wsEmails {
         [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=4)]
         public string tipo;
         
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=5)]
+        public string CodSucursal;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=6)]
+        public string Anio;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=7)]
+        public string Mes;
+        
         public InsertFileXMLPruebasRequestBody() {
         }
         
-        public InsertFileXMLPruebasRequestBody(string path, string NameFile, string XML, string html, string tipo) {
+        public InsertFileXMLPruebasRequestBody(string path, string NameFile, string XML, string html, string tipo, string CodSucursal, string Anio, string Mes) {
             this.path = path;
             this.NameFile = NameFile;
             this.XML = XML;
             this.html = html;
             this.tipo = tipo;
+            this.CodSucursal = CodSucursal;
+            this.Anio = Anio;
+            this.Mes = Mes;
         }
     }
     
@@ -3629,13 +3922,25 @@ namespace NovaAPI.wsEmails {
         [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=2)]
         public string TokenUS;
         
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=3)]
+        public string CodSucursal;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=4)]
+        public string Anio;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=5)]
+        public string Mes;
+        
         public VerificaXMLHaciendaPruebasRequestBody() {
         }
         
-        public VerificaXMLHaciendaPruebasRequestBody(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS) {
+        public VerificaXMLHaciendaPruebasRequestBody(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS, string CodSucursal, string Anio, string Mes) {
             this._Emisor = _Emisor;
             this.clave = clave;
             this.TokenUS = TokenUS;
+            this.CodSucursal = CodSucursal;
+            this.Anio = Anio;
+            this.Mes = Mes;
         }
     }
     
@@ -3670,6 +3975,78 @@ namespace NovaAPI.wsEmails {
         
         public VerificaXMLHaciendaPruebasResponseBody(NovaAPI.wsEmails.RespuestaHacienda VerificaXMLHaciendaPruebasResult) {
             this.VerificaXMLHaciendaPruebasResult = VerificaXMLHaciendaPruebasResult;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class VerificaDocumentoHaciendaRequest {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="VerificaDocumentoHacienda", Namespace="http://tempuri.org/", Order=0)]
+        public NovaAPI.wsEmails.VerificaDocumentoHaciendaRequestBody Body;
+        
+        public VerificaDocumentoHaciendaRequest() {
+        }
+        
+        public VerificaDocumentoHaciendaRequest(NovaAPI.wsEmails.VerificaDocumentoHaciendaRequestBody Body) {
+            this.Body = Body;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.Runtime.Serialization.DataContractAttribute(Namespace="http://tempuri.org/")]
+    public partial class VerificaDocumentoHaciendaRequestBody {
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=0)]
+        public NovaAPI.wsEmails.EmisorOr _Emisor;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=1)]
+        public string clave;
+        
+        public VerificaDocumentoHaciendaRequestBody() {
+        }
+        
+        public VerificaDocumentoHaciendaRequestBody(NovaAPI.wsEmails.EmisorOr _Emisor, string clave) {
+            this._Emisor = _Emisor;
+            this.clave = clave;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class VerificaDocumentoHaciendaResponse {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="VerificaDocumentoHaciendaResponse", Namespace="http://tempuri.org/", Order=0)]
+        public NovaAPI.wsEmails.VerificaDocumentoHaciendaResponseBody Body;
+        
+        public VerificaDocumentoHaciendaResponse() {
+        }
+        
+        public VerificaDocumentoHaciendaResponse(NovaAPI.wsEmails.VerificaDocumentoHaciendaResponseBody Body) {
+            this.Body = Body;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.Runtime.Serialization.DataContractAttribute(Namespace="http://tempuri.org/")]
+    public partial class VerificaDocumentoHaciendaResponseBody {
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=0)]
+        public NovaAPI.wsEmails.RespuestaHacienda VerificaDocumentoHaciendaResult;
+        
+        public VerificaDocumentoHaciendaResponseBody() {
+        }
+        
+        public VerificaDocumentoHaciendaResponseBody(NovaAPI.wsEmails.RespuestaHacienda VerificaDocumentoHaciendaResult) {
+            this.VerificaDocumentoHaciendaResult = VerificaDocumentoHaciendaResult;
         }
     }
     
@@ -4145,6 +4522,185 @@ namespace NovaAPI.wsEmails {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
     [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
     [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GeneraHTMLPOS_V2Request {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="GeneraHTMLPOS_V2", Namespace="http://tempuri.org/", Order=0)]
+        public NovaAPI.wsEmails.GeneraHTMLPOS_V2RequestBody Body;
+        
+        public GeneraHTMLPOS_V2Request() {
+        }
+        
+        public GeneraHTMLPOS_V2Request(NovaAPI.wsEmails.GeneraHTMLPOS_V2RequestBody Body) {
+            this.Body = Body;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.Runtime.Serialization.DataContractAttribute(Namespace="http://tempuri.org/")]
+    public partial class GeneraHTMLPOS_V2RequestBody {
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=0)]
+        public string HtmlPlantilla;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=1)]
+        public NovaAPI.wsEmails.EmisorOr _Emisor;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=2)]
+        public NovaAPI.wsEmails.ReceptorFE _Receptor;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=3)]
+        public NovaAPI.wsEmails.EncFactura _Factura;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=4)]
+        public string _TipoComprobante;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=5)]
+        public string EMISOR_SITIOWEB;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=6)]
+        public string EXT_LOGO;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=7)]
+        public string DOC_TIPO;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=8)]
+        public string COLOR1;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=9)]
+        public string COLOR2;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=10)]
+        public string LOGO_ALTO;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=11)]
+        public string LOGO_ANCHO;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=12)]
+        public string _Clave;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=13)]
+        public string _Consecutivo;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=14)]
+        public string Comentario1;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=15)]
+        public string Comentario2;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=16)]
+        public string Comentario3;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=17)]
+        public string Comentario4;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=18)]
+        public string Comentario5;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=19)]
+        public string Comentario6;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=20)]
+        public string Comentario7;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=21)]
+        public string OrdenCompra;
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=22)]
+        public string FechaOrdenCompra;
+        
+        public GeneraHTMLPOS_V2RequestBody() {
+        }
+        
+        public GeneraHTMLPOS_V2RequestBody(
+                    string HtmlPlantilla, 
+                    NovaAPI.wsEmails.EmisorOr _Emisor, 
+                    NovaAPI.wsEmails.ReceptorFE _Receptor, 
+                    NovaAPI.wsEmails.EncFactura _Factura, 
+                    string _TipoComprobante, 
+                    string EMISOR_SITIOWEB, 
+                    string EXT_LOGO, 
+                    string DOC_TIPO, 
+                    string COLOR1, 
+                    string COLOR2, 
+                    string LOGO_ALTO, 
+                    string LOGO_ANCHO, 
+                    string _Clave, 
+                    string _Consecutivo, 
+                    string Comentario1, 
+                    string Comentario2, 
+                    string Comentario3, 
+                    string Comentario4, 
+                    string Comentario5, 
+                    string Comentario6, 
+                    string Comentario7, 
+                    string OrdenCompra, 
+                    string FechaOrdenCompra) {
+            this.HtmlPlantilla = HtmlPlantilla;
+            this._Emisor = _Emisor;
+            this._Receptor = _Receptor;
+            this._Factura = _Factura;
+            this._TipoComprobante = _TipoComprobante;
+            this.EMISOR_SITIOWEB = EMISOR_SITIOWEB;
+            this.EXT_LOGO = EXT_LOGO;
+            this.DOC_TIPO = DOC_TIPO;
+            this.COLOR1 = COLOR1;
+            this.COLOR2 = COLOR2;
+            this.LOGO_ALTO = LOGO_ALTO;
+            this.LOGO_ANCHO = LOGO_ANCHO;
+            this._Clave = _Clave;
+            this._Consecutivo = _Consecutivo;
+            this.Comentario1 = Comentario1;
+            this.Comentario2 = Comentario2;
+            this.Comentario3 = Comentario3;
+            this.Comentario4 = Comentario4;
+            this.Comentario5 = Comentario5;
+            this.Comentario6 = Comentario6;
+            this.Comentario7 = Comentario7;
+            this.OrdenCompra = OrdenCompra;
+            this.FechaOrdenCompra = FechaOrdenCompra;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GeneraHTMLPOS_V2Response {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="GeneraHTMLPOS_V2Response", Namespace="http://tempuri.org/", Order=0)]
+        public NovaAPI.wsEmails.GeneraHTMLPOS_V2ResponseBody Body;
+        
+        public GeneraHTMLPOS_V2Response() {
+        }
+        
+        public GeneraHTMLPOS_V2Response(NovaAPI.wsEmails.GeneraHTMLPOS_V2ResponseBody Body) {
+            this.Body = Body;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.Runtime.Serialization.DataContractAttribute(Namespace="http://tempuri.org/")]
+    public partial class GeneraHTMLPOS_V2ResponseBody {
+        
+        [System.Runtime.Serialization.DataMemberAttribute(EmitDefaultValue=false, Order=0)]
+        public string GeneraHTMLPOS_V2Result;
+        
+        public GeneraHTMLPOS_V2ResponseBody() {
+        }
+        
+        public GeneraHTMLPOS_V2ResponseBody(string GeneraHTMLPOS_V2Result) {
+            this.GeneraHTMLPOS_V2Result = GeneraHTMLPOS_V2Result;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
     public partial class GetHtml_02Request {
         
         [System.ServiceModel.MessageBodyMemberAttribute(Name="GetHtml_02", Namespace="http://tempuri.org/", Order=0)]
@@ -4571,7 +5127,7 @@ namespace NovaAPI.wsEmails {
             return base.Channel.InsertFileXMLPruebas(request);
         }
         
-        public bool InsertFileXMLPruebas(string path, string NameFile, string XML, string html, string tipo) {
+        public bool InsertFileXMLPruebas(string path, string NameFile, string XML, string html, string tipo, string CodSucursal, string Anio, string Mes) {
             NovaAPI.wsEmails.InsertFileXMLPruebasRequest inValue = new NovaAPI.wsEmails.InsertFileXMLPruebasRequest();
             inValue.Body = new NovaAPI.wsEmails.InsertFileXMLPruebasRequestBody();
             inValue.Body.path = path;
@@ -4579,6 +5135,9 @@ namespace NovaAPI.wsEmails {
             inValue.Body.XML = XML;
             inValue.Body.html = html;
             inValue.Body.tipo = tipo;
+            inValue.Body.CodSucursal = CodSucursal;
+            inValue.Body.Anio = Anio;
+            inValue.Body.Mes = Mes;
             NovaAPI.wsEmails.InsertFileXMLPruebasResponse retVal = ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).InsertFileXMLPruebas(inValue);
             return retVal.Body.InsertFileXMLPruebasResult;
         }
@@ -4588,7 +5147,7 @@ namespace NovaAPI.wsEmails {
             return base.Channel.InsertFileXMLPruebasAsync(request);
         }
         
-        public System.Threading.Tasks.Task<NovaAPI.wsEmails.InsertFileXMLPruebasResponse> InsertFileXMLPruebasAsync(string path, string NameFile, string XML, string html, string tipo) {
+        public System.Threading.Tasks.Task<NovaAPI.wsEmails.InsertFileXMLPruebasResponse> InsertFileXMLPruebasAsync(string path, string NameFile, string XML, string html, string tipo, string CodSucursal, string Anio, string Mes) {
             NovaAPI.wsEmails.InsertFileXMLPruebasRequest inValue = new NovaAPI.wsEmails.InsertFileXMLPruebasRequest();
             inValue.Body = new NovaAPI.wsEmails.InsertFileXMLPruebasRequestBody();
             inValue.Body.path = path;
@@ -4596,6 +5155,9 @@ namespace NovaAPI.wsEmails {
             inValue.Body.XML = XML;
             inValue.Body.html = html;
             inValue.Body.tipo = tipo;
+            inValue.Body.CodSucursal = CodSucursal;
+            inValue.Body.Anio = Anio;
+            inValue.Body.Mes = Mes;
             return ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).InsertFileXMLPruebasAsync(inValue);
         }
         
@@ -4662,12 +5224,15 @@ namespace NovaAPI.wsEmails {
             return base.Channel.VerificaXMLHaciendaPruebas(request);
         }
         
-        public NovaAPI.wsEmails.RespuestaHacienda VerificaXMLHaciendaPruebas(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS) {
+        public NovaAPI.wsEmails.RespuestaHacienda VerificaXMLHaciendaPruebas(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS, string CodSucursal, string Anio, string Mes) {
             NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequest inValue = new NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequest();
             inValue.Body = new NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequestBody();
             inValue.Body._Emisor = _Emisor;
             inValue.Body.clave = clave;
             inValue.Body.TokenUS = TokenUS;
+            inValue.Body.CodSucursal = CodSucursal;
+            inValue.Body.Anio = Anio;
+            inValue.Body.Mes = Mes;
             NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse retVal = ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).VerificaXMLHaciendaPruebas(inValue);
             return retVal.Body.VerificaXMLHaciendaPruebasResult;
         }
@@ -4677,13 +5242,43 @@ namespace NovaAPI.wsEmails {
             return base.Channel.VerificaXMLHaciendaPruebasAsync(request);
         }
         
-        public System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse> VerificaXMLHaciendaPruebasAsync(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS) {
+        public System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaXMLHaciendaPruebasResponse> VerificaXMLHaciendaPruebasAsync(NovaAPI.wsEmails.EmisorOr _Emisor, string clave, string TokenUS, string CodSucursal, string Anio, string Mes) {
             NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequest inValue = new NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequest();
             inValue.Body = new NovaAPI.wsEmails.VerificaXMLHaciendaPruebasRequestBody();
             inValue.Body._Emisor = _Emisor;
             inValue.Body.clave = clave;
             inValue.Body.TokenUS = TokenUS;
+            inValue.Body.CodSucursal = CodSucursal;
+            inValue.Body.Anio = Anio;
+            inValue.Body.Mes = Mes;
             return ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).VerificaXMLHaciendaPruebasAsync(inValue);
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse NovaAPI.wsEmails.IntegraFastServiceSoap.VerificaDocumentoHacienda(NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest request) {
+            return base.Channel.VerificaDocumentoHacienda(request);
+        }
+        
+        public NovaAPI.wsEmails.RespuestaHacienda VerificaDocumentoHacienda(NovaAPI.wsEmails.EmisorOr _Emisor, string clave) {
+            NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest inValue = new NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest();
+            inValue.Body = new NovaAPI.wsEmails.VerificaDocumentoHaciendaRequestBody();
+            inValue.Body._Emisor = _Emisor;
+            inValue.Body.clave = clave;
+            NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse retVal = ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).VerificaDocumentoHacienda(inValue);
+            return retVal.Body.VerificaDocumentoHaciendaResult;
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse> NovaAPI.wsEmails.IntegraFastServiceSoap.VerificaDocumentoHaciendaAsync(NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest request) {
+            return base.Channel.VerificaDocumentoHaciendaAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsEmails.VerificaDocumentoHaciendaResponse> VerificaDocumentoHaciendaAsync(NovaAPI.wsEmails.EmisorOr _Emisor, string clave) {
+            NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest inValue = new NovaAPI.wsEmails.VerificaDocumentoHaciendaRequest();
+            inValue.Body = new NovaAPI.wsEmails.VerificaDocumentoHaciendaRequestBody();
+            inValue.Body._Emisor = _Emisor;
+            inValue.Body.clave = clave;
+            return ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).VerificaDocumentoHaciendaAsync(inValue);
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
@@ -4883,6 +5478,121 @@ namespace NovaAPI.wsEmails {
             inValue.Body.OrdenCompra = OrdenCompra;
             inValue.Body.FechaOrdenCompra = FechaOrdenCompra;
             return ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).GeneraHTMLAsync(inValue);
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        NovaAPI.wsEmails.GeneraHTMLPOS_V2Response NovaAPI.wsEmails.IntegraFastServiceSoap.GeneraHTMLPOS_V2(NovaAPI.wsEmails.GeneraHTMLPOS_V2Request request) {
+            return base.Channel.GeneraHTMLPOS_V2(request);
+        }
+        
+        public string GeneraHTMLPOS_V2(
+                    string HtmlPlantilla, 
+                    NovaAPI.wsEmails.EmisorOr _Emisor, 
+                    NovaAPI.wsEmails.ReceptorFE _Receptor, 
+                    NovaAPI.wsEmails.EncFactura _Factura, 
+                    string _TipoComprobante, 
+                    string EMISOR_SITIOWEB, 
+                    string EXT_LOGO, 
+                    string DOC_TIPO, 
+                    string COLOR1, 
+                    string COLOR2, 
+                    string LOGO_ALTO, 
+                    string LOGO_ANCHO, 
+                    string _Clave, 
+                    string _Consecutivo, 
+                    string Comentario1, 
+                    string Comentario2, 
+                    string Comentario3, 
+                    string Comentario4, 
+                    string Comentario5, 
+                    string Comentario6, 
+                    string Comentario7, 
+                    string OrdenCompra, 
+                    string FechaOrdenCompra) {
+            NovaAPI.wsEmails.GeneraHTMLPOS_V2Request inValue = new NovaAPI.wsEmails.GeneraHTMLPOS_V2Request();
+            inValue.Body = new NovaAPI.wsEmails.GeneraHTMLPOS_V2RequestBody();
+            inValue.Body.HtmlPlantilla = HtmlPlantilla;
+            inValue.Body._Emisor = _Emisor;
+            inValue.Body._Receptor = _Receptor;
+            inValue.Body._Factura = _Factura;
+            inValue.Body._TipoComprobante = _TipoComprobante;
+            inValue.Body.EMISOR_SITIOWEB = EMISOR_SITIOWEB;
+            inValue.Body.EXT_LOGO = EXT_LOGO;
+            inValue.Body.DOC_TIPO = DOC_TIPO;
+            inValue.Body.COLOR1 = COLOR1;
+            inValue.Body.COLOR2 = COLOR2;
+            inValue.Body.LOGO_ALTO = LOGO_ALTO;
+            inValue.Body.LOGO_ANCHO = LOGO_ANCHO;
+            inValue.Body._Clave = _Clave;
+            inValue.Body._Consecutivo = _Consecutivo;
+            inValue.Body.Comentario1 = Comentario1;
+            inValue.Body.Comentario2 = Comentario2;
+            inValue.Body.Comentario3 = Comentario3;
+            inValue.Body.Comentario4 = Comentario4;
+            inValue.Body.Comentario5 = Comentario5;
+            inValue.Body.Comentario6 = Comentario6;
+            inValue.Body.Comentario7 = Comentario7;
+            inValue.Body.OrdenCompra = OrdenCompra;
+            inValue.Body.FechaOrdenCompra = FechaOrdenCompra;
+            NovaAPI.wsEmails.GeneraHTMLPOS_V2Response retVal = ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).GeneraHTMLPOS_V2(inValue);
+            return retVal.Body.GeneraHTMLPOS_V2Result;
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        System.Threading.Tasks.Task<NovaAPI.wsEmails.GeneraHTMLPOS_V2Response> NovaAPI.wsEmails.IntegraFastServiceSoap.GeneraHTMLPOS_V2Async(NovaAPI.wsEmails.GeneraHTMLPOS_V2Request request) {
+            return base.Channel.GeneraHTMLPOS_V2Async(request);
+        }
+        
+        public System.Threading.Tasks.Task<NovaAPI.wsEmails.GeneraHTMLPOS_V2Response> GeneraHTMLPOS_V2Async(
+                    string HtmlPlantilla, 
+                    NovaAPI.wsEmails.EmisorOr _Emisor, 
+                    NovaAPI.wsEmails.ReceptorFE _Receptor, 
+                    NovaAPI.wsEmails.EncFactura _Factura, 
+                    string _TipoComprobante, 
+                    string EMISOR_SITIOWEB, 
+                    string EXT_LOGO, 
+                    string DOC_TIPO, 
+                    string COLOR1, 
+                    string COLOR2, 
+                    string LOGO_ALTO, 
+                    string LOGO_ANCHO, 
+                    string _Clave, 
+                    string _Consecutivo, 
+                    string Comentario1, 
+                    string Comentario2, 
+                    string Comentario3, 
+                    string Comentario4, 
+                    string Comentario5, 
+                    string Comentario6, 
+                    string Comentario7, 
+                    string OrdenCompra, 
+                    string FechaOrdenCompra) {
+            NovaAPI.wsEmails.GeneraHTMLPOS_V2Request inValue = new NovaAPI.wsEmails.GeneraHTMLPOS_V2Request();
+            inValue.Body = new NovaAPI.wsEmails.GeneraHTMLPOS_V2RequestBody();
+            inValue.Body.HtmlPlantilla = HtmlPlantilla;
+            inValue.Body._Emisor = _Emisor;
+            inValue.Body._Receptor = _Receptor;
+            inValue.Body._Factura = _Factura;
+            inValue.Body._TipoComprobante = _TipoComprobante;
+            inValue.Body.EMISOR_SITIOWEB = EMISOR_SITIOWEB;
+            inValue.Body.EXT_LOGO = EXT_LOGO;
+            inValue.Body.DOC_TIPO = DOC_TIPO;
+            inValue.Body.COLOR1 = COLOR1;
+            inValue.Body.COLOR2 = COLOR2;
+            inValue.Body.LOGO_ALTO = LOGO_ALTO;
+            inValue.Body.LOGO_ANCHO = LOGO_ANCHO;
+            inValue.Body._Clave = _Clave;
+            inValue.Body._Consecutivo = _Consecutivo;
+            inValue.Body.Comentario1 = Comentario1;
+            inValue.Body.Comentario2 = Comentario2;
+            inValue.Body.Comentario3 = Comentario3;
+            inValue.Body.Comentario4 = Comentario4;
+            inValue.Body.Comentario5 = Comentario5;
+            inValue.Body.Comentario6 = Comentario6;
+            inValue.Body.Comentario7 = Comentario7;
+            inValue.Body.OrdenCompra = OrdenCompra;
+            inValue.Body.FechaOrdenCompra = FechaOrdenCompra;
+            return ((NovaAPI.wsEmails.IntegraFastServiceSoap)(this)).GeneraHTMLPOS_V2Async(inValue);
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]

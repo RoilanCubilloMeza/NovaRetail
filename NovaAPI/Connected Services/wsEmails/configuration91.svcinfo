@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<SavedWcfConfigurationInformation xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="9.1" CheckSum="V9JnKFVMkRNlTtACGqTUar5Q93io4DOde7tecWY2cl0=">
+<SavedWcfConfigurationInformation xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="9.1" CheckSum="d/qdKwfpwDmNi9H87M8cAEAnsrizYUI5C9LaBJdiciY=">
   <bindingConfigurations>
     <bindingConfiguration bindingType="basicHttpBinding" name="IntegraFastServiceSoap">
       <properties>
@@ -112,10 +112,10 @@
     </bindingConfiguration>
   </bindingConfigurations>
   <endpoints>
-    <endpoint name="IntegraFastServiceSoap" contract="wsEmails.IntegraFastServiceSoap" bindingType="basicHttpBinding" address="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx" bindingConfiguration="IntegraFastServiceSoap">
+    <endpoint name="IntegraFastServiceSoap" contract="wsEmails.IntegraFastServiceSoap" bindingType="basicHttpBinding" address="http://192.168.137.217:902/IntegraFastService.asmx" bindingConfiguration="IntegraFastServiceSoap">
       <properties>
         <property path="/address" isComplexType="false" isExplicitlyDefined="true" clrType="System.Uri, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-          <serializedValue>http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx</serializedValue>
+          <serializedValue>http://192.168.137.217:902/IntegraFastService.asmx</serializedValue>
         </property>
         <property path="/behaviorConfiguration" isComplexType="false" isExplicitlyDefined="false" clrType="System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
           <serializedValue />

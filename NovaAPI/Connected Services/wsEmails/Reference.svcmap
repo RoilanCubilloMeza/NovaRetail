@@ -19,11 +19,11 @@
     <ServiceContractMappings />
   </ClientOptions>
   <MetadataSources>
-    <MetadataSource Address="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx" Protocol="http" SourceId="1" />
+    <MetadataSource Address="http://192.168.137.217:902/IntegraFastService.asmx" Protocol="http" SourceId="1" />
   </MetadataSources>
   <Metadata>
-    <MetadataFile FileName="IntegraFastService.disco" MetadataType="Disco" ID="6cf0f81c-a072-42f6-978f-1556edd9c48f" SourceId="1" SourceUrl="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx?disco" />
-    <MetadataFile FileName="IntegraFastService.wsdl" MetadataType="Wsdl" ID="e2c38c51-839f-4a10-ac7a-a501f7c3d88f" SourceId="1" SourceUrl="http://login.facturamecr.com/WSHacienda/IntegraFastService.asmx?wsdl" />
+    <MetadataFile FileName="IntegraFastService11.wsdl" MetadataType="Wsdl" ID="b266d854-cfb0-498c-9977-7db7c086c41a" SourceId="1" SourceUrl="http://192.168.137.217:902/IntegraFastService.asmx?wsdl" />
+    <MetadataFile FileName="IntegraFastService11.disco" MetadataType="Disco" ID="5bba0016-0945-4ba0-b117-39a34ec9e544" SourceId="1" SourceUrl="http://192.168.137.217:902/IntegraFastService.asmx?disco" />
   </Metadata>
   <Extensions>
     <ExtensionFile FileName="configuration91.svcinfo" Name="configuration91.svcinfo" />
