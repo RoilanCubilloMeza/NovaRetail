@@ -74,57 +74,86 @@
 
                     <controls:ActionLinkRow Icon="&#x1F4CB;" Text="Cotización"
                                             Command="{Binding OpenQuoteMenuCommand}"
-                                            SurfaceColor="#EFF6FF" StrokeColor="#BFDBFE"
-                                            IconColor="#3B82F6" LabelColor="#1D4ED8" ArrowColor="#3B82F6"/>
+                            SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x23F8;&#xFE0E;" Text="Fac. Espera"
                                             Command="{Binding OpenHoldMenuCommand}"
-                                            SurfaceColor="#FFFBEB" StrokeColor="#FDE68A"
-                                            IconColor="#F59E0B" LabelColor="#92400E" ArrowColor="#F59E0B"/>
+                                                                       SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F9D1;" Text="Vendedor"
                                             Command="{Binding AssignSalesRepCommand}"
                                             IsVisible="{Binding ShowSalesRepFeature}"
-                                            SurfaceColor="#FEF3C7" StrokeColor="#FDE68A"
-                                            IconColor="#D97706" LabelColor="#92400E" ArrowColor="#D97706"/>
+                                                                       SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4E6;" Text="Ord. Trabajo"
                                             Command="{Binding OpenWorkOrderMenuCommand}"
-                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
-                                            IconColor="#6366F1" LabelColor="#3730A3" ArrowColor="#6366F1"/>
+                                                                     SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F9FE;" Text="Historial"
                                             Command="{Binding ShowInvoiceHistoryCommand}"
-                                            SurfaceColor="#F0FDF4" StrokeColor="#86EFAC"
-                                            IconColor="#16A34A" LabelColor="#15803D" ArrowColor="#16A34A"/>
+                                                                       SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x21A9;" Text="NC por Clave"
                                             Command="{Binding StandaloneCreditNoteCommand}"
-                                            SurfaceColor="#FEF2F2" StrokeColor="#FECACA"
-                                            IconColor="#DC2626" LabelColor="#991B1B" ArrowColor="#DC2626"/>
+                                                                      SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4B3;" Text="Abonos"
                                             Command="{Binding ShowCreditPaymentCommand}"
-                                            SurfaceColor="#EEF2FF" StrokeColor="#C7D2FE"
-                                            IconColor="#4F46E5" LabelColor="#3730A3" ArrowColor="#4F46E5"/>
+                                                                       SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4CA;" Text="Administración"
                                             Command="{Binding OpenAdminMenuCommand}"
                                             IsVisible="{Binding CanAccessAdminActions}"
-                                            SurfaceColor="#ECFEFF" StrokeColor="#A5F3FC"
-                                            IconColor="#0891B2" LabelColor="#155E75" ArrowColor="#0891B2"/>
-
+                                                                      SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
                     <BoxView Style="{DynamicResource FormDivider}" Margin="0,8,0,8"/>
 
                     <controls:ActionLinkRow Icon="&#x1F4C2;" Text="Personalización"
                                             Command="{Binding NavigateToCategoryConfigCommand}"
-                                            SurfaceColor="#FFF7ED" StrokeColor="#FED7AA"
-                                            IconColor="#EA580C" LabelColor="#9A3412" ArrowColor="#EA580C"/>
+                                                                      SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                     <controls:ActionLinkRow Icon="&#x1F6AA;" Text="Cerrar sesión"
                                             Command="{Binding LogoutCommand}"
-                                            SurfaceColor="#FEF2F2" StrokeColor="#FECACA"
-                                            IconColor="#DC2626" LabelColor="#991B1B" ArrowColor="#DC2626"/>
+                                                                     SurfaceColor="{DynamicResource ActionLink_SurfaceColor}"
+                            StrokeColor="{DynamicResource ActionLink_StrokeColor}"
+                            IconColor="{DynamicResource ActionLink_IconColor}"
+                            LabelColor="{DynamicResource ActionLink_LabelColor}"
+                            ArrowColor="{DynamicResource ActionLink_ArrowColor}"/>
 
                 </VerticalStackLayout>
 
