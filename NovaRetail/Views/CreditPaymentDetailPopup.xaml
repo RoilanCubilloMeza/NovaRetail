@@ -11,11 +11,11 @@
       <Grid x:Name="MainPopup"
           BackgroundColor="White"
               MaximumWidthRequest="1080"
-              HeightRequest="700"
+              HeightRequest="780"
               Margin="24"
               HorizontalOptions="Center"
               VerticalOptions="Center"
-              RowDefinitions="Auto,Auto,1,Auto,1,Auto,Auto,*,1,Auto,Auto,Auto,Auto">
+              RowDefinitions="Auto,Auto,1,Auto,1,Auto,Auto,1,Auto,Auto,*,1,Auto,Auto,Auto,Auto">
 
             <!-- Row 0: Header -->
             <Grid Grid.Row="0" BackgroundColor="#334155" Padding="16,12" ColumnDefinitions="*,Auto">
@@ -64,8 +64,92 @@
             <!-- Row 4: Separator -->
             <BoxView Grid.Row="4" Color="#E2E8F0"/>
 
-            <!-- Row 5: Toolbar -->
-            <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Padding="16,8" ColumnSpacing="8">
+            <!-- Row 5: Buscador + acciones (hijo directo del popup Grid para correcta restricción de ancho) -->
+            <Grid Grid.Row="5" Padding="16,7,16,4" ColumnSpacing="6"
+                  ColumnDefinitions="Auto,*,Auto,Auto" BackgroundColor="#FAFBFD">
+                <Label Grid.Column="0" Text="Buscar:" FontSize="11" FontAttributes="Bold"
+                       TextColor="#64748B" VerticalOptions="Center"/>
+                <Border Grid.Column="1" BackgroundColor="White" Stroke="#CBD5E1" StrokeThickness="1"
+                        StrokeShape="RoundRectangle 6" HeightRequest="28" Padding="8,0">
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="Descripción / Integrafast01 / Referencia"
+                           PlaceholderColor="#94A3B8" FontSize="11"
+                           BackgroundColor="Transparent" VerticalOptions="Center"/>
+                </Border>
+                <Button Grid.Column="2" Text="Exportar Excel"
+                        Command="{Binding ExportExcelCommand}"
+                        FontSize="10" FontAttributes="Bold"
+                        TextColor="#16A34A" BackgroundColor="#F0FDF4"
+                        BorderColor="#86EFAC" BorderWidth="1"
+                        CornerRadius="4" Padding="10,0" HeightRequest="28"/>
+                <Button Grid.Column="3" Text="&#x2715; Limpiar"
+                        Command="{Binding ClearFilterCommand}"
+                        FontSize="10" FontAttributes="Bold"
+                        TextColor="#64748B" BackgroundColor="#F1F5F9"
+                        BorderColor="#CBD5E1" BorderWidth="1"
+                        CornerRadius="4" Padding="8,0" HeightRequest="28"/>
+            </Grid>
+
+            <!-- Row 6: Chips de filtro por días de vencimiento -->
+            <Grid Grid.Row="6" Padding="16,0,16,7" ColumnSpacing="5"
+                  ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" BackgroundColor="#FAFBFD">
+                <Label Grid.Column="0" Text="Vencimiento:" FontSize="10" FontAttributes="Bold"
+                       TextColor="#64748B" VerticalOptions="Center"/>
+                <Button Grid.Column="1" Text="Todos"
+                        Command="{Binding SetDueDateFilterCommand}" CommandParameter="0"
+                        TextColor="#475569" BackgroundColor="#E2E8F0"
+                        FontSize="10" FontAttributes="Bold"
+                        CornerRadius="4" Padding="10,0" HeightRequest="26">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFilterAllActive}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8"/>
+                            <Setter Property="TextColor" Value="White"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button Grid.Column="2" Text="30 días"
+                        Command="{Binding SetDueDateFilterCommand}" CommandParameter="30"
+                        TextColor="#475569" BackgroundColor="#E2E8F0"
+                        FontSize="10" FontAttributes="Bold"
+                        CornerRadius="4" Padding="10,0" HeightRequest="26">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFilter30Active}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8"/>
+                            <Setter Property="TextColor" Value="White"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button Grid.Column="3" Text="60 días"
+                        Command="{Binding SetDueDateFilterCommand}" CommandParameter="60"
+                        TextColor="#475569" BackgroundColor="#E2E8F0"
+                        FontSize="10" FontAttributes="Bold"
+                        CornerRadius="4" Padding="10,0" HeightRequest="26">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFilter60Active}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8"/>
+                            <Setter Property="TextColor" Value="White"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button Grid.Column="4" Text="+90 días"
+                        Command="{Binding SetDueDateFilterCommand}" CommandParameter="90"
+                        TextColor="#475569" BackgroundColor="#E2E8F0"
+                        FontSize="10" FontAttributes="Bold"
+                        CornerRadius="4" Padding="10,0" HeightRequest="26">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFilter90Active}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8"/>
+                            <Setter Property="TextColor" Value="White"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </Grid>
+
+            <!-- Row 7: Separator -->
+            <BoxView Grid.Row="7" Color="#E2E8F0"/>
+
+            <!-- Row 8: Toolbar -->
+            <Grid Grid.Row="8" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Padding="16,8" ColumnSpacing="8">
                 <Label Grid.Column="0" Text="Cuentas por cobrar abiertas"
                        FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
                        VerticalOptions="Center"/>
@@ -90,27 +174,26 @@
                         CornerRadius="4" Padding="10,4" HeightRequest="30"/>
             </Grid>
 
-            <!-- Row 6: Table header -->
-            <Grid Grid.Row="6" BackgroundColor="#334155" Padding="6,7" Margin="12,0"
-                  ColumnDefinitions="78,78,78,82,*,44,88,100,100,110,36"
+            <!-- Row 9: Table header -->
+            <Grid Grid.Row="9" BackgroundColor="#334155" Padding="6,7" Margin="12,0"
+                  ColumnDefinitions="78,78,78,*,120,88,100,100,110,36"
                   ColumnSpacing="4">
-                <Label Grid.Column="0"  Text="Fecha Pub."  FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="1"  Text="F. Venc."    FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="2"  Text="Tipo L.M."   FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="3"  Text="Tipo Doc."   FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="4"  Text="Descripción" FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="5"  Text="Store"       FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="Center"/>
-                <Label Grid.Column="6"  Text="Referencia"  FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="7"  Text="Monto"       FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
-                <Label Grid.Column="8"  Text="Balance"     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
-                <Label Grid.Column="9"  Text="Monto a aplicar" FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
-                <Label Grid.Column="10" Text="&#x2713;"    FontSize="10"  FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="Center"/>
+                <Label Grid.Column="0" Text="Fecha Pub."     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="1" Text="F. Venc."       FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="2" Text="Tipo L.M."      FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="3" Text="Descripción"    FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="4" Text="Integrafast01"  FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="5" Text="Referencia"     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="6" Text="Monto"          FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
+                <Label Grid.Column="7" Text="Balance"        FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
+                <Label Grid.Column="8" Text="Monto a aplicar" FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="End"/>
+                <Label Grid.Column="9" Text="&#x2713;"       FontSize="10"  FontAttributes="Bold" TextColor="#E2E8F0" HorizontalTextAlignment="Center"/>
             </Grid>
 
-            <!-- Row 7: Virtualized rows -->
-            <CollectionView Grid.Row="7"
+            <!-- Row 10: Virtualized rows -->
+            <CollectionView Grid.Row="10"
                             Margin="12,0"
-                            ItemsSource="{Binding OpenEntries}"
+                            ItemsSource="{Binding FilteredEntries}"
                             ItemSizingStrategy="MeasureFirstItem"
                             SelectionMode="None">
                 <CollectionView.EmptyView>
@@ -122,30 +205,50 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid ColumnDefinitions="78,78,78,82,*,44,88,100,100,110,36"
+                        <Grid ColumnDefinitions="78,78,78,*,120,88,100,100,110,36"
                               Padding="6,5"
                               ColumnSpacing="4"
                               BackgroundColor="White">
-                            <BoxView Grid.ColumnSpan="11"
-                                     Color="#F8FAFC"
-                                     Opacity="0.6"
-                                     InputTransparent="True"/>
-                            <Label Grid.Column="0"  Text="{Binding PostingDate}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                            <Label Grid.Column="1"  Text="{Binding DueDate}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                            <Label Grid.Column="2"  Text="{Binding LedgerTypeName}"   FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
-                            <Label Grid.Column="3"  Text="{Binding DocumentTypeName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
-                            <Label Grid.Column="4"  Text="{Binding Description}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
-                            <Label Grid.Column="5"  Text="{Binding StoreID}"          FontSize="10" TextColor="#334155" VerticalOptions="Center" HorizontalTextAlignment="Center"/>
-                            <Label Grid.Column="6"  Text="{Binding Reference}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
-                            <Label Grid.Column="7"  Text="{Binding AmountText}"       FontSize="10" TextColor="#334155" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
-                            <Label Grid.Column="8"  Text="{Binding BalanceText}"      FontSize="10" TextColor="#EF4444" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
-                            <Entry Grid.Column="9"  Text="{Binding AmountToApplyText}"
+                            <!-- Fondo — ámbar para NC (IsReadOnly), neutro para facturas -->
+                            <BoxView Grid.ColumnSpan="10" Color="#F8FAFC" Opacity="0.6" InputTransparent="True">
+                                <BoxView.Triggers>
+                                    <DataTrigger TargetType="BoxView" Binding="{Binding IsReadOnly}" Value="True">
+                                        <Setter Property="Color" Value="#FEF3C7"/>
+                                        <Setter Property="Opacity" Value="1"/>
+                                    </DataTrigger>
+                                </BoxView.Triggers>
+                            </BoxView>
+                            <Label Grid.Column="0" Text="{Binding PostingDate}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
+                            <Label Grid.Column="1" Text="{Binding DueDate}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
+                            <Label Grid.Column="2" Text="{Binding LedgerTypeName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
+                            <Label Grid.Column="3" Text="{Binding Description}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="4" Text="{Binding Clave20}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="5" Text="{Binding Reference}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="6" Text="{Binding AmountText}"     FontSize="10" TextColor="#334155" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
+                            <Label Grid.Column="7" Text="{Binding BalanceText}"    FontSize="10" TextColor="#EF4444" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsReadOnly}" Value="True">
+                                        <Setter Property="TextColor" Value="#92400E"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <!-- Monto a aplicar: Entry para facturas, etiqueta "N/C" para notas de crédito -->
+                            <Entry Grid.Column="8"
+                                   Text="{Binding AmountToApplyText}"
+                                   IsVisible="{Binding IsReadOnly, Converter={StaticResource InvertBoolConverter}}"
                                    Keyboard="Numeric" FontSize="10" TextColor="#0F172A"
                                    BackgroundColor="#F1F5F9" HorizontalTextAlignment="End"
                                    VerticalOptions="Center" HeightRequest="28"/>
-                            <CheckBox Grid.Column="10" IsChecked="{Binding IsSelected}"
+                            <Label Grid.Column="8"
+                                   IsVisible="{Binding IsReadOnly}"
+                                   Text="N/C" FontSize="10" FontAttributes="Bold"
+                                   TextColor="#92400E"
+                                   HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+                            <CheckBox Grid.Column="9"
+                                      IsChecked="{Binding IsSelected}"
+                                      IsEnabled="{Binding IsReadOnly, Converter={StaticResource InvertBoolConverter}}"
                                       Color="#3B82F6" VerticalOptions="Center" HorizontalOptions="Center"/>
-                            <BoxView Grid.ColumnSpan="11"
+                            <BoxView Grid.ColumnSpan="10"
                                      HeightRequest="1"
                                      Color="#F1F5F9"
                                      VerticalOptions="End"
@@ -155,11 +258,11 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Row 8: Separator -->
-            <BoxView Grid.Row="8" Color="#E2E8F0" Margin="12,0"/>
+            <!-- Row 11: Separator -->
+            <BoxView Grid.Row="11" Color="#E2E8F0" Margin="12,0"/>
 
-            <!-- Row 9: Totals -->
-            <Grid Grid.Row="9" ColumnDefinitions="*,Auto,Auto" Padding="16,10" ColumnSpacing="12"
+            <!-- Row 12: Totals -->
+            <Grid Grid.Row="12" ColumnDefinitions="*,Auto,Auto" Padding="16,10" ColumnSpacing="12"
                   BackgroundColor="#F8FAFC">
                 <Label Grid.Column="0" Text="{Binding SelectedCountText}"
                        FontSize="12" TextColor="#64748B" VerticalOptions="Center"/>
@@ -169,22 +272,22 @@
                        FontSize="17" FontAttributes="Bold" TextColor="#16A34A" VerticalOptions="Center"/>
             </Grid>
 
-            <!-- Row 10: Error -->
-            <Label Grid.Row="10" Text="{Binding ErrorMessage}"
+            <!-- Row 13: Error -->
+            <Label Grid.Row="13" Text="{Binding ErrorMessage}"
                    IsVisible="{Binding HasError}"
                    BackgroundColor="#FEF2F2" TextColor="#DC2626"
                    FontSize="12" FontAttributes="Bold"
                    HorizontalTextAlignment="Center" Padding="10,8"/>
 
-            <!-- Row 11: Success -->
-            <Label Grid.Row="11" Text="Abono registrado exitosamente."
+            <!-- Row 14: Success -->
+            <Label Grid.Row="14" Text="Abono registrado exitosamente."
                    IsVisible="{Binding ShowSuccess}"
                    BackgroundColor="#F0FDF4" TextColor="#15803D"
                    FontSize="12" FontAttributes="Bold"
                    HorizontalTextAlignment="Center" Padding="10,8"/>
 
-            <!-- Row 12: Footer -->
-            <Grid Grid.Row="12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10"
+            <!-- Row 15: Footer -->
+            <Grid Grid.Row="15" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10"
                   Padding="16,10" BackgroundColor="#F1F5F9">
                 <Button Grid.Column="0" Text="&#x2190; Volver"
                         Command="{Binding BackCommand}"

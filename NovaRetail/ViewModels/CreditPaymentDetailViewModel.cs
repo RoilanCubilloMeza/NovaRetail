@@ -1,6 +1,8 @@
+using ClosedXML.Excel;
 using NovaRetail.Models;
 using NovaRetail.Data;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
@@ -20,9 +22,12 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private bool _showConfirmDialog;
     private string _partialAmountText = string.Empty;
     private OpenLedgerEntryModel? _pendingEntry;
+    private string _searchText = string.Empty;
+    private int _dueDateFilter = 0;
 
     public BatchObservableCollection<TenderModel> PaymentTenders { get; } = new();
     public BatchObservableCollection<OpenLedgerEntryModel> OpenEntries { get; } = new();
+    public BatchObservableCollection<OpenLedgerEntryModel> FilteredEntries { get; } = new();
 
     public TenderModel? SelectedTender
     {
@@ -63,6 +68,43 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public string CreditLimitText => Customer is not null ? $"₡{Customer.CreditLimit:N2}" : "—";
     public string BalanceText => Customer is not null ? $"₡{Customer.Available:N2}" : "—";
     public bool HasCustomer => Customer is not null;
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                ApplyFilter();
+            }
+        }
+    }
+
+    public int DueDateFilter
+    {
+        get => _dueDateFilter;
+        set
+        {
+            if (_dueDateFilter != value)
+            {
+                _dueDateFilter = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsFilterAllActive));
+                OnPropertyChanged(nameof(IsFilter30Active));
+                OnPropertyChanged(nameof(IsFilter60Active));
+                OnPropertyChanged(nameof(IsFilter90Active));
+                ApplyFilter();
+            }
+        }
+    }
+
+    public bool IsFilterAllActive => _dueDateFilter == 0;
+    public bool IsFilter30Active  => _dueDateFilter == 30;
+    public bool IsFilter60Active  => _dueDateFilter == 60;
+    public bool IsFilter90Active  => _dueDateFilter == 90;
 
     public decimal TotalToApply => OpenEntries.Where(e => e.IsSelected).Sum(e => e.AmountToApply);
     public string TotalToApplyText => $"₡{TotalToApply:N2}";
@@ -224,6 +266,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public ICommand BackToPaymentOptionsCommand { get; }
     public ICommand CancelPaymentDialogCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand SetDueDateFilterCommand { get; }
+    public ICommand ClearFilterCommand { get; }
+    public ICommand ExportExcelCommand { get; }
 
     public CreditPaymentDetailViewModel()
     {
@@ -319,11 +364,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         SelectAllCommand = new Command(() =>
         {
-            foreach (var entry in OpenEntries)
-            {
+            foreach (var entry in FilteredEntries.Where(e => !e.IsReadOnly))
                 entry.IsSelected = true;
-                // IsSelected setter already fills balance amount
-            }
             UpdateReferencia();
         });
 
@@ -386,6 +428,179 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
             if (RequestRefresh is not null)
                 await RequestRefresh.Invoke();
         });
+
+        SetDueDateFilterCommand = new Command<string>(param =>
+        {
+            DueDateFilter = int.TryParse(param, out var days) ? days : 0;
+        });
+
+        ClearFilterCommand = new Command(() =>
+        {
+            _searchText = string.Empty;
+            OnPropertyChanged(nameof(SearchText));
+            _dueDateFilter = 0;
+            OnPropertyChanged(nameof(DueDateFilter));
+            OnPropertyChanged(nameof(IsFilterAllActive));
+            OnPropertyChanged(nameof(IsFilter30Active));
+            OnPropertyChanged(nameof(IsFilter60Active));
+            OnPropertyChanged(nameof(IsFilter90Active));
+            ApplyFilter();
+        });
+
+        ExportExcelCommand = new Command(async () =>
+        {
+            try
+            {
+                var entries = FilteredEntries.ToList();
+                if (entries.Count == 0)
+                {
+                    ErrorMessage = "No hay entradas para exportar.";
+                    return;
+                }
+
+                await Task.Run(() =>
+                {
+                    using var wb = new XLWorkbook();
+                    var ws = wb.Worksheets.Add("Cuentas por Cobrar");
+
+                    const int COLS = 9;
+                    var headerBg    = XLColor.FromHtml("#1E293B");
+                    var subHeaderBg = XLColor.FromHtml("#334155");
+                    var colHeaderBg = XLColor.FromHtml("#475569");
+                    var rowAltBg    = XLColor.FromHtml("#F8FAFC");
+                    var ncBg        = XLColor.FromHtml("#FEF3C7");
+                    var ncTextColor = XLColor.FromHtml("#92400E");
+                    var totalBg     = XLColor.FromHtml("#EFF6FF");
+                    var borderColor = XLColor.FromHtml("#CBD5E1");
+
+                    // ── Fila 1: título ──────────────────────────────────────────
+                    ws.Cell(1, 1).Value = $"Cuenta por Cobrar — {CustomerName ?? string.Empty}";
+                    var titleRange = ws.Range(1, 1, 1, COLS).Merge();
+                    titleRange.Style
+                        .Font.SetBold(true).Font.SetFontSize(13).Font.SetFontColor(XLColor.White)
+                        .Fill.SetBackgroundColor(headerBg)
+                        .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left)
+                        .Alignment.SetVertical(XLAlignmentVerticalValues.Center)
+                        .Alignment.SetIndent(1);
+                    ws.Row(1).Height = 22;
+
+                    // ── Fila 2: subtítulo ───────────────────────────────────────
+                    ws.Cell(2, 1).Value = $"Exportado: {DateTime.Now:dd/MM/yyyy HH:mm}     Total adeudado: {TotalDebtText}     Crédito: {CreditLimitText}     Balance: {BalanceText}";
+                    var subRange = ws.Range(2, 1, 2, COLS).Merge();
+                    subRange.Style
+                        .Font.SetFontSize(9).Font.SetItalic(true).Font.SetFontColor(XLColor.FromHtml("#CBD5E1"))
+                        .Fill.SetBackgroundColor(subHeaderBg)
+                        .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left)
+                        .Alignment.SetIndent(1);
+                    ws.Row(2).Height = 16;
+
+                    // ── Fila 3: encabezados de columna ─────────────────────────
+                    string[] headers = { "Fecha Pub.", "F. Venc.", "Tipo L.M.", "Descripción", "Integrafast01", "Referencia", "Monto (₡)", "Balance (₡)", "N. Crédito" };
+                    for (int c = 0; c < headers.Length; c++)
+                        ws.Cell(3, c + 1).Value = headers[c];
+
+                    var colHeaderRange = ws.Range(3, 1, 3, COLS);
+                    colHeaderRange.Style
+                        .Font.SetBold(true).Font.SetFontColor(XLColor.White).Font.SetFontSize(9)
+                        .Fill.SetBackgroundColor(colHeaderBg)
+                        .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
+                        .Alignment.SetVertical(XLAlignmentVerticalValues.Center)
+                        .Border.SetBottomBorder(XLBorderStyleValues.Medium)
+                        .Border.SetBottomBorderColor(XLColor.FromHtml("#0F172A"));
+                    ws.Row(3).Height = 18;
+
+                    // ── Filas de datos ─────────────────────────────────────────
+                    int dataRow = 4;
+                    foreach (var e in entries)
+                    {
+                        ws.Cell(dataRow, 1).Value = e.PostingDate;
+                        ws.Cell(dataRow, 2).Value = e.DueDate;
+                        ws.Cell(dataRow, 3).Value = e.LedgerTypeName;
+                        ws.Cell(dataRow, 4).Value = e.Description;
+                        ws.Cell(dataRow, 5).Value = e.Clave20;
+                        ws.Cell(dataRow, 6).Value = e.Reference;
+                        ws.Cell(dataRow, 7).Value = e.Amount;
+                        ws.Cell(dataRow, 8).Value = e.Balance;
+                        ws.Cell(dataRow, 9).Value = e.IsReadOnly ? "N/C" : string.Empty;
+
+                        ws.Cell(dataRow, 7).Style.NumberFormat.Format = "#,##0.00";
+                        ws.Cell(dataRow, 8).Style.NumberFormat.Format = "#,##0.00";
+                        ws.Cell(dataRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                        ws.Cell(dataRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        var rowRange = ws.Range(dataRow, 1, dataRow, COLS);
+                        rowRange.Style.Font.SetFontSize(9);
+
+                        if (e.IsReadOnly)
+                        {
+                            rowRange.Style.Fill.SetBackgroundColor(ncBg);
+                            ws.Cell(dataRow, 8).Style.Font.SetFontColor(ncTextColor).Font.SetBold(true);
+                            ws.Cell(dataRow, 9).Style.Font.SetFontColor(ncTextColor).Font.SetBold(true);
+                        }
+                        else if (dataRow % 2 == 0)
+                        {
+                            rowRange.Style.Fill.SetBackgroundColor(rowAltBg);
+                        }
+
+                        rowRange.Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(borderColor);
+                        dataRow++;
+                    }
+
+                    // ── Fila de totales ────────────────────────────────────────
+                    int totalRow = dataRow;
+                    ws.Cell(totalRow, 6).Value = "TOTAL:";
+                    ws.Cell(totalRow, 7).FormulaA1 = $"=SUM(G4:G{totalRow - 1})";
+                    ws.Cell(totalRow, 8).FormulaA1 = $"=SUM(H4:H{totalRow - 1})";
+
+                    var totRange = ws.Range(totalRow, 1, totalRow, COLS);
+                    totRange.Style
+                        .Font.SetBold(true).Font.SetFontSize(10)
+                        .Fill.SetBackgroundColor(totalBg)
+                        .Border.SetTopBorder(XLBorderStyleValues.Medium).Border.SetTopBorderColor(XLColor.FromHtml("#1D4ED8"));
+                    ws.Cell(totalRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    ws.Cell(totalRow, 7).Style.NumberFormat.Format = "#,##0.00";
+                    ws.Cell(totalRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    ws.Cell(totalRow, 8).Style.NumberFormat.Format = "#,##0.00";
+                    ws.Cell(totalRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                    // ── Bordes exteriores del bloque de datos ──────────────────
+                    ws.Range(3, 1, totalRow, COLS).Style
+                        .Border.SetOutsideBorder(XLBorderStyleValues.Medium)
+                        .Border.SetOutsideBorderColor(XLColor.FromHtml("#334155"));
+
+                    // Separadores verticales en cada columna
+                    for (int c = 1; c <= COLS; c++)
+                        ws.Range(3, c, totalRow, c).Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(borderColor);
+
+                    // ── Anchos de columna fijos ────────────────────────────────
+                    ws.Column(1).Width = 12;  // Fecha Pub.
+                    ws.Column(2).Width = 12;  // F. Venc.
+                    ws.Column(3).Width = 14;  // Tipo L.M.
+                    ws.Column(4).Width = 38;  // Descripción
+                    ws.Column(5).Width = 22;  // Integrafast01
+                    ws.Column(6).Width = 16;  // Referencia
+                    ws.Column(7).Width = 16;  // Monto
+                    ws.Column(8).Width = 16;  // Balance
+                    ws.Column(9).Width = 10;  // N. Crédito
+
+                    // ── Inmovilizar encabezados ────────────────────────────────
+                    ws.SheetView.FreezeRows(3);
+                    ws.SheetView.FreezeColumns(0);
+
+                    var safeName = (CustomerName ?? "Cliente").Replace(" ", "_").Replace("/", "-");
+                    var tempPath = System.IO.Path.Combine(
+                        System.IO.Path.GetTempPath(),
+                        $"CxC_{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+
+                    wb.SaveAs(tempPath);
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(tempPath) { UseShellExecute = true });
+                });
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error al exportar: {ex.Message}";
+            }
+        });
     }
     public void LoadCustomer(CustomerCreditInfo customer)
     {
@@ -414,6 +629,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         }
 
         OpenEntries.ReplaceAll(preparedEntries);
+        ApplyFilter();
 
         OnPropertyChanged(nameof(HasEntries));
         RefreshTotals();
@@ -450,6 +666,15 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         Customer = null;
         OpenEntries.ReplaceAll(Array.Empty<OpenLedgerEntryModel>());
+        FilteredEntries.ReplaceAll(Array.Empty<OpenLedgerEntryModel>());
+        _searchText = string.Empty;
+        OnPropertyChanged(nameof(SearchText));
+        _dueDateFilter = 0;
+        OnPropertyChanged(nameof(DueDateFilter));
+        OnPropertyChanged(nameof(IsFilterAllActive));
+        OnPropertyChanged(nameof(IsFilter30Active));
+        OnPropertyChanged(nameof(IsFilter60Active));
+        OnPropertyChanged(nameof(IsFilter90Active));
         Referencia = string.Empty;
         Descripcion = string.Empty;
         ErrorMessage = string.Empty;
@@ -501,6 +726,42 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         // "TR:104187" → "104187", plain numbers stay as-is
         var idx = reference.IndexOf(':');
         return idx >= 0 ? reference[(idx + 1)..].Trim() : reference.Trim();
+    }
+
+    private void ApplyFilter()
+    {
+        var text = (_searchText ?? string.Empty).Trim().ToUpperInvariant();
+        var today = DateTime.Today;
+
+        IEnumerable<OpenLedgerEntryModel> filtered = OpenEntries;
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            filtered = filtered.Where(e =>
+                (e.Description ?? string.Empty).ToUpperInvariant().Contains(text) ||
+                (e.Clave20 ?? string.Empty).ToUpperInvariant().Contains(text) ||
+                (e.Reference ?? string.Empty).ToUpperInvariant().Contains(text));
+        }
+
+        if (_dueDateFilter > 0)
+        {
+            filtered = filtered.Where(e =>
+            {
+                if (!DateTime.TryParseExact(e.DueDate, "dd/MM/yyyy",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var dueDate))
+                    return true;
+                var daysOverdue = (today - dueDate).Days;
+                return _dueDateFilter switch
+                {
+                    30 => daysOverdue >= 0 && daysOverdue <= 30,
+                    60 => daysOverdue > 30 && daysOverdue <= 60,
+                    90 => daysOverdue > 60,
+                    _  => true
+                };
+            });
+        }
+
+        FilteredEntries.ReplaceAll(filtered.ToList());
     }
 
     private void RefreshTotals()

@@ -41,6 +41,12 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
     [JsonProperty("balance")]
     public decimal Balance { get; set; }
 
+    [JsonProperty("clave20")]
+    public string Clave20 { get; set; } = string.Empty;
+
+    [JsonProperty("isReadOnly")]
+    public bool IsReadOnly { get; set; }
+
     public string AmountText => $"₡{Amount:N2}";
     public string BalanceText => $"₡{Balance:N2}";
 
@@ -50,6 +56,7 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
         set
         {
             if (_isSelected == value) return;
+            if (IsReadOnly) return;
             _isSelected = value;
             OnPropertyChanged();
 

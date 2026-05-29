@@ -44,5 +44,7 @@ namespace NovaAPI.Models
         public string Reference { get; set; }
         public decimal Amount { get; set; }
         public decimal Balance { get; set; }
+        public string Clave20 { get; set; }
+        public bool IsReadOnly { get; set; }
     }
 }

@@ -3,9 +3,9 @@ namespace NovaRetail.Views;
 public partial class CreditPaymentDetailPopup : ContentView
 {
     private const double LargePopupWidth = 1150;
-    private const double LargePopupHeight = 750;
+    private const double LargePopupHeight = 820;
     private const double CompactPopupWidth = 1080;
-    private const double CompactPopupHeight = 700;
+    private const double CompactPopupHeight = 780;
     private const double LargePopupMinWidth = 1320;
     private const double LargePopupMinHeight = 760;
 

@@ -701,11 +701,13 @@ SELECT le.ID as LedgerEntryID,
        le.StoreID,
        ISNULL(le.Reference, '') as Reference,
        ISNULL(amounts.Amount, 0) as Amount,
-       ISNULL(balances.Amount, 0) as Balance
+       ISNULL(balances.Amount, 0) as Balance,
+       ISNULL(fi.CLAVE20, '') as Clave20
 FROM dbo.AR_LedgerEntry le
 INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID AND a.Number = @Number
 OUTER APPLY dbo.fnAR_LedgerAmount(le.ID, NULL) amounts
 OUTER APPLY dbo.fnAR_LedgerBalance(le.ID, NULL) balances
+LEFT JOIN dbo.AVS_INTEGRAFAST_01 fi ON TRY_CONVERT(INT, fi.TRANSACTIONNUMBER) = le.DocumentID
 WHERE le.[Open] = 1
   AND le.DocumentType IN (1, 2, 3, 4)
 ORDER BY le.PostingDate";
@@ -722,8 +724,10 @@ ORDER BY le.PostingDate";
                                 var documentType = Convert.ToInt32(reader["DocumentType"]);
                                 var ledgerType = Convert.ToInt32(reader["LedgerType"]);
                                 var rawBalance = Convert.ToDecimal(reader["Balance"]);
-                                if (rawBalance <= LedgerClosingTolerance) continue;
-                                var balance = Math.Round(rawBalance, 2);
+                                var isCreditNote = ledgerType == 4;
+                                if (!isCreditNote && rawBalance <= LedgerClosingTolerance) continue;
+                                if (isCreditNote && Math.Abs(rawBalance) <= LedgerClosingTolerance) continue;
+                                var balance = Math.Round(isCreditNote ? Math.Abs(rawBalance) : rawBalance, 2);
 
                                 string docTypeName;
                                 switch (documentType)
@@ -738,10 +742,10 @@ ORDER BY le.PostingDate";
                                 string ledgerTypeName;
                                 switch (ledgerType)
                                 {
-                                    case 1: ledgerTypeName = "Adjustment"; break;
-                                    case 3: ledgerTypeName = "Invoice"; break;
-                                    case 4: ledgerTypeName = "Credit Memo"; break;
-                                    default: ledgerTypeName = "Other"; break;
+                                    case 1: ledgerTypeName = "Ajuste"; break;
+                                    case 3: ledgerTypeName = "Factura"; break;
+                                    case 4: ledgerTypeName = "Nota Crédito"; break;
+                                    default: ledgerTypeName = "Otro"; break;
                                 }
 
                                 entries.Add(new OpenLedgerEntryDto
@@ -755,7 +759,9 @@ ORDER BY le.PostingDate";
                                     StoreID = Convert.ToInt32(reader["StoreID"]),
                                     Reference = reader["Reference"].ToString(),
                                     Amount = Convert.ToDecimal(reader["Amount"]),
-                                    Balance = balance
+                                    Balance = balance,
+                                    Clave20 = reader["Clave20"].ToString(),
+                                    IsReadOnly = isCreditNote
                                 });
                             }
                         }
