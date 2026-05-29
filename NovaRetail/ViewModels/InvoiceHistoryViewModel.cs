@@ -74,7 +74,6 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
     public bool IsSearchActive => !string.IsNullOrWhiteSpace(_searchText);
     public bool IsCompletelyEmpty => !IsSearchActive && Entries.Count == 0 && !_isLoading;
     public bool IsSearchEmpty => IsSearchActive && Entries.Count == 0 && !_isLoading;
-    public bool HasLocalEntries => _localEntries.Count > 0;
 
     public string LastRefreshText
     {
@@ -130,7 +129,6 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
     public ICommand LoadCommand { get; }
     public ICommand DeleteCommand { get; }
-    public ICommand ClearAllCommand { get; }
     public ICommand SelectEntryCommand { get; }
     public ICommand CloseDetailCommand { get; }
     public ICommand ReprintCommand { get; }
@@ -145,7 +143,6 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         LoadCommand = new Command(async () => await LoadAsync(forceRefresh: true));
         DeleteCommand = new Command<InvoiceHistoryEntry>(async e => await DeleteAsync(e));
-        ClearAllCommand = new Command(async () => await ClearAllAsync());
         SelectEntryCommand = new Command<InvoiceHistoryEntry>(async e => await SelectEntryAsync(e));
         CloseDetailCommand = new Command(() => SelectedEntry = null);
         ReprintCommand = new Command<InvoiceHistoryEntry>(async e => await ShowReprintAsync(e));
@@ -197,8 +194,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasEntries));
             OnPropertyChanged(nameof(IsCompletelyEmpty));
             OnPropertyChanged(nameof(IsSearchEmpty));
-            OnPropertyChanged(nameof(HasLocalEntries));
-            OnPropertyChanged(nameof(LoadingMessageText));
+                OnPropertyChanged(nameof(LoadingMessageText));
             OnPropertyChanged(nameof(ResultSummaryText));
         }
     }
@@ -621,32 +617,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasEntries));
         OnPropertyChanged(nameof(IsCompletelyEmpty));
         OnPropertyChanged(nameof(IsSearchEmpty));
-        OnPropertyChanged(nameof(HasLocalEntries));
         OnPropertyChanged(nameof(ResultSummaryText));
-    }
-
-    private async Task ClearAllAsync()
-    {
-        if (_localEntries.Count == 0) return;
-
-        var confirmed = await _dialogService.ConfirmAsync(
-            "Limpiar historial",
-            "¿Desea eliminar todo el historial local de facturas?",
-            "Limpiar", "Cancelar");
-
-        if (!confirmed) return;
-
-        _searchCts?.Cancel();
-        await _historyService.ClearAllAsync();
-        _localEntries.Clear();
-        _searchText = string.Empty;
-        OnPropertyChanged(nameof(SearchText));
-        SelectedEntry = null;
-        _remoteEntries.Clear();
-        _remoteSearchCache.Clear();
-        _lastRemoteSearch = string.Empty;
-        Entries.Clear();
-        await LoadAsync(forceRefresh: true);
     }
 
     private async void OnCreditNoteApplied(CreditNoteAppliedMessage message)
@@ -683,7 +654,6 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
                 message.AccountsReceivableApplied);
 
         ApplyFilter();
-        OnPropertyChanged(nameof(HasLocalEntries));
     }
 
     private async Task UpdateSourceEntriesAsync(int sourceTransactionNumber, int creditNoteTransactionNumber, decimal appliedAmountColones, bool accountsReceivableApplied)
