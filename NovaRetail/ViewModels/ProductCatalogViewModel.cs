@@ -592,7 +592,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
         if (!await WarnIfProductIsIncompleteAsync(product))
             return;
 
-        var quantity = await PromptProductQuantityAsync(product, 1m);
+        var quantity = await PromptProductQuantityAsync(product, 0m);
         if (quantity is null)
             return;
 
@@ -749,7 +749,7 @@ public class ProductCatalogViewModel : INotifyPropertyChanged
 
         var initialValue = initialQuantity > 0m
             ? initialQuantity.ToString("0.###", CultureInfo.CurrentCulture)
-            : "1";
+            : string.Empty;
 
         var response = await _dialogService.PromptAsync(
             promptTitle,
