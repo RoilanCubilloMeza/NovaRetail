@@ -209,6 +209,7 @@ namespace NovaRetail.ViewModels
                 exonerationState: BuildCheckoutExonerationState(),
                 salesRep: _activeSalesRep
             );
+            CheckoutVm.SetRates(_exchangeRate, _euroRate);
 
             // Fetch and display customer credit information
             CustomerCreditInfo? creditInfo = null;

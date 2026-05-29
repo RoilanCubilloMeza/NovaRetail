@@ -34,6 +34,8 @@ namespace NovaRetail.ViewModels
         private string _secondAmountText = string.Empty;
         private CustomerCreditInfo? _creditInfo;
         private bool _creditInfoLookupCompleted;
+        private decimal _exchangeRate = 1m;
+        private decimal _euroRate = 1m;
 
         public ObservableCollection<TenderModel> Tenders { get; } = new();
 
@@ -74,7 +76,7 @@ namespace NovaRetail.ViewModels
             ? "Monto que cubre el primer pago"
             : "Monto total a cobrar";
 
-        public string AmountDueForPrimaryText => FormatColones(FirstTenderAmount);
+        public string AmountDueForPrimaryText => FormatTenderAmount(FirstTenderAmount);
 
         // ── Monto entregado y cambio ─────────────────────────────────────
         public string TenderedText
@@ -115,15 +117,23 @@ namespace NovaRetail.ViewModels
         }
 
         public string TenderedPlaceholderText => PrimaryTenderAllowsChange
-            ? "Ej. 5000"
+            ? (IsForeignTender(SelectedTender) ? $"Ej. {SelectedTender?.CurrencySymbol}10.00" : "Ej. 5000")
             : $"Exacto: {AmountDueForPrimaryText}";
 
-        public decimal TenderedColones => TryParseColones(_tenderedText);
+        public decimal TenderedColones
+        {
+            get
+            {
+                var raw = TryParseColones(_tenderedText);
+                var rate = GetRateForTender(SelectedTender);
+                return rate > 1m ? raw * rate : raw;
+            }
+        }
         public decimal FirstTenderAmount => Math.Max(0m, _totalColonesValue - (HasSecondTender ? SecondAmount : 0m));
         public string FirstTenderAmountText => FormatColones(FirstTenderAmount);
         public string TenderedAmountText => FormatColones(TenderedColones);
         public decimal RemainingColones => TenderedColones > 0m ? Math.Max(0m, FirstTenderAmount - TenderedColones) : 0m;
-        public string RemainingText => FormatColones(RemainingColones);
+        public string RemainingText => FormatTenderAmount(RemainingColones);
         public bool HasTenderedAmount => TenderedColones > 0m;
         public bool HasRemainingAmount => HasTenderedAmount && RemainingColones > 0m;
         public bool HasExactAmount => HasTenderedAmount && RemainingColones == 0m && ChangeColones == 0m;
@@ -131,6 +141,18 @@ namespace NovaRetail.ViewModels
         public bool HasChange => ChangeColones > 0m;
         public string ChangeText => FormatColones(ChangeColones);
         public bool ShowCashChangeGuidance => HasTenderedAmount && !PrimaryTenderAllowsChange;
+        public bool ShowForeignCurrencyConversion => IsForeignTender(SelectedTender);
+        public string ForeignCurrencyTotalHint
+        {
+            get
+            {
+                if (!IsForeignTender(SelectedTender)) return string.Empty;
+                var rate = GetRateForTender(SelectedTender);
+                var symbol = SelectedTender?.CurrencySymbol ?? "$";
+                var foreign = rate > 0 ? _totalColonesValue / rate : 0m;
+                return $"A cobrar: {symbol}{foreign:N2}  ({SelectedTender?.Description})";
+            }
+        }
 
         // ── Segundo medio de pago ────────────────────────────────────────
         public bool HasSecondTender
@@ -555,6 +577,8 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(ChangeText));
             OnPropertyChanged(nameof(HasChange));
             OnPropertyChanged(nameof(ShowCashChangeGuidance));
+            OnPropertyChanged(nameof(ShowForeignCurrencyConversion));
+            OnPropertyChanged(nameof(ForeignCurrencyTotalHint));
             OnPropertyChanged(nameof(SplitSummaryText));
             OnPropertyChanged(nameof(SelectedTenderName));
             OnPropertyChanged(nameof(SecondAmountFormattedText));
@@ -562,6 +586,34 @@ namespace NovaRetail.ViewModels
             OnPropertyChanged(nameof(CanConfirm));
             ((Command)ConfirmCommand).ChangeCanExecute();
             ((Command)ToggleSecondTenderCommand).ChangeCanExecute();
+        }
+
+        public void SetRates(decimal usdExchangeRate, decimal euroRate = 1m)
+        {
+            _exchangeRate = usdExchangeRate > 0 ? usdExchangeRate : 1m;
+            _euroRate = euroRate > 0 ? euroRate : 1m;
+            RefreshDerivedAmounts();
+        }
+
+        private decimal GetRateForTender(TenderModel? tender)
+        {
+            if (tender is null || tender.CurrencyID == 1) return 1m;
+            if (tender.CurrencyID == 2) return _exchangeRate;
+            var desc = (tender.Description ?? string.Empty).ToUpperInvariant();
+            if (desc.Contains("EURO")) return _euroRate;
+            return _exchangeRate;
+        }
+
+        private bool IsForeignTender(TenderModel? tender)
+            => tender is not null && tender.CurrencyID != 1 && GetRateForTender(tender) > 1m;
+
+        private string FormatTenderAmount(decimal colones, TenderModel? tender = null)
+        {
+            var t = tender ?? SelectedTender;
+            var rate = GetRateForTender(t);
+            if (rate <= 1m) return FormatColones(colones);
+            var symbol = t?.CurrencySymbol ?? "$";
+            return $"{symbol}{(colones / rate):N2}";
         }
 
         private static string FormatColones(decimal amount)
@@ -575,6 +627,7 @@ namespace NovaRetail.ViewModels
             var cleaned = text
                 .Replace(UiConfig.CurrencySymbol, string.Empty)
                 .Replace("$", string.Empty)
+                .Replace("#", string.Empty)
                 .Trim();
 
             if (decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CostaRicaCulture, out var localValue))

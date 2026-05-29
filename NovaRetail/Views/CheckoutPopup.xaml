@@ -324,6 +324,17 @@
                                        FontSize="11" FontAttributes="Bold"
                                        TextColor="#94A3B8" CharacterSpacing="1"/>
 
+                                <!-- Pista de equivalencia cuando se paga en moneda extranjera -->
+                                <Border BackgroundColor="#EFF6FF"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 6"
+                                        Padding="10,7"
+                                        IsVisible="{Binding ShowForeignCurrencyConversion}">
+                                    <Label Text="{Binding ForeignCurrencyTotalHint}"
+                                           FontSize="12" FontAttributes="Bold"
+                                           TextColor="#1D4ED8"/>
+                                </Border>
+
                                 <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
                                     <Border Grid.Column="0"
                                             BackgroundColor="White"

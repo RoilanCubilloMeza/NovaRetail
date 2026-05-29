@@ -629,6 +629,7 @@ namespace NovaRetail.ViewModels
         // ── Tipo de cambio ──
 
         private decimal _exchangeRate;
+        private decimal _euroRate;
         private bool _isExchangeRateRefreshing;
         private string _exchangeRateSourceText = "USD -> CRC";
         public decimal ExchangeRate
@@ -1291,7 +1292,11 @@ namespace NovaRetail.ViewModels
             try
             {
                 IsExchangeRateRefreshing = true;
-                var rate = await _exchangeRateService.GetDollarExchangeRateAsync(forceRefresh);
+                var dollarTask = _exchangeRateService.GetDollarExchangeRateAsync(forceRefresh);
+                var euroTask = _exchangeRateService.GetEuroExchangeRateAsync(forceRefresh);
+                await Task.WhenAll(dollarTask, euroTask);
+
+                var rate = dollarTask.Result;
                 if (rate is null || rate.SaleRate <= 0)
                 {
                     if (showError)
@@ -1307,6 +1312,10 @@ namespace NovaRetail.ViewModels
 
                 ExchangeRate = rate.SaleRate;
                 ExchangeRateSourceText = $"Venta Hacienda {rate.RateDate:dd/MM/yyyy}";
+
+                var euroRate = euroTask.Result;
+                if (euroRate is not null && euroRate.SaleRate > 0)
+                    _euroRate = euroRate.SaleRate;
 
                 if (showError)
                 {

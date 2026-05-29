@@ -5,4 +5,5 @@ namespace NovaRetail.Data;
 public interface IExchangeRateService
 {
     Task<ExchangeRateModel?> GetDollarExchangeRateAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+    Task<ExchangeRateModel?> GetEuroExchangeRateAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
 }
