@@ -511,19 +511,29 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding InvoiceCommand}"/>
                             </Border.GestureRecognizers>
-                            <HorizontalStackLayout HorizontalOptions="Center"
-                                                   VerticalOptions="Center"
-                                                   Spacing="8">
-                                <Label Text="&#x2611;"
-                                       FontSize="18"
-                                       TextColor="White"
-                                       VerticalOptions="Center"/>
-                                <Label Text="Cobrar"
-                                       FontSize="17"
-                                       FontAttributes="Bold"
-                                       TextColor="White"
-                                       VerticalOptions="Center"/>
-                            </HorizontalStackLayout>
+                            <Grid RowDefinitions="*,Auto"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center">
+                                <HorizontalStackLayout Grid.Row="0"
+                                                       HorizontalOptions="Center"
+                                                       Spacing="8">
+                                    <Label Text="&#x2611;"
+                                           FontSize="18"
+                                           TextColor="White"
+                                           VerticalOptions="Center"/>
+                                    <Label Text="Cobrar"
+                                           FontSize="17"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                                <Label Grid.Row="1"
+                                       Text="F12"
+                                       FontSize="10"
+                                       TextColor="#BBF7D0"
+                                       HorizontalOptions="Center"
+                                       Opacity="0.85"/>
+                            </Grid>
                         </Border>
                     </Grid>
                 </Grid>

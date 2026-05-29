@@ -363,6 +363,16 @@ namespace NovaRetail.ViewModels
             if (await TryCancelRecoveredQuoteAsync())
                 return;
 
+            if (CartItems.Count > 0)
+            {
+                var count = CartItems.Count;
+                var confirmed = await _dialogService.ConfirmAsync(
+                    "Vaciar carrito",
+                    $"Se eliminarán {count} producto{(count == 1 ? "" : "s")} del carrito.\n¿Desea continuar?",
+                    "Vaciar", "Cancelar");
+                if (!confirmed) return;
+            }
+
             ClearCart();
         }
 

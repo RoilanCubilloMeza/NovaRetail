@@ -39,7 +39,8 @@ public sealed class ApiParametrosService : IParametrosService
                 if (!response.IsSuccessStatusCode)
                     continue;
 
-                var json = await response.Content.ReadAsStringAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var json = Encoding.UTF8.GetString(bytes);
                 var result = JsonSerializer.Deserialize<List<ParametroModel>>(json, JsonOptions);
                 if (result is not null)
                     return result;

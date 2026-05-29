@@ -11,6 +11,7 @@ public partial class MainPage
     private WinUiKeyboardAccelerator? _escapeAccelerator;
     private WinUiKeyboardAccelerator? _f2Accelerator;
     private WinUiKeyboardAccelerator? _f7Accelerator;
+    private WinUiKeyboardAccelerator? _f12Accelerator;
 
     partial void RegisterPlatformKeyboardHooks()
     {
@@ -20,15 +21,17 @@ public partial class MainPage
         _escapeAccelerator ??= CreateEscapeAccelerator();
         _f2Accelerator ??= CreateF2Accelerator();
         _f7Accelerator ??= CreateF7Accelerator();
+        _f12Accelerator ??= CreateF12Accelerator();
 
         AddAccelerator(nativeView, _escapeAccelerator);
         AddAccelerator(nativeView, _f2Accelerator);
         AddAccelerator(nativeView, _f7Accelerator);
+        AddAccelerator(nativeView, _f12Accelerator);
     }
 
     partial void UnregisterPlatformKeyboardHooks()
     {
-        if (_escapeAccelerator is null && _f2Accelerator is null && _f7Accelerator is null)
+        if (_escapeAccelerator is null && _f2Accelerator is null && _f7Accelerator is null && _f12Accelerator is null)
             return;
 
         if (Handler?.PlatformView is UIElement nativeView)
@@ -36,6 +39,7 @@ public partial class MainPage
             RemoveAccelerator(nativeView, _escapeAccelerator);
             RemoveAccelerator(nativeView, _f2Accelerator);
             RemoveAccelerator(nativeView, _f7Accelerator);
+            RemoveAccelerator(nativeView, _f12Accelerator);
         }
     }
 
@@ -91,5 +95,19 @@ public partial class MainPage
     {
         args.Handled = true;
         await _vm.TryOpenCustomerSearchShortcutAsync();
+    }
+
+    private WinUiKeyboardAccelerator CreateF12Accelerator()
+    {
+        var accelerator = new WinUiKeyboardAccelerator { Key = VirtualKey.F12 };
+        accelerator.Invoked += OnF12AcceleratorInvoked;
+        return accelerator;
+    }
+
+    private void OnF12AcceleratorInvoked(WinUiKeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        if (_vm.InvoiceCommand.CanExecute(null))
+            _vm.InvoiceCommand.Execute(null);
     }
 }

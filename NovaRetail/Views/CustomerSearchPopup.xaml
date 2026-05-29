@@ -156,16 +156,13 @@
                             BackgroundColor="#F1F5F9"
                             StrokeThickness="0"
                             Padding="20,8">
-                        <Grid ColumnDefinitions="135, 1.8*, *, *, 2*, *, 2*, 110"
+                        <Grid ColumnDefinitions="135, 2.5*, 2.5*, 2*, 110"
                               ColumnSpacing="10">
                             <Label Grid.Column="0" Text="Cuenta" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="1" Text="Apellido" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="2" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="3" Text="Dirección" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="4" Text="Ciudad" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="5" Text="Estado" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="6" Text="Correo" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
-                            <Label Grid.Column="7" Text="Teléfono" FontSize="11" FontAttributes="Bold" TextColor="#475569" HorizontalTextAlignment="End"/>
+                            <Label Grid.Column="1" Text="Nombre" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="2" Text="Apellido" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="3" Text="Correo" FontSize="11" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="4" Text="Teléfono" FontSize="11" FontAttributes="Bold" TextColor="#475569" HorizontalTextAlignment="End"/>
                         </Grid>
                     </Border>
 
@@ -195,7 +192,7 @@
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentView}}, Path=BindingContext.SelectCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>
-                                    <Grid ColumnDefinitions="135, 1.8*, *, *, 2*, *, 2*, 110"
+                                    <Grid ColumnDefinitions="135, 2.5*, 2.5*, 2*, 110"
                                           ColumnSpacing="10">
                                         <Label Grid.Column="0"
                                                Text="{Binding AccountNumber}"
@@ -203,32 +200,20 @@
                                                TextColor="#1D4ED8"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="1"
-                                               Text="{Binding LastName}"
+                                               Text="{Binding FirstName}"
                                                FontSize="12" FontAttributes="Bold"
                                                TextColor="#1E293B"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="2"
-                                               Text="{Binding FirstName}"
+                                               Text="{Binding LastName}"
                                                FontSize="12"
                                                TextColor="#334155"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Column="3"
-                                               Text="{Binding Address}"
-                                               FontSize="11" TextColor="#64748B"
-                                               LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Column="4"
-                                               Text="{Binding City}"
-                                               FontSize="11" TextColor="#64748B"
-                                               LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Column="5"
-                                               Text="{Binding State}"
-                                               FontSize="11" TextColor="#64748B"
-                                               LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Column="6"
                                                Text="{Binding Email}"
                                                FontSize="11" TextColor="#64748B"
                                                LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Column="7"
+                                        <Label Grid.Column="4"
                                                Text="{Binding Phone}"
                                                FontSize="12" TextColor="#334155"
                                                LineBreakMode="TailTruncation"

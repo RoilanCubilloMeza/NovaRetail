@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data.SqlClient;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Web.Http;
 
 namespace NovaAPI.Controllers
@@ -36,8 +37,8 @@ namespace NovaAPI.Controllers
                         {
                             list.Add(new ParametroDto
                             {
-                                Codigo = r["CODIGO"].ToString(),
-                                Descripcion = r["DESCRIPCION"].ToString(),
+                                Codigo = FixEncoding(r["CODIGO"].ToString()),
+                                Descripcion = FixEncoding(r["DESCRIPCION"].ToString()),
                                 Valor = r["VALOR"].ToString()
                             });
                         }
@@ -180,6 +181,23 @@ namespace NovaAPI.Controllers
             }
 
             return Ok(dto);
+        }
+
+        // Los datos en la BD están guardados como bytes UTF-8 pero leídos como Windows-1252.
+        // Este método revierte esa interpretación incorrecta.
+        private static string FixEncoding(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            try
+            {
+                var win1252 = Encoding.GetEncoding(1252);
+                var bytes = win1252.GetBytes(s);
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
+                return s;
+            }
         }
     }
 

@@ -198,24 +198,59 @@ public partial class ParametrosPage : ContentPage
             TextColor = UiConfig.TextGray500
         };
 
-        var entry = new Entry
-        {
-            FontSize = 14,
-            BackgroundColor = Colors.Transparent,
-            Placeholder = "Valor del parámetro"
-        };
-        entry.SetBinding(Entry.TextProperty, new Binding(nameof(ParametroEditItem.Valor), BindingMode.TwoWay, source: item));
+        bool isBoolParam = item.Valor == "0" || item.Valor == "1" ||
+                           item.OriginalValor == "0" || item.OriginalValor == "1";
 
-        var entryBorder = new Border
+        View inputControl;
+        Border entryBorder;
+
+        if (isBoolParam)
         {
-            BackgroundColor = UiConfig.InputBackground,
-            Stroke = UiConfig.BorderGray,
-            StrokeThickness = UiConfig.StrokeThin,
-            StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusMd },
-            Padding = new Thickness(12, 8),
-            MinimumHeightRequest = 44,
-            Content = entry
-        };
+            var picker = new Picker
+            {
+                FontSize = 14,
+                BackgroundColor = Colors.Transparent,
+                ItemsSource = new List<string> { "Sí", "No" },
+                SelectedIndex = item.Valor == "1" ? 0 : 1,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+            picker.SelectedIndexChanged += (_, _) =>
+                item.Valor = picker.SelectedIndex == 0 ? "1" : "0";
+
+            inputControl = picker;
+            entryBorder = new Border
+            {
+                BackgroundColor = UiConfig.InputBackground,
+                Stroke = UiConfig.BorderGray,
+                StrokeThickness = UiConfig.StrokeThin,
+                StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusMd },
+                Padding = new Thickness(12, 4),
+                MinimumHeightRequest = 44,
+                Content = picker
+            };
+        }
+        else
+        {
+            var entry = new Entry
+            {
+                FontSize = 14,
+                BackgroundColor = Colors.Transparent,
+                Placeholder = "Valor del parámetro"
+            };
+            entry.SetBinding(Entry.TextProperty, new Binding(nameof(ParametroEditItem.Valor), BindingMode.TwoWay, source: item));
+
+            inputControl = entry;
+            entryBorder = new Border
+            {
+                BackgroundColor = UiConfig.InputBackground,
+                Stroke = UiConfig.BorderGray,
+                StrokeThickness = UiConfig.StrokeThin,
+                StrokeShape = new RoundRectangle { CornerRadius = (float)UiConfig.CornerRadiusMd },
+                Padding = new Thickness(12, 8),
+                MinimumHeightRequest = 44,
+                Content = entry
+            };
+        }
 
         var saveLabel = new Label
         {
