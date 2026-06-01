@@ -99,4 +99,69 @@ public sealed class CreditAndArPresentationTests
         Assert.Equal("Tiquete Electronico", entry.DocumentTypeName);
         Assert.Equal("TE", entry.DocumentIcon);
     }
+
+    [Theory]
+    [InlineData("Invoice", "Factura")]
+    [InlineData("Credit Memo", "Nota Credito")]
+    [InlineData("Transaction", "Transaccion")]
+    [InlineData("Ajuste", "Ajuste")]
+    public void Open_ledger_type_is_displayed_in_spanish(string rawType, string expected)
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            LedgerTypeName = rawType
+        };
+
+        Assert.Equal(expected, entry.LedgerTypeDisplayName);
+    }
+
+    [Fact]
+    public void Open_ledger_integrafast_text_uses_clave20_when_available()
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            Clave20 = "00100001010000012345",
+            Description = "D CHICOS - P000034571"
+        };
+
+        Assert.Equal("00100001010000012345", entry.Integrafast01Text);
+    }
+
+    [Fact]
+    public void Open_ledger_integrafast_text_falls_back_to_description_reference()
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            Description = "D CHICOS - P000034571"
+        };
+
+        Assert.Equal("P000034571", entry.Integrafast01Text);
+    }
+
+    [Fact]
+    public void Open_ledger_integrafast_text_falls_back_to_transaction_reference()
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            Description = "SHOPPER FEDURO DINAMICA#6 FERIA IMPORT. Y MARC PRO",
+            Reference = "TR:103455"
+        };
+
+        Assert.Equal("103455", entry.Integrafast01Text);
+    }
+
+    [Fact]
+    public void Readonly_credit_ledger_entry_cannot_be_selected_for_payment()
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            IsReadOnly = true,
+            Balance = 5000m
+        };
+
+        entry.IsSelected = true;
+
+        Assert.False(entry.IsSelected);
+        Assert.Equal(0m, entry.AmountToApply);
+    }
 }

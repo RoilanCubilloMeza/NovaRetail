@@ -8,29 +8,40 @@
         <BoxView Color="#000000" Opacity="0.55"/>
 
         <!-- MAIN POPUP — Ventana fija, solo la tabla hace scroll -->
-      <Grid x:Name="MainPopup"
-          BackgroundColor="White"
-              MaximumWidthRequest="1080"
-              HeightRequest="780"
-              Margin="24"
-              HorizontalOptions="Center"
-              VerticalOptions="Center"
-              RowDefinitions="Auto,Auto,1,Auto,1,Auto,Auto,1,Auto,Auto,*,1,Auto,Auto,Auto,Auto">
+        <Border x:Name="MainPopup"
+                BackgroundColor="White"
+                Stroke="#CBD5E1"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 10"
+                MaximumWidthRequest="1080"
+                HeightRequest="780"
+                Margin="24"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+            <Grid RowDefinitions="Auto,Auto,1,Auto,1,Auto,Auto,1,Auto,Auto,*,1,Auto,Auto,Auto,Auto">
 
             <!-- Row 0: Header -->
-            <Grid Grid.Row="0" BackgroundColor="#334155" Padding="16,12" ColumnDefinitions="*,Auto">
-                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="Cuenta por Cobrar" FontSize="17" FontAttributes="Bold" TextColor="White"/>
-                    <Label Text="{Binding CustomerName}" FontSize="11" TextColor="#CBD5E1"/>
+            <Grid Grid.Row="0" BackgroundColor="#0F172A" Padding="18,14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <VerticalStackLayout Grid.Column="0" Spacing="3">
+                    <Label Text="Cuenta por Cobrar" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Label Text="{Binding CustomerName}" FontSize="11" TextColor="#CBD5E1"
+                           LineBreakMode="TailTruncation" MaxLines="1"/>
                 </VerticalStackLayout>
-                <Label Grid.Column="1"
-                       Text="{Binding AccountNumber, StringFormat='# {0}'}"
-                       FontSize="14" FontAttributes="Bold" TextColor="#38BDF8"
-                       VerticalOptions="Center"/>
+                <Border Grid.Column="1"
+                        BackgroundColor="#0B4A6F"
+                        Stroke="#38BDF8"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12,6"
+                        VerticalOptions="Center">
+                    <Label Text="{Binding AccountNumber, StringFormat='# {0}'}"
+                           FontSize="14" FontAttributes="Bold" TextColor="#7DD3FC"
+                           VerticalOptions="Center"/>
+                </Border>
             </Grid>
 
             <!-- Row 1: Summary -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Padding="16,12" ColumnSpacing="8"
+            <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Padding="18,12" ColumnSpacing="12"
                   BackgroundColor="#F8FAFC">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                     <Label Text="Total adeudado" FontSize="9" TextColor="#94A3B8" FontAttributes="Bold"/>
@@ -65,29 +76,33 @@
             <BoxView Grid.Row="4" Color="#E2E8F0"/>
 
             <!-- Row 5: Buscador + acciones (hijo directo del popup Grid para correcta restricción de ancho) -->
-            <Grid Grid.Row="5" Padding="16,7,16,4" ColumnSpacing="6"
-                  ColumnDefinitions="Auto,*,Auto,Auto" BackgroundColor="#FAFBFD">
+            <Grid Grid.Row="5" Padding="16,7,16,4" ColumnSpacing="8"
+                  ColumnDefinitions="Auto,*,Auto" BackgroundColor="#FAFBFD">
                 <Label Grid.Column="0" Text="Buscar:" FontSize="11" FontAttributes="Bold"
                        TextColor="#64748B" VerticalOptions="Center"/>
                 <Border Grid.Column="1" BackgroundColor="White" Stroke="#CBD5E1" StrokeThickness="1"
-                        StrokeShape="RoundRectangle 6" HeightRequest="28" Padding="8,0">
+                        StrokeShape="RoundRectangle 6" HeightRequest="28" Padding="8,0"
+                        MinimumWidthRequest="160" MaximumWidthRequest="520"
+                        HorizontalOptions="Start">
                     <Entry Text="{Binding SearchText}"
                            Placeholder="Descripción / Integrafast01 / Referencia"
                            PlaceholderColor="#94A3B8" FontSize="11"
                            BackgroundColor="Transparent" VerticalOptions="Center"/>
                 </Border>
-                <Button Grid.Column="2" Text="Exportar Excel"
-                        Command="{Binding ExportExcelCommand}"
-                        FontSize="10" FontAttributes="Bold"
-                        TextColor="#16A34A" BackgroundColor="#F0FDF4"
-                        BorderColor="#86EFAC" BorderWidth="1"
-                        CornerRadius="4" Padding="10,0" HeightRequest="28"/>
-                <Button Grid.Column="3" Text="&#x2715; Limpiar"
-                        Command="{Binding ClearFilterCommand}"
-                        FontSize="10" FontAttributes="Bold"
-                        TextColor="#64748B" BackgroundColor="#F1F5F9"
-                        BorderColor="#CBD5E1" BorderWidth="1"
-                        CornerRadius="4" Padding="8,0" HeightRequest="28"/>
+                <HorizontalStackLayout Grid.Column="2" Spacing="6" HorizontalOptions="End">
+                    <Button Text="Exportar Excel"
+                            Command="{Binding ExportExcelCommand}"
+                            FontSize="10" FontAttributes="Bold"
+                            TextColor="#16A34A" BackgroundColor="#F0FDF4"
+                            BorderColor="#86EFAC" BorderWidth="1"
+                            CornerRadius="4" Padding="8,0" HeightRequest="28"/>
+                    <Button Text="&#x2715; Limpiar"
+                            Command="{Binding ClearFilterCommand}"
+                            FontSize="10" FontAttributes="Bold"
+                            TextColor="#64748B" BackgroundColor="#F1F5F9"
+                            BorderColor="#CBD5E1" BorderWidth="1"
+                            CornerRadius="4" Padding="8,0" HeightRequest="28"/>
+                </HorizontalStackLayout>
             </Grid>
 
             <!-- Row 6: Chips de filtro por días de vencimiento -->
@@ -176,7 +191,7 @@
 
             <!-- Row 9: Table header -->
             <Grid Grid.Row="9" BackgroundColor="#334155" Padding="6,7" Margin="12,0"
-                  ColumnDefinitions="78,78,78,*,120,88,100,100,110,36"
+                  ColumnDefinitions="70,70,72,*,112,82,92,92,100,32"
                   ColumnSpacing="4">
                 <Label Grid.Column="0" Text="Fecha Pub."     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
                 <Label Grid.Column="1" Text="F. Venc."       FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
@@ -205,7 +220,7 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid ColumnDefinitions="78,78,78,*,120,88,100,100,110,36"
+                        <Grid ColumnDefinitions="70,70,72,*,112,82,92,92,100,32"
                               Padding="6,5"
                               ColumnSpacing="4"
                               BackgroundColor="White">
@@ -220,9 +235,9 @@
                             </BoxView>
                             <Label Grid.Column="0" Text="{Binding PostingDate}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
                             <Label Grid.Column="1" Text="{Binding DueDate}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                            <Label Grid.Column="2" Text="{Binding LedgerTypeName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
+                            <Label Grid.Column="2" Text="{Binding LedgerTypeDisplayName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
                             <Label Grid.Column="3" Text="{Binding Description}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
-                            <Label Grid.Column="4" Text="{Binding Clave20}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
+                            <Label Grid.Column="4" Text="{Binding Integrafast01Text}" FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
                             <Label Grid.Column="5" Text="{Binding Reference}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
                             <Label Grid.Column="6" Text="{Binding AmountText}"     FontSize="10" TextColor="#334155" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
                             <Label Grid.Column="7" Text="{Binding BalanceText}"    FontSize="10" TextColor="#EF4444" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End">
@@ -315,7 +330,8 @@
                 </Grid>
             </Grid>
 
-        </Grid>
+            </Grid>
+        </Border>
 
         <!-- ======= PAYMENT TYPE DIALOG ======= -->
         <Grid IsVisible="{Binding ShowPaymentTypeDialog}"

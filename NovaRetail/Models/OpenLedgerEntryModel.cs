@@ -23,6 +23,8 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
     [JsonProperty("ledgerTypeName")]
     public string LedgerTypeName { get; set; } = string.Empty;
 
+    public string LedgerTypeDisplayName => TranslateLedgerTypeName(LedgerTypeName);
+
     [JsonProperty("documentTypeName")]
     public string DocumentTypeName { get; set; } = string.Empty;
 
@@ -44,6 +46,10 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
     [JsonProperty("clave20")]
     public string Clave20 { get; set; } = string.Empty;
 
+    public string Integrafast01Text => !string.IsNullOrWhiteSpace(Clave20)
+        ? Clave20.Trim()
+        : FirstNonEmpty(ExtractIntegrafastReference(Description), ExtractTransactionReference(Reference));
+
     [JsonProperty("isReadOnly")]
     public bool IsReadOnly { get; set; }
 
@@ -56,7 +62,7 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
         set
         {
             if (_isSelected == value) return;
-            if (IsReadOnly) return;
+            if (IsReadOnly && value) return;
             _isSelected = value;
             OnPropertyChanged();
 
@@ -125,6 +131,59 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
 
     /// <summary>Raised when IsSelected or AmountToApply changes, so parent VM can recalculate totals.</summary>
     public event Action? ValueChanged;
+
+    private static string TranslateLedgerTypeName(string value)
+    {
+        var text = (value ?? string.Empty).Trim();
+        return text.ToUpperInvariant() switch
+        {
+            "INVOICE" => "Factura",
+            "FACTURA" => "Factura",
+            "CREDIT MEMO" => "Nota Credito",
+            "CREDIT NOTE" => "Nota Credito",
+            "NOTA CREDITO" => "Nota Credito",
+            "NOTA DE CREDITO" => "Nota Credito",
+            "TRANSACTION" => "Transaccion",
+            "ADJUSTMENT" => "Ajuste",
+            "PAYMENT" => "Pago",
+            "OTHER" => "Otro",
+            "" => string.Empty,
+            _ => text
+        };
+    }
+
+    private static string ExtractIntegrafastReference(string value)
+    {
+        var text = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var separatorIndex = text.LastIndexOf(" - ", StringComparison.Ordinal);
+        var candidate = separatorIndex >= 0
+            ? text[(separatorIndex + 3)..].Trim()
+            : string.Empty;
+
+        return candidate.StartsWith("P", StringComparison.OrdinalIgnoreCase)
+            ? candidate
+            : string.Empty;
+    }
+
+    private static string ExtractTransactionReference(string value)
+    {
+        var text = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var separatorIndex = text.IndexOf(':');
+        var candidate = separatorIndex >= 0
+            ? text[(separatorIndex + 1)..].Trim()
+            : text;
+
+        return candidate.All(char.IsDigit) ? candidate : string.Empty;
+    }
+
+    private static string FirstNonEmpty(params string[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

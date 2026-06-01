@@ -27,6 +27,7 @@
     <Compile Include="..\NovaRetail\Models\InvoiceHistoryEntry.cs" Link="Source\NovaRetail\Models\InvoiceHistoryEntry.cs" />
     <Compile Include="..\NovaRetail\Models\LoginConnectionInfoModel.cs" Link="Source\NovaRetail\Models\LoginConnectionInfoModel.cs" />
     <Compile Include="..\NovaRetail\Models\LoginUserModel.cs" Link="Source\NovaRetail\Models\LoginUserModel.cs" />
+    <Compile Include="..\NovaRetail\Models\OpenLedgerEntryModel.cs" Link="Source\NovaRetail\Models\OpenLedgerEntryModel.cs" />
     <Compile Include="..\NovaRetail\Services\IdValidatorCR.cs" Link="Source\NovaRetail\Services\IdValidatorCR.cs" />
   </ItemGroup>
 

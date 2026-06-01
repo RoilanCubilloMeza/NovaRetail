@@ -702,12 +702,27 @@ SELECT le.ID as LedgerEntryID,
        ISNULL(le.Reference, '') as Reference,
        ISNULL(amounts.Amount, 0) as Amount,
        ISNULL(balances.Amount, 0) as Balance,
-       ISNULL(fi.CLAVE20, '') as Clave20
+       ISNULL(NULLIF(fi.CLAVE20, ''), ISNULL(fi.COMPROBANTE_INTERNO, '')) as Clave20
 FROM dbo.AR_LedgerEntry le
 INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID AND a.Number = @Number
 OUTER APPLY dbo.fnAR_LedgerAmount(le.ID, NULL) amounts
 OUTER APPLY dbo.fnAR_LedgerBalance(le.ID, NULL) balances
-LEFT JOIN dbo.AVS_INTEGRAFAST_01 fi ON TRY_CONVERT(INT, fi.TRANSACTIONNUMBER) = le.DocumentID
+OUTER APPLY (
+    SELECT ReferenceNumber = LTRIM(RTRIM(
+        CASE
+            WHEN CHARINDEX(':', ISNULL(le.Reference, '')) > 0
+                THEN SUBSTRING(ISNULL(le.Reference, ''), CHARINDEX(':', ISNULL(le.Reference, '')) + 1, 50)
+            ELSE ISNULL(le.Reference, '')
+        END))
+) ref
+OUTER APPLY (
+    SELECT TOP (1) f.CLAVE20, f.COMPROBANTE_INTERNO
+    FROM dbo.AVS_INTEGRAFAST_01 f
+    WHERE TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = le.DocumentID
+       OR f.TRANSACTIONNUMBER = ref.ReferenceNumber
+       OR TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = TRY_CONVERT(INT, ref.ReferenceNumber)
+    ORDER BY CASE WHEN TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = le.DocumentID THEN 0 ELSE 1 END
+) fi
 WHERE le.[Open] = 1
   AND le.DocumentType IN (1, 2, 3, 4)
 ORDER BY le.PostingDate";
@@ -724,23 +739,27 @@ ORDER BY le.PostingDate";
                                 var documentType = Convert.ToInt32(reader["DocumentType"]);
                                 var ledgerType = Convert.ToInt32(reader["LedgerType"]);
                                 var rawBalance = Convert.ToDecimal(reader["Balance"]);
-                                var isCreditNote = ledgerType == 4;
-                                if (!isCreditNote && rawBalance <= LedgerClosingTolerance) continue;
-                                if (isCreditNote && Math.Abs(rawBalance) <= LedgerClosingTolerance) continue;
-                                var balance = Math.Round(isCreditNote ? Math.Abs(rawBalance) : rawBalance, 2);
+                                var isCustomerCredit = ledgerType == 4 || documentType == 4 || rawBalance < -LedgerClosingTolerance;
+                                if (!isCustomerCredit && rawBalance <= LedgerClosingTolerance) continue;
+                                if (isCustomerCredit && Math.Abs(rawBalance) <= LedgerClosingTolerance) continue;
+                                var balance = Math.Round(isCustomerCredit ? Math.Abs(rawBalance) : rawBalance, 2);
 
                                 string docTypeName;
                                 switch (documentType)
                                 {
                                     case 1: docTypeName = "Adjustment"; break;
                                     case 2: docTypeName = "Adjustment"; break;
-                                    case 3: docTypeName = ledgerType == 4 ? "Credit Memo" : "Transaction"; break;
+                                    case 3: docTypeName = isCustomerCredit ? "Credit Memo" : "Transaction"; break;
                                     case 4: docTypeName = "Credit Memo"; break;
                                     default: docTypeName = "Other"; break;
                                 }
 
                                 string ledgerTypeName;
-                                switch (ledgerType)
+                                if (isCustomerCredit)
+                                {
+                                    ledgerTypeName = "Nota Crédito";
+                                }
+                                else switch (ledgerType)
                                 {
                                     case 1: ledgerTypeName = "Ajuste"; break;
                                     case 3: ledgerTypeName = "Factura"; break;
@@ -761,7 +780,7 @@ ORDER BY le.PostingDate";
                                     Amount = Convert.ToDecimal(reader["Amount"]),
                                     Balance = balance,
                                     Clave20 = reader["Clave20"].ToString(),
-                                    IsReadOnly = isCreditNote
+                                    IsReadOnly = isCustomerCredit
                                 });
                             }
                         }

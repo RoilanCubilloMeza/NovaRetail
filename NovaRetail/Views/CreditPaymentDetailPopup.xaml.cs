@@ -23,8 +23,10 @@ public partial class CreditPaymentDetailPopup : ContentView
         }
 
         var useLargePopup = Width >= LargePopupMinWidth && Height >= LargePopupMinHeight;
+        var availableWidth = Math.Max(760, Width - 48);
 
         MainPopup.MaximumWidthRequest = useLargePopup ? LargePopupWidth : CompactPopupWidth;
+        MainPopup.WidthRequest = Math.Min(MainPopup.MaximumWidthRequest, availableWidth);
         MainPopup.HeightRequest = useLargePopup ? LargePopupHeight : CompactPopupHeight;
     }
 }

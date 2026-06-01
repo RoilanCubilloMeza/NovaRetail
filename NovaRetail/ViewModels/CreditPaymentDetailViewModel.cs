@@ -106,9 +106,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public bool IsFilter60Active  => _dueDateFilter == 60;
     public bool IsFilter90Active  => _dueDateFilter == 90;
 
-    public decimal TotalToApply => OpenEntries.Where(e => e.IsSelected).Sum(e => e.AmountToApply);
+    public decimal TotalToApply => OpenEntries.Where(e => e.IsSelected && !e.IsReadOnly).Sum(e => e.AmountToApply);
     public string TotalToApplyText => $"₡{TotalToApply:N2}";
-    public int SelectedCount => OpenEntries.Count(e => e.IsSelected);
+    public int SelectedCount => OpenEntries.Count(e => e.IsSelected && !e.IsReadOnly);
     public string SelectedCountText => $"{SelectedCount} factura(s) seleccionada(s)";
     public bool HasEntries => OpenEntries.Count > 0;
 
@@ -207,7 +207,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     {
         get
         {
-            var count = OpenEntries.Count(e => e.IsSelected && e.AmountToApply > 0);
+            var count = OpenEntries.Count(e => e.IsSelected && !e.IsReadOnly && e.AmountToApply > 0);
             return $"{count} factura(s)  —  Total: ₡{TotalToApply:N2}";
         }
     }
@@ -276,7 +276,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         {
             ErrorMessage = string.Empty;
 
-            var selected = OpenEntries.Where(e => e.IsSelected && e.AmountToApply > 0).ToList();
+            var selected = OpenEntries.Where(e => e.IsSelected && !e.IsReadOnly && e.AmountToApply > 0).ToList();
             if (selected.Count == 0)
             {
                 ErrorMessage = "Seleccione al menos una factura y monto a aplicar.";
@@ -312,7 +312,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
                 ErrorMessage = string.Empty;
 
-                var selected = OpenEntries.Where(e => e.IsSelected && e.AmountToApply > 0).ToList();
+                var selected = OpenEntries.Where(e => e.IsSelected && !e.IsReadOnly && e.AmountToApply > 0).ToList();
 
                 var request = new AbonoPaymentRequest
                 {
@@ -515,9 +515,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
                     {
                         ws.Cell(dataRow, 1).Value = e.PostingDate;
                         ws.Cell(dataRow, 2).Value = e.DueDate;
-                        ws.Cell(dataRow, 3).Value = e.LedgerTypeName;
+                        ws.Cell(dataRow, 3).Value = e.LedgerTypeDisplayName;
                         ws.Cell(dataRow, 4).Value = e.Description;
-                        ws.Cell(dataRow, 5).Value = e.Clave20;
+                        ws.Cell(dataRow, 5).Value = e.Integrafast01Text;
                         ws.Cell(dataRow, 6).Value = e.Reference;
                         ws.Cell(dataRow, 7).Value = e.Amount;
                         ws.Cell(dataRow, 8).Value = e.Balance;
@@ -624,6 +624,12 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         foreach (var entry in preparedEntries)
         {
+            if (entry.IsReadOnly)
+            {
+                entry.IsSelected = false;
+                entry.AmountToApplyText = "0,00";
+            }
+
             entry.ValueChanged += OnEntryValueChanged;
             entry.PropertyChanged += OnEntryPropertyChanged;
         }
@@ -699,7 +705,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         if (e.PropertyName != nameof(OpenLedgerEntryModel.IsSelected)) return;
         if (sender is not OpenLedgerEntryModel entry) return;
 
-        if (entry.IsSelected)
+        if (entry.IsSelected && !entry.IsReadOnly)
         {
             // Show payment type dialog for user to choose total/partial
             PendingEntry = entry;
@@ -712,7 +718,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private void UpdateReferencia()
     {
         var selectedRefs = OpenEntries
-            .Where(e => e.IsSelected)
+            .Where(e => e.IsSelected && !e.IsReadOnly)
             .Select(e => ExtractRefNumber(e.Reference))
             .Where(r => !string.IsNullOrEmpty(r))
             .ToList();
@@ -739,7 +745,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         {
             filtered = filtered.Where(e =>
                 (e.Description ?? string.Empty).ToUpperInvariant().Contains(text) ||
-                (e.Clave20 ?? string.Empty).ToUpperInvariant().Contains(text) ||
+                (e.Integrafast01Text ?? string.Empty).ToUpperInvariant().Contains(text) ||
                 (e.Reference ?? string.Empty).ToUpperInvariant().Contains(text));
         }
 
