@@ -90,6 +90,18 @@ public sealed class CreditAndArPresentationTests
     }
 
     [Fact]
+    public void Credit_note_cannot_create_another_credit_note()
+    {
+        var entry = new InvoiceHistoryEntry
+        {
+            ComprobanteTipo = "03"
+        };
+
+        Assert.True(entry.IsCreditNote);
+        Assert.False(entry.CanCreateCreditNote);
+    }
+
+    [Fact]
     public void Empty_document_type_defaults_to_tiquete_electronico()
     {
         var entry = new InvoiceHistoryEntry

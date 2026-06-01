@@ -61,6 +61,7 @@ public sealed class InvoiceHistoryEntry
     }
 
     public bool IsCreditNote => ComprobanteTipo == "03";
+    public bool CanCreateCreditNote => !IsCreditNote && !IsReturnCompleted;
     public bool HasRelatedSourceTransaction => SourceTransactionNumber > 0;
     public bool HasAppliedSourceTransaction => AppliedSourceTransactionNumber > 0;
     public bool IsReturnCompleted => !IsCreditNote && CreditedAmountColones > 0m && CreditedAmountColones + 0.01m >= Math.Abs(TotalColones);

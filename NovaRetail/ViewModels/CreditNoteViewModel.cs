@@ -1504,6 +1504,13 @@ public sealed class CreditNoteViewModel : INotifyPropertyChanged
         if (!_isStandaloneMode && _sourceEntry is null)
             return;
 
+        if (!_isStandaloneMode && _sourceEntry?.IsCreditNote == true)
+        {
+            StatusMessage = "No se puede crear una nota de credito sobre otra nota de credito.";
+            await _dialogService.AlertAsync("Nota de Credito", StatusMessage, "OK");
+            return;
+        }
+
         if (_isStandaloneMode && !IsSupportedStandaloneReference(ReferenceNumber))
         {
             StatusMessage = "La referencia manual debe ser una clave 50, un consecutivo o un numero de transaccion valido.";

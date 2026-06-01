@@ -568,9 +568,19 @@
                             Text="↩ Nota Crédito"
                             Command="{Binding CreditNoteCommand}"
                             CommandParameter="{Binding SelectedEntry}"
+                            IsEnabled="{Binding CanCreateCreditNoteFromSelected}"
                             BackgroundColor="#991B1B" TextColor="White"
                             FontAttributes="Bold" FontSize="13"
-                            CornerRadius="12" HeightRequest="48"/>
+                            CornerRadius="12" HeightRequest="48">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding CanCreateCreditNoteFromSelected}"
+                                         Value="False">
+                                <Setter Property="BackgroundColor" Value="#CBD5E1"/>
+                                <Setter Property="TextColor" Value="#64748B"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                     <Button Grid.Column="1"
                             Text="&#x1F5A8; Reimprimir"
                             Command="{Binding ReprintCommand}"

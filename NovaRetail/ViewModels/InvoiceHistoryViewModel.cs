@@ -111,10 +111,14 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
             _selectedEntry = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasSelectedEntry));
+            OnPropertyChanged(nameof(CanCreateCreditNoteFromSelected));
+            if (CreditNoteCommand is Command creditNoteCommand)
+                creditNoteCommand.ChangeCanExecute();
         }
     }
 
     public bool HasSelectedEntry => _selectedEntry is not null;
+    public bool CanCreateCreditNoteFromSelected => CanCreateCreditNote(_selectedEntry);
 
     public bool IsReprintVisible
     {
@@ -146,7 +150,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         SelectEntryCommand = new Command<InvoiceHistoryEntry>(async e => await SelectEntryAsync(e));
         CloseDetailCommand = new Command(() => SelectedEntry = null);
         ReprintCommand = new Command<InvoiceHistoryEntry>(async e => await ShowReprintAsync(e));
-        CreditNoteCommand = new Command<InvoiceHistoryEntry>(async e => await NavigateToCreditNoteAsync(e));
+        CreditNoteCommand = new Command<InvoiceHistoryEntry>(async e => await NavigateToCreditNoteAsync(e), CanCreateCreditNote);
         StandaloneCreditNoteCommand = new Command(async () => await StandaloneCreditNoteAsync());
 
         ReprintVm.RequestClose += () => IsReprintVisible = false;
@@ -280,7 +284,7 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (entry is null)
             return;
 
-        if (entry.ComprobanteTipo == "03")
+        if (entry.IsCreditNote)
         {
             await _dialogService.AlertAsync("Nota de Crédito", "No se puede crear una nota de crédito sobre otra nota de crédito.", "OK");
             return;
@@ -347,6 +351,12 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
         if (page is null)
             return;
 
+        if (foundEntry is not null && foundEntry.IsCreditNote)
+        {
+            await _dialogService.AlertAsync("Nota de CrÃ©dito", "No se puede crear una nota de crÃ©dito sobre otra nota de crÃ©dito.", "OK");
+            return;
+        }
+
         if (foundEntry is not null && foundEntry.Lines.Count > 0)
             await page.LoadAsync(foundEntry);
         else
@@ -354,6 +364,9 @@ public sealed class InvoiceHistoryViewModel : INotifyPropertyChanged
 
         await Shell.Current.Navigation.PushAsync(page);
     }
+
+    private static bool CanCreateCreditNote(InvoiceHistoryEntry? entry)
+        => entry?.CanCreateCreditNote == true;
 
     private async Task LoadRemoteEntriesAsync(string search, CancellationToken cancellationToken, bool forceRefresh = false)
     {

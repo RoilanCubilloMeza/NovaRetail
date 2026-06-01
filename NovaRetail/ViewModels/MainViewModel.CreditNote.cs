@@ -59,6 +59,12 @@ namespace NovaRetail.ViewModels
             if (page is null)
                 return;
 
+            if (foundEntry is not null && foundEntry.IsCreditNote)
+            {
+                await _dialogService.AlertAsync("NC por clave", "No se puede crear una nota de credito sobre otra nota de credito.", "OK");
+                return;
+            }
+
             if (foundEntry is not null && foundEntry.Lines.Count > 0)
                 await page.LoadAsync(foundEntry);
             else
