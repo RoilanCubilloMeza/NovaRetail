@@ -109,7 +109,7 @@ namespace NovaRetail.Models
             get => _exonerationPercent;
             set
             {
-                var normalized = Math.Clamp(value, 0m, 100m);
+                var normalized = value <= 0m ? 0m : Math.Clamp(value, 1m, 13m);
                 if (_exonerationPercent != normalized)
                 {
                     _exonerationPercent = normalized;

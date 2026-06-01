@@ -254,6 +254,12 @@ namespace NovaRetail.ViewModels
                 return null;
             }
 
+            if (document.PorcentajeExoneracion < 1m || document.PorcentajeExoneracion > 13m)
+            {
+                await _dialogService.AlertAsync("ExoneraciÃ³n", "El porcentaje a exonerar debe estar entre 1 y 13.", "OK");
+                return null;
+            }
+
             if (!string.IsNullOrWhiteSpace(document.Identificacion) &&
                 !string.Equals(NormalizeIdentity(document.Identificacion), NormalizeIdentity(CurrentClientId), StringComparison.OrdinalIgnoreCase))
             {

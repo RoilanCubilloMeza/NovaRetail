@@ -123,7 +123,7 @@
 
                     <!-- % Compra Exonerado + Exonerar -->
                     <Grid ColumnDefinitions="Auto,140,Auto" ColumnSpacing="8">
-                        <Label Grid.Column="0" Text="% Compra Exonerado"
+                        <Label Grid.Column="0" Text="% Compra Exonerado (1-13)"
                                FontSize="13" FontAttributes="Bold" TextColor="#1E293B"
                                VerticalOptions="Center"/>
                         <Border Grid.Column="1"
@@ -131,6 +131,7 @@
                                 StrokeShape="RoundRectangle 4"
                                 Padding="8,4" HeightRequest="36">
                             <Entry Text="{Binding PorcentajeText, Mode=TwoWay}"
+                                   Placeholder="1 - 13" MaxLength="2"
                                    Keyboard="Numeric" FontSize="13"
                                    BackgroundColor="Transparent"/>
                         </Border>

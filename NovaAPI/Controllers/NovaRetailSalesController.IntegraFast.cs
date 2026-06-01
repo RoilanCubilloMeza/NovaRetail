@@ -675,25 +675,42 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
                 var codTarifaIVA = baseTaxRate > 0 ? ResolveIntegraFastTaxCode(baseTaxRate) : string.Empty;
                 var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
-                var exoneraPorcentaje = item.ExPorcentaje;
+                var exoneraPorcentaje = ToIntegraFastExonerationPercent(item.ExPorcentaje);
+                var isFreeZoneExoneration = IsFreeZoneExoneration(item);
 
                 try
                 {
-                    using (var cmd = new SqlCommand(@"
+                    var extraColumns = string.Empty;
+                    var extraValues = string.Empty;
+                    if (hasExoneration)
+                    {
+                        extraColumns += @",
+                             EXONERA_TIPO_DOCUMENTO, EXONERA_NUMERO_DOCUMENTO, EXONERA_INSTITUCION,
+                             EXONERA_FECHA_EMISION, EXONERA_MONTO_IMPUESTO, EXONERA_PORCENTAJE_COMPRA,
+                             EXONERA_TOTAL_LINEA";
+                        extraValues += @",
+                             @EXONERA_TIPO_DOCUMENTO, @EXONERA_NUMERO_DOCUMENTO, @EXONERA_INSTITUCION,
+                             @EXONERA_FECHA_EMISION, @EXONERA_MONTO_IMPUESTO, @EXONERA_PORCENTAJE_COMPRA,
+                             @EXONERA_TOTAL_LINEA";
+                    }
+
+                    if (isFreeZoneExoneration)
+                    {
+                        extraColumns += ", ARTICULO, INCISO";
+                        extraValues += ", @ARTICULO, @INCISO";
+                    }
+
+                    using (var cmd = new SqlCommand($@"
                         INSERT INTO dbo.AVS_INTEGRAFAST_05
                             (CLAVE50, TRANSACTIONNUMBER, NUM_LINEA, ID_PRODUCTO, CANTIDAD, UNIDAD_MEDIDA,
                              DETALLE, PRECIO_UNITARIO, MONTO_TOTAL, MONTO_DESCUENTO, NATURALEZA_DESCUENTO,
                              SUBTOTAL, COD_IMPUESTO, COD_IMPUESTO_BASE, TARIFA_IMPUESTO, MONTO_IMPUESTO,
-                             EXONERA_TIPO_DOCUMENTO, EXONERA_NUMERO_DOCUMENTO, EXONERA_INSTITUCION,
-                             EXONERA_FECHA_EMISION, EXONERA_MONTO_IMPUESTO, EXONERA_PORCENTAJE_COMPRA,
-                             EXONERA_TOTAL_LINEA, SyncGuid, ARTICULO, INCISO)
+                             SyncGuid{extraColumns})
                         VALUES
                             (@CLAVE50, @TN, @NUM_LINEA, @ID_PRODUCTO, @CANTIDAD, @UNIDAD_MEDIDA,
                              @DETALLE, @PRECIOUNIT, @MONTO_TOTAL, @MONTO_DESCUENTO, @NATURALEZA_DESCUENTO,
                              @SUBTOTAL, @COD_IMPUESTO, @COD_IMPUESTO_BASE, @TARIFA_IMPUESTO, @MONTO_IMPUESTO,
-                             @EXONERA_TIPO_DOCUMENTO, @EXONERA_NUMERO_DOCUMENTO, @EXONERA_INSTITUCION,
-                             @EXONERA_FECHA_EMISION, @EXONERA_MONTO_IMPUESTO, @EXONERA_PORCENTAJE_COMPRA,
-                             @EXONERA_TOTAL_LINEA, NEWID(), @ARTICULO, @INCISO)", cn))
+                             NEWID(){extraValues})", cn))
                     {
                         cmd.Parameters.AddWithValue("@CLAVE50", clave50);
                         cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
@@ -711,15 +728,23 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                         cmd.Parameters.AddWithValue("@COD_IMPUESTO_BASE", baseTaxRate > 0 ? (object)codTarifaIVA : DBNull.Value);
                         cmd.Parameters.AddWithValue("@TARIFA_IMPUESTO", baseTaxRate > 0 ? baseTaxRate : 0m);
                         cmd.Parameters.AddWithValue("@MONTO_IMPUESTO", montoImpuesto);
-                        cmd.Parameters.AddWithValue("@EXONERA_TIPO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExTipoDoc, 2) : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_NUMERO_DOCUMENTO", hasExoneration ? (object)Truncate(item.ExNumeroDoc, 40) : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_INSTITUCION", hasExoneration ? (object)Truncate(item.ExInstitucion, 100) : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_FECHA_EMISION", hasExoneration && item.ExFecha.HasValue ? (object)item.ExFecha.Value.ToString("yyyy-MM-dd") : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_MONTO_IMPUESTO", hasExoneration ? (object)item.ExMonto : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_PORCENTAJE_COMPRA", hasExoneration ? (object)Convert.ToInt16(Math.Round(exoneraPorcentaje, 0, MidpointRounding.AwayFromZero)) : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@EXONERA_TOTAL_LINEA", hasExoneration ? (object)montoLinea : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@ARTICULO", Truncate(codProducto, 6));
-                        cmd.Parameters.AddWithValue("@INCISO", Truncate(cabys, 6));
+                        if (hasExoneration)
+                        {
+                            cmd.Parameters.AddWithValue("@EXONERA_TIPO_DOCUMENTO", Truncate(item.ExTipoDoc, 2));
+                            cmd.Parameters.AddWithValue("@EXONERA_NUMERO_DOCUMENTO", Truncate(item.ExNumeroDoc, 40));
+                            cmd.Parameters.AddWithValue("@EXONERA_INSTITUCION", Truncate(item.ExInstitucion, 100));
+                            cmd.Parameters.AddWithValue("@EXONERA_FECHA_EMISION", (item.ExFecha ?? DateTime.Today).ToString("yyyy-MM-dd"));
+                            cmd.Parameters.AddWithValue("@EXONERA_MONTO_IMPUESTO", item.ExMonto);
+                            cmd.Parameters.AddWithValue("@EXONERA_PORCENTAJE_COMPRA", exoneraPorcentaje);
+                            cmd.Parameters.AddWithValue("@EXONERA_TOTAL_LINEA", montoLinea);
+                        }
+
+                        if (isFreeZoneExoneration)
+                        {
+                            cmd.Parameters.AddWithValue("@ARTICULO", Truncate(codProducto, 6));
+                            cmd.Parameters.AddWithValue("@INCISO", Truncate(cabys, 6));
+                        }
+
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -748,33 +773,9 @@ UPDATE dbo.AVS_INTEGRAFAST_01
             string clave50,
             Dictionary<int, (string Cabys, string Code, string Description)> itemInfoMap)
         {
-            var rows = new DataTable();
-            rows.Columns.Add("CLAVE50", typeof(string));
-            rows.Columns.Add("TRANSACTIONNUMBER", typeof(string));
-            rows.Columns.Add("NUM_LINEA", typeof(int));
-            rows.Columns.Add("ID_PRODUCTO", typeof(string));
-            rows.Columns.Add("CANTIDAD", typeof(decimal));
-            rows.Columns.Add("UNIDAD_MEDIDA", typeof(string));
-            rows.Columns.Add("DETALLE", typeof(string));
-            rows.Columns.Add("PRECIO_UNITARIO", typeof(decimal));
-            rows.Columns.Add("MONTO_TOTAL", typeof(decimal));
-            rows.Columns.Add("MONTO_DESCUENTO", typeof(decimal));
-            rows.Columns.Add("NATURALEZA_DESCUENTO", typeof(string));
-            rows.Columns.Add("SUBTOTAL", typeof(decimal));
-            rows.Columns.Add("COD_IMPUESTO", typeof(string));
-            rows.Columns.Add("COD_IMPUESTO_BASE", typeof(string));
-            rows.Columns.Add("TARIFA_IMPUESTO", typeof(decimal));
-            rows.Columns.Add("MONTO_IMPUESTO", typeof(decimal));
-            rows.Columns.Add("EXONERA_TIPO_DOCUMENTO", typeof(string));
-            rows.Columns.Add("EXONERA_NUMERO_DOCUMENTO", typeof(string));
-            rows.Columns.Add("EXONERA_INSTITUCION", typeof(string));
-            rows.Columns.Add("EXONERA_FECHA_EMISION", typeof(string));
-            rows.Columns.Add("EXONERA_MONTO_IMPUESTO", typeof(decimal));
-            rows.Columns.Add("EXONERA_PORCENTAJE_COMPRA", typeof(short));
-            rows.Columns.Add("EXONERA_TOTAL_LINEA", typeof(decimal));
-            rows.Columns.Add("SyncGuid", typeof(Guid));
-            rows.Columns.Add("ARTICULO", typeof(string));
-            rows.Columns.Add("INCISO", typeof(string));
+            var regularRows = CreateIntegraFast05Rows(includeExoneration: false, includeFreeZoneFields: false);
+            var exonerationRows = CreateIntegraFast05Rows(includeExoneration: true, includeFreeZoneFields: false);
+            var freeZoneRows = CreateIntegraFast05Rows(includeExoneration: true, includeFreeZoneFields: true);
 
             var numLinea = 0;
             foreach (var item in request.Items.OrderBy(i => i.RowNo))
@@ -808,9 +809,14 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
                 var codTarifaIVA = baseTaxRate > 0 ? ResolveIntegraFastTaxCode(baseTaxRate) : string.Empty;
                 var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
-                var exoneraPorcentaje = item.ExPorcentaje;
+                var exoneraPorcentaje = ToIntegraFastExonerationPercent(item.ExPorcentaje);
+                var isFreeZoneExoneration = IsFreeZoneExoneration(item);
+                var targetRows = hasExoneration
+                    ? isFreeZoneExoneration ? freeZoneRows : exonerationRows
+                    : regularRows;
 
-                rows.Rows.Add(
+                var values = new List<object>
+                {
                     clave50,
                     transactionNumber.ToString(),
                     numLinea,
@@ -827,18 +833,90 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                     baseTaxRate > 0 ? (object)codTarifaIVA : DBNull.Value,
                     baseTaxRate > 0 ? baseTaxRate : 0m,
                     montoImpuesto,
-                    hasExoneration ? (object)Truncate(item.ExTipoDoc, 2) : DBNull.Value,
-                    hasExoneration ? (object)Truncate(item.ExNumeroDoc, 40) : DBNull.Value,
-                    hasExoneration ? (object)Truncate(item.ExInstitucion, 100) : DBNull.Value,
-                    hasExoneration && item.ExFecha.HasValue ? (object)item.ExFecha.Value.ToString("yyyy-MM-dd") : DBNull.Value,
-                    hasExoneration ? (object)item.ExMonto : DBNull.Value,
-                    hasExoneration ? (object)Convert.ToInt16(Math.Round(exoneraPorcentaje, 0, MidpointRounding.AwayFromZero)) : DBNull.Value,
-                    hasExoneration ? (object)montoLinea : DBNull.Value,
-                    Guid.NewGuid(),
-                    Truncate(codProducto, 6),
-                    Truncate(NormalizeCabys(cabys), 6));
+                    Guid.NewGuid()
+                };
+
+                if (hasExoneration)
+                {
+                    values.Add(Truncate(item.ExTipoDoc, 2));
+                    values.Add(Truncate(item.ExNumeroDoc, 40));
+                    values.Add(Truncate(item.ExInstitucion, 100));
+                    values.Add((item.ExFecha ?? DateTime.Today).ToString("yyyy-MM-dd"));
+                    values.Add(item.ExMonto);
+                    values.Add(exoneraPorcentaje);
+                    values.Add(montoLinea);
+                }
+
+                if (isFreeZoneExoneration)
+                {
+                    values.Add(Truncate(codProducto, 6));
+                    values.Add(Truncate(NormalizeCabys(cabys), 6));
+                }
+
+                targetRows.Rows.Add(values.ToArray());
             }
 
+            var totalRows = regularRows.Rows.Count + exonerationRows.Rows.Count + freeZoneRows.Rows.Count;
+            if (totalRows == 0)
+                return;
+
+            BulkCopyIntegraFast05Rows(cn, regularRows);
+            BulkCopyIntegraFast05Rows(cn, exonerationRows);
+            BulkCopyIntegraFast05Rows(cn, freeZoneRows);
+
+            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            {
+                verifyCmd.CommandTimeout = 30;
+                verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
+                if (insertedCount < totalRows)
+                    throw new InvalidOperationException($"AVS_INTEGRAFAST_05 incompleto para CLAVE50 {clave50}: {insertedCount}/{totalRows} lineas.");
+            }
+        }
+
+        private static DataTable CreateIntegraFast05Rows(bool includeExoneration, bool includeFreeZoneFields)
+        {
+            var rows = new DataTable();
+            rows.Columns.Add("CLAVE50", typeof(string));
+            rows.Columns.Add("TRANSACTIONNUMBER", typeof(string));
+            rows.Columns.Add("NUM_LINEA", typeof(int));
+            rows.Columns.Add("ID_PRODUCTO", typeof(string));
+            rows.Columns.Add("CANTIDAD", typeof(decimal));
+            rows.Columns.Add("UNIDAD_MEDIDA", typeof(string));
+            rows.Columns.Add("DETALLE", typeof(string));
+            rows.Columns.Add("PRECIO_UNITARIO", typeof(decimal));
+            rows.Columns.Add("MONTO_TOTAL", typeof(decimal));
+            rows.Columns.Add("MONTO_DESCUENTO", typeof(decimal));
+            rows.Columns.Add("NATURALEZA_DESCUENTO", typeof(string));
+            rows.Columns.Add("SUBTOTAL", typeof(decimal));
+            rows.Columns.Add("COD_IMPUESTO", typeof(string));
+            rows.Columns.Add("COD_IMPUESTO_BASE", typeof(string));
+            rows.Columns.Add("TARIFA_IMPUESTO", typeof(decimal));
+            rows.Columns.Add("MONTO_IMPUESTO", typeof(decimal));
+            rows.Columns.Add("SyncGuid", typeof(Guid));
+
+            if (includeExoneration)
+            {
+                rows.Columns.Add("EXONERA_TIPO_DOCUMENTO", typeof(string));
+                rows.Columns.Add("EXONERA_NUMERO_DOCUMENTO", typeof(string));
+                rows.Columns.Add("EXONERA_INSTITUCION", typeof(string));
+                rows.Columns.Add("EXONERA_FECHA_EMISION", typeof(string));
+                rows.Columns.Add("EXONERA_MONTO_IMPUESTO", typeof(decimal));
+                rows.Columns.Add("EXONERA_PORCENTAJE_COMPRA", typeof(short));
+                rows.Columns.Add("EXONERA_TOTAL_LINEA", typeof(decimal));
+            }
+
+            if (includeFreeZoneFields)
+            {
+                rows.Columns.Add("ARTICULO", typeof(string));
+                rows.Columns.Add("INCISO", typeof(string));
+            }
+
+            return rows;
+        }
+
+        private static void BulkCopyIntegraFast05Rows(SqlConnection cn, DataTable rows)
+        {
             if (rows.Rows.Count == 0)
                 return;
 
@@ -851,15 +929,18 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
                 bulk.WriteToServer(rows);
             }
+        }
 
-            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
-            {
-                verifyCmd.CommandTimeout = 30;
-                verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
-                var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
-                if (insertedCount < rows.Rows.Count)
-                    throw new InvalidOperationException($"AVS_INTEGRAFAST_05 incompleto para CLAVE50 {clave50}: {insertedCount}/{rows.Rows.Count} lineas.");
-            }
+        private static bool IsFreeZoneExoneration(NovaRetailSaleItemDto item)
+        {
+            return !string.IsNullOrWhiteSpace(item.ExNumeroDoc)
+                && string.Equals(Truncate(item.ExTipoDoc, 2), "08", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static short ToIntegraFastExonerationPercent(decimal percentage)
+        {
+            var normalized = percentage < 1m ? 1m : percentage > 13m ? 13m : percentage;
+            return Convert.ToInt16(Math.Round(normalized, 0, MidpointRounding.AwayFromZero));
         }
 
         private static string ResolveIntegraFastTaxCode(decimal taxRate)

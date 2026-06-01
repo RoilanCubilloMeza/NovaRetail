@@ -764,7 +764,7 @@ namespace NovaRetail.ViewModels
                     ExNumeroDoc = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.NumeroDocumento : string.Empty,
                     ExInstitucion = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.NombreInstitucion : string.Empty,
                     ExFecha = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.FechaEmision : null,
-                    ExPorcentaje = item.HasExoneration && _appliedExoneration is not null ? _appliedExoneration.PorcentajeExoneracion : 0m,
+                    ExPorcentaje = item.HasExoneration && _appliedExoneration is not null ? item.ExonerationPercent : 0m,
                     ExMonto = item.HasExoneration ? PricingRules.RoundMoney(lineTotals.ExonerationColones) : 0m
                 });
             }

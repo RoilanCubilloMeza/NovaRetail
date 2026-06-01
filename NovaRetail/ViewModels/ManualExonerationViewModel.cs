@@ -47,7 +47,7 @@ namespace NovaRetail.ViewModels
         private string _porcentajeText = string.Empty;
         private string _montoExoneradoText = "...";
         private bool _isBusy;
-        private string _statusMessage = "* Llene la información y haga click en Aplicar para continuar...";
+        private string _statusMessage = "* Llene la información y haga click en Aplicar para continuar (rango 1% a 13%).";
         private bool _isStatusSuccess;
         private decimal _cartSubtotalColones;
         private string _clientName = string.Empty;
@@ -102,7 +102,19 @@ namespace NovaRetail.ViewModels
         public string PorcentajeText
         {
             get => _porcentajeText;
-            set { if (_porcentajeText != value) { _porcentajeText = value; OnPropertyChanged(); } }
+            set
+            {
+                var incoming = value ?? string.Empty;
+                var normalized = incoming;
+                if (TryParsePercentage(normalized, out var pct) && pct > 13m)
+                    normalized = "13";
+
+                if (_porcentajeText != normalized || !string.Equals(incoming, normalized, StringComparison.Ordinal))
+                {
+                    _porcentajeText = normalized;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public string MontoExoneradoText
@@ -169,7 +181,7 @@ namespace NovaRetail.ViewModels
             PorcentajeText = string.Empty;
             MontoExoneradoText = "...";
             SetBusy(false);
-            SetStatus("* Llene la información y haga click en Aplicar para continuar...", false);
+            SetStatus("* Llene la información y haga click en Aplicar para continuar (rango 1% a 13%).", false);
         }
 
         public void SetBusy(bool busy) => IsBusy = busy;
@@ -192,6 +204,12 @@ namespace NovaRetail.ViewModels
             FechaVencimiento = doc.FechaVencimiento ?? DateTime.Today;
             Institucion = string.IsNullOrWhiteSpace(_clientName) ? doc.NombreInstitucion : _clientName;
             PorcentajeText = doc.PorcentajeExoneracion.ToString("0.##", CultureInfo.InvariantCulture);
+            if (doc.PorcentajeExoneracion < 1m || doc.PorcentajeExoneracion > 13m)
+            {
+                SetStatus("El porcentaje de Hacienda debe estar entre 1 y 13.", false);
+                CalcularMonto();
+                return;
+            }
             SetStatus("✓ Datos cargados desde Hacienda. Verifique y haga click en Aplicar.", true);
             CalcularMonto();
         }
@@ -199,7 +217,7 @@ namespace NovaRetail.ViewModels
         private void CalcularMonto()
         {
             if (decimal.TryParse(PorcentajeText, NumberStyles.Number, CultureInfo.InvariantCulture, out var pct)
-                && pct > 0 && _cartSubtotalColones > 0)
+                && pct >= 1m && pct <= 13m && _cartSubtotalColones > 0)
                 MontoExoneradoText = $"{UiConfig.CurrencySymbol}{_cartSubtotalColones * pct / 100m:N2}";
             else
                 MontoExoneradoText = "...";
@@ -214,9 +232,9 @@ namespace NovaRetail.ViewModels
                 return;
             }
 
-            if (pct <= 0 || pct > 100)
+            if (pct < 1m || pct > 13m)
             {
-                SetStatus("El porcentaje debe estar entre 1 y 100.", false);
+                SetStatus("El porcentaje debe estar entre 1 y 13.", false);
                 return;
             }
 
@@ -249,6 +267,12 @@ namespace NovaRetail.ViewModels
         {
             StatusMessage = message;
             IsStatusSuccess = isSuccess;
+        }
+
+        private static bool TryParsePercentage(string text, out decimal percentage)
+        {
+            return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out percentage)
+                || decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out percentage);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

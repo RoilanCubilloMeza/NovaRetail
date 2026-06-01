@@ -134,6 +134,9 @@ namespace NovaAPI.Models
 
             if (LineDiscountPercent < 0 || LineDiscountPercent > 100)
                 yield return new ValidationResult("LineDiscountPercent debe estar entre 0 y 100.", new[] { nameof(LineDiscountPercent) });
+
+            if (!string.IsNullOrWhiteSpace(ExNumeroDoc) && (ExPorcentaje < 1m || ExPorcentaje > 13m))
+                yield return new ValidationResult("ExPorcentaje debe estar entre 1 y 13 cuando la linea tiene exoneracion.", new[] { nameof(ExPorcentaje) });
         }
     }
 

@@ -1,4 +1,6 @@
 using NovaRetail.Models;
+using NovaAPI.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace NovaRetail.Tests;
 
@@ -163,5 +165,39 @@ public sealed class CreditAndArPresentationTests
 
         Assert.False(entry.IsSelected);
         Assert.Equal(0m, entry.AmountToApply);
+    }
+
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(14)]
+    public void Sale_item_rejects_exoneration_percent_outside_one_to_thirteen(decimal percent)
+    {
+        var item = new NovaRetailSaleItemDto
+        {
+            RowNo = 1,
+            ExNumeroDoc = "EX-1",
+            ExPorcentaje = percent
+        };
+
+        var results = item.Validate(new ValidationContext(item)).ToList();
+
+        Assert.Contains(results, r => r.MemberNames.Contains(nameof(NovaRetailSaleItemDto.ExPorcentaje)));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(13)]
+    public void Sale_item_accepts_exoneration_percent_between_one_and_thirteen(decimal percent)
+    {
+        var item = new NovaRetailSaleItemDto
+        {
+            RowNo = 1,
+            ExNumeroDoc = "EX-1",
+            ExPorcentaje = percent
+        };
+
+        var results = item.Validate(new ValidationContext(item)).ToList();
+
+        Assert.DoesNotContain(results, r => r.MemberNames.Contains(nameof(NovaRetailSaleItemDto.ExPorcentaje)));
     }
 }
