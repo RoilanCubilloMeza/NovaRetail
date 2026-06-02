@@ -10,6 +10,9 @@ namespace NovaAPI.Controllers
 {
     public partial class NovaRetailSalesController
     {
+        private const string FreeZoneArticle = "8";
+        private const string FreeZoneInciso = "2";
+
         /// <summary>
         /// Lee AVS_INTEGRAFAST_02 y actualiza el request con COD_SUCURSAL, CEDULA_TRIBUTARIA,
         /// COMPROBANTE_INTERNO, TIPOCAMBIO y TERMINAL_POS corregidos.
@@ -183,9 +186,14 @@ SELECT TOP 1
 
             if (!string.IsNullOrWhiteSpace(status.Clave50))
             {
-                using (var cmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+                using (var cmd = new SqlCommand(@"
+SELECT COUNT(1)
+  FROM dbo.AVS_INTEGRAFAST_05
+ WHERE TRANSACTIONNUMBER = @TransactionNumber
+    OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50;", cn))
                 {
                     cmd.CommandTimeout = 30;
+                    cmd.Parameters.AddWithValue("@TransactionNumber", transactionNumber.ToString());
                     cmd.Parameters.AddWithValue("@CLAVE50", status.Clave50);
                     status.DetailCount = Convert.ToInt32(cmd.ExecuteScalar());
                 }
@@ -202,7 +210,7 @@ SELECT TOP 1
             if (string.IsNullOrWhiteSpace(status.Clave50) || string.IsNullOrWhiteSpace(status.Clave20))
                 return false;
 
-            var expectedDetailCount = request?.Items?.Count ?? 0;
+            var expectedDetailCount = GetIntegraFast05ExpectedDetailCount(request);
             if (expectedDetailCount > 0 && status.DetailCount < expectedDetailCount)
                 return false;
 
@@ -219,7 +227,7 @@ SELECT TOP 1
             if (string.IsNullOrWhiteSpace(status.Clave20))
                 missing.Add("CLAVE20");
 
-            var expectedDetailCount = request?.Items?.Count ?? 0;
+            var expectedDetailCount = GetIntegraFast05ExpectedDetailCount(request);
             if (expectedDetailCount > 0 && status.DetailCount < expectedDetailCount)
                 missing.Add($"AVS_INTEGRAFAST_05 ({status.DetailCount}/{expectedDetailCount})");
 
@@ -571,16 +579,23 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 return;
             }
 
-            var expectedLineCount = request.Items.Count;
+            var expectedLineCount = GetIntegraFast05ExpectedDetailCount(request);
             var existingLineCount = 0;
-            using (var chk = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            using (var chk = new SqlCommand(@"
+SELECT COUNT(1)
+  FROM dbo.AVS_INTEGRAFAST_05
+ WHERE TRANSACTIONNUMBER = @TN
+    OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50;", cn))
             {
                 chk.CommandTimeout = 30;
+                chk.Parameters.AddWithValue("@TN", transactionNumber.ToString());
                 chk.Parameters.AddWithValue("@CLAVE50", clave50);
                 try
                 {
                     existingLineCount = Convert.ToInt32(chk.ExecuteScalar());
-                    if (existingLineCount >= expectedLineCount)
+                    if (expectedLineCount > 0 &&
+                        existingLineCount == expectedLineCount &&
+                        IntegraFast05RowsMatchExonerationRules(cn, transactionNumber, clave50))
                     {
                         LogPerformance($"Fiscal EnsureIntegraFast05 already complete {perf.ElapsedMilliseconds} ms tn={transactionNumber} lines={existingLineCount}/{expectedLineCount}");
                         return;
@@ -594,12 +609,22 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
             if (existingLineCount > 0)
             {
-                using (var deleteCmd = new SqlCommand("DELETE FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+                using (var deleteCmd = new SqlCommand(@"
+DELETE FROM dbo.AVS_INTEGRAFAST_05
+ WHERE TRANSACTIONNUMBER = @TN
+    OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50;", cn))
                 {
                     deleteCmd.CommandTimeout = 30;
+                    deleteCmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
                     deleteCmd.Parameters.AddWithValue("@CLAVE50", clave50);
                     deleteCmd.ExecuteNonQuery();
                 }
+            }
+
+            if (expectedLineCount == 0)
+            {
+                LogPerformance($"Fiscal EnsureIntegraFast05 no exoneration lines {perf.ElapsedMilliseconds} ms tn={transactionNumber}");
+                return;
             }
 
             var taxSystem = GetTaxSystem(cn);
@@ -647,6 +672,9 @@ UPDATE dbo.AVS_INTEGRAFAST_01
             foreach (var item in request.Items.OrderBy(i => i.RowNo))
             {
                 numLinea++;
+                if (!HasIntegraFast05Exoneration(item))
+                    continue;
+
                 var qty = item.Quantity <= 0 ? 1m : item.Quantity;
                 var unitPrice = item.UnitPrice;
                 var fullPrice = item.FullPrice ?? unitPrice;
@@ -665,8 +693,6 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 var hasExoneration = !string.IsNullOrWhiteSpace(item.ExNumeroDoc);
 
                 itemInfoMap.TryGetValue(item.ItemID, out var info);
-                var cabys = info.Cabys ?? string.Empty;
-                var codProducto = info.Code ?? item.ItemID.ToString();
                 var detalle = !string.IsNullOrWhiteSpace(item.ExtendedDescription)
                     ? item.ExtendedDescription
                     : !string.IsNullOrWhiteSpace(info.Description)
@@ -741,8 +767,8 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
                         if (isFreeZoneExoneration)
                         {
-                            cmd.Parameters.AddWithValue("@ARTICULO", Truncate(codProducto, 6));
-                            cmd.Parameters.AddWithValue("@INCISO", Truncate(cabys, 6));
+                            cmd.Parameters.AddWithValue("@ARTICULO", FreeZoneArticle);
+                            cmd.Parameters.AddWithValue("@INCISO", FreeZoneInciso);
                         }
 
                         cmd.ExecuteNonQuery();
@@ -754,9 +780,14 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 }
             }
 
-            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            using (var verifyCmd = new SqlCommand(@"
+SELECT COUNT(1)
+  FROM dbo.AVS_INTEGRAFAST_05
+ WHERE TRANSACTIONNUMBER = @TN
+    OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50;", cn))
             {
                 verifyCmd.CommandTimeout = 30;
+                verifyCmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
                 verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
                 var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
                 if (insertedCount < expectedLineCount)
@@ -773,7 +804,6 @@ UPDATE dbo.AVS_INTEGRAFAST_01
             string clave50,
             Dictionary<int, (string Cabys, string Code, string Description)> itemInfoMap)
         {
-            var regularRows = CreateIntegraFast05Rows(includeExoneration: false, includeFreeZoneFields: false);
             var exonerationRows = CreateIntegraFast05Rows(includeExoneration: true, includeFreeZoneFields: false);
             var freeZoneRows = CreateIntegraFast05Rows(includeExoneration: true, includeFreeZoneFields: true);
 
@@ -781,6 +811,9 @@ UPDATE dbo.AVS_INTEGRAFAST_01
             foreach (var item in request.Items.OrderBy(i => i.RowNo))
             {
                 numLinea++;
+                if (!HasIntegraFast05Exoneration(item))
+                    continue;
+
                 var qty = item.Quantity <= 0 ? 1m : item.Quantity;
                 var unitPrice = item.UnitPrice;
                 var fullPrice = item.FullPrice ?? unitPrice;
@@ -799,8 +832,6 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 var hasExoneration = !string.IsNullOrWhiteSpace(item.ExNumeroDoc);
 
                 itemInfoMap.TryGetValue(item.ItemID, out var info);
-                var cabys = info.Cabys ?? string.Empty;
-                var codProducto = info.Code ?? item.ItemID.ToString();
                 var detalle = !string.IsNullOrWhiteSpace(item.ExtendedDescription)
                     ? item.ExtendedDescription
                     : !string.IsNullOrWhiteSpace(info.Description)
@@ -811,9 +842,7 @@ UPDATE dbo.AVS_INTEGRAFAST_01
                 var naturalezaDescuento = montoDescuento > 0 ? (item.LineComment ?? "Descuento comercial") : string.Empty;
                 var exoneraPorcentaje = ToIntegraFastExonerationPercent(item.ExPorcentaje);
                 var isFreeZoneExoneration = IsFreeZoneExoneration(item);
-                var targetRows = hasExoneration
-                    ? isFreeZoneExoneration ? freeZoneRows : exonerationRows
-                    : regularRows;
+                var targetRows = isFreeZoneExoneration ? freeZoneRows : exonerationRows;
 
                 var values = new List<object>
                 {
@@ -849,24 +878,28 @@ UPDATE dbo.AVS_INTEGRAFAST_01
 
                 if (isFreeZoneExoneration)
                 {
-                    values.Add(Truncate(codProducto, 6));
-                    values.Add(Truncate(NormalizeCabys(cabys), 6));
+                    values.Add(FreeZoneArticle);
+                    values.Add(FreeZoneInciso);
                 }
 
                 targetRows.Rows.Add(values.ToArray());
             }
 
-            var totalRows = regularRows.Rows.Count + exonerationRows.Rows.Count + freeZoneRows.Rows.Count;
+            var totalRows = exonerationRows.Rows.Count + freeZoneRows.Rows.Count;
             if (totalRows == 0)
                 return;
 
-            BulkCopyIntegraFast05Rows(cn, regularRows);
             BulkCopyIntegraFast05Rows(cn, exonerationRows);
             BulkCopyIntegraFast05Rows(cn, freeZoneRows);
 
-            using (var verifyCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.AVS_INTEGRAFAST_05 WHERE CLAVE50 = @CLAVE50", cn))
+            using (var verifyCmd = new SqlCommand(@"
+SELECT COUNT(1)
+  FROM dbo.AVS_INTEGRAFAST_05
+ WHERE TRANSACTIONNUMBER = @TN
+    OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50;", cn))
             {
                 verifyCmd.CommandTimeout = 30;
+                verifyCmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
                 verifyCmd.Parameters.AddWithValue("@CLAVE50", clave50);
                 var insertedCount = Convert.ToInt32(verifyCmd.ExecuteScalar());
                 if (insertedCount < totalRows)
@@ -935,6 +968,47 @@ UPDATE dbo.AVS_INTEGRAFAST_01
         {
             return !string.IsNullOrWhiteSpace(item.ExNumeroDoc)
                 && string.Equals(Truncate(item.ExTipoDoc, 2), "08", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasIntegraFast05Exoneration(NovaRetailSaleItemDto item)
+        {
+            return item != null && !string.IsNullOrWhiteSpace(item.ExNumeroDoc);
+        }
+
+        private static int GetIntegraFast05ExpectedDetailCount(NovaRetailCreateSaleRequest request)
+        {
+            return request?.Items?.Count(HasIntegraFast05Exoneration) ?? 0;
+        }
+
+        private static bool IntegraFast05RowsMatchExonerationRules(SqlConnection cn, int transactionNumber, string clave50)
+        {
+            using (var cmd = new SqlCommand(@"
+SELECT COUNT(1)
+  FROM dbo.AVS_INTEGRAFAST_05
+ WHERE (TRANSACTIONNUMBER = @TN OR LTRIM(RTRIM(CLAVE50)) = @CLAVE50)
+   AND (
+        NULLIF(LTRIM(RTRIM(ISNULL(EXONERA_NUMERO_DOCUMENTO, ''))), '') IS NULL
+        OR (
+            NULLIF(LTRIM(RTRIM(ISNULL(EXONERA_TIPO_DOCUMENTO, ''))), '') = '08'
+            AND (
+                ISNULL(NULLIF(LTRIM(RTRIM(ARTICULO)), ''), '') <> @FREE_ZONE_ARTICLE
+                OR ISNULL(NULLIF(LTRIM(RTRIM(INCISO)), ''), '') <> @FREE_ZONE_INCISO
+            )
+        )
+        OR (
+            ISNULL(NULLIF(LTRIM(RTRIM(ISNULL(EXONERA_TIPO_DOCUMENTO, ''))), ''), '') <> '08'
+            AND (ARTICULO IS NOT NULL OR INCISO IS NOT NULL)
+        )
+   );", cn))
+            {
+                cmd.CommandTimeout = 30;
+                cmd.Parameters.AddWithValue("@TN", transactionNumber.ToString());
+                cmd.Parameters.AddWithValue("@CLAVE50", clave50);
+                cmd.Parameters.AddWithValue("@FREE_ZONE_ARTICLE", FreeZoneArticle);
+                cmd.Parameters.AddWithValue("@FREE_ZONE_INCISO", FreeZoneInciso);
+
+                return Convert.ToInt32(cmd.ExecuteScalar()) == 0;
+            }
         }
 
         private static short ToIntegraFastExonerationPercent(decimal percentage)
