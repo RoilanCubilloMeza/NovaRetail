@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -17,56 +18,10 @@ namespace NovaAPI.Controllers
     public class CustomersController : ApiController
     {
         private const decimal LedgerClosingTolerance = 0.01m;
-        private static readonly object CreditPerformanceIndexesLock = new object();
-        private static bool _creditPerformanceIndexesChecked;
 
         //string cs = AppConfig.ConnectionString("RMHPOS");
         //readonly LINQDataContext db = new LINQDataContext();
         readonly RMHCDataContext db = new RMHCDataContext(AppConfig.ConnectionString("RMHPOS"));//test
-
-        private static void EnsureCreditPerformanceIndexes(SqlConnection cn)
-        {
-            if (_creditPerformanceIndexesChecked)
-                return;
-
-            lock (CreditPerformanceIndexesLock)
-            {
-                if (_creditPerformanceIndexesChecked)
-                    return;
-
-                try
-                {
-                    using (var cmd = new SqlCommand(@"
-IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customer_TaxNumber_CreditLookup' AND object_id = OBJECT_ID(N'dbo.Customer', N'U'))
-    CREATE NONCLUSTERED INDEX IX_Customer_TaxNumber_CreditLookup ON dbo.Customer (TaxNumber) INCLUDE (ID, AccountNumber, FirstName, LastName, PriceLevel, CustomText5);
-
-IF OBJECT_ID(N'dbo.Customer', N'U') IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customer_AccountNumber_CreditLookup' AND object_id = OBJECT_ID(N'dbo.Customer', N'U'))
-    CREATE NONCLUSTERED INDEX IX_Customer_AccountNumber_CreditLookup ON dbo.Customer (AccountNumber) INCLUDE (ID, TaxNumber, FirstName, LastName, PriceLevel, CustomText5, PhoneNumber);
-
-IF OBJECT_ID(N'dbo.AR_Account', N'U') IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_Account_Number_CreditLookup' AND object_id = OBJECT_ID(N'dbo.AR_Account', N'U'))
-    CREATE NONCLUSTERED INDEX IX_AR_Account_Number_CreditLookup ON dbo.AR_Account (Number) INCLUDE (ID, CreditLimit);
-
-IF OBJECT_ID(N'dbo.AR_Account', N'U') IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_Account_CreditLimit_Number' AND object_id = OBJECT_ID(N'dbo.AR_Account', N'U'))
-    CREATE NONCLUSTERED INDEX IX_AR_Account_CreditLimit_Number ON dbo.AR_Account (CreditLimit, Number) INCLUDE (ID);
-
-IF OBJECT_ID(N'dbo.AR_AccountBalance', N'U') IS NOT NULL
-   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AR_AccountBalance_ID_Amount' AND object_id = OBJECT_ID(N'dbo.AR_AccountBalance', N'U'))
-    CREATE NONCLUSTERED INDEX IX_AR_AccountBalance_ID_Amount ON dbo.AR_AccountBalance (ID) INCLUDE (Amount);", cn))
-                    {
-                        cmd.CommandTimeout = 300;
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-                finally
-                {
-                    _creditPerformanceIndexesChecked = true;
-                }
-            }
-        }
 
         private static string Safe(string value, int maxLength)
         {
@@ -472,7 +427,6 @@ FROM Customer";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
-                    EnsureCreditPerformanceIndexes(cn);
 
                     string sql;
                     SqlCommand cmd;
@@ -566,7 +520,6 @@ ORDER BY c.LastName, c.FirstName";
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
-                    EnsureCreditPerformanceIndexes(cn);
 
                     var sql = @"
 ;WITH CandidateCustomer AS
@@ -713,50 +666,47 @@ WHERE AccountNumber LIKE {0}
             try
             {
                 var entries = new List<OpenLedgerEntryDto>();
+                var integrafastLookups = new List<OpenLedgerIntegrafastLookup>();
+                var requestTimer = System.Diagnostics.Stopwatch.StartNew();
+                long ledgerElapsedMilliseconds;
+                long integrafastElapsedMilliseconds;
+
                 using (var cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
 
-                    // Single round-trip: resolve AccountID via INNER JOIN
                     var sql = @"
+DECLARE @AccountID INT;
+
+SELECT TOP (1) @AccountID = a.ID
+FROM dbo.AR_Account a
+WHERE a.Number = @Number
+ORDER BY a.ID DESC;
+
 SELECT le.ID as LedgerEntryID,
        CONVERT(varchar(10), le.PostingDate, 103) as PostingDate,
        CONVERT(varchar(10), le.DueDate, 103) as DueDate,
        le.LedgerType,
        le.DocumentType,
+       le.DocumentID,
        ISNULL(le.Description, '') as Description,
        le.StoreID,
        ISNULL(le.Reference, '') as Reference,
        ISNULL(amounts.Amount, 0) as Amount,
-       ISNULL(balances.Amount, 0) as Balance,
-       ISNULL(NULLIF(fi.CLAVE20, ''), ISNULL(fi.COMPROBANTE_INTERNO, '')) as Clave20
+       ISNULL(balances.Amount, 0) as Balance
 FROM dbo.AR_LedgerEntry le
-INNER JOIN dbo.AR_Account a ON a.ID = le.AccountID AND a.Number = @Number
 OUTER APPLY dbo.fnAR_LedgerAmount(le.ID, NULL) amounts
 OUTER APPLY dbo.fnAR_LedgerBalance(le.ID, NULL) balances
-OUTER APPLY (
-    SELECT ReferenceNumber = LTRIM(RTRIM(
-        CASE
-            WHEN CHARINDEX(':', ISNULL(le.Reference, '')) > 0
-                THEN SUBSTRING(ISNULL(le.Reference, ''), CHARINDEX(':', ISNULL(le.Reference, '')) + 1, 50)
-            ELSE ISNULL(le.Reference, '')
-        END))
-) ref
-OUTER APPLY (
-    SELECT TOP (1) f.CLAVE20, f.COMPROBANTE_INTERNO
-    FROM dbo.AVS_INTEGRAFAST_01 f
-    WHERE TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = le.DocumentID
-       OR f.TRANSACTIONNUMBER = ref.ReferenceNumber
-       OR TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = TRY_CONVERT(INT, ref.ReferenceNumber)
-    ORDER BY CASE WHEN TRY_CONVERT(INT, f.TRANSACTIONNUMBER) = le.DocumentID THEN 0 ELSE 1 END
-) fi
-WHERE le.[Open] = 1
+WHERE le.AccountID = @AccountID
+  AND le.[Open] = 1
   AND le.DocumentType IN (1, 2, 3, 4)
-ORDER BY le.PostingDate";
+ORDER BY le.PostingDate
+OPTION (RECOMPILE);";
 
+                    var ledgerTimer = System.Diagnostics.Stopwatch.StartNew();
                     using (var cmd = new SqlCommand(sql, cn))
                     {
-                        cmd.Parameters.AddWithValue("@Number", accountNumber.Trim());
+                        cmd.Parameters.Add("@Number", SqlDbType.NVarChar, 40).Value = accountNumber.Trim();
                         cmd.CommandTimeout = 60;
 
                         using (var reader = cmd.ExecuteReader())
@@ -803,7 +753,7 @@ ORDER BY le.PostingDate";
                                     default: ledgerTypeName = "Otro"; break;
                                 }
 
-                                entries.Add(new OpenLedgerEntryDto
+                                var entry = new OpenLedgerEntryDto
                                 {
                                     LedgerEntryID = Convert.ToInt32(reader["LedgerEntryID"]),
                                     PostingDate = reader["PostingDate"].ToString(),
@@ -815,13 +765,39 @@ ORDER BY le.PostingDate";
                                     Reference = reader["Reference"].ToString(),
                                     Amount = Convert.ToDecimal(reader["Amount"]),
                                     Balance = balance,
-                                    Clave20 = reader["Clave20"].ToString(),
+                                    Clave20 = string.Empty,
                                     IsReadOnly = isCustomerCredit
+                                };
+
+                                entries.Add(entry);
+                                integrafastLookups.Add(new OpenLedgerIntegrafastLookup
+                                {
+                                    Entry = entry,
+                                    DocumentID = Convert.ToInt32(reader["DocumentID"]),
+                                    ReferenceNumber = ExtractReferenceNumber(entry.Reference)
                                 });
                             }
                         }
                     }
+
+                    ledgerTimer.Stop();
+                    ledgerElapsedMilliseconds = ledgerTimer.ElapsedMilliseconds;
+
+                    var integrafastTimer = System.Diagnostics.Stopwatch.StartNew();
+                    // Resolve electronic-document references in batches instead of scanning AVS once per ledger row.
+                    PopulateIntegrafastValues(cn, integrafastLookups);
+                    integrafastTimer.Stop();
+                    integrafastElapsedMilliseconds = integrafastTimer.ElapsedMilliseconds;
                 }
+
+                requestTimer.Stop();
+                System.Diagnostics.Debug.WriteLine(
+                    "OpenLedgerEntries ok: account={0}, entries={1}, ledger={2} ms, integrafast={3} ms, total={4} ms",
+                    accountNumber.Trim(),
+                    entries.Count,
+                    ledgerElapsedMilliseconds,
+                    integrafastElapsedMilliseconds,
+                    requestTimer.ElapsedMilliseconds);
 
                 return Request.CreateResponse(HttpStatusCode.OK, entries);
             }
@@ -830,6 +806,225 @@ ORDER BY le.PostingDate";
                 var msg = ex.InnerException?.Message ?? ex.Message;
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, "OpenLedgerEntries error: " + msg);
             }
+        }
+
+        private const int IntegrafastLookupBatchSize = 900;
+
+        private sealed class OpenLedgerIntegrafastLookup
+        {
+            public OpenLedgerEntryDto Entry { get; set; }
+            public int DocumentID { get; set; }
+            public string ReferenceNumber { get; set; }
+        }
+
+        private sealed class IntegrafastValue
+        {
+            public string Clave20 { get; set; }
+            public string ComprobanteInterno { get; set; }
+
+            public string DisplayValue
+            {
+                get
+                {
+                    return !string.IsNullOrWhiteSpace(Clave20)
+                        ? Clave20.Trim()
+                        : (ComprobanteInterno ?? string.Empty).Trim();
+                }
+            }
+        }
+
+        private static void PopulateIntegrafastValues(
+            SqlConnection cn,
+            IList<OpenLedgerIntegrafastLookup> lookups)
+        {
+            if (lookups == null || lookups.Count == 0)
+                return;
+
+            var exactCandidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var lookup in lookups)
+            {
+                if (lookup.DocumentID > 0)
+                    exactCandidates.Add(lookup.DocumentID.ToString(CultureInfo.InvariantCulture));
+
+                if (!string.IsNullOrWhiteSpace(lookup.ReferenceNumber))
+                    exactCandidates.Add(lookup.ReferenceNumber);
+            }
+
+            var exactMatches = LoadExactIntegrafastValues(cn, exactCandidates.ToList());
+            var numericCandidates = new HashSet<int>();
+
+            foreach (var lookup in lookups)
+            {
+                var documentKey = lookup.DocumentID > 0
+                    ? lookup.DocumentID.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+                var hasExactDocument = !string.IsNullOrEmpty(documentKey)
+                    && exactMatches.ContainsKey(documentKey);
+
+                if (!hasExactDocument && lookup.DocumentID > 0)
+                    numericCandidates.Add(lookup.DocumentID);
+
+                if (!hasExactDocument
+                    && !string.IsNullOrWhiteSpace(lookup.ReferenceNumber)
+                    && !exactMatches.ContainsKey(lookup.ReferenceNumber))
+                {
+                    int referenceNumber;
+                    if (int.TryParse(
+                        lookup.ReferenceNumber,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out referenceNumber))
+                    {
+                        numericCandidates.Add(referenceNumber);
+                    }
+                }
+            }
+
+            var numericMatches = LoadNumericIntegrafastValues(cn, numericCandidates.ToList());
+
+            foreach (var lookup in lookups)
+            {
+                IntegrafastValue value = null;
+                var documentKey = lookup.DocumentID > 0
+                    ? lookup.DocumentID.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+
+                if (!string.IsNullOrEmpty(documentKey))
+                    exactMatches.TryGetValue(documentKey, out value);
+
+                if (value == null && lookup.DocumentID > 0)
+                    numericMatches.TryGetValue(lookup.DocumentID, out value);
+
+                if (value == null && !string.IsNullOrWhiteSpace(lookup.ReferenceNumber))
+                    exactMatches.TryGetValue(lookup.ReferenceNumber, out value);
+
+                if (value == null && !string.IsNullOrWhiteSpace(lookup.ReferenceNumber))
+                {
+                    int referenceNumber;
+                    if (int.TryParse(
+                        lookup.ReferenceNumber,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out referenceNumber))
+                    {
+                        numericMatches.TryGetValue(referenceNumber, out value);
+                    }
+                }
+
+                if (value != null)
+                    lookup.Entry.Clave20 = value.DisplayValue;
+            }
+        }
+
+        private static Dictionary<string, IntegrafastValue> LoadExactIntegrafastValues(
+            SqlConnection cn,
+            IList<string> candidates)
+        {
+            var result = new Dictionary<string, IntegrafastValue>(StringComparer.OrdinalIgnoreCase);
+
+            for (var offset = 0; offset < candidates.Count; offset += IntegrafastLookupBatchSize)
+            {
+                var count = Math.Min(IntegrafastLookupBatchSize, candidates.Count - offset);
+                var parameterNames = new List<string>(count);
+
+                using (var cmd = cn.CreateCommand())
+                {
+                    for (var index = 0; index < count; index++)
+                    {
+                        var parameterName = "@tn" + index.ToString(CultureInfo.InvariantCulture);
+                        parameterNames.Add(parameterName);
+                        cmd.Parameters.Add(parameterName, SqlDbType.NVarChar, 50).Value = candidates[offset + index];
+                    }
+
+                    cmd.CommandText = @"
+SELECT f.TRANSACTIONNUMBER, f.CLAVE20, f.COMPROBANTE_INTERNO
+FROM dbo.AVS_INTEGRAFAST_01 f
+WHERE f.TRANSACTIONNUMBER IN (" + string.Join(",", parameterNames) + ");";
+                    cmd.CommandTimeout = 60;
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var key = (reader["TRANSACTIONNUMBER"] == DBNull.Value
+                                ? string.Empty
+                                : reader["TRANSACTIONNUMBER"].ToString()).Trim();
+
+                            if (!string.IsNullOrEmpty(key) && !result.ContainsKey(key))
+                                result.Add(key, ReadIntegrafastValue(reader));
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static Dictionary<int, IntegrafastValue> LoadNumericIntegrafastValues(
+            SqlConnection cn,
+            IList<int> candidates)
+        {
+            var result = new Dictionary<int, IntegrafastValue>();
+
+            for (var offset = 0; offset < candidates.Count; offset += IntegrafastLookupBatchSize)
+            {
+                var count = Math.Min(IntegrafastLookupBatchSize, candidates.Count - offset);
+                var parameterNames = new List<string>(count);
+
+                using (var cmd = cn.CreateCommand())
+                {
+                    for (var index = 0; index < count; index++)
+                    {
+                        var parameterName = "@id" + index.ToString(CultureInfo.InvariantCulture);
+                        parameterNames.Add(parameterName);
+                        cmd.Parameters.Add(parameterName, SqlDbType.Int).Value = candidates[offset + index];
+                    }
+
+                    cmd.CommandText = @"
+SELECT TRY_CONVERT(INT, f.TRANSACTIONNUMBER) AS TransactionNumber,
+       f.CLAVE20,
+       f.COMPROBANTE_INTERNO
+FROM dbo.AVS_INTEGRAFAST_01 f
+WHERE TRY_CONVERT(INT, f.TRANSACTIONNUMBER) IN (" + string.Join(",", parameterNames) + ");";
+                    cmd.CommandTimeout = 60;
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (reader["TransactionNumber"] == DBNull.Value)
+                                continue;
+
+                            var key = Convert.ToInt32(reader["TransactionNumber"]);
+                            if (!result.ContainsKey(key))
+                                result.Add(key, ReadIntegrafastValue(reader));
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static IntegrafastValue ReadIntegrafastValue(IDataRecord reader)
+        {
+            return new IntegrafastValue
+            {
+                Clave20 = reader["CLAVE20"] == DBNull.Value ? string.Empty : reader["CLAVE20"].ToString(),
+                ComprobanteInterno = reader["COMPROBANTE_INTERNO"] == DBNull.Value
+                    ? string.Empty
+                    : reader["COMPROBANTE_INTERNO"].ToString()
+            };
+        }
+
+        private static string ExtractReferenceNumber(string reference)
+        {
+            var value = (reference ?? string.Empty).Trim();
+            var separatorIndex = value.IndexOf(':');
+            return separatorIndex >= 0
+                ? value.Substring(separatorIndex + 1).Trim()
+                : value;
         }
 
         // ──────── Registrar abono a cuenta de crédito ────────

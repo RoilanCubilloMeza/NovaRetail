@@ -24,6 +24,10 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     private OpenLedgerEntryModel? _pendingEntry;
     private string _searchText = string.Empty;
     private int _dueDateFilter = 0;
+    private decimal _totalToApply;
+    private int _selectedCount;
+    private bool _isBatchUpdating;
+    private CancellationTokenSource? _filterDebounceCts;
 
     public BatchObservableCollection<TenderModel> PaymentTenders { get; } = new();
     public BatchObservableCollection<OpenLedgerEntryModel> OpenEntries { get; } = new();
@@ -78,7 +82,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
             {
                 _searchText = value;
                 OnPropertyChanged();
-                ApplyFilter();
+                ScheduleFilter();
             }
         }
     }
@@ -106,9 +110,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     public bool IsFilter60Active  => _dueDateFilter == 60;
     public bool IsFilter90Active  => _dueDateFilter == 90;
 
-    public decimal TotalToApply => OpenEntries.Where(e => e.IsSelected && !e.IsReadOnly).Sum(e => e.AmountToApply);
+    public decimal TotalToApply => _totalToApply;
     public string TotalToApplyText => $"₡{TotalToApply:N2}";
-    public int SelectedCount => OpenEntries.Count(e => e.IsSelected && !e.IsReadOnly);
+    public int SelectedCount => _selectedCount;
     public string SelectedCountText => $"{SelectedCount} factura(s) seleccionada(s)";
     public bool HasEntries => OpenEntries.Count > 0;
 
@@ -364,16 +368,36 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         SelectAllCommand = new Command(() =>
         {
-            foreach (var entry in FilteredEntries.Where(e => !e.IsReadOnly))
-                entry.IsSelected = true;
+            _isBatchUpdating = true;
+            try
+            {
+                foreach (var entry in FilteredEntries.Where(e => !e.IsReadOnly))
+                    entry.IsSelected = true;
+            }
+            finally
+            {
+                _isBatchUpdating = false;
+            }
+
             UpdateReferencia();
+            RefreshTotals();
         });
 
         DeselectAllCommand = new Command(() =>
         {
-            foreach (var entry in OpenEntries)
-                entry.IsSelected = false;
+            _isBatchUpdating = true;
+            try
+            {
+                foreach (var entry in OpenEntries)
+                    entry.IsSelected = false;
+            }
+            finally
+            {
+                _isBatchUpdating = false;
+            }
+
             UpdateReferencia();
+            RefreshTotals();
         });
 
         PayTotalCommand = new Command(() =>
@@ -436,6 +460,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
         ClearFilterCommand = new Command(() =>
         {
+            CancelPendingFilter();
             _searchText = string.Empty;
             OnPropertyChanged(nameof(SearchText));
             _dueDateFilter = 0;
@@ -614,6 +639,8 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     public void LoadOpenEntries(IEnumerable<OpenLedgerEntryModel> entries)
     {
+        CancelPendingFilter();
+
         foreach (var e in OpenEntries)
         {
             e.ValueChanged -= OnEntryValueChanged;
@@ -660,10 +687,71 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         ErrorMessage = string.Empty;
     }
 
+    public void ApplySuccessfulPayment(AbonoPaymentRequest request)
+    {
+        if (request is null
+            || Customer is null
+            || !string.Equals(AccountNumber, request.AccountNumber, StringComparison.OrdinalIgnoreCase))
+        {
+            SetSuccess();
+            return;
+        }
+
+        var appliedAmounts = request.Applications
+            .GroupBy(application => application.LedgerEntryID)
+            .ToDictionary(group => group.Key, group => group.Sum(application => application.Amount));
+
+        var remainingEntries = new List<OpenLedgerEntryModel>(OpenEntries.Count);
+        _isBatchUpdating = true;
+        try
+        {
+            foreach (var entry in OpenEntries)
+            {
+                if (!appliedAmounts.TryGetValue(entry.LedgerEntryID, out var appliedAmount))
+                {
+                    remainingEntries.Add(entry);
+                    continue;
+                }
+
+                entry.IsSelected = false;
+                entry.AmountToApplyText = "0,00";
+                entry.Balance = Math.Max(0, Math.Round(entry.Balance - appliedAmount, 2));
+
+                if (entry.Balance > 0.01m)
+                    remainingEntries.Add(entry);
+            }
+        }
+        finally
+        {
+            _isBatchUpdating = false;
+        }
+
+        var paidAmount = Math.Max(0, request.TotalAmount);
+        RefreshCredit(new CustomerCreditInfo
+        {
+            ID = Customer.ID,
+            AccountNumber = Customer.AccountNumber,
+            FirstName = Customer.FirstName,
+            LastName = Customer.LastName,
+            AccountTypeID = Customer.AccountTypeID,
+            CreditDays = Customer.CreditDays,
+            ClosingBalance = Math.Max(0, Customer.ClosingBalance - paidAmount),
+            CreditLimit = Customer.CreditLimit,
+            Available = Math.Min(Customer.CreditLimit, Customer.Available + paidAmount),
+            HasCredit = Customer.HasCredit,
+            IsEven = Customer.IsEven
+        });
+
+        LoadOpenEntries(remainingEntries);
+        SetSuccess();
+    }
+
     public void RefreshCredit(CustomerCreditInfo updated) => Customer = updated;
 
     public void Reset()
     {
+        CancelPendingFilter();
+
         foreach (var e in OpenEntries)
         {
             e.ValueChanged -= OnEntryValueChanged;
@@ -697,6 +785,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     private void OnEntryValueChanged()
     {
+        if (_isBatchUpdating)
+            return;
+
         RefreshTotals();
     }
 
@@ -704,6 +795,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName != nameof(OpenLedgerEntryModel.IsSelected)) return;
         if (sender is not OpenLedgerEntryModel entry) return;
+        if (_isBatchUpdating) return;
 
         if (entry.IsSelected && !entry.IsReadOnly)
         {
@@ -736,7 +828,7 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
 
     private void ApplyFilter()
     {
-        var text = (_searchText ?? string.Empty).Trim().ToUpperInvariant();
+        var text = (_searchText ?? string.Empty).Trim();
         var today = DateTime.Today;
 
         IEnumerable<OpenLedgerEntryModel> filtered = OpenEntries;
@@ -744,9 +836,9 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         if (!string.IsNullOrEmpty(text))
         {
             filtered = filtered.Where(e =>
-                (e.Description ?? string.Empty).ToUpperInvariant().Contains(text) ||
-                (e.Integrafast01Text ?? string.Empty).ToUpperInvariant().Contains(text) ||
-                (e.Reference ?? string.Empty).ToUpperInvariant().Contains(text));
+                (e.Description ?? string.Empty).Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                (e.Integrafast01Text ?? string.Empty).Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                (e.Reference ?? string.Empty).Contains(text, StringComparison.OrdinalIgnoreCase));
         }
 
         if (_dueDateFilter > 0)
@@ -770,8 +862,58 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
         FilteredEntries.ReplaceAll(filtered.ToList());
     }
 
+    private void ScheduleFilter()
+    {
+        _filterDebounceCts?.Cancel();
+
+        var cancellation = new CancellationTokenSource();
+        _filterDebounceCts = cancellation;
+        _ = ApplyFilterAfterDelayAsync(cancellation);
+    }
+
+    private async Task ApplyFilterAfterDelayAsync(CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.Delay(250, cancellation.Token);
+            if (ReferenceEquals(_filterDebounceCts, cancellation))
+                ApplyFilter();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_filterDebounceCts, cancellation))
+                _filterDebounceCts = null;
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelPendingFilter()
+    {
+        _filterDebounceCts?.Cancel();
+        _filterDebounceCts = null;
+    }
+
     private void RefreshTotals()
     {
+        decimal total = 0;
+        var selectedCount = 0;
+
+        foreach (var entry in OpenEntries)
+        {
+            if (!entry.IsSelected || entry.IsReadOnly)
+                continue;
+
+            selectedCount++;
+            total += entry.AmountToApply;
+        }
+
+        _totalToApply = total;
+        _selectedCount = selectedCount;
+
         OnPropertyChanged(nameof(TotalToApply));
         OnPropertyChanged(nameof(TotalToApplyText));
         OnPropertyChanged(nameof(SelectedCount));

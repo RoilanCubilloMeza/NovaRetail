@@ -231,6 +231,15 @@ namespace NovaRetail.Data
                 _creditSearchCache[key] = (DateTimeOffset.UtcNow, value);
         }
 
+        private void InvalidateCreditCache(string accountNumber)
+        {
+            lock (_creditCacheLock)
+            {
+                _creditInfoCache.Remove((accountNumber ?? string.Empty).Trim());
+                _creditSearchCache.Clear();
+            }
+        }
+
         public async Task<IReadOnlyList<OpenLedgerEntryModel>> ObtenerCuentasAbiertasAsync(string accountNumber)
         {
             if (string.IsNullOrWhiteSpace(accountNumber))
@@ -242,8 +251,17 @@ namespace NovaRetail.Data
                 {
                     var url = $"{baseUrl}/api/Customers/OpenLedgerEntries?accountNumber={Uri.EscapeDataString(accountNumber.Trim())}";
                     var http = _httpClientFactory.CreateClient(ClientName);
-                    var json = await http.GetStringAsync(url);
-                    var results = JsonConvert.DeserializeObject<List<OpenLedgerEntryModel>>(json);
+                    using var response = await http
+                        .GetAsync(url, HttpCompletionOption.ResponseHeadersRead)
+                        .ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
+
+                    using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    using var streamReader = new StreamReader(stream);
+                    using var jsonReader = new JsonTextReader(streamReader);
+                    var results = JsonSerializer.CreateDefault()
+                        .Deserialize<List<OpenLedgerEntryModel>>(jsonReader);
+
                     return results ?? (IReadOnlyList<OpenLedgerEntryModel>)Array.Empty<OpenLedgerEntryModel>();
                 }
                 catch (Exception ex)
@@ -302,10 +320,12 @@ namespace NovaRetail.Data
                             string msg = "Abono registrado correctamente.";
                             if (okObj != null && !okObj.AppCentralOk && !string.IsNullOrWhiteSpace(okObj.AppCentralMessage))
                                 msg += $" (AppCentral: {okObj.AppCentralMessage})";
+                            InvalidateCreditCache(request.AccountNumber);
                             return (true, msg);
                         }
                         catch
                         {
+                            InvalidateCreditCache(request.AccountNumber);
                             return (true, "Abono registrado correctamente.");
                         }
                     }

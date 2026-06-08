@@ -331,7 +331,8 @@ namespace NovaRetail.ViewModels
 
                 if (success)
                 {
-                    await MainThread.InvokeOnMainThreadAsync(() => CreditPaymentDetailVm.SetSuccess());
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                        CreditPaymentDetailVm.ApplySuccessfulPayment(request));
                     await RefreshCreditPaymentDetailAsync(request.AccountNumber);
                 }
                 else
