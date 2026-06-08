@@ -129,6 +129,32 @@ public sealed class CreditAndArPresentationTests
         Assert.Equal(expected, entry.LedgerTypeDisplayName);
     }
 
+    [Theory]
+    [InlineData("Adjustment", "Ajuste")]
+    [InlineData("Ajuste", "Ajuste")]
+    [InlineData("Credit Memo", "Nota Credito")]
+    public void Open_ledger_document_type_is_displayed_in_spanish(string rawType, string expected)
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            DocumentTypeName = rawType
+        };
+
+        Assert.Equal(expected, entry.DocumentTypeDisplayName);
+    }
+
+    [Fact]
+    public void Readonly_adjustment_shows_no_apply_marker()
+    {
+        var entry = new OpenLedgerEntryModel
+        {
+            DocumentTypeName = "Ajuste",
+            IsReadOnly = true
+        };
+
+        Assert.Equal("No aplica", entry.ReadOnlyMarkerText);
+    }
+
     [Fact]
     public void Open_ledger_integrafast_text_uses_clave20_when_available()
     {

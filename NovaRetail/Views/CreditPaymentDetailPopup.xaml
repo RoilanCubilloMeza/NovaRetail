@@ -195,7 +195,7 @@
                   ColumnSpacing="4">
                 <Label Grid.Column="0" Text="Fecha Pub."     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
                 <Label Grid.Column="1" Text="F. Venc."       FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
-                <Label Grid.Column="2" Text="Tipo L.M."      FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
+                <Label Grid.Column="2" Text="Tipo doc."      FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
                 <Label Grid.Column="3" Text="Descripción"    FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
                 <Label Grid.Column="4" Text="Integrafast01"  FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
                 <Label Grid.Column="5" Text="Referencia"     FontSize="9.5" FontAttributes="Bold" TextColor="#E2E8F0"/>
@@ -235,7 +235,7 @@
                             </BoxView>
                             <Label Grid.Column="0" Text="{Binding PostingDate}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
                             <Label Grid.Column="1" Text="{Binding DueDate}"        FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="NoWrap"/>
-                            <Label Grid.Column="2" Text="{Binding LedgerTypeDisplayName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
+                            <Label Grid.Column="2" Text="{Binding DocumentTypeDisplayName}" FontSize="10" TextColor="#334155" VerticalOptions="Center"/>
                             <Label Grid.Column="3" Text="{Binding Description}"    FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
                             <Label Grid.Column="4" Text="{Binding Integrafast01Text}" FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
                             <Label Grid.Column="5" Text="{Binding Reference}"      FontSize="10" TextColor="#334155" VerticalOptions="Center" LineBreakMode="TailTruncation" MaxLines="1"/>
@@ -256,7 +256,7 @@
                                    VerticalOptions="Center" HeightRequest="28"/>
                             <Label Grid.Column="8"
                                    IsVisible="{Binding IsReadOnly}"
-                                   Text="N/C" FontSize="10" FontAttributes="Bold"
+                                   Text="{Binding ReadOnlyMarkerText}" FontSize="10" FontAttributes="Bold"
                                    TextColor="#92400E"
                                    HorizontalTextAlignment="Center" VerticalOptions="Center"/>
                             <CheckBox Grid.Column="9"

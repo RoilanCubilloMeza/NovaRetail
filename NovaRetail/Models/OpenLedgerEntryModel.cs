@@ -28,6 +28,8 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
     [JsonProperty("documentTypeName")]
     public string DocumentTypeName { get; set; } = string.Empty;
 
+    public string DocumentTypeDisplayName => TranslateLedgerTypeName(DocumentTypeName);
+
     [JsonProperty("description")]
     public string Description { get; set; } = string.Empty;
 
@@ -52,6 +54,11 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
 
     [JsonProperty("isReadOnly")]
     public bool IsReadOnly { get; set; }
+
+    public bool IsAdjustment => IsAdjustmentType(LedgerTypeName) || IsAdjustmentType(DocumentTypeName);
+    public string ReadOnlyMarkerText => IsReadOnly
+        ? IsAdjustment ? "No aplica" : "N/C"
+        : string.Empty;
 
     public string AmountText => $"₡{Amount:N2}";
     public string BalanceText => $"₡{Balance:N2}";
@@ -145,11 +152,19 @@ public class OpenLedgerEntryModel : INotifyPropertyChanged
             "NOTA DE CREDITO" => "Nota Credito",
             "TRANSACTION" => "Transaccion",
             "ADJUSTMENT" => "Ajuste",
+            "ADJUST" => "Ajuste",
+            "AJUSTE" => "Ajuste",
             "PAYMENT" => "Pago",
             "OTHER" => "Otro",
             "" => string.Empty,
             _ => text
         };
+    }
+
+    private static bool IsAdjustmentType(string value)
+    {
+        var text = (value ?? string.Empty).Trim().ToUpperInvariant();
+        return text is "ADJUSTMENT" or "ADJUST" or "AJUSTE";
     }
 
     private static string ExtractIntegrafastReference(string value)

@@ -515,13 +515,13 @@ public class CreditPaymentDetailViewModel : INotifyPropertyChanged
                     {
                         ws.Cell(dataRow, 1).Value = e.PostingDate;
                         ws.Cell(dataRow, 2).Value = e.DueDate;
-                        ws.Cell(dataRow, 3).Value = e.LedgerTypeDisplayName;
+                        ws.Cell(dataRow, 3).Value = e.DocumentTypeDisplayName;
                         ws.Cell(dataRow, 4).Value = e.Description;
                         ws.Cell(dataRow, 5).Value = e.Integrafast01Text;
                         ws.Cell(dataRow, 6).Value = e.Reference;
                         ws.Cell(dataRow, 7).Value = e.Amount;
                         ws.Cell(dataRow, 8).Value = e.Balance;
-                        ws.Cell(dataRow, 9).Value = e.IsReadOnly ? "N/C" : string.Empty;
+                        ws.Cell(dataRow, 9).Value = e.ReadOnlyMarkerText;
 
                         ws.Cell(dataRow, 7).Style.NumberFormat.Format = "#,##0.00";
                         ws.Cell(dataRow, 8).Style.NumberFormat.Format = "#,##0.00";

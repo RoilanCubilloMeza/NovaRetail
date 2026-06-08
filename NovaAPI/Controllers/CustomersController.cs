@@ -76,6 +76,8 @@ IF OBJECT_ID(N'dbo.AR_AccountBalance', N'U') IS NOT NULL
 
         private sealed class LedgerBalanceSnapshot
         {
+            public int AccountID { get; set; }
+            public int DocumentType { get; set; }
             public int LedgerType { get; set; }
             public DateTime DueDate { get; set; }
             public decimal Balance { get; set; }
@@ -88,6 +90,8 @@ IF OBJECT_ID(N'dbo.AR_AccountBalance', N'U') IS NOT NULL
         {
             using (var cmd = new SqlCommand(@"
 SELECT
+    AccountID = ISNULL(MAX(le.AccountID), 0),
+    DocumentType = ISNULL(MAX(le.DocumentType), 0),
     LedgerType = ISNULL(MAX(le.LedgerType), 0),
     DueDate = ISNULL(MAX(le.DueDate), GETDATE()),
     Balance = ISNULL(SUM(d.Amount), 0),
@@ -124,6 +128,8 @@ WHERE le.ID = @LedgerEntryID;", cn, tx))
 
                     return new LedgerBalanceSnapshot
                     {
+                        AccountID = reader["AccountID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["AccountID"]),
+                        DocumentType = reader["DocumentType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["DocumentType"]),
                         LedgerType = reader["LedgerType"] == DBNull.Value ? 0 : Convert.ToInt32(reader["LedgerType"]),
                         DueDate = reader["DueDate"] == DBNull.Value ? DateTime.Now : Convert.ToDateTime(reader["DueDate"]),
                         Balance = reader["Balance"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Balance"]),
@@ -133,6 +139,27 @@ WHERE le.ID = @LedgerEntryID;", cn, tx))
                     };
                 }
             }
+        }
+
+        private static bool IsAdjustmentLedger(int documentType, int ledgerType)
+        {
+            return ledgerType == 1 || documentType == 1 || documentType == 2;
+        }
+
+        private static bool IsCustomerCreditLedger(int documentType, int ledgerType, decimal balance)
+        {
+            return ledgerType == 4 || documentType == 4 || balance < -LedgerClosingTolerance;
+        }
+
+        private static bool CanApplyPaymentToLedger(LedgerBalanceSnapshot snapshot, int accountID)
+        {
+            if (snapshot == null || snapshot.AccountID != accountID)
+                return false;
+
+            if (IsCustomerCreditLedger(snapshot.DocumentType, snapshot.LedgerType, snapshot.Balance))
+                return false;
+
+            return snapshot.Balance > LedgerClosingTolerance;
         }
 
         private static void SetLedgerEntryOpenState(SqlConnection cn, SqlTransaction tx, int ledgerEntryID, bool isOpen, DateTime now)
@@ -739,13 +766,18 @@ ORDER BY le.PostingDate";
                                 var documentType = Convert.ToInt32(reader["DocumentType"]);
                                 var ledgerType = Convert.ToInt32(reader["LedgerType"]);
                                 var rawBalance = Convert.ToDecimal(reader["Balance"]);
-                                var isCustomerCredit = ledgerType == 4 || documentType == 4 || rawBalance < -LedgerClosingTolerance;
+                                var isCustomerCredit = IsCustomerCreditLedger(documentType, ledgerType, rawBalance);
+                                var isNegativeAdjustment = IsAdjustmentLedger(documentType, ledgerType) && rawBalance < -LedgerClosingTolerance;
                                 if (!isCustomerCredit && rawBalance <= LedgerClosingTolerance) continue;
                                 if (isCustomerCredit && Math.Abs(rawBalance) <= LedgerClosingTolerance) continue;
                                 var balance = Math.Round(isCustomerCredit ? Math.Abs(rawBalance) : rawBalance, 2);
 
                                 string docTypeName;
-                                switch (documentType)
+                                if (isNegativeAdjustment)
+                                {
+                                    docTypeName = "Ajuste";
+                                }
+                                else switch (documentType)
                                 {
                                     case 1: docTypeName = "Adjustment"; break;
                                     case 2: docTypeName = "Adjustment"; break;
@@ -755,7 +787,11 @@ ORDER BY le.PostingDate";
                                 }
 
                                 string ledgerTypeName;
-                                if (isCustomerCredit)
+                                if (isNegativeAdjustment)
+                                {
+                                    ledgerTypeName = "Ajuste";
+                                }
+                                else if (isCustomerCredit)
                                 {
                                     ledgerTypeName = "Nota Crédito";
                                 }
@@ -866,6 +902,25 @@ WHERE a.Number = @Number", cn))
                             AppCentralOk = false,
                             AppCentralMessage = "No se intentó (cuenta no encontrada en RMHPOS)."
                         });
+
+                    if (request.Applications != null)
+                    {
+                        foreach (var app in request.Applications.Where(a => a != null && a.LedgerEntryID > 0 && a.Amount > 0))
+                        {
+                            var targetSnapshot = LoadLedgerBalanceSnapshot(cn, null, app.LedgerEntryID);
+                            if (!CanApplyPaymentToLedger(targetSnapshot, accountID))
+                            {
+                                return Request.CreateResponse(HttpStatusCode.BadRequest, new CreditPaymentResponse
+                                {
+                                    Ok = false,
+                                    Message = "No se permite aplicar abonos a ajustes a favor del cliente, notas de crédito o documentos sin saldo por cobrar.",
+                                    RmhposOk = false,
+                                    AppCentralOk = false,
+                                    AppCentralMessage = "No se intentó (documento no aplicable)."
+                                });
+                            }
+                        }
+                    }
 
                     using (var tx = cn.BeginTransaction())
                     {
