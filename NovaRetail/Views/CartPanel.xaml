@@ -29,7 +29,7 @@
                            FontSize="{DynamicResource UIFontXS}" TextColor="{DynamicResource Gray500}"/>
                 </VerticalStackLayout>
                 <Border Grid.Column="2"
-                        BackgroundColor="{DynamicResource AccentBlue}"
+                        BackgroundColor="{DynamicResource AccentOrange}"
                         StrokeShape="RoundRectangle 6" StrokeThickness="0"
                         Padding="10,6" HeightRequest="32">
                     <Border.GestureRecognizers>
@@ -39,7 +39,7 @@
                            FontSize="12" VerticalOptions="Center"/>
                 </Border>
                 <Border Grid.Column="3"
-                        BackgroundColor="#0D9488"
+                        BackgroundColor="{DynamicResource AccentOrange}"
                         StrokeShape="RoundRectangle 6" StrokeThickness="0"
                         Padding="10,6" HeightRequest="32">
                     <Border.GestureRecognizers>
@@ -770,7 +770,7 @@
 
                         <!-- Vaciar Ticket -->
                         <Border Grid.Column="0"
-                                BackgroundColor="{DynamicResource OrangeDark}"
+                                BackgroundColor="{DynamicResource AccentGreen}"
                                 StrokeShape="RoundRectangle 8" StrokeThickness="0"
                                 Padding="10,8"
                                 VerticalOptions="Start">

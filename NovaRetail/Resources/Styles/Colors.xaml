@@ -5,13 +5,19 @@
 
     <!-- POS -->
     <Color x:Key="PageBackground">#F1F5F9</Color>
-    <Color x:Key="AccentOrange">#EA580C</Color>
-    <Color x:Key="AccentGreen">#22C55E</Color>
+   <Color x:Key="AccentOrange">#111827</Color>
+   <Color x:Key="AccentGreen">#1A6FC4</Color>
     <Color x:Key="AccentBlue">#3B82F6</Color>
     <Color x:Key="ErrorRed">#EF4444</Color>
     <Color x:Key="InputBackground">#F3F4F6</Color>
     <Color x:Key="GreenSurface">#EDFDF4</Color>
 
+   <Color x:Key="ActionLink_SurfaceColor">#FFFFFF</Color>
+   <Color x:Key="ActionLink_StrokeColor">#E2E8F0</Color>
+   <Color x:Key="ActionLink_IconColor">#2563EB</Color>
+   <Color x:Key="ActionLink_LabelColor">#0F172A</Color>
+   <Color x:Key="ActionLink_ArrowColor">#94A3B8</Color>
+   
     <!-- Panel / UI chrome -->
     <Color x:Key="PanelNavy">#1E293B</Color>
     <Color x:Key="SlateActive">#475569</Color>

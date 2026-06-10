@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<SavedWcfConfigurationInformation xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="9.1" CheckSum="Y9C8c2SK8ICJa4uuNyyGgcU3xEHttrE8jBEjwAZ9bdY=">
+<SavedWcfConfigurationInformation xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="9.1" CheckSum="HTxlQsu75I1s5IJceeEdsXQKAUzKzLxr8ay45xtVrs8=">
   <bindingConfigurations>
     <bindingConfiguration bindingType="basicHttpBinding" name="BasicHttpBinding_IFacturaMeCrContract">
       <properties>
@@ -221,10 +221,10 @@
     </bindingConfiguration>
   </bindingConfigurations>
   <endpoints>
-    <endpoint name="BasicHttpBinding_IFacturaMeCrContract" contract="wsSecurityMain.IFacturaMeCrContract" bindingType="basicHttpBinding" address="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" bindingConfiguration="BasicHttpBinding_IFacturaMeCrContract">
+    <endpoint name="BasicHttpBinding_IFacturaMeCrContract" contract="wsSecurityMain.IFacturaMeCrContract" bindingType="basicHttpBinding" address="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" bindingConfiguration="BasicHttpBinding_IFacturaMeCrContract">
       <properties>
         <property path="/address" isComplexType="false" isExplicitlyDefined="true" clrType="System.Uri, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-          <serializedValue>http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc</serializedValue>
+          <serializedValue>http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc</serializedValue>
         </property>
         <property path="/behaviorConfiguration" isComplexType="false" isExplicitlyDefined="false" clrType="System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
           <serializedValue />
@@ -306,10 +306,10 @@
         </property>
       </properties>
     </endpoint>
-    <endpoint name="BasicHttpsBinding_IFacturaMeCrContract" contract="wsSecurityMain.IFacturaMeCrContract" bindingType="basicHttpBinding" address="https://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" bindingConfiguration="BasicHttpsBinding_IFacturaMeCrContract">
+    <endpoint name="BasicHttpsBinding_IFacturaMeCrContract" contract="wsSecurityMain.IFacturaMeCrContract" bindingType="basicHttpBinding" address="https://adminlte.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" bindingConfiguration="BasicHttpsBinding_IFacturaMeCrContract">
       <properties>
         <property path="/address" isComplexType="false" isExplicitlyDefined="true" clrType="System.Uri, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-          <serializedValue>https://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc</serializedValue>
+          <serializedValue>https://adminlte.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc</serializedValue>
         </property>
         <property path="/behaviorConfiguration" isComplexType="false" isExplicitlyDefined="false" clrType="System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
           <serializedValue />

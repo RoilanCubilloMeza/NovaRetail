@@ -117,7 +117,7 @@
 
     <!-- Botón "−" (naranja) -->
     <Style x:Key="CartMinusBtn" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{DynamicResource AccentOrange}"/>
+      <Setter Property="BackgroundColor" Value="{DynamicResource AccentGreen}"/>
         <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
         <Setter Property="StrokeThickness" Value="0"/>
         <Setter Property="WidthRequest" Value="32"/>

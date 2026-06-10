@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<wsdl:definitions xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:tns="http://tempuri.org/" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="FacturaMeCrService" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+<wsdl:definitions xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns="http://tempuri.org/" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" name="FacturaMeCrService" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
   <wsp:Policy wsu:Id="BasicHttpsBinding_IFacturaMeCrContract_policy">
     <wsp:ExactlyOne>
       <wsp:All>
@@ -27,15 +27,39 @@
   </wsp:Policy>
   <wsdl:types>
     <xsd:schema targetNamespace="http://tempuri.org/Imports">
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd0" namespace="http://tempuri.org/" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/ClientesEntities" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/UsuariosEntities" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd5" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
-      <xsd:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd6" namespace="http://schemas.datacontract.org/2004/07/System.Data.Linq" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/ClientesEntities" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/UsuariosEntities" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd5" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+      <xsd:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd6" namespace="http://schemas.datacontract.org/2004/07/System.Data.Linq" />
     </xsd:schema>
   </wsdl:types>
+  <wsdl:message name="IFacturaMeCrContract_GetSiguienteReciboCXP_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetSiguienteReciboCXP" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetSiguienteReciboCXP_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetSiguienteReciboCXPResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertAbonoCxP_InputMessage">
+    <wsdl:part name="parameters" element="tns:InsertAbonoCxP" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertAbonoCxP_OutputMessage">
+    <wsdl:part name="parameters" element="tns:InsertAbonoCxPResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetReporteConsolidado_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetReporteConsolidado" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetReporteConsolidado_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetReporteConsolidadoResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetAnalisisCartera_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetAnalisisCartera" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetAnalisisCartera_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetAnalisisCarteraResponse" />
+  </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetReporteInfoProveedor_InputMessage">
     <wsdl:part name="parameters" element="tns:GetReporteInfoProveedor" />
   </wsdl:message>
@@ -66,6 +90,12 @@
   <wsdl:message name="IFacturaMeCrContract_F_CLIENTE_CodAct_InsertaActualiza_OutputMessage">
     <wsdl:part name="parameters" element="tns:F_CLIENTE_CodAct_InsertaActualizaResponse" />
   </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_CLIENTE_CodAct_InsertaActualiza_InputMessage">
+    <wsdl:part name="parameters" element="tns:CLIENTE_CodAct_InsertaActualiza" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_CLIENTE_CodAct_InsertaActualiza_OutputMessage">
+    <wsdl:part name="parameters" element="tns:CLIENTE_CodAct_InsertaActualizaResponse" />
+  </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_UpdateRutaLogo_InputMessage">
     <wsdl:part name="parameters" element="tns:UpdateRutaLogo" />
   </wsdl:message>
@@ -83,6 +113,24 @@
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetAllCodActividades_OutputMessage">
     <wsdl:part name="parameters" element="tns:GetAllCodActividadesResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetAllCodActividadesCliente_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetAllCodActividadesCliente" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetAllCodActividadesCliente_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetAllCodActividadesClienteResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetActividadesCliente_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetActividadesCliente" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetActividadesCliente_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetActividadesClienteResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_DeleteActividadCliente_InputMessage">
+    <wsdl:part name="parameters" element="tns:DeleteActividadCliente" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_DeleteActividadCliente_OutputMessage">
+    <wsdl:part name="parameters" element="tns:DeleteActividadClienteResponse" />
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetPaisCulture_InputMessage">
     <wsdl:part name="parameters" element="tns:GetPaisCulture" />
@@ -324,6 +372,18 @@
   <wsdl:message name="IFacturaMeCrContract_RegistraCliente_App_OutputMessage">
     <wsdl:part name="parameters" element="tns:RegistraCliente_AppResponse" />
   </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetCatalogosCabys_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetCatalogosCabys" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetCatalogosCabys_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetCatalogosCabysResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertUpdateCabys_InputMessage">
+    <wsdl:part name="parameters" element="tns:InsertUpdateCabys" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertUpdateCabys_OutputMessage">
+    <wsdl:part name="parameters" element="tns:InsertUpdateCabysResponse" />
+  </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetClientes_InputMessage">
     <wsdl:part name="parameters" element="tns:GetClientes" />
   </wsdl:message>
@@ -449,6 +509,12 @@
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetCodTarifaSrv_OutputMessage">
     <wsdl:part name="parameters" element="tns:GetCodTarifaSrvResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetNaturalezaDescuento_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetNaturalezaDescuento" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetNaturalezaDescuento_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetNaturalezaDescuentoResponse" />
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetProvincias_InputMessage">
     <wsdl:part name="parameters" element="tns:GetProvincias" />
@@ -587,6 +653,12 @@
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_InsertFacturaXML_OutputMessage">
     <wsdl:part name="parameters" element="tns:InsertFacturaXMLResponse" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertFacturaXML_44_InputMessage">
+    <wsdl:part name="parameters" element="tns:InsertFacturaXML_44" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_InsertFacturaXML_44_OutputMessage">
+    <wsdl:part name="parameters" element="tns:InsertFacturaXML_44Response" />
   </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_Import_IW_ENC_FACTURAInsert_InputMessage">
     <wsdl:part name="parameters" element="tns:Import_IW_ENC_FACTURAInsert" />
@@ -750,6 +822,12 @@
   <wsdl:message name="IFacturaMeCrContract_GetSaldoByFactura_OutputMessage">
     <wsdl:part name="parameters" element="tns:GetSaldoByFacturaResponse" />
   </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetInfoAbonoTodos_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetInfoAbonoTodos" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetInfoAbonoTodos_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetInfoAbonoTodosResponse" />
+  </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetDatosDetFactura_InputMessage">
     <wsdl:part name="parameters" element="tns:GetDatosDetFactura" />
   </wsdl:message>
@@ -786,6 +864,12 @@
   <wsdl:message name="IFacturaMeCrContract_GetFacturasAllReporte_OutputMessage">
     <wsdl:part name="parameters" element="tns:GetFacturasAllReporteResponse" />
   </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetEstadoFacturasReporte_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetEstadoFacturasReporte" />
+  </wsdl:message>
+  <wsdl:message name="IFacturaMeCrContract_GetEstadoFacturasReporte_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetEstadoFacturasReporteResponse" />
+  </wsdl:message>
   <wsdl:message name="IFacturaMeCrContract_GetDatosFacturaReporte_InputMessage">
     <wsdl:part name="parameters" element="tns:GetDatosFacturaReporte" />
   </wsdl:message>
@@ -810,31 +894,23 @@
   <wsdl:message name="IFacturaMeCrContract_GetProveedores_OutputMessage">
     <wsdl:part name="parameters" element="tns:GetProveedoresResponse" />
   </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetSiguienteReciboCXP_InputMessage">
-    <wsdl:part name="parameters" element="tns:GetSiguienteReciboCXP" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetSiguienteReciboCXP_OutputMessage">
-    <wsdl:part name="parameters" element="tns:GetSiguienteReciboCXPResponse" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_InsertAbonoCxP_InputMessage">
-    <wsdl:part name="parameters" element="tns:InsertAbonoCxP" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_InsertAbonoCxP_OutputMessage">
-    <wsdl:part name="parameters" element="tns:InsertAbonoCxPResponse" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetReporteConsolidado_InputMessage">
-    <wsdl:part name="parameters" element="tns:GetReporteConsolidado" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetReporteConsolidado_OutputMessage">
-    <wsdl:part name="parameters" element="tns:GetReporteConsolidadoResponse" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetAnalisisCartera_InputMessage">
-    <wsdl:part name="parameters" element="tns:GetAnalisisCartera" />
-  </wsdl:message>
-  <wsdl:message name="IFacturaMeCrContract_GetAnalisisCartera_OutputMessage">
-    <wsdl:part name="parameters" element="tns:GetAnalisisCarteraResponse" />
-  </wsdl:message>
   <wsdl:portType name="IFacturaMeCrContract">
+    <wsdl:operation name="GetSiguienteReciboCXP">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" message="tns:IFacturaMeCrContract_GetSiguienteReciboCXP_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse" message="tns:IFacturaMeCrContract_GetSiguienteReciboCXP_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="InsertAbonoCxP">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" message="tns:IFacturaMeCrContract_InsertAbonoCxP_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse" message="tns:IFacturaMeCrContract_InsertAbonoCxP_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetReporteConsolidado">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" message="tns:IFacturaMeCrContract_GetReporteConsolidado_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse" message="tns:IFacturaMeCrContract_GetReporteConsolidado_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAnalisisCartera">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" message="tns:IFacturaMeCrContract_GetAnalisisCartera_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse" message="tns:IFacturaMeCrContract_GetAnalisisCartera_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="GetReporteInfoProveedor">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedor" message="tns:IFacturaMeCrContract_GetReporteInfoProveedor_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedorResponse" message="tns:IFacturaMeCrContract_GetReporteInfoProveedor_OutputMessage" />
@@ -855,6 +931,10 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/F_CLIENTE_CodAct_InsertaActualiza" message="tns:IFacturaMeCrContract_F_CLIENTE_CodAct_InsertaActualiza_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/F_CLIENTE_CodAct_InsertaActualizaResponse" message="tns:IFacturaMeCrContract_F_CLIENTE_CodAct_InsertaActualiza_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="CLIENTE_CodAct_InsertaActualiza">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualiza" message="tns:IFacturaMeCrContract_CLIENTE_CodAct_InsertaActualiza_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualizaResponse" message="tns:IFacturaMeCrContract_CLIENTE_CodAct_InsertaActualiza_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="UpdateRutaLogo">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogo" message="tns:IFacturaMeCrContract_UpdateRutaLogo_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogoResponse" message="tns:IFacturaMeCrContract_UpdateRutaLogo_OutputMessage" />
@@ -866,6 +946,18 @@
     <wsdl:operation name="GetAllCodActividades">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividades" message="tns:IFacturaMeCrContract_GetAllCodActividades_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesResponse" message="tns:IFacturaMeCrContract_GetAllCodActividades_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAllCodActividadesCliente">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesCliente" message="tns:IFacturaMeCrContract_GetAllCodActividadesCliente_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesClienteResponse" message="tns:IFacturaMeCrContract_GetAllCodActividadesCliente_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetActividadesCliente">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetActividadesCliente" message="tns:IFacturaMeCrContract_GetActividadesCliente_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetActividadesClienteResponse" message="tns:IFacturaMeCrContract_GetActividadesCliente_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="DeleteActividadCliente">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/DeleteActividadCliente" message="tns:IFacturaMeCrContract_DeleteActividadCliente_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/DeleteActividadClienteResponse" message="tns:IFacturaMeCrContract_DeleteActividadCliente_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="GetPaisCulture">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetPaisCulture" message="tns:IFacturaMeCrContract_GetPaisCulture_InputMessage" />
@@ -1027,6 +1119,14 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/RegistraCliente_App" message="tns:IFacturaMeCrContract_RegistraCliente_App_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/RegistraCliente_AppResponse" message="tns:IFacturaMeCrContract_RegistraCliente_App_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="GetCatalogosCabys">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabys" message="tns:IFacturaMeCrContract_GetCatalogosCabys_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabysResponse" message="tns:IFacturaMeCrContract_GetCatalogosCabys_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="InsertUpdateCabys">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabys" message="tns:IFacturaMeCrContract_InsertUpdateCabys_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabysResponse" message="tns:IFacturaMeCrContract_InsertUpdateCabys_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="GetClientes">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetClientes" message="tns:IFacturaMeCrContract_GetClientes_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetClientesResponse" message="tns:IFacturaMeCrContract_GetClientes_OutputMessage" />
@@ -1110,6 +1210,10 @@
     <wsdl:operation name="GetCodTarifaSrv">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrv" message="tns:IFacturaMeCrContract_GetCodTarifaSrv_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrvResponse" message="tns:IFacturaMeCrContract_GetCodTarifaSrv_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetNaturalezaDescuento">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuento" message="tns:IFacturaMeCrContract_GetNaturalezaDescuento_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuentoResponse" message="tns:IFacturaMeCrContract_GetNaturalezaDescuento_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="GetProvincias">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetProvincias" message="tns:IFacturaMeCrContract_GetProvincias_InputMessage" />
@@ -1202,6 +1306,10 @@
     <wsdl:operation name="InsertFacturaXML">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML" message="tns:IFacturaMeCrContract_InsertFacturaXML_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXMLResponse" message="tns:IFacturaMeCrContract_InsertFacturaXML_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="InsertFacturaXML_44">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44" message="tns:IFacturaMeCrContract_InsertFacturaXML_44_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44Response" message="tns:IFacturaMeCrContract_InsertFacturaXML_44_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="Import_IW_ENC_FACTURAInsert">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/Import_IW_ENC_FACTURAInsert" message="tns:IFacturaMeCrContract_Import_IW_ENC_FACTURAInsert_InputMessage" />
@@ -1311,6 +1419,10 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSaldoByFactura" message="tns:IFacturaMeCrContract_GetSaldoByFactura_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSaldoByFacturaResponse" message="tns:IFacturaMeCrContract_GetSaldoByFactura_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="GetInfoAbonoTodos">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodos" message="tns:IFacturaMeCrContract_GetInfoAbonoTodos_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodosResponse" message="tns:IFacturaMeCrContract_GetInfoAbonoTodos_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="GetDatosDetFactura">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFactura" message="tns:IFacturaMeCrContract_GetDatosDetFactura_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFacturaResponse" message="tns:IFacturaMeCrContract_GetDatosDetFactura_OutputMessage" />
@@ -1335,6 +1447,10 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetFacturasAllReporte" message="tns:IFacturaMeCrContract_GetFacturasAllReporte_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetFacturasAllReporteResponse" message="tns:IFacturaMeCrContract_GetFacturasAllReporte_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="GetEstadoFacturasReporte">
+      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporte" message="tns:IFacturaMeCrContract_GetEstadoFacturasReporte_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporteResponse" message="tns:IFacturaMeCrContract_GetEstadoFacturasReporte_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="GetDatosFacturaReporte">
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporte" message="tns:IFacturaMeCrContract_GetDatosFacturaReporte_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporteResponse" message="tns:IFacturaMeCrContract_GetDatosFacturaReporte_OutputMessage" />
@@ -1351,25 +1467,45 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetProveedores" message="tns:IFacturaMeCrContract_GetProveedores_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetProveedoresResponse" message="tns:IFacturaMeCrContract_GetProveedores_OutputMessage" />
     </wsdl:operation>
-    <wsdl:operation name="GetSiguienteReciboCXP">
-      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" message="tns:IFacturaMeCrContract_GetSiguienteReciboCXP_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXPResponse" message="tns:IFacturaMeCrContract_GetSiguienteReciboCXP_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="InsertAbonoCxP">
-      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" message="tns:IFacturaMeCrContract_InsertAbonoCxP_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxPResponse" message="tns:IFacturaMeCrContract_InsertAbonoCxP_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="GetReporteConsolidado">
-      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" message="tns:IFacturaMeCrContract_GetReporteConsolidado_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidadoResponse" message="tns:IFacturaMeCrContract_GetReporteConsolidado_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="GetAnalisisCartera">
-      <wsdl:input wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" message="tns:IFacturaMeCrContract_GetAnalisisCartera_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCarteraResponse" message="tns:IFacturaMeCrContract_GetAnalisisCartera_OutputMessage" />
-    </wsdl:operation>
   </wsdl:portType>
   <wsdl:binding name="BasicHttpBinding_IFacturaMeCrContract" type="tns:IFacturaMeCrContract">
     <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetSiguienteReciboCXP">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertAbonoCxP">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetReporteConsolidado">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAnalisisCartera">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetReporteInfoProveedor">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedor" style="document" />
       <wsdl:input>
@@ -1415,6 +1551,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="CLIENTE_CodAct_InsertaActualiza">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualiza" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="UpdateRutaLogo">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogo" style="document" />
       <wsdl:input>
@@ -1435,6 +1580,33 @@
     </wsdl:operation>
     <wsdl:operation name="GetAllCodActividades">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividades" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAllCodActividadesCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesCliente" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetActividadesCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetActividadesCliente" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteActividadCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/DeleteActividadCliente" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -1802,6 +1974,24 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetCatalogosCabys">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabys" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertUpdateCabys">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabys" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetClientes">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetClientes" style="document" />
       <wsdl:input>
@@ -1984,6 +2174,15 @@
     </wsdl:operation>
     <wsdl:operation name="GetCodTarifaSrv">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrv" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNaturalezaDescuento">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuento" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -2191,6 +2390,15 @@
     </wsdl:operation>
     <wsdl:operation name="InsertFacturaXML">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertFacturaXML_44">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -2441,6 +2649,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetInfoAbonoTodos">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodos" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetDatosDetFactura">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFactura" style="document" />
       <wsdl:input>
@@ -2495,6 +2712,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetEstadoFacturasReporte">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporte" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetDatosFacturaReporte">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporte" style="document" />
       <wsdl:input>
@@ -2524,42 +2750,6 @@
     </wsdl:operation>
     <wsdl:operation name="GetProveedores">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetProveedores" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="GetSiguienteReciboCXP">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="InsertAbonoCxP">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="GetReporteConsolidado">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="GetAnalisisCartera">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -2571,6 +2761,42 @@
   <wsdl:binding name="BasicHttpsBinding_IFacturaMeCrContract" type="tns:IFacturaMeCrContract">
     <wsp:PolicyReference URI="#BasicHttpsBinding_IFacturaMeCrContract_policy" />
     <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetSiguienteReciboCXP">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertAbonoCxP">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetReporteConsolidado">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAnalisisCartera">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetReporteInfoProveedor">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteInfoProveedor" style="document" />
       <wsdl:input>
@@ -2616,6 +2842,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="CLIENTE_CodAct_InsertaActualiza">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/CLIENTE_CodAct_InsertaActualiza" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="UpdateRutaLogo">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/UpdateRutaLogo" style="document" />
       <wsdl:input>
@@ -2636,6 +2871,33 @@
     </wsdl:operation>
     <wsdl:operation name="GetAllCodActividades">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividades" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAllCodActividadesCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAllCodActividadesCliente" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetActividadesCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetActividadesCliente" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteActividadCliente">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/DeleteActividadCliente" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -3003,6 +3265,24 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetCatalogosCabys">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetCatalogosCabys" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertUpdateCabys">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertUpdateCabys" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetClientes">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetClientes" style="document" />
       <wsdl:input>
@@ -3185,6 +3465,15 @@
     </wsdl:operation>
     <wsdl:operation name="GetCodTarifaSrv">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetCodTarifaSrv" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNaturalezaDescuento">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetNaturalezaDescuento" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -3392,6 +3681,15 @@
     </wsdl:operation>
     <wsdl:operation name="InsertFacturaXML">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="InsertFacturaXML_44">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertFacturaXML_44" style="document" />
       <wsdl:input>
         <soap:body use="literal" />
       </wsdl:input>
@@ -3642,6 +3940,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetInfoAbonoTodos">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetInfoAbonoTodos" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetDatosDetFactura">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetDatosDetFactura" style="document" />
       <wsdl:input>
@@ -3696,6 +4003,15 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="GetEstadoFacturasReporte">
+      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetEstadoFacturasReporte" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="GetDatosFacturaReporte">
       <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetDatosFacturaReporte" style="document" />
       <wsdl:input>
@@ -3732,49 +4048,13 @@
         <soap:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
-    <wsdl:operation name="GetSiguienteReciboCXP">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetSiguienteReciboCXP" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="InsertAbonoCxP">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/InsertAbonoCxP" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="GetReporteConsolidado">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetReporteConsolidado" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="GetAnalisisCartera">
-      <soap:operation soapAction="http://tempuri.org/IFacturaMeCrContract/GetAnalisisCartera" style="document" />
-      <wsdl:input>
-        <soap:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
   </wsdl:binding>
   <wsdl:service name="FacturaMeCrService">
     <wsdl:port name="BasicHttpBinding_IFacturaMeCrContract" binding="tns:BasicHttpBinding_IFacturaMeCrContract">
-      <soap:address location="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" />
+      <soap:address location="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" />
     </wsdl:port>
     <wsdl:port name="BasicHttpsBinding_IFacturaMeCrContract" binding="tns:BasicHttpsBinding_IFacturaMeCrContract">
-      <soap:address location="https://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" />
+      <soap:address location="https://adminlte.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc" />
     </wsdl:port>
   </wsdl:service>
 </wsdl:definitions>

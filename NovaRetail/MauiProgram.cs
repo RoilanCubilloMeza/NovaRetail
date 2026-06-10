@@ -24,7 +24,7 @@ public static class MauiProgram
         // Configuración centralizada de URLs
         builder.Services.AddSingleton(new ApiSettings
         {
-            BaseUrls = ["http://localhost:52500"]
+            BaseUrls = ["http://192.168.137.217:2135/"]
         });
 
         // Services

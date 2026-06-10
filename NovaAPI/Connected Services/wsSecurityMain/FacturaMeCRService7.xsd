@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:ser="http://schemas.microsoft.com/2003/10/Serialization/" xmlns:tns="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
-  <xs:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd6" namespace="http://schemas.datacontract.org/2004/07/System.Data.Linq" />
-  <xs:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd5" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
-  <xs:import schemaLocation="http://demo.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/UsuariosEntities" />
+<xs:schema xmlns:tns="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" xmlns:ser="http://schemas.microsoft.com/2003/10/Serialization/" elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/FacturaMeCR.BusinessEntities" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+  <xs:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd6" namespace="http://schemas.datacontract.org/2004/07/System.Data.Linq" />
+  <xs:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd5" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+  <xs:import schemaLocation="http://login.facturamecr.com/WsFacturameCR/FacturaMeCRService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/UsuariosEntities" />
+  <xs:complexType name="AbonoEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="decMontoAbono" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decSaldoActual" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decSaldoAnterior" type="xs:decimal" />
+      <xs:element minOccurs="0" name="dtFechaREcibo" type="xs:dateTime" />
+      <xs:element minOccurs="0" name="dtFechaVencimiento" type="xs:dateTime" />
+      <xs:element minOccurs="0" name="intIdCliente" type="xs:int" />
+      <xs:element minOccurs="0" name="intIdFacturaRef" type="xs:int" />
+      <xs:element minOccurs="0" name="intIdRecibo" type="xs:int" />
+      <xs:element minOccurs="0" name="strClave50" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strCodCliente" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strComentarios" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strFechaVencimiento" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="AbonoEntitie" nillable="true" type="tns:AbonoEntitie" />
   <xs:complexType name="ArrayOfCarteraEntitie">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="unbounded" name="CarteraEntitie" nillable="true" type="tns:CarteraEntitie" />
@@ -222,8 +239,6 @@
   <xs:element name="ADM_PlanClienteEntitie" nillable="true" type="tns:ADM_PlanClienteEntitie" />
   <xs:complexType name="F_Cliente_AppEntitie">
     <xs:sequence>
-      <xs:element minOccurs="0" name="AC_LOGO_PARTNER" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="AC_NOMBRE_PARTNER" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="CEDULA_CLIENTE" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="DEV_MODELO" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="DEV_NAME" nillable="true" type="xs:string" />
@@ -250,37 +265,21 @@
       <xs:element minOccurs="0" name="SMTP_CODIGO" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="SMTP_DEVICE" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="TELEFONO" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_ALERTA_PROMOS" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_CAMBIAR_PRECIOS" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_CLAVE" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_CLIENTES_CREA" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_CLIENTES_EDITA" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_COD_VENDEDOR" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_DESCUENTOS_MODO" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_DESC_GLOBAL" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_EMAIL" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_ESTADO" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FOOTER_OP" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FOOTER_PROFORMA" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FOOTER_VENTAS" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FORMATO_OP" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FORMATO_PROFORMA" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_FORMATO_RECIBOS" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_GET_CLIENTE_VENDEDOR" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_HORARIO_ID" nillable="true" type="xs:int" />
       <xs:element minOccurs="0" name="US_IDIOMA" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_LOGIN" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_LVL_PRICE" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_NOMBRE" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_OFFLINE" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_ORDEN_FORMATO" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_ORDEN_VER_PRECIOS" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_ORDEN_VER_TOTALES" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_PERMITE_CENTRAL" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_STOREID" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_SYNC_CLIENTES" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_SYNC_COTIZA" nillable="true" type="xs:short" />
-      <xs:element minOccurs="0" name="US_SYNC_FREC" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_SYNC_ORDENES" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_SYNC_PRODUCTOS" nillable="true" type="xs:short" />
       <xs:element minOccurs="0" name="US_SYNC_VENTAS" nillable="true" type="xs:short" />
@@ -288,11 +287,24 @@
       <xs:element minOccurs="0" name="US_TOKEN_FECHA_VENCE" nillable="true" type="xs:dateTime" />
       <xs:element minOccurs="0" name="US_URL_API_LOCAL" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_URL_API_UNIVERSAL" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="US_URL_CENTRAL" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="US_URL_IMAGENES" nillable="true" type="xs:string" />
     </xs:sequence>
   </xs:complexType>
   <xs:element name="F_Cliente_AppEntitie" nillable="true" type="tns:F_Cliente_AppEntitie" />
+  <xs:complexType name="ArrayOfCatalogoCabysEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="CatalogoCabysEntitie" nillable="true" type="tns:CatalogoCabysEntitie" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfCatalogoCabysEntitie" nillable="true" type="tns:ArrayOfCatalogoCabysEntitie" />
+  <xs:complexType name="CatalogoCabysEntitie">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="strCodigo" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strDescripcion" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strImpuesto" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="CatalogoCabysEntitie" nillable="true" type="tns:CatalogoCabysEntitie" />
   <xs:complexType name="ArrayOfProductoEntitie">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="unbounded" name="ProductoEntitie" nillable="true" type="tns:ProductoEntitie" />
@@ -443,23 +455,6 @@
     </xs:sequence>
   </xs:complexType>
   <xs:element name="FacturaEntitie" nillable="true" type="tns:FacturaEntitie" />
-  <xs:complexType name="AbonoEntitie">
-    <xs:sequence>
-      <xs:element minOccurs="0" name="decMontoAbono" type="xs:decimal" />
-      <xs:element minOccurs="0" name="decSaldoActual" type="xs:decimal" />
-      <xs:element minOccurs="0" name="decSaldoAnterior" type="xs:decimal" />
-      <xs:element minOccurs="0" name="dtFechaREcibo" type="xs:dateTime" />
-      <xs:element minOccurs="0" name="dtFechaVencimiento" type="xs:dateTime" />
-      <xs:element minOccurs="0" name="intIdCliente" type="xs:int" />
-      <xs:element minOccurs="0" name="intIdFacturaRef" type="xs:int" />
-      <xs:element minOccurs="0" name="intIdRecibo" type="xs:int" />
-      <xs:element minOccurs="0" name="strClave50" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="strCodCliente" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="strComentarios" nillable="true" type="xs:string" />
-      <xs:element minOccurs="0" name="strFechaVencimiento" nillable="true" type="xs:string" />
-    </xs:sequence>
-  </xs:complexType>
-  <xs:element name="AbonoEntitie" nillable="true" type="tns:AbonoEntitie" />
   <xs:complexType name="ArrayOfF_ClienteEntitie">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="unbounded" name="F_ClienteEntitie" nillable="true" type="tns:F_ClienteEntitie" />
@@ -574,6 +569,34 @@
     </xs:sequence>
   </xs:complexType>
   <xs:element name="SaldosFacturaEntite" nillable="true" type="tns:SaldosFacturaEntite" />
+  <xs:complexType name="ArrayOfReciboDetalleDto">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="ReciboDetalleDto" nillable="true" type="tns:ReciboDetalleDto" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ArrayOfReciboDetalleDto" nillable="true" type="tns:ArrayOfReciboDetalleDto" />
+  <xs:complexType name="ReciboDetalleDto">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="CedulaOrigen" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ClienteCedula" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ClienteDirFisica" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ClienteRazonSocial" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ClienteTelefono1" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="CodMoneda" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Comentarios" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="DirFisicaOrigen" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="EmailOrigen" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="EmisorNombreComercial" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="EmisorSitioWeb" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Factura" type="xs:int" />
+      <xs:element minOccurs="0" name="FechaRecibo" type="xs:dateTime" />
+      <xs:element minOccurs="0" name="IdRecibo" type="xs:int" />
+      <xs:element minOccurs="0" name="MontoAbono" type="xs:decimal" />
+      <xs:element minOccurs="0" name="RazonSocialOrigen" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="TelefonoOrigen" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ReciboDetalleDto" nillable="true" type="tns:ReciboDetalleDto" />
   <xs:complexType name="ArrayOfDetFacturaReporteEntitie">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="unbounded" name="DetFacturaReporteEntitie" nillable="true" type="tns:DetFacturaReporteEntitie" />
@@ -599,6 +622,7 @@
       <xs:element minOccurs="0" name="decDescuento" type="xs:decimal" />
       <xs:element minOccurs="0" name="decImpuestos" type="xs:decimal" />
       <xs:element minOccurs="0" name="decSubtotal" type="xs:decimal" />
+      <xs:element minOccurs="0" name="decTipoCambio" type="xs:decimal" />
       <xs:element minOccurs="0" name="decTotalComprobante" type="xs:decimal" />
       <xs:element minOccurs="0" name="dtFechaEmision" type="xs:dateTime" />
       <xs:element minOccurs="0" name="dtVencimiento" type="xs:dateTime" />
@@ -621,10 +645,12 @@
       <xs:element minOccurs="0" name="strEstado" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strFechaResolucion" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strNumResolucion" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strObservacion" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strOrigenCedula" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strOrigenDirFisica" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strOrigenRazon" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strOrigenTelefono" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="strRespuesta" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="strTipoDocumento" nillable="true" type="xs:string" />
       <xs:element minOccurs="0" name="stroOrigenEmail" nillable="true" type="xs:string" />
     </xs:sequence>
