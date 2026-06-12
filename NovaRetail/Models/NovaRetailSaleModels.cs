@@ -157,6 +157,10 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
     public string CashierName { get; set; } = string.Empty;
     public int RegisterNumber { get; set; }
     public string StoreName { get; set; } = string.Empty;
+    public string StoreAddress { get; set; } = string.Empty;
+    public string StorePhone { get; set; } = string.Empty;
+    public string ClientEmail { get; set; } = string.Empty;
+    public string CurrencyCode { get; set; } = "CRC";
     public decimal SubtotalColones { get; set; }
     public decimal DiscountColones { get; set; }
     public decimal ExonerationColones { get; set; }
@@ -168,7 +172,15 @@ public sealed class NovaRetailInvoiceHistoryEntryDto
     public string SecondTenderDescription { get; set; } = string.Empty;
     public decimal SecondTenderAmountColones { get; set; }
     public string CreditAccountNumber { get; set; } = string.Empty;
+    public List<NovaRetailReceiptTaxDto> TaxBreakdowns { get; set; } = new();
     public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new();
+}
+
+public sealed class NovaRetailReceiptTaxDto
+{
+    public string Description { get; set; } = string.Empty;
+    public decimal Percentage { get; set; }
+    public decimal TaxAmount { get; set; }
 }
 
 public sealed class NovaRetailInvoiceHistoryLineDto
@@ -181,7 +193,9 @@ public sealed class NovaRetailInvoiceHistoryLineDto
     public decimal Quantity { get; set; }
     public decimal TaxPercentage { get; set; }
     public decimal UnitPriceColones { get; set; }
+    public decimal FullPriceColones { get; set; }
     public decimal LineTotalColones { get; set; }
+    public decimal TaxAmountColones { get; set; }
     public bool HasDiscount { get; set; }
     public decimal DiscountPercent { get; set; }
     public bool HasExoneration { get; set; }

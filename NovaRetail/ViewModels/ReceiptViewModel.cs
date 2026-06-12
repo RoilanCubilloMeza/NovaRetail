@@ -39,6 +39,8 @@ namespace NovaRetail.ViewModels
     public sealed class ReceiptViewModel : INotifyPropertyChanged
     {
         private const int MaxPreviewItems = 250;
+        private const int ThermalPaperWidth = 48;
+        private Receipt _printReceipt = CreateEmptyReceipt();
 
         public event Action? RequestClose;
         public ICommand CloseCommand { get; }
@@ -162,6 +164,8 @@ namespace NovaRetail.ViewModels
             decimal totalColones = 0m,
             int taxSystem = 1)
         {
+            var cartSnapshot = cartItems.ToList();
+
             CompanyName = companyName ?? string.Empty;
             CedulaJuridica = cedulaJuridica ?? string.Empty;
             Clave50 = clave50 ?? string.Empty;
@@ -181,7 +185,7 @@ namespace NovaRetail.ViewModels
             StorePhone = storePhone ?? string.Empty;
 
             Items.Clear();
-            foreach (var item in cartItems)
+            foreach (var item in cartSnapshot)
             {
                 var grossUnit = item.EffectivePriceColones;
                 var grossLine = grossUnit * item.Quantity;
@@ -234,6 +238,17 @@ namespace NovaRetail.ViewModels
             SecondTenderDescription = secondTenderDescription;
             SecondTenderAmountText = secondTenderAmountColones > 0m ? $"{UiConfig.CurrencySymbol}{secondTenderAmountColones:N2}" : string.Empty;
 
+            _printReceipt = BuildReceiptFromCart(
+                cartSnapshot,
+                subtotalColones,
+                discountColones,
+                taxText,
+                totalColones,
+                tenderTotalColones,
+                changeColones,
+                secondTenderAmountColones,
+                taxSystem);
+
             OnPropertyChanged(string.Empty);
         }
 
@@ -248,7 +263,7 @@ namespace NovaRetail.ViewModels
             Clave50        = entry.Clave50;
             Consecutivo    = entry.Consecutivo;
             ComprobanteTipo = entry.ComprobanteTipo;
-            ClientEmail    = string.Empty;
+            ClientEmail    = entry.ClientEmail;
 
             TransactionNumber = entry.TransactionNumber;
             TransactionDate   = entry.Date.ToString("dd/MM/yyyy HH:mm");
@@ -257,8 +272,8 @@ namespace NovaRetail.ViewModels
             CashierName       = entry.CashierName;
             RegisterNumber    = entry.RegisterNumber;
             StoreName         = entry.StoreName;
-            StoreAddress      = string.Empty;
-            StorePhone        = string.Empty;
+            StoreAddress      = entry.StoreAddress;
+            StorePhone        = entry.StorePhone;
 
             Items.Clear();
             foreach (var line in entry.Lines)
@@ -315,6 +330,8 @@ namespace NovaRetail.ViewModels
                 ? $"{UiConfig.CurrencySymbol}{entry.SecondTenderAmountColones:N2}"
                 : string.Empty;
 
+            _printReceipt = BuildReceiptFromHistory(entry);
+
             OnPropertyChanged(string.Empty);
         }
 
@@ -343,12 +360,10 @@ namespace NovaRetail.ViewModels
             IsBusy = true;
             try
             {
-                var tempFile = BuildCacheFile("html", BuildReceiptHtml());
-                await Launcher.OpenAsync(new OpenFileRequest
-                {
-                    Title = $"Imprimir Factura #{TransactionNumber}",
-                    File  = new ReadOnlyFile(tempFile, "text/html")
-                });
+                var printerName = RawPrinterHelper.GetDefaultPrinterName();
+                var printJob = EscPosPrinter.BuildPrintJob(_printReceipt, ThermalPaperWidth);
+                await Task.Run(() => RawPrinterHelper.SendBytesToPrinter(printerName, printJob));
+                await ShowAlertAsync("Impresion", $"Comprobante enviado a '{printerName}'.");
             }
             catch (Exception ex)
             {
@@ -490,6 +505,9 @@ namespace NovaRetail.ViewModels
         }
 
         private string BuildReceiptHtml(bool autoPrint = true)
+            => ReceiptRenderer.BuildHtml(_printReceipt, autoPrint);
+
+        private string BuildLegacyReceiptHtml(bool autoPrint = true)
         {
             var rows = new StringBuilder();
             var rowNum = 0;
@@ -650,5 +668,174 @@ namespace NovaRetail.ViewModels
 
         private static string Esc(string text)
             => WebUtility.HtmlEncode(text);
+
+        private Receipt BuildReceiptFromCart(
+            IReadOnlyList<CartItemModel> cartItems,
+            decimal subtotalColones,
+            decimal discountColones,
+            string taxText,
+            decimal totalColones,
+            decimal tenderTotalColones,
+            decimal changeColones,
+            decimal secondTenderAmountColones,
+            int taxSystem)
+        {
+            var items = cartItems.Select(item =>
+            {
+                var taxRate = item.EffectiveTaxPercentage;
+                var taxFactor = taxRate > 0m ? 1m + taxRate / 100m : 1m;
+                var fullUnit = taxSystem > 0 ? item.EffectivePriceColones / taxFactor : item.EffectivePriceColones;
+                var grossLine = fullUnit * item.Quantity;
+                var discount = Math.Round(grossLine * item.DiscountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+                var netLine = grossLine - discount;
+                var tax = taxSystem > 0
+                    ? Math.Round(
+                        (item.EffectivePriceColones * item.Quantity * (1m - item.DiscountPercent / 100m)) - netLine,
+                        2,
+                        MidpointRounding.AwayFromZero)
+                    : Math.Round(netLine * taxRate / 100m, 2, MidpointRounding.AwayFromZero);
+
+                return new ReceiptItem(
+                    item.Code ?? string.Empty,
+                    item.DisplayName,
+                    item.Quantity,
+                    Math.Round(fullUnit, 2, MidpointRounding.AwayFromZero),
+                    item.DiscountPercent,
+                    discount,
+                    taxRate,
+                    tax);
+            }).ToList();
+
+            var taxAmount = ParseCurrency(taxText);
+            var paid = tenderTotalColones > 0m ? tenderTotalColones : totalColones + Math.Max(0m, changeColones);
+            var payments = new List<ReceiptPayment>();
+            if (paid > 0m)
+                payments.Add(new ReceiptPayment(string.IsNullOrWhiteSpace(TenderDescription) ? "Pago" : TenderDescription, paid));
+            if (secondTenderAmountColones > 0m)
+                payments.Add(new ReceiptPayment(string.IsNullOrWhiteSpace(SecondTenderDescription) ? "2do Pago" : SecondTenderDescription, secondTenderAmountColones));
+
+            return CreateReceipt(
+                items,
+                payments,
+                "CRC",
+                subtotalColones,
+                discountColones,
+                taxAmount,
+                totalColones);
+        }
+
+        private Receipt BuildReceiptFromHistory(InvoiceHistoryEntry entry)
+        {
+            var items = entry.Lines.Select(line =>
+            {
+                var fullPrice = line.FullPriceColones > 0m
+                    ? line.FullPriceColones
+                    : line.HasDiscount && line.DiscountPercent > 0m && line.DiscountPercent < 100m
+                        ? line.UnitPriceColones / (1m - line.DiscountPercent / 100m)
+                        : line.UnitPriceColones;
+                var explicitDiscount = Math.Max(0m, (fullPrice * line.Quantity) - line.LineTotalColones);
+
+                return new ReceiptItem(
+                    line.Code,
+                    line.DisplayName,
+                    line.Quantity,
+                    fullPrice,
+                    line.DiscountPercent,
+                    explicitDiscount,
+                    line.TaxPercentage,
+                    line.TaxAmountColones);
+            }).ToList();
+
+            var payments = new List<ReceiptPayment>();
+            var firstAmount = entry.TenderTotalColones > 0m ? entry.TenderTotalColones : entry.TotalColones;
+            if (firstAmount != 0m)
+                payments.Add(new ReceiptPayment(string.IsNullOrWhiteSpace(entry.TenderDescription) ? "Pago" : entry.TenderDescription, firstAmount));
+            if (entry.SecondTenderAmountColones > 0m)
+                payments.Add(new ReceiptPayment(string.IsNullOrWhiteSpace(entry.SecondTenderDescription) ? "2do Pago" : entry.SecondTenderDescription, entry.SecondTenderAmountColones));
+
+            return CreateReceipt(
+                items,
+                payments,
+                entry.CurrencyCode,
+                entry.SubtotalColones,
+                entry.DiscountColones,
+                entry.TaxColones,
+                entry.TotalColones);
+        }
+
+        private Receipt CreateReceipt(
+            IReadOnlyList<ReceiptItem> items,
+            IReadOnlyList<ReceiptPayment> payments,
+            string currency,
+            decimal subtotal,
+            decimal discount,
+            decimal tax,
+            decimal total)
+        {
+            return new Receipt(
+                new CompanyInfo(
+                    string.IsNullOrWhiteSpace(CompanyName) ? StoreName : CompanyName,
+                    CedulaJuridica,
+                    StoreAddress,
+                    StorePhone),
+                new CustomerInfo(ClientName, ClientId),
+                DocumentTypeName,
+                string.IsNullOrWhiteSpace(Consecutivo) ? TransactionNumber.ToString() : Consecutivo,
+                Clave50,
+                ParseReceiptDate(TransactionDate),
+                RegisterNumber.ToString(),
+                CashierName,
+                string.IsNullOrWhiteSpace(currency) ? "CRC" : currency.ToUpperInvariant(),
+                items,
+                payments,
+                new[] { "Gracias por su compra", "Conserve este comprobante" },
+                "Documento generado por NovaRetail",
+                subtotal,
+                discount,
+                tax,
+                total);
+        }
+
+        private static Receipt CreateEmptyReceipt()
+            => new(
+                new CompanyInfo("NovaRetail", string.Empty, string.Empty, string.Empty),
+                new CustomerInfo("CLIENTE CONTADO", string.Empty),
+                "COMPROBANTE",
+                string.Empty,
+                string.Empty,
+                DateTime.Now,
+                "1",
+                string.Empty,
+                "CRC",
+                Array.Empty<ReceiptItem>(),
+                Array.Empty<ReceiptPayment>(),
+                Array.Empty<string>(),
+                string.Empty);
+
+        private static DateTime ParseReceiptDate(string value)
+            => DateTime.TryParseExact(
+                value,
+                "dd/MM/yyyy HH:mm",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var date)
+                ? date
+                : DateTime.Now;
+
+        private static decimal ParseCurrency(string value)
+        {
+            var cleaned = (value ?? string.Empty)
+                .Replace(UiConfig.CurrencySymbol, string.Empty)
+                .Replace("CRC", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim();
+
+            return decimal.TryParse(
+                cleaned,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.GetCultureInfo("es-CR"),
+                out var amount)
+                    ? amount
+                    : 0m;
+        }
     }
 }

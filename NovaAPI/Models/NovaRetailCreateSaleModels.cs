@@ -309,6 +309,18 @@ namespace NovaAPI.Models
         [JsonProperty("storeName")]
         public string StoreName { get; set; } = string.Empty;
 
+        [JsonProperty("storeAddress")]
+        public string StoreAddress { get; set; } = string.Empty;
+
+        [JsonProperty("storePhone")]
+        public string StorePhone { get; set; } = string.Empty;
+
+        [JsonProperty("clientEmail")]
+        public string ClientEmail { get; set; } = string.Empty;
+
+        [JsonProperty("currencyCode")]
+        public string CurrencyCode { get; set; } = "CRC";
+
         [JsonProperty("subtotalColones")]
         public decimal SubtotalColones { get; set; }
 
@@ -342,8 +354,23 @@ namespace NovaAPI.Models
         [JsonProperty("creditAccountNumber")]
         public string CreditAccountNumber { get; set; } = string.Empty;
 
+        [JsonProperty("taxBreakdowns")]
+        public List<NovaRetailReceiptTaxDto> TaxBreakdowns { get; set; } = new List<NovaRetailReceiptTaxDto>();
+
         [JsonProperty("lines")]
         public List<NovaRetailInvoiceHistoryLineDto> Lines { get; set; } = new List<NovaRetailInvoiceHistoryLineDto>();
+    }
+
+    public class NovaRetailReceiptTaxDto
+    {
+        [JsonProperty("description")]
+        public string Description { get; set; } = string.Empty;
+
+        [JsonProperty("percentage")]
+        public decimal Percentage { get; set; }
+
+        [JsonProperty("taxAmount")]
+        public decimal TaxAmount { get; set; }
     }
 
     public class NovaRetailInvoiceHistoryLineDto
@@ -372,8 +399,14 @@ namespace NovaAPI.Models
         [JsonProperty("unitPriceColones")]
         public decimal UnitPriceColones { get; set; }
 
+        [JsonProperty("fullPriceColones")]
+        public decimal FullPriceColones { get; set; }
+
         [JsonProperty("lineTotalColones")]
         public decimal LineTotalColones { get; set; }
+
+        [JsonProperty("taxAmountColones")]
+        public decimal TaxAmountColones { get; set; }
 
         [JsonProperty("hasDiscount")]
         public bool HasDiscount { get; set; }

@@ -117,6 +117,10 @@ namespace NovaRetail.ViewModels
                 CashierName = entry.CashierName ?? string.Empty,
                 RegisterNumber = entry.RegisterNumber,
                 StoreName = entry.StoreName ?? string.Empty,
+                StoreAddress = entry.StoreAddress ?? string.Empty,
+                StorePhone = entry.StorePhone ?? string.Empty,
+                ClientEmail = entry.ClientEmail ?? string.Empty,
+                CurrencyCode = string.IsNullOrWhiteSpace(entry.CurrencyCode) ? "CRC" : entry.CurrencyCode,
                 SubtotalColones = entry.SubtotalColones,
                 DiscountColones = entry.DiscountColones,
                 ExonerationColones = entry.ExonerationColones,
@@ -127,6 +131,12 @@ namespace NovaRetail.ViewModels
                 TenderTotalColones = entry.TenderTotalColones,
                 SecondTenderDescription = entry.SecondTenderDescription ?? string.Empty,
                 SecondTenderAmountColones = entry.SecondTenderAmountColones,
+                TaxBreakdowns = entry.TaxBreakdowns.Select(tax => new InvoiceReceiptTax
+                {
+                    Description = tax.Description ?? string.Empty,
+                    Percentage = tax.Percentage,
+                    TaxAmount = tax.TaxAmount
+                }).ToList(),
                 Lines = entry.Lines.Select((line, index) => new InvoiceHistoryLine
                 {
                     LineNumber = line.LineNumber > 0 ? line.LineNumber : index + 1,
@@ -137,7 +147,9 @@ namespace NovaRetail.ViewModels
                     Quantity = line.Quantity,
                     TaxPercentage = line.TaxPercentage,
                     UnitPriceColones = line.UnitPriceColones,
+                    FullPriceColones = line.FullPriceColones,
                     LineTotalColones = line.LineTotalColones,
+                    TaxAmountColones = line.TaxAmountColones,
                     HasDiscount = line.HasDiscount,
                     DiscountPercent = line.DiscountPercent,
                     HasExoneration = line.HasExoneration,

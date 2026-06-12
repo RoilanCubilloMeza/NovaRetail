@@ -29,6 +29,9 @@
     <Compile Include="..\NovaRetail\Models\LoginUserModel.cs" Link="Source\NovaRetail\Models\LoginUserModel.cs" />
     <Compile Include="..\NovaRetail\Models\OpenLedgerEntryModel.cs" Link="Source\NovaRetail\Models\OpenLedgerEntryModel.cs" />
     <Compile Include="..\NovaRetail\Services\IdValidatorCR.cs" Link="Source\NovaRetail\Services\IdValidatorCR.cs" />
+    <Compile Include="..\NovaRetail\Services\ReceiptModels.cs" Link="Source\NovaRetail\Services\ReceiptModels.cs" />
+    <Compile Include="..\NovaRetail\Services\ReceiptRenderer.cs" Link="Source\NovaRetail\Services\ReceiptRenderer.cs" />
+    <Compile Include="..\NovaRetail\Services\EscPosPrinter.cs" Link="Source\NovaRetail\Services\EscPosPrinter.cs" />
   </ItemGroup>
 
 </Project>

@@ -30,6 +30,10 @@ public sealed class InvoiceHistoryEntry
     public string CashierName { get; set; } = string.Empty;
     public int RegisterNumber { get; set; } = 1;
     public string StoreName { get; set; } = string.Empty;
+    public string StoreAddress { get; set; } = string.Empty;
+    public string StorePhone { get; set; } = string.Empty;
+    public string ClientEmail { get; set; } = string.Empty;
+    public string CurrencyCode { get; set; } = "CRC";
 
     public decimal SubtotalColones { get; set; }
     public decimal DiscountColones { get; set; }
@@ -49,6 +53,7 @@ public sealed class InvoiceHistoryEntry
     public decimal TenderTotalColones { get; set; }
     public string SecondTenderDescription { get; set; } = string.Empty;
     public decimal SecondTenderAmountColones { get; set; }
+    public List<InvoiceReceiptTax> TaxBreakdowns { get; set; } = new();
 
     public List<InvoiceHistoryLine> Lines
     {
@@ -166,7 +171,9 @@ public sealed class InvoiceHistoryLine
     public decimal Quantity { get; set; }
     public decimal TaxPercentage { get; set; }
     public decimal UnitPriceColones { get; set; }
+    public decimal FullPriceColones { get; set; }
     public decimal LineTotalColones { get; set; }
+    public decimal TaxAmountColones { get; set; }
     public bool HasDiscount { get; set; }
     public decimal DiscountPercent { get; set; }
     public bool HasExoneration { get; set; }
@@ -184,4 +191,11 @@ public sealed class InvoiceHistoryLine
 
     private decimal DisplayAmount(decimal amount)
         => Math.Round(IsCreditNote ? -Math.Abs(amount) : amount, 2, MidpointRounding.AwayFromZero);
+}
+
+public sealed class InvoiceReceiptTax
+{
+    public string Description { get; set; } = string.Empty;
+    public decimal Percentage { get; set; }
+    public decimal TaxAmount { get; set; }
 }

@@ -351,6 +351,36 @@ namespace NovaRetail.ViewModels
                     totalColones: _totalColones,
                     taxSystem: _storeTaxSystem
                 );
+
+                try
+                {
+                    var receiptResult = await _saleService.GetInvoiceHistoryDetailAsync(result.TransactionNumber);
+                    if (receiptResult.Ok && receiptResult.Entry is not null && receiptResult.Entry.Lines.Count > 0)
+                    {
+                        var storedReceipt = MapRemoteEntry(receiptResult.Entry);
+                        storedReceipt.ChangeColones = PricingRules.RoundMoney(CheckoutVm.ChangeColones);
+                        storedReceipt.TenderDescription = string.IsNullOrWhiteSpace(storedReceipt.TenderDescription)
+                            ? tender.Description ?? string.Empty
+                            : storedReceipt.TenderDescription;
+                        storedReceipt.TenderTotalColones = CheckoutVm.HasSecondTender
+                            ? PricingRules.RoundMoney(CheckoutVm.ChangeColones > 0m ? CheckoutVm.TenderedColones : CheckoutVm.FirstTenderAmount)
+                            : CheckoutVm.ChangeColones > 0m
+                                ? PricingRules.RoundMoney(_totalColones + CheckoutVm.ChangeColones)
+                                : storedReceipt.TotalColones;
+                        storedReceipt.SecondTenderDescription = CheckoutVm.HasSecondTender && CheckoutVm.SecondTender != null
+                            ? CheckoutVm.SecondTender.Description ?? string.Empty
+                            : string.Empty;
+                        storedReceipt.SecondTenderAmountColones = CheckoutVm.HasSecondTender
+                            ? PricingRules.RoundMoney(CheckoutVm.SecondAmount)
+                            : 0m;
+                        ReceiptVm.LoadFromHistory(storedReceipt);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Receipt] No se pudo recargar desde AVS_RECEIPT_SALE_*: {ex.Message}");
+                }
+
                 IsReceiptVisible = true;
 
                 _ = SaveInvoiceHistoryAsync(result, request, tender, cartSnapshot);
@@ -416,6 +446,9 @@ namespace NovaRetail.ViewModels
                     CashierName               = currentUser?.DisplayName ?? string.Empty,
                     RegisterNumber            = _registerIdFromConfig > 0 ? _registerIdFromConfig : 1,
                     StoreName                 = _storeName,
+                    StoreAddress              = _storeAddress,
+                    StorePhone                = _storePhone,
+                    CurrencyCode              = request.CurrencyCode,
                     SubtotalColones           = _subtotalColones,
                     DiscountColones           = _discountColones,
                     ExonerationColones        = _exonerationColones,
@@ -439,8 +472,10 @@ namespace NovaRetail.ViewModels
                             Code               = item.Code ?? string.Empty,
                             Quantity           = item.Quantity,
                             TaxPercentage      = item.TaxPercentage,
+                            FullPriceColones   = grossUnit,
                             UnitPriceColones   = item.HasDiscount ? netUnit : grossUnit,
                             LineTotalColones   = item.HasDiscount ? netLine : Math.Round(grossUnit * item.Quantity, 2),
+                            TaxAmountColones   = CalculateLineTotals(item).TaxColones,
                             HasDiscount        = item.HasDiscount,
                             DiscountPercent    = item.DiscountPercent,
                             HasExoneration     = item.HasExoneration,

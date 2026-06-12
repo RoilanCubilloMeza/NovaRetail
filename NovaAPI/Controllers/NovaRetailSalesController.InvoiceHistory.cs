@@ -175,6 +175,16 @@ OPTION (RECOMPILE)";
                     cn.Open();
                     EnsureSalePerformanceIndexes(cn);
 
+                    entry = LoadSaleReceipt(cn, transactionNumber);
+                    if (entry != null)
+                    {
+                        return Request.CreateResponse(HttpStatusCode.OK, new NovaRetailInvoiceHistoryDetailResponse
+                        {
+                            Ok = true,
+                            Entry = entry
+                        });
+                    }
+
                     const string headerSql = @"
 SELECT TOP 1
     t.TransactionNumber,
